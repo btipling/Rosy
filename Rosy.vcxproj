@@ -137,11 +137,13 @@
     <ClInclude Include="rhi\RHI.h" />
     <ClInclude Include="Rosy.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="utils\utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="config\Config.cpp" />
     <ClCompile Include="rhi\RHI.cpp" />
     <ClCompile Include="Rosy.cpp" />
+    <ClCompile Include="utils\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc" />

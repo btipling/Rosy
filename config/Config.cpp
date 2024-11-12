@@ -1,5 +1,7 @@
 #include <Windows.h>
 
-void debug() {
-	OutputDebugStringW(L"Hello config!\n");
+namespace rosy_config {
+	void debug() {
+		OutputDebugStringW(L"Hello config!\n");
+	}
 }

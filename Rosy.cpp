@@ -7,8 +7,9 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
-#include "config/Config.h"
 #include "rhi/RHI.h"
+#include "config/Config.h"
+#include "utils/utils.h"
 
 int main(int argc, char* argv[])
 {
@@ -21,7 +22,20 @@ int main(int argc, char* argv[])
     window = SDL_CreateWindow("Rosy", WIDTH, HEIGHT, SDL_WINDOW_VULKAN);
     renderer = SDL_CreateRenderer(window, NULL);
 
-    RhiInitResult initResult = RhiInit();
+    rosy_config::Config cfg = {};
+    rosy_config::debug();
+
+    RhiInitResult initResult = RhiInit(cfg);
+
+    if (initResult.physicalDeviceProperties.has_value()) {
+        VkPhysicalDeviceProperties deviceProperties = initResult.physicalDeviceProperties.value();
+        rosy_utils::DebugPrintA("result device property vendor %s \n", deviceProperties.deviceName);
+        rosy_utils::DebugPrintA("result: vendor: %u \n", deviceProperties.vendorID);
+    }
+    else {
+        rosy_utils::DebugPrintA("no config!");
+    }
+
 
     bool should_run = true;
     while (should_run) {
@@ -32,7 +46,7 @@ int main(int argc, char* argv[])
                 break;
             }
             else {
-                debug();
+                // do nothing
             }
         }
     }

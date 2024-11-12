@@ -1,3 +1,12 @@
 #pragma once
+#include <cstdint>
 
-void debug();
+
+namespace rosy_config {
+
+	struct Config {
+		uint32_t device_vendor = 4318;
+	};
+
+	void debug();
+}
