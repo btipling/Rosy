@@ -35,6 +35,7 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
     std::vector<VkPhysicalDevice> m_physicalDevices;
     std::optional<VkPhysicalDeviceProperties> physicalDeviceProperties = std::nullopt;
     std::optional<VkPhysicalDeviceFeatures> physicalDeviceFeatures = std::nullopt;
+    std::optional<VkPhysicalDeviceMemoryProperties> physicalDeviceMemoryProperties = std::nullopt;
 
     if (result == VK_SUCCESS) {
         OutputDebugStringW(L"Vulkan instance created successfully!\n");
@@ -51,6 +52,10 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
                     VkPhysicalDeviceFeatures features;
                     vkGetPhysicalDeviceFeatures(device, &features);
                     physicalDeviceFeatures = features;
+                    VkPhysicalDeviceMemoryProperties memProps;
+                    vkGetPhysicalDeviceMemoryProperties(device, &memProps);
+                    physicalDeviceMemoryProperties = memProps;
+
                 }
 
             }
@@ -65,6 +70,7 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
         .instance = instance,
         .physicalDeviceProperties = physicalDeviceProperties,
         .physicalDeviceFeatures = physicalDeviceFeatures,
+        .physicalDeviceMemoryProperties = physicalDeviceMemoryProperties,
     };
     return res;
 }

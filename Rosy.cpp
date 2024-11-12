@@ -30,10 +30,15 @@ int main(int argc, char* argv[])
     if (initResult.physicalDeviceProperties.has_value()) {
         VkPhysicalDeviceProperties deviceProperties = initResult.physicalDeviceProperties.value();
         VkPhysicalDeviceFeatures deviceFeatures = initResult.physicalDeviceFeatures.value();
+        VkPhysicalDeviceMemoryProperties deviceMemProps = initResult.physicalDeviceMemoryProperties.value();
         rosy_utils::DebugPrintA("result device property vendor %s \n", deviceProperties.deviceName);
         rosy_utils::DebugPrintA("result: vendor: %u \n", deviceProperties.vendorID);
 
         rosy_utils::DebugPrintA("has multiDrawIndirect? %d \n", deviceFeatures.multiDrawIndirect);
+        for (int i = 0; i < deviceMemProps.memoryHeapCount; i++) {
+            rosy_utils::DebugPrintA("memory size: %d\n", deviceMemProps.memoryHeaps[i].size);
+            rosy_utils::DebugPrintA("memory flags: %d\n", deviceMemProps.memoryHeaps[i].flags);
+        }
     }
     else {
         rosy_utils::DebugPrintA("no config!");

@@ -8,7 +8,7 @@ struct RhiInitResult {
 	VkInstance instance;
 	std::optional<VkPhysicalDeviceProperties> physicalDeviceProperties;
 	std::optional<VkPhysicalDeviceFeatures> physicalDeviceFeatures;
-
+	std::optional<VkPhysicalDeviceMemoryProperties> physicalDeviceMemoryProperties;
 };
 
 RhiInitResult RhiInit(rosy_config::Config cfg);
