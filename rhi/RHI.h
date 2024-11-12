@@ -6,6 +6,7 @@
 struct RhiInitResult {
 	VkResult result;
 	VkInstance instance;
+	std::optional <VkPhysicalDevice> physicalDevice;
 	std::optional<VkPhysicalDeviceProperties> physicalDeviceProperties;
 	std::optional<VkPhysicalDeviceFeatures> physicalDeviceFeatures;
 	std::optional<VkPhysicalDeviceMemoryProperties> physicalDeviceMemoryProperties;

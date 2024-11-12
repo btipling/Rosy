@@ -31,6 +31,7 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
 
     VkInstance instance;
     VkResult result = vkCreateInstance(&createInfo, NULL, &instance);
+    std::optional<VkPhysicalDevice> physicalDevice;
 
     std::vector<VkPhysicalDevice> m_physicalDevices;
     std::optional<VkPhysicalDeviceProperties> physicalDeviceProperties = std::nullopt;
@@ -48,6 +49,7 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
                 VkPhysicalDeviceProperties deviceProperties;
                 vkGetPhysicalDeviceProperties(device, &deviceProperties);
                 if (deviceProperties.vendorID == cfg.device_vendor) {
+                    physicalDevice = device;
                     physicalDeviceProperties = deviceProperties;
                     VkPhysicalDeviceFeatures features;
                     vkGetPhysicalDeviceFeatures(device, &features);
@@ -68,6 +70,7 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
     struct RhiInitResult res = RhiInitResult {
         .result = result,
         .instance = instance,
+        .physicalDevice = physicalDevice,
         .physicalDeviceProperties = physicalDeviceProperties,
         .physicalDeviceFeatures = physicalDeviceFeatures,
         .physicalDeviceMemoryProperties = physicalDeviceMemoryProperties,
