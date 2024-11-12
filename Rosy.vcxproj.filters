@@ -30,12 +30,18 @@
     <ClInclude Include="config\Config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="rhi\RHI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="config\Config.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rhi\RHI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
