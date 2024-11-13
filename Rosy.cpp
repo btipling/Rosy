@@ -50,6 +50,7 @@ int main(int argc, char* argv[])
                 rosy_utils::DebugPrintA("VkQueueFamilyProperties missing stuff\n");
             }
         }
+        rosy_utils::DebugPrintA("Selected queue index %d with count: %d\n", initResult.queueIndex, initResult.queueCount);
     }
     else {
         rosy_utils::DebugPrintA("no config!");

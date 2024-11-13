@@ -2,6 +2,6 @@
 
 
 namespace rosy_utils {
-    void DebugPrintW(wchar_t* format, ...);
+    void DebugPrintW(const wchar_t* format, ...);
     void DebugPrintA(const char* format, ...);
 }

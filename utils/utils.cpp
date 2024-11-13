@@ -2,7 +2,7 @@
 #include <Windows.h>
 
 namespace rosy_utils {
-    void DebugPrintW(wchar_t* format, ...)
+    void DebugPrintW(const wchar_t* format, ...)
     {
         WCHAR buffer[4096];
         va_list args;

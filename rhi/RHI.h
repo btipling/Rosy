@@ -12,6 +12,8 @@ struct RhiInitResult {
 	std::optional<VkPhysicalDeviceFeatures> physicalDeviceFeatures;
 	std::optional<VkPhysicalDeviceMemoryProperties> physicalDeviceMemoryProperties;
 	std::optional<std::vector<VkQueueFamilyProperties>> queueFamilyProperties;
+	std::uint32_t queueIndex = 0;
+	std::uint32_t queueCount = 0;
 };
 
 RhiInitResult RhiInit(rosy_config::Config cfg);
