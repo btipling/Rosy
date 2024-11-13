@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
             rosy_utils::DebugPrintA("memory flags: %d\n", deviceMemProps.memoryHeaps[i].flags);
         }
         for (VkQueueFamilyProperties qfmp : queueFamilyPropertiesData) {
-            rosy_utils::DebugPrintA("queue count: %d\n", qfmp.queueCount);
+            rosy_utils::DebugPrintA("queue count: %d and time bits: %d\n", qfmp.queueCount, qfmp.timestampValidBits);
             if (qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT)) {
                 rosy_utils::DebugPrintA("VkQueueFamilyProperties got all the things\n");
             }
