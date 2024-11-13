@@ -88,7 +88,7 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
 	uint32_t queueIndex = 0;
 	VkPhysicalDeviceFeatures requiredFeatures;
 	memset(&requiredFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
-	VkPhysicalDeviceFeatures supportedFeaturesData = supportedFeatures.value();
+	VkPhysicalDeviceFeatures supportedFeaturesData = supportedFeatures.value_or(requiredFeatures);
 	requiredFeatures.multiDrawIndirect = supportedFeaturesData.multiDrawIndirect;
 	requiredFeatures.tessellationShader = supportedFeaturesData.tessellationShader;
 	requiredFeatures.geometryShader = supportedFeaturesData.geometryShader;
