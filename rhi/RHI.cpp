@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <SDL3/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
-#include <vector>
 #include <strsafe.h>
 #include "../config/Config.h"
 #include "../utils/utils.h"
@@ -33,30 +32,49 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
     VkResult result = vkCreateInstance(&createInfo, NULL, &instance);
     std::optional<VkPhysicalDevice> physicalDevice;
 
-    std::vector<VkPhysicalDevice> m_physicalDevices;
+    std::vector<VkPhysicalDevice> physicalDevices;
     std::optional<VkPhysicalDeviceProperties> physicalDeviceProperties = std::nullopt;
     std::optional<VkPhysicalDeviceFeatures> physicalDeviceFeatures = std::nullopt;
     std::optional<VkPhysicalDeviceMemoryProperties> physicalDeviceMemoryProperties = std::nullopt;
+    std::optional<std::vector<VkQueueFamilyProperties>> queueFamilyProperties = std::nullopt;
 
     if (result == VK_SUCCESS) {
         OutputDebugStringW(L"Vulkan instance created successfully!\n");
         uint32_t physicalDeviceCount = 0;
         result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
         if (result == VK_SUCCESS) {
-            m_physicalDevices.resize(physicalDeviceCount);
-            vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, &m_physicalDevices[0]);
-            for (const VkPhysicalDevice& device : m_physicalDevices) {
+            physicalDevices.resize(physicalDeviceCount);
+            vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, &physicalDevices[0]);
+            for (const VkPhysicalDevice& device : physicalDevices) {
+                // get device properties
                 VkPhysicalDeviceProperties deviceProperties;
                 vkGetPhysicalDeviceProperties(device, &deviceProperties);
                 if (deviceProperties.vendorID == cfg.device_vendor) {
-                    physicalDevice = device;
-                    physicalDeviceProperties = deviceProperties;
-                    VkPhysicalDeviceFeatures features;
-                    vkGetPhysicalDeviceFeatures(device, &features);
-                    physicalDeviceFeatures = features;
-                    VkPhysicalDeviceMemoryProperties memProps;
-                    vkGetPhysicalDeviceMemoryProperties(device, &memProps);
-                    physicalDeviceMemoryProperties = memProps;
+                    {
+                        physicalDevice = device;
+                        physicalDeviceProperties = deviceProperties;
+                    }
+                    {
+                        // features
+                        VkPhysicalDeviceFeatures features;
+                        vkGetPhysicalDeviceFeatures(device, &features);
+                        physicalDeviceFeatures = features;
+                    }
+                    {
+                        // memory
+                        VkPhysicalDeviceMemoryProperties memProps;
+                        vkGetPhysicalDeviceMemoryProperties(device, &memProps);
+                        physicalDeviceMemoryProperties = memProps;
+                    }
+                    {
+                        // queues
+                        uint32_t queueCount = 0;
+                        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueCount, nullptr);
+                        std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData;
+                        queueFamilyPropertiesData.resize(queueCount);
+                        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueCount, &queueFamilyPropertiesData[0]);
+                        queueFamilyProperties = queueFamilyPropertiesData;
+                    }
 
                 }
 
@@ -74,6 +92,7 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
         .physicalDeviceProperties = physicalDeviceProperties,
         .physicalDeviceFeatures = physicalDeviceFeatures,
         .physicalDeviceMemoryProperties = physicalDeviceMemoryProperties,
+        .queueFamilyProperties = queueFamilyProperties,
     };
     return res;
 }

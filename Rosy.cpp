@@ -7,6 +7,7 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
+#include <vector>
 #include "rhi/RHI.h"
 #include "config/Config.h"
 #include "utils/utils.h"
@@ -31,6 +32,7 @@ int main(int argc, char* argv[])
         VkPhysicalDeviceProperties deviceProperties = initResult.physicalDeviceProperties.value();
         VkPhysicalDeviceFeatures deviceFeatures = initResult.physicalDeviceFeatures.value();
         VkPhysicalDeviceMemoryProperties deviceMemProps = initResult.physicalDeviceMemoryProperties.value();
+        std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = initResult.queueFamilyProperties.value();
         rosy_utils::DebugPrintA("result device property vendor %s \n", deviceProperties.deviceName);
         rosy_utils::DebugPrintA("result: vendor: %u \n", deviceProperties.vendorID);
 
@@ -38,6 +40,15 @@ int main(int argc, char* argv[])
         for (int i = 0; i < deviceMemProps.memoryHeapCount; i++) {
             rosy_utils::DebugPrintA("memory size: %d\n", deviceMemProps.memoryHeaps[i].size);
             rosy_utils::DebugPrintA("memory flags: %d\n", deviceMemProps.memoryHeaps[i].flags);
+        }
+        for (VkQueueFamilyProperties qfmp : queueFamilyPropertiesData) {
+            rosy_utils::DebugPrintA("queue count: %d\n", qfmp.queueCount);
+            if (qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT)) {
+                rosy_utils::DebugPrintA("VkQueueFamilyProperties got all the things\n");
+            }
+            else {
+                rosy_utils::DebugPrintA("VkQueueFamilyProperties missing stuff\n");
+            }
         }
     }
     else {
