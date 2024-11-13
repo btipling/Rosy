@@ -34,9 +34,10 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
 
 	std::vector<VkPhysicalDevice> physicalDevices;
 	std::optional<VkPhysicalDeviceProperties> physicalDeviceProperties = std::nullopt;
-	std::optional<VkPhysicalDeviceFeatures> physicalDeviceFeatures = std::nullopt;
+	std::optional<VkPhysicalDeviceFeatures> supportedFeatures = std::nullopt;
 	std::optional<VkPhysicalDeviceMemoryProperties> physicalDeviceMemoryProperties = std::nullopt;
 	std::optional<std::vector<VkQueueFamilyProperties>> queueFamilyProperties = std::nullopt;
+	std::optional<VkDevice> device;
 
 	if (result == VK_SUCCESS) {
 		OutputDebugStringW(L"Vulkan instance created successfully!\n");
@@ -45,34 +46,34 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
 		if (result == VK_SUCCESS) {
 			physicalDevices.resize(physicalDeviceCount);
 			vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, &physicalDevices[0]);
-			for (const VkPhysicalDevice& device : physicalDevices) {
+			for (const VkPhysicalDevice& p_device : physicalDevices) {
 				// get device properties
 				VkPhysicalDeviceProperties deviceProperties;
-				vkGetPhysicalDeviceProperties(device, &deviceProperties);
+				vkGetPhysicalDeviceProperties(p_device, &deviceProperties);
 				if (deviceProperties.vendorID == cfg.device_vendor) {
 					{
-						physicalDevice = device;
+						physicalDevice = p_device;
 						physicalDeviceProperties = deviceProperties;
 					}
 					{
 						// features
 						VkPhysicalDeviceFeatures features;
-						vkGetPhysicalDeviceFeatures(device, &features);
-						physicalDeviceFeatures = features;
+						vkGetPhysicalDeviceFeatures(p_device, &features);
+						supportedFeatures = features;
 					}
 					{
 						// memory
 						VkPhysicalDeviceMemoryProperties memProps;
-						vkGetPhysicalDeviceMemoryProperties(device, &memProps);
+						vkGetPhysicalDeviceMemoryProperties(p_device, &memProps);
 						physicalDeviceMemoryProperties = memProps;
 					}
 					{
 						// queues
 						uint32_t queueCount = 0;
-						vkGetPhysicalDeviceQueueFamilyProperties(device, &queueCount, nullptr);
+						vkGetPhysicalDeviceQueueFamilyProperties(p_device, &queueCount, nullptr);
 						std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData;
 						queueFamilyPropertiesData.resize(queueCount);
-						vkGetPhysicalDeviceQueueFamilyProperties(device, &queueCount, &queueFamilyPropertiesData[0]);
+						vkGetPhysicalDeviceQueueFamilyProperties(p_device, &queueCount, &queueFamilyPropertiesData[0]);
 						queueFamilyProperties = queueFamilyPropertiesData;
 					}
 				}
@@ -85,7 +86,14 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
 	}
 	uint32_t queueCount = 0;
 	uint32_t queueIndex = 0;
+	VkPhysicalDeviceFeatures requiredFeatures;
+	memset(&requiredFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
+	VkPhysicalDeviceFeatures supportedFeaturesData = supportedFeatures.value();
+	requiredFeatures.multiDrawIndirect = supportedFeaturesData.multiDrawIndirect;
+	requiredFeatures.tessellationShader = supportedFeaturesData.tessellationShader;
+	requiredFeatures.geometryShader = supportedFeaturesData.geometryShader;
 	if (physicalDevice.has_value()) {
+		VkPhysicalDevice p_device = physicalDevice.value();
 		std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = queueFamilyProperties.value();
 		for (std::size_t i = 0; i < queueFamilyPropertiesData.size(); ++i) {
 			VkQueueFamilyProperties qfmp = queueFamilyPropertiesData[i];
@@ -96,6 +104,33 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
 				queueCount = qfmp.queueCount;
 			}
 		}
+		VkDeviceQueueCreateInfo deviceQueueCreateInfo = {};
+		deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		deviceQueueCreateInfo.pNext = nullptr;
+		deviceQueueCreateInfo.flags = 0;
+		deviceQueueCreateInfo.queueFamilyIndex = queueIndex;
+		deviceQueueCreateInfo.queueCount = queueCount;
+		VkDeviceCreateInfo deviceCreateInfo = {};
+		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		deviceCreateInfo.pNext = nullptr;
+		deviceCreateInfo.flags = 0;
+		deviceCreateInfo.queueCreateInfoCount = 1;
+		deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
+		deviceCreateInfo.enabledLayerCount = 0;
+		deviceCreateInfo.ppEnabledLayerNames = nullptr;
+		deviceCreateInfo.enabledExtensionCount = 0;
+		deviceCreateInfo.ppEnabledExtensionNames = nullptr;
+		deviceCreateInfo.pEnabledFeatures = &requiredFeatures;
+		VkDevice n_device;
+		VkResult cd_result = vkCreateDevice(p_device, &deviceCreateInfo, nullptr, &n_device);
+		if (cd_result == VK_SUCCESS) {
+			rosy_utils::DebugPrintW(L"Vulkan device created successfully!\n");
+			device = n_device;
+		}
+		else {
+			rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", cd_result);
+		}
+
 	}
 
 	struct RhiInitResult res = RhiInitResult{
@@ -103,11 +138,13 @@ RhiInitResult RhiInit(rosy_config::Config cfg) {
 		.instance = instance,
 		.physicalDevice = physicalDevice,
 		.physicalDeviceProperties = physicalDeviceProperties,
-		.physicalDeviceFeatures = physicalDeviceFeatures,
+		.supportedFeatures = supportedFeatures,
 		.physicalDeviceMemoryProperties = physicalDeviceMemoryProperties,
 		.queueFamilyProperties = queueFamilyProperties,
 		.queueIndex = queueIndex,
 		.queueCount = queueCount,
+		.requiredFeatures = requiredFeatures,
+		.device = device,
 	};
 	return res;
 }

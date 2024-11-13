@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 
     if (initResult.physicalDeviceProperties.has_value()) {
         VkPhysicalDeviceProperties deviceProperties = initResult.physicalDeviceProperties.value();
-        VkPhysicalDeviceFeatures deviceFeatures = initResult.physicalDeviceFeatures.value();
+        VkPhysicalDeviceFeatures deviceFeatures = initResult.supportedFeatures.value();
         VkPhysicalDeviceMemoryProperties deviceMemProps = initResult.physicalDeviceMemoryProperties.value();
         std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = initResult.queueFamilyProperties.value();
         rosy_utils::DebugPrintA("result device property vendor %s \n", deviceProperties.deviceName);
@@ -72,6 +72,10 @@ int main(int argc, char* argv[])
     }
 
     if (initResult.result == VK_SUCCESS) {
+        if (initResult.device.has_value()) {
+            VkDevice device = initResult.device.value();
+            vkDestroyDevice(device, NULL);
+        }
         vkDestroyInstance(initResult.instance, NULL);
     }
     SDL_DestroyRenderer(renderer);
