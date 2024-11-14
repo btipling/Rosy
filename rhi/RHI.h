@@ -7,10 +7,12 @@
 
 class Rhi {
 public:
-	void init(rosy_config::Config cfg);
+	Rhi(rosy_config::Config cfg);
+	void init();
 	void debug();
 	~Rhi();
 private:
+	rosy_config::Config m_cfg;
 	std::optional<VkInstance> m_instance = std::nullopt;
 	std::optional<VkPhysicalDevice> m_physicalDevice = std::nullopt;
 	std::optional<VkPhysicalDeviceProperties> m_physicalDeviceProperties = std::nullopt;
@@ -22,8 +24,8 @@ private:
 	VkPhysicalDeviceFeatures m_requiredFeatures;
 	std::optional<VkDevice> m_device = std::nullopt;
 
-	VkResult initInstance(rosy_config::Config cfg);
-	VkResult initPhysicalDevice(rosy_config::Config cfg);
-	VkResult initDevice(rosy_config::Config cfg);
-
+	VkResult initInstance();
+	VkResult queryInstanceLayers();
+	VkResult initPhysicalDevice();
+	VkResult initDevice();
 };

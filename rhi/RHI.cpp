@@ -7,20 +7,21 @@
 #include "../utils/utils.h"
 
 
+Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg } {}
 
-void Rhi::init(rosy_config::Config cfg) {
+void Rhi::init() {
 
-	VkResult result = this->initInstance(cfg);
+	VkResult result = this->initInstance();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan instance! %d\n", result);
 		return;
 	}
-	result = this->initPhysicalDevice(cfg);
+	result = this->initPhysicalDevice();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan physical device! %d\n", result);
 		return;
 	}
-	result = this->initDevice(cfg);
+	result = this->initDevice();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
 		return;
@@ -28,7 +29,7 @@ void Rhi::init(rosy_config::Config cfg) {
 
 }
 
-VkResult Rhi::initInstance(rosy_config::Config cfg) {
+VkResult Rhi::initInstance() {
 	uint32_t extensionCount;
 	auto extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
 
@@ -55,7 +56,7 @@ VkResult Rhi::initInstance(rosy_config::Config cfg) {
 	return result;
 }
 
-VkResult Rhi::initPhysicalDevice(rosy_config::Config cfg) {
+VkResult Rhi::initPhysicalDevice() {
 	if (!m_instance.has_value()) return VK_NOT_READY;
 	std::vector<VkPhysicalDevice> physicalDevices;
 	OutputDebugStringW(L"Vulkan instance created successfully!\n");
@@ -69,7 +70,7 @@ VkResult Rhi::initPhysicalDevice(rosy_config::Config cfg) {
 		// get device properties
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(p_device, &deviceProperties);
-		if (deviceProperties.vendorID == cfg.device_vendor) {
+		if (deviceProperties.vendorID == m_cfg.device_vendor) {
 			{
 				m_physicalDevice = p_device;
 				m_physicalDeviceProperties = deviceProperties;
@@ -125,7 +126,7 @@ VkResult Rhi::initPhysicalDevice(rosy_config::Config cfg) {
 	return result;
 }
 
-VkResult Rhi::initDevice(rosy_config::Config cfg) {
+VkResult Rhi::initDevice() {
 	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
 
 	VkDeviceQueueCreateInfo deviceQueueCreateInfo = {};

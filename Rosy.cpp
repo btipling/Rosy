@@ -25,9 +25,9 @@ int main(int argc, char* argv[])
     rosy_config::Config cfg = {};
     rosy_config::debug();
 
-    Rhi* rhi = new Rhi{};
+    Rhi* rhi = new Rhi{ cfg };
 
-    rhi->init(cfg);
+    rhi->init();
     rhi->debug();
 
     bool should_run = true;
