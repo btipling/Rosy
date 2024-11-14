@@ -6,12 +6,26 @@
 #include "../config/Config.h"
 #include "../utils/utils.h"
 
+static const char* instanceLayers[] = {
+	"VK_LAYER_LUNARG_api_dump",
+	"VK_LAYER_KHRONOS_validation",
+	//"VK_LAYER_LUNARG_monitor",
+	//"VK_LAYER_KHRONOS_profiles",
+	"VK_LAYER_LUNARG_crash_diagnostic",
+	"VK_LAYER_KHRONOS_shader_object",
+	"VK_LAYER_KHRONOS_synchronization2",
+};
 
 Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg } {}
 
 void Rhi::init() {
 
-	VkResult result = this->initInstance();
+	VkResult result;
+	result = this->queryInstanceLayers();
+	if (result != VK_SUCCESS) {
+		return;
+	}
+	result = this->initInstance();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan instance! %d\n", result);
 		return;
@@ -29,6 +43,26 @@ void Rhi::init() {
 
 }
 
+VkResult Rhi::queryInstanceLayers() {
+	uint32_t pPropertyCount = 0;
+	VkResult result = vkEnumerateInstanceLayerProperties(&pPropertyCount, nullptr);
+	if (result != VK_SUCCESS) return result;
+	rosy_utils::DebugPrintA("Found %d instance layers\n", pPropertyCount);
+	if (pPropertyCount == 0) return result;
+	std::vector<VkLayerProperties> layers;
+	layers.resize(pPropertyCount);
+	result = vkEnumerateInstanceLayerProperties(&pPropertyCount, layers.data());
+	for (VkLayerProperties lp : layers) {
+		rosy_utils::DebugPrintA("Layer name: %s layer description: %s\n", lp.layerName, lp.description);
+		for (const char* layerName : instanceLayers) {
+			if (strcmp(layerName, lp.layerName)) {
+				m_instanceLayerProperties.push_back(layerName);
+			}
+		}
+	}
+	return result;
+}
+
 VkResult Rhi::initInstance() {
 	uint32_t extensionCount;
 	auto extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
@@ -44,8 +78,8 @@ VkResult Rhi::initInstance() {
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledLayerCount = 0;
-	createInfo.ppEnabledLayerNames = NULL;
+	createInfo.enabledLayerCount = m_instanceLayerProperties.size();
+	createInfo.ppEnabledLayerNames = m_instanceLayerProperties.data();
 	createInfo.enabledExtensionCount = extensionCount;
 	createInfo.ppEnabledExtensionNames = extensionNames;
 
@@ -134,6 +168,8 @@ VkResult Rhi::initDevice() {
 	deviceQueueCreateInfo.pNext = nullptr;
 	deviceQueueCreateInfo.flags = 0;
 	deviceQueueCreateInfo.queueFamilyIndex = m_queueIndex;
+	m_queuePriorities.resize(m_queueCount, 0.5f);
+	deviceQueueCreateInfo.pQueuePriorities = m_queuePriorities.data();
 	deviceQueueCreateInfo.queueCount = m_queueCount;
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

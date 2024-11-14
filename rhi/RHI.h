@@ -13,6 +13,7 @@ public:
 	~Rhi();
 private:
 	rosy_config::Config m_cfg;
+	std::vector<const char*> m_instanceLayerProperties;
 	std::optional<VkInstance> m_instance = std::nullopt;
 	std::optional<VkPhysicalDevice> m_physicalDevice = std::nullopt;
 	std::optional<VkPhysicalDeviceProperties> m_physicalDeviceProperties = std::nullopt;
@@ -21,11 +22,12 @@ private:
 	std::optional<std::vector<VkQueueFamilyProperties>> m_queueFamilyProperties = std::nullopt;
 	std::uint32_t m_queueIndex = 0;
 	std::uint32_t m_queueCount = 0;
+	std::vector<float> m_queuePriorities;
 	VkPhysicalDeviceFeatures m_requiredFeatures;
 	std::optional<VkDevice> m_device = std::nullopt;
 
-	VkResult initInstance();
 	VkResult queryInstanceLayers();
+	VkResult initInstance();
 	VkResult initPhysicalDevice();
 	VkResult initDevice();
 };
