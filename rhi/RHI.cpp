@@ -10,6 +10,25 @@
 
 void Rhi::init(rosy_config::Config cfg) {
 
+	VkResult result = this->initInstance(cfg);
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to create Vulkan instance! %d\n", result);
+		return;
+	}
+	result = this->initPhysicalDevice(cfg);
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to create Vulkan physical device! %d\n", result);
+		return;
+	}
+	result = this->initDevice(cfg);
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
+		return;
+	}
+
+}
+
+VkResult Rhi::initInstance(rosy_config::Config cfg) {
 	uint32_t extensionCount;
 	auto extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
 
@@ -31,23 +50,21 @@ void Rhi::init(rosy_config::Config cfg) {
 
 	VkInstance instance;
 	VkResult result = vkCreateInstance(&createInfo, NULL, &instance);
-	if (result != VK_SUCCESS) {
-		rosy_utils::DebugPrintW(L"Failed to create Vulkan instance!\n");
-		return;
-	}
+	if (result != VK_SUCCESS) return result;
+	m_instance = instance;
+	return result;
+}
+
+VkResult Rhi::initPhysicalDevice(rosy_config::Config cfg) {
+	if (!m_instance.has_value()) return VK_NOT_READY;
 	std::vector<VkPhysicalDevice> physicalDevices;
 	OutputDebugStringW(L"Vulkan instance created successfully!\n");
 
 	uint32_t physicalDeviceCount = 0;
-	result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
-	if (result != VK_SUCCESS) {
-		rosy_utils::DebugPrintW(L"Failed to create Vulkan physical device!\n");
-		return;
-	}
+	VkResult result = vkEnumeratePhysicalDevices(m_instance.value(), &physicalDeviceCount, nullptr);
 
-	m_instance = instance;
 	physicalDevices.resize(physicalDeviceCount);
-	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, &physicalDevices[0]);
+	vkEnumeratePhysicalDevices(m_instance.value(), &physicalDeviceCount, &physicalDevices[0]);
 	for (const VkPhysicalDevice& p_device : physicalDevices) {
 		// get device properties
 		VkPhysicalDeviceProperties deviceProperties;
@@ -81,7 +98,6 @@ void Rhi::init(rosy_config::Config cfg) {
 		}
 
 	}
-
 	uint32_t queueCount = 0;
 	uint32_t queueIndex = 0;
 	VkPhysicalDeviceFeatures requiredFeatures;
@@ -91,7 +107,7 @@ void Rhi::init(rosy_config::Config cfg) {
 	requiredFeatures.tessellationShader = VK_TRUE;
 	requiredFeatures.geometryShader = VK_TRUE;
 	m_requiredFeatures = requiredFeatures;
-	if (!m_physicalDevice.has_value()) return;
+	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
 
 	VkPhysicalDevice p_device = m_physicalDevice.value();
 	std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = m_queueFamilyProperties.value();
@@ -106,12 +122,18 @@ void Rhi::init(rosy_config::Config cfg) {
 	}
 	m_queueIndex = queueIndex;
 	m_queueCount = queueCount;
+	return result;
+}
+
+VkResult Rhi::initDevice(rosy_config::Config cfg) {
+	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
+
 	VkDeviceQueueCreateInfo deviceQueueCreateInfo = {};
 	deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	deviceQueueCreateInfo.pNext = nullptr;
 	deviceQueueCreateInfo.flags = 0;
-	deviceQueueCreateInfo.queueFamilyIndex = queueIndex;
-	deviceQueueCreateInfo.queueCount = queueCount;
+	deviceQueueCreateInfo.queueFamilyIndex = m_queueIndex;
+	deviceQueueCreateInfo.queueCount = m_queueCount;
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.pNext = nullptr;
@@ -122,18 +144,15 @@ void Rhi::init(rosy_config::Config cfg) {
 	deviceCreateInfo.ppEnabledLayerNames = nullptr;
 	deviceCreateInfo.enabledExtensionCount = 0;
 	deviceCreateInfo.ppEnabledExtensionNames = nullptr;
-	deviceCreateInfo.pEnabledFeatures = &requiredFeatures;
+	deviceCreateInfo.pEnabledFeatures = &m_requiredFeatures;
 	VkDevice device;
-	result = vkCreateDevice(p_device, &deviceCreateInfo, nullptr, &device);
-	if (result != VK_SUCCESS) {
-		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
-		return;
-	}
+	VkResult result = vkCreateDevice(m_physicalDevice.value(), &deviceCreateInfo, nullptr, &device);
+	if (result != VK_SUCCESS) return result;
 
 	rosy_utils::DebugPrintW(L"Vulkan device created successfully!\n");
 	m_device = device;
+	return result;
 }
-
 
 void Rhi::debug() {
 	rosy_utils::DebugPrintA("RHI Debug Data::");

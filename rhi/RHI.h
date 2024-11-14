@@ -21,4 +21,9 @@ private:
 	std::uint32_t m_queueCount = 0;
 	VkPhysicalDeviceFeatures m_requiredFeatures;
 	std::optional<VkDevice> m_device = std::nullopt;
+
+	VkResult initInstance(rosy_config::Config cfg);
+	VkResult initPhysicalDevice(rosy_config::Config cfg);
+	VkResult initDevice(rosy_config::Config cfg);
+
 };
