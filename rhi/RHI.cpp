@@ -17,6 +17,12 @@ static const char* instanceLayers[] = {
 };
 static VkPhysicalDeviceFeatures requiredFeatures;
 
+static const char* deviceExtensions[] = {
+	"VK_KHR_swapchain",
+	"VK_EXT_shader_object",
+	//"VK_KHR_multiview",
+};
+
 Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg }, m_requiredFeatures{ requiredFeatures } {
 	memset(&m_requiredFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
 }
@@ -75,7 +81,8 @@ VkResult Rhi::queryInstanceLayers() {
 	for (VkLayerProperties lp : layers) {
 		rosy_utils::DebugPrintA("Instance layer name: %s layer description: %s\n", lp.layerName, lp.description);
 		for (const char* layerName : instanceLayers) {
-			if (strcmp(layerName, lp.layerName)) {
+			if (strcmp(layerName, lp.layerName) == 0) {
+				rosy_utils::DebugPrintA("\tAdding instance layer: %s\n", lp.layerName);
 				m_instanceLayerProperties.push_back(layerName);
 			}
 		}
@@ -121,17 +128,28 @@ VkResult Rhi::queryDeviceExtensions() {
 	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
 	VkResult result = vkEnumerateDeviceExtensionProperties(m_physicalDevice.value(), nullptr, &pPropertyCount, nullptr);
 	if (result != VK_SUCCESS) return result;
-	rosy_utils::DebugPrintA("Found %d instance extensions\n", pPropertyCount);
+	rosy_utils::DebugPrintA("Found %d device extensions\n", pPropertyCount);
 	if (pPropertyCount == 0) return result;
 	std::vector<VkExtensionProperties> extensions;
 	extensions.resize(pPropertyCount);
 	result = vkEnumerateDeviceExtensionProperties(m_physicalDevice.value(), nullptr, &pPropertyCount, extensions.data());
 	if (result != VK_SUCCESS) return result;
+	size_t found_extensions = 0;
+	std::vector<const char*> requiredDeviceExtensions(std::begin(deviceExtensions), std::end(deviceExtensions));
 	for (VkExtensionProperties ep : extensions) {
 		rosy_utils::DebugPrintA("Device extension name: %s\n", ep.extensionName);
+		for (const char* extensionName : deviceExtensions) {
+			if (strcmp(extensionName, ep.extensionName) == 0) {
+				rosy_utils::DebugPrintA("\tRequiring extension: %s\n", extensionName);
+				m_deviceDeviceExtensions.push_back(extensionName);
+				requiredDeviceExtensions.erase(std::remove(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end(), extensionName), requiredDeviceExtensions.end());
+			}
+		}
+	}
+	if (requiredDeviceExtensions.size() != 0) {
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 	return result;
-
 }
 
 VkResult Rhi::initInstance() {
@@ -249,8 +267,8 @@ VkResult Rhi::initDevice() {
 	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
 	deviceCreateInfo.enabledLayerCount = 0;
 	deviceCreateInfo.ppEnabledLayerNames = nullptr;
-	deviceCreateInfo.enabledExtensionCount = 0;
-	deviceCreateInfo.ppEnabledExtensionNames = nullptr;
+	deviceCreateInfo.enabledExtensionCount = m_deviceDeviceExtensions.size();
+	deviceCreateInfo.ppEnabledExtensionNames = m_deviceDeviceExtensions.data();
 	deviceCreateInfo.pEnabledFeatures = &m_requiredFeatures;
 	VkDevice device;
 	VkResult result = vkCreateDevice(m_physicalDevice.value(), &deviceCreateInfo, nullptr, &device);
