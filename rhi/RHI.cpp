@@ -15,8 +15,11 @@ static const char* instanceLayers[] = {
 	"VK_LAYER_KHRONOS_shader_object",
 	"VK_LAYER_KHRONOS_synchronization2",
 };
+static VkPhysicalDeviceFeatures requiredFeatures;
 
-Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg } {}
+Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg }, m_requiredFeatures{ requiredFeatures } {
+	memset(&m_requiredFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
+}
 
 void Rhi::init() {
 
@@ -135,8 +138,6 @@ VkResult Rhi::initPhysicalDevice() {
 	}
 	uint32_t queueCount = 0;
 	uint32_t queueIndex = 0;
-	VkPhysicalDeviceFeatures requiredFeatures;
-	memset(&requiredFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
 	VkPhysicalDeviceFeatures supportedFeaturesData = m_supportedFeatures.value_or(requiredFeatures);
 	requiredFeatures.multiDrawIndirect = VK_TRUE;
 	requiredFeatures.tessellationShader = VK_TRUE;
@@ -214,7 +215,7 @@ void Rhi::debug() {
 		rosy_utils::DebugPrintA("memory size: %d\n", deviceMemProps.memoryHeaps[i].size);
 		rosy_utils::DebugPrintA("memory flags: %d\n", deviceMemProps.memoryHeaps[i].flags);
 	}
-	for (VkQueueFamilyProperties qfmp : queueFamilyPropertiesData) {
+	for (const VkQueueFamilyProperties& qfmp : queueFamilyPropertiesData) {
 		rosy_utils::DebugPrintA("queue count: %d and time bits: %d\n", qfmp.queueCount, qfmp.timestampValidBits);
 		if (qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT)) {
 			rosy_utils::DebugPrintA("VkQueueFamilyProperties got all the things\n");
