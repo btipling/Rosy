@@ -14,6 +14,7 @@ public:
 private:
 	rosy_config::Config m_cfg;
 	std::vector<const char*> m_instanceLayerProperties;
+	std::vector<const char*> m_deviceLayerProperties;
 	std::optional<VkInstance> m_instance = std::nullopt;
 	std::optional<VkPhysicalDevice> m_physicalDevice = std::nullopt;
 	std::optional<VkPhysicalDeviceProperties> m_physicalDeviceProperties = std::nullopt;
@@ -27,6 +28,7 @@ private:
 	std::optional<VkDevice> m_device = std::nullopt;
 
 	VkResult queryInstanceLayers();
+	VkResult queryDeviceLayers();
 	VkResult initInstance();
 	VkResult initPhysicalDevice();
 	VkResult initDevice();

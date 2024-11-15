@@ -38,6 +38,10 @@ void Rhi::init() {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan physical device! %d\n", result);
 		return;
 	}
+	result = this->queryDeviceLayers();
+	if (result != VK_SUCCESS) {
+		return;
+	}
 	result = this->initDevice();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
@@ -62,6 +66,22 @@ VkResult Rhi::queryInstanceLayers() {
 				m_instanceLayerProperties.push_back(layerName);
 			}
 		}
+	}
+	return result;
+}
+
+VkResult Rhi::queryDeviceLayers() {
+	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
+	uint32_t pPropertyCount = 0;
+	VkResult result = vkEnumerateDeviceLayerProperties(m_physicalDevice.value(), &pPropertyCount, nullptr);
+	if (result != VK_SUCCESS) return result;
+	rosy_utils::DebugPrintA("Found %d device layers\n", pPropertyCount);
+	if (pPropertyCount == 0) return result;
+	std::vector<VkLayerProperties> layers;
+	layers.resize(pPropertyCount);
+	result = vkEnumerateInstanceLayerProperties(&pPropertyCount, layers.data());
+	for (VkLayerProperties lp : layers) {
+		rosy_utils::DebugPrintA("Layer device: %s layer description: %s\n", lp.layerName, lp.description);
 	}
 	return result;
 }
