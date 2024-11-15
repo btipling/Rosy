@@ -317,7 +317,8 @@ void Rhi::debug() {
 
 Rhi::~Rhi() {
 	if (m_device.has_value()) {
-		vkDestroyDevice(m_device.value(), NULL);
+		VkResult result = vkDeviceWaitIdle(m_device.value());
+		if (result == VK_SUCCESS) vkDestroyDevice(m_device.value(), NULL);
 	}
 	if (m_instance.has_value()) {
 		vkDestroyInstance(m_instance.value(), NULL);
