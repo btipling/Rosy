@@ -26,6 +26,12 @@ void Rhi::init() {
 	VkResult result;
 	result = this->queryInstanceLayers();
 	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to query instance layers! %d\n", result);
+		return;
+	}
+	result = this->queryInstanceExtensions();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to query instance extensions! %d\n", result);
 		return;
 	}
 	result = this->initInstance();
@@ -39,7 +45,13 @@ void Rhi::init() {
 		return;
 	}
 	result = this->queryDeviceLayers();
+	rosy_utils::DebugPrintW(L"Failed to query device layers! %d\n", result);
 	if (result != VK_SUCCESS) {
+		return;
+	}
+	result = this->queryDeviceExtensions();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to query device extensions! %d\n", result);
 		return;
 	}
 	result = this->initDevice();
@@ -59,8 +71,9 @@ VkResult Rhi::queryInstanceLayers() {
 	std::vector<VkLayerProperties> layers;
 	layers.resize(pPropertyCount);
 	result = vkEnumerateInstanceLayerProperties(&pPropertyCount, layers.data());
+	if (result != VK_SUCCESS) return result;
 	for (VkLayerProperties lp : layers) {
-		rosy_utils::DebugPrintA("Layer name: %s layer description: %s\n", lp.layerName, lp.description);
+		rosy_utils::DebugPrintA("Instance layer name: %s layer description: %s\n", lp.layerName, lp.description);
 		for (const char* layerName : instanceLayers) {
 			if (strcmp(layerName, lp.layerName)) {
 				m_instanceLayerProperties.push_back(layerName);
@@ -79,11 +92,46 @@ VkResult Rhi::queryDeviceLayers() {
 	if (pPropertyCount == 0) return result;
 	std::vector<VkLayerProperties> layers;
 	layers.resize(pPropertyCount);
-	result = vkEnumerateInstanceLayerProperties(&pPropertyCount, layers.data());
+	result = vkEnumerateDeviceLayerProperties(m_physicalDevice.value(), &pPropertyCount, layers.data());
+	if (result != VK_SUCCESS) return result;
 	for (VkLayerProperties lp : layers) {
-		rosy_utils::DebugPrintA("Layer device: %s layer description: %s\n", lp.layerName, lp.description);
+		rosy_utils::DebugPrintA("Device layer name: %s layer description: %s\n", lp.layerName, lp.description);
 	}
 	return result;
+}
+
+VkResult Rhi::queryInstanceExtensions() {
+	uint32_t pPropertyCount = 0;
+	VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, nullptr);
+	if (result != VK_SUCCESS) return result;
+	rosy_utils::DebugPrintA("Found %d instance extensions\n", pPropertyCount);
+	if (pPropertyCount == 0) return result;
+	std::vector<VkExtensionProperties> extensions;
+	extensions.resize(pPropertyCount);
+	result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, extensions.data());
+	if (result != VK_SUCCESS) return result;
+	for (VkExtensionProperties ep : extensions) {
+		rosy_utils::DebugPrintA("Instance extension name: %s\n", ep.extensionName);
+	}
+	return result;
+}
+
+VkResult Rhi::queryDeviceExtensions() {
+	uint32_t pPropertyCount = 0;
+	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
+	VkResult result = vkEnumerateDeviceExtensionProperties(m_physicalDevice.value(), nullptr, &pPropertyCount, nullptr);
+	if (result != VK_SUCCESS) return result;
+	rosy_utils::DebugPrintA("Found %d instance extensions\n", pPropertyCount);
+	if (pPropertyCount == 0) return result;
+	std::vector<VkExtensionProperties> extensions;
+	extensions.resize(pPropertyCount);
+	result = vkEnumerateDeviceExtensionProperties(m_physicalDevice.value(), nullptr, &pPropertyCount, extensions.data());
+	if (result != VK_SUCCESS) return result;
+	for (VkExtensionProperties ep : extensions) {
+		rosy_utils::DebugPrintA("Device extension name: %s\n", ep.extensionName);
+	}
+	return result;
+
 }
 
 VkResult Rhi::initInstance() {
@@ -109,6 +157,7 @@ VkResult Rhi::initInstance() {
 	VkInstance instance;
 	VkResult result = vkCreateInstance(&createInfo, NULL, &instance);
 	if (result != VK_SUCCESS) return result;
+	OutputDebugStringW(L"Vulkan instance created successfully!\n");
 	m_instance = instance;
 	return result;
 }
@@ -116,7 +165,6 @@ VkResult Rhi::initInstance() {
 VkResult Rhi::initPhysicalDevice() {
 	if (!m_instance.has_value()) return VK_NOT_READY;
 	std::vector<VkPhysicalDevice> physicalDevices;
-	OutputDebugStringW(L"Vulkan instance created successfully!\n");
 
 	uint32_t physicalDeviceCount = 0;
 	VkResult result = vkEnumeratePhysicalDevices(m_instance.value(), &physicalDeviceCount, nullptr);
@@ -178,6 +226,7 @@ VkResult Rhi::initPhysicalDevice() {
 	}
 	m_queueIndex = queueIndex;
 	m_queueCount = queueCount;
+	OutputDebugStringW(L"Vulkan physical device created successfully!\n");
 	return result;
 }
 
