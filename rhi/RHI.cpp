@@ -5,6 +5,8 @@
 #include <strsafe.h>
 #include "../config/Config.h"
 #include "../utils/utils.h"
+#define VMA_IMPLEMENTATION
+#include "vma/vk_mem_alloc.h"
 
 static const char* instanceLayers[] = {
 	"VK_LAYER_LUNARG_api_dump",
@@ -315,7 +317,28 @@ void Rhi::debug() {
 
 }
 
+void Rhi::initAllocator() {
+	VmaVulkanFunctions vulkanFunctions = {};
+	vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+	vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
+	VmaAllocatorCreateInfo allocatorCreateInfo = {};
+	allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+	allocatorCreateInfo.physicalDevice = m_physicalDevice.value();
+	allocatorCreateInfo.device = m_device.value();
+	allocatorCreateInfo.instance = m_instance.value();
+	allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+
+	VmaAllocator allocator;
+	vmaCreateAllocator(&allocatorCreateInfo, &allocator);
+	m_allocator = allocator;
+
+}
+
 Rhi::~Rhi() {
+	if (m_allocator.has_value()) {
+		vmaDestroyAllocator(m_allocator.value());
+	}
 	if (m_device.has_value()) {
 		VkResult result = vkDeviceWaitIdle(m_device.value());
 		if (result == VK_SUCCESS) vkDestroyDevice(m_device.value(), NULL);

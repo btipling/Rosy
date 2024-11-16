@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 SDL3.dll
 SDL3.lib
+vcpkg_installed/

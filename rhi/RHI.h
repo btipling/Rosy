@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
+#include "vma/vk_mem_alloc.h"
 #include <optional>
 #include <vector>
 #include "../config/Config.h"
@@ -28,6 +29,7 @@ private:
 	std::vector<float> m_queuePriorities;
 	VkPhysicalDeviceFeatures m_requiredFeatures;
 	std::optional<VkDevice> m_device = std::nullopt;
+	std::optional<VmaAllocator> m_allocator = std::nullopt;
 
 	VkResult queryInstanceLayers();
 	VkResult queryDeviceLayers();
@@ -36,4 +38,5 @@ private:
 	VkResult initInstance();
 	VkResult initPhysicalDevice();
 	VkResult initDevice();
+	void initAllocator();
 };
