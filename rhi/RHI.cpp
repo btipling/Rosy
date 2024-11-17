@@ -63,7 +63,7 @@ void Rhi::init() {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
 		return;
 	}
-	//this->initAllocator();
+	this->initAllocator();
 
 }
 
