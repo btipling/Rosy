@@ -1,9 +1,5 @@
 #pragma once
-#include <vulkan/vulkan.h>
-#include "vma/vk_mem_alloc.h"
-#include <optional>
-#include <vector>
-#include "../config/Config.h"
+#include "rhi_types.h"
 
 
 class Rhi {
@@ -31,10 +27,13 @@ private:
 	std::optional<VkDevice> m_device = std::nullopt;
 	std::optional<VmaAllocator> m_allocator = std::nullopt;
 
+	std::optional <VkDebugUtilsMessengerEXT> m_debugMessenger = std::nullopt;
+
 	VkResult queryInstanceLayers();
 	VkResult queryDeviceLayers();
 	VkResult queryInstanceExtensions();
 	VkResult queryDeviceExtensions();
+	VkResult createDebugCallback();
 	VkResult initInstance();
 	VkResult initPhysicalDevice();
 	VkResult initDevice();

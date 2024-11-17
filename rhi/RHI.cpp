@@ -1,10 +1,5 @@
 #include "RHI.h"
-#include <Windows.h>
 #include <SDL3/SDL_vulkan.h>
-#include <vulkan/vulkan.h>
-#include <strsafe.h>
-#include "../config/Config.h"
-#include "../utils/utils.h"
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
 
@@ -20,9 +15,10 @@ static const char* instanceLayers[] = {
 static VkPhysicalDeviceFeatures requiredFeatures;
 
 static const char* deviceExtensions[] = {
-	"VK_KHR_swapchain",
-	"VK_EXT_shader_object",
-	//"VK_KHR_multiview",
+	VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
+	//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 };
 
 Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg }, m_requiredFeatures{ requiredFeatures } {
@@ -67,6 +63,7 @@ void Rhi::init() {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
 		return;
 	}
+	//this->initAllocator();
 
 }
 
@@ -80,6 +77,7 @@ VkResult Rhi::queryInstanceLayers() {
 	layers.resize(pPropertyCount);
 	result = vkEnumerateInstanceLayerProperties(&pPropertyCount, layers.data());
 	if (result != VK_SUCCESS) return result;
+	if (!m_cfg.enable_validation_layers) return result;
 	for (VkLayerProperties lp : layers) {
 		rosy_utils::DebugPrintA("Instance layer name: %s layer description: %s\n", lp.layerName, lp.description);
 		for (const char* layerName : instanceLayers) {
@@ -152,6 +150,16 @@ VkResult Rhi::queryDeviceExtensions() {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 	return result;
+}
+
+VkResult Rhi::createDebugCallback() {
+	if (!m_cfg.enable_validation_layers) return VK_SUCCESS;
+
+	VkDebugUtilsMessengerCreateInfoEXT createInfo = createDebugCallbackInfo();
+	VkDebugUtilsMessengerEXT debugMessenger;
+	VkResult result = CreateDebugUtilsMessengerEXT(m_instance.value(), &createInfo, nullptr, &debugMessenger);
+	if (result != VK_SUCCESS) return result;
+	m_debugMessenger = debugMessenger;
 }
 
 VkResult Rhi::initInstance() {
@@ -332,10 +340,12 @@ void Rhi::initAllocator() {
 	VmaAllocator allocator;
 	vmaCreateAllocator(&allocatorCreateInfo, &allocator);
 	m_allocator = allocator;
-
 }
 
 Rhi::~Rhi() {
+	if (m_debugMessenger.has_value()) {
+		DestroyDebugUtilsMessengerEXT(m_instance.value(), m_debugMessenger.value(), nullptr);
+	}
 	if (m_allocator.has_value()) {
 		vmaDestroyAllocator(m_allocator.value());
 	}
