@@ -14,8 +14,11 @@ static const char* instanceLayers[] = {
 };
 static VkPhysicalDeviceFeatures requiredFeatures;
 
-static const char* deviceExtensions[] = {
+static const char* instanceExtensions[] = {
 	VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+};
+
+static const char* deviceExtensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
 	//VK_KHR_MULTIVIEW_EXTENSION_NAME,
@@ -117,8 +120,33 @@ VkResult Rhi::queryInstanceExtensions() {
 	extensions.resize(pPropertyCount);
 	result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, extensions.data());
 	if (result != VK_SUCCESS) return result;
+
+	{
+		// Setup required instance extensions
+		size_t found_extensions = 0;
+		uint32_t extensionCount;
+		auto extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
+		for (uint32_t i = 0; i < extensionCount; i++) {
+			m_instanceExtensions.push_back(extensionNames[i]);
+		}
+		for (uint32_t i = 0; i < std::size(instanceExtensions); i++) {
+			m_instanceExtensions.push_back(instanceExtensions[i]);
+		}
+	}
+
+	std::vector<const char*> requiredInstanceExtensions(std::begin(m_instanceExtensions), std::end(m_instanceExtensions));
 	for (VkExtensionProperties ep : extensions) {
 		rosy_utils::DebugPrintA("Instance extension name: %s\n", ep.extensionName);
+		for (const char* extensionName : m_instanceExtensions) {
+			if (strcmp(extensionName, ep.extensionName) == 0) {
+				rosy_utils::DebugPrintA("\tRequiring instance extension: %s\n", extensionName);
+				m_deviceDeviceExtensions.push_back(extensionName);
+				requiredInstanceExtensions.erase(std::remove(requiredInstanceExtensions.begin(), requiredInstanceExtensions.end(), extensionName), requiredInstanceExtensions.end());
+			}
+		}
+	}
+	if (requiredInstanceExtensions.size() != 0) {
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 	return result;
 }
@@ -140,7 +168,7 @@ VkResult Rhi::queryDeviceExtensions() {
 		rosy_utils::DebugPrintA("Device extension name: %s\n", ep.extensionName);
 		for (const char* extensionName : deviceExtensions) {
 			if (strcmp(extensionName, ep.extensionName) == 0) {
-				rosy_utils::DebugPrintA("\tRequiring extension: %s\n", extensionName);
+				rosy_utils::DebugPrintA("\tRequiring device extension: %s\n", extensionName);
 				m_deviceDeviceExtensions.push_back(extensionName);
 				requiredDeviceExtensions.erase(std::remove(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end(), extensionName), requiredDeviceExtensions.end());
 			}
@@ -151,6 +179,7 @@ VkResult Rhi::queryDeviceExtensions() {
 	}
 	return result;
 }
+
 
 VkResult Rhi::createDebugCallback() {
 	if (!m_cfg.enable_validation_layers) return VK_SUCCESS;
@@ -163,9 +192,6 @@ VkResult Rhi::createDebugCallback() {
 }
 
 VkResult Rhi::initInstance() {
-	uint32_t extensionCount;
-	auto extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
-
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "Rosy";
@@ -179,8 +205,8 @@ VkResult Rhi::initInstance() {
 	createInfo.pApplicationInfo = &appInfo;
 	createInfo.enabledLayerCount = m_instanceLayerProperties.size();
 	createInfo.ppEnabledLayerNames = m_instanceLayerProperties.data();
-	createInfo.enabledExtensionCount = extensionCount;
-	createInfo.ppEnabledExtensionNames = extensionNames;
+	createInfo.enabledExtensionCount = m_instanceExtensions.size();
+	createInfo.ppEnabledExtensionNames = m_instanceExtensions.data();
 
 	VkInstance instance;
 	VkResult result = vkCreateInstance(&createInfo, NULL, &instance);

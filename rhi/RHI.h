@@ -12,7 +12,7 @@ private:
 	rosy_config::Config m_cfg;
 	std::vector<const char*> m_instanceLayerProperties;
 	std::vector<const char*> m_deviceLayerProperties;
-	std::vector<const char*> m_deviceInstanceExtensions;
+	std::vector<const char*> m_instanceExtensions;
 	std::vector<const char*> m_deviceDeviceExtensions;
 	std::optional<VkInstance> m_instance = std::nullopt;
 	std::optional<VkPhysicalDevice> m_physicalDevice = std::nullopt;
