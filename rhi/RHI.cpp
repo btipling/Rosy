@@ -606,7 +606,7 @@ void Rhi::initAllocator() {
 
 VkResult Rhi::initGraphics() {
 	auto vertShaderCode = readFile("out/vert.spv");
-	auto fragShaderCode = readFile("out/vert.spv");
+	auto fragShaderCode = readFile("out/frag.spv");
 
 	ShaderObjects shaders = createShaderObjects(vertShaderCode, fragShaderCode);
 	return VK_SUCCESS;
