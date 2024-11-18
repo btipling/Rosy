@@ -1,5 +1,4 @@
 #include "RHI.h"
-#include <SDL3/SDL_vulkan.h>
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
 
@@ -28,7 +27,7 @@ Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg }, m_requiredFeatures{ requiredFea
 	memset(&m_requiredFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
 }
 
-VkResult Rhi::init() {
+VkResult Rhi::init(SDL_Window* window) {
 
 	VkResult result;
 	result = this->queryInstanceLayers();
@@ -49,6 +48,11 @@ VkResult Rhi::init() {
 	result = this->createDebugCallback();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan debug callback! %d", result);
+		return result;
+	}
+	result = this->initSurface(window);
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to create surface! %d", result);
 		return result;
 	}
 	result = this->initPhysicalDevice();
@@ -206,6 +210,13 @@ VkResult Rhi::createDebugCallback() {
 	if (result != VK_SUCCESS) return result;
 	m_debugMessenger = debugMessenger;
 	return result;
+}
+
+VkResult Rhi::initSurface(SDL_Window* window) {
+	VkSurfaceKHR surface;
+	SDL_Vulkan_CreateSurface(window, m_instance.value(), nullptr, &surface);
+	m_surface = surface;
+	return VK_SUCCESS;
 }
 
 VkResult Rhi::initInstance() {
@@ -397,6 +408,9 @@ Rhi::~Rhi() {
 	if (m_device.has_value()) {
 		VkResult result = vkDeviceWaitIdle(m_device.value());
 		if (result == VK_SUCCESS) vkDestroyDevice(m_device.value(), NULL);
+	}
+	if (m_surface.has_value()) {
+		vkDestroySurfaceKHR(m_instance.value(), m_surface.value(), nullptr);
 	}
 	if (m_instance.has_value()) {
 		vkDestroyInstance(m_instance.value(), NULL);

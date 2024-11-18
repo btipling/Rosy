@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 
     Rhi* rhi = new Rhi{ cfg };
 
-    VkResult result = rhi->init();
+    VkResult result = rhi->init(window);
     if (result != VK_SUCCESS) {
         rosy_utils::DebugPrintA("rhi init failed %d\n", result);
         delete rhi;

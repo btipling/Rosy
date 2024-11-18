@@ -5,7 +5,7 @@
 class Rhi {
 public:
 	Rhi(rosy_config::Config cfg);
-	VkResult init();
+	VkResult init(SDL_Window* window);
 	void debug();
 	~Rhi();
 private:
@@ -26,6 +26,7 @@ private:
 	VkPhysicalDeviceFeatures m_requiredFeatures;
 	std::optional<VkDevice> m_device = std::nullopt;
 	std::optional<VmaAllocator> m_allocator = std::nullopt;
+	std::optional<VkSurfaceKHR> m_surface = std::nullopt;
 
 	std::optional <VkDebugUtilsMessengerEXT> m_debugMessenger = std::nullopt;
 
@@ -35,6 +36,7 @@ private:
 	VkResult queryDeviceExtensions();
 	VkResult createDebugCallback();
 	VkResult initInstance();
+	VkResult initSurface(SDL_Window* window);
 	VkResult initPhysicalDevice();
 	VkResult initDevice();
 	void initAllocator();
