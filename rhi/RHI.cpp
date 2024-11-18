@@ -301,10 +301,26 @@ VkResult Rhi::initPhysicalDevice() {
 		// get device properties
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(p_device, &deviceProperties);
+
 		bool swapChainAdequate = false;
 		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(p_device);
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 		if (!swapChainAdequate) continue;
+
+
+		// shader objects required
+		VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures = {};
+		shaderObjectFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+		shaderObjectFeatures.pNext = nullptr;
+
+		VkPhysicalDeviceFeatures2  deviceFeatures2 = {};
+		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+		deviceFeatures2.pNext = &shaderObjectFeatures;
+		vkGetPhysicalDeviceFeatures2(p_device, &deviceFeatures2);
+
+		if (!shaderObjectFeatures.shaderObject) continue;
+
+
 		if (deviceProperties.vendorID == m_cfg.device_vendor) {
 			{
 				foundDevice = true;
@@ -383,8 +399,15 @@ VkResult Rhi::initDevice() {
 	deviceQueueCreateInfo.pQueuePriorities = m_queuePriorities.data();
 	deviceQueueCreateInfo.queueCount = m_queueCount;
 	VkDeviceCreateInfo deviceCreateInfo = {};
+
+	VkPhysicalDeviceShaderObjectFeaturesEXT enableShaderObject = {
+	  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
+	  .pNext = NULL,
+	  .shaderObject = VK_TRUE
+	};
+
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.pNext = nullptr;
+	deviceCreateInfo.pNext = &enableShaderObject;
 	deviceCreateInfo.flags = 0;
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
@@ -590,8 +613,49 @@ VkResult Rhi::initGraphics() {
 }
 
 ShaderObjects Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag) {
-	ShaderObjects shaders = {};
-	return shaders;
+	ShaderObjects shadersObjects = {};
+	VkDescriptorSetLayout descriptorSetLayout;
+	VkShaderCreateInfoEXT shaderCreateInfos[2] =
+	{
+		{
+			.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+			.pNext = nullptr,
+			.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
+			.stage = VK_SHADER_STAGE_VERTEX_BIT,
+			.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
+			.codeSize = vert.size(),
+			.pCode = vert.data(),
+			.pName = "main",
+			.setLayoutCount = 0,
+			.pSetLayouts = nullptr,
+			.pushConstantRangeCount = 0,
+			.pPushConstantRanges = nullptr,
+			.pSpecializationInfo = nullptr
+		},
+		{
+			.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+			.pNext = nullptr,
+			.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
+			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.nextStage = 0,
+			.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
+			.codeSize = frag.size(),
+			.pCode = frag.data(),
+			.pName = "main",
+			.setLayoutCount = 0,
+			.pSetLayouts = nullptr,
+			.pushConstantRangeCount = 0,
+			.pPushConstantRanges = nullptr,
+			.pSpecializationInfo = nullptr
+		}
+	};
+
+	VkResult result;
+	VkShaderEXT shaders[2];
+
+	result = CreateShadersEXT(m_instance.value(), m_device.value(), 2, shaderCreateInfos, nullptr, shaders);
+	return shadersObjects;
 }
 
 Rhi::~Rhi() {

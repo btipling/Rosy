@@ -29,6 +29,7 @@ struct SwapChainSupportDetails {
 };
 
 struct ShaderObjects {
+    VkResult result;
     VkShaderEXT vertex;
     VkShaderEXT fragment;
 };

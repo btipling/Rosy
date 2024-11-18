@@ -16,6 +16,24 @@ std::vector<char> readFile(const std::string& filename) {
 }
 
 
+
+VkResult CreateShadersEXT(
+    VkInstance instance,
+    VkDevice device,
+    uint32_t createInfoCount,
+    const VkShaderCreateInfoEXT* pCreateInfos,
+    const VkAllocationCallbacks* pAllocator,
+    VkShaderEXT* pShaders) {
+    auto func = (PFN_vkCreateShadersEXT)vkGetInstanceProcAddr(instance, "vkCreateShadersEXT");
+    if (func != nullptr) {
+        return func(device, createInfoCount, pCreateInfos, pAllocator, pShaders);
+    }
+    else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+
 // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_EXT_shader_object.html
 //// Logical device created with the shaderObject feature enabled
 //VkDevice device;
