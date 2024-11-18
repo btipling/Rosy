@@ -81,6 +81,11 @@ VkResult Rhi::init(SDL_Window* window) {
 		rosy_utils::DebugPrintW(L"Failed to get presentation queue! %d\n", result);
 		return result;
 	}
+	result = this->initSwapChain(window);
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to init swap chain! %d\n", result);
+		return result;
+	}
 	return VK_SUCCESS;
 }
 
@@ -339,7 +344,7 @@ VkResult Rhi::initPhysicalDevice() {
 		if (!(qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT))) continue;
 		VkBool32 presentSupport = false;
 		vkGetPhysicalDeviceSurfaceSupportKHR(p_device, i, m_surface.value(), &presentSupport);
-		if (presentSupport) continue;
+		if (!presentSupport) continue;
 		if (qfmp.queueCount > queueCount) {
 			foundQueue = true;
 			queueIndex = i;
@@ -392,6 +397,89 @@ VkResult Rhi::initPresentationQueue() {
 	vkGetDeviceQueue(m_device.value(), m_queueIndex, 0, &queue);
 	m_presentQueue = queue;
 	return VK_SUCCESS;
+}
+
+VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+	for (const auto& availableFormat : availableFormats) {
+		if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+			return availableFormat;
+		}
+	}
+	return availableFormats[0];
+}
+
+VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+	for (const auto& availablePresentMode : availablePresentModes) {
+		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+			return availablePresentMode;
+		}
+	}
+
+	return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, SDL_Window* window) {
+	uint32_t max_u32 = (std::numeric_limits<uint32_t>::max)();
+	if (capabilities.currentExtent.width != max_u32) {
+		return capabilities.currentExtent;
+	} else {
+		int width, height;
+		SDL_GetWindowSizeInPixels(window, &width, &height);
+
+		VkExtent2D actualExtent = {
+			static_cast<uint32_t>(width),
+			static_cast<uint32_t>(height)
+		};
+
+		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+		return actualExtent;
+	}
+}
+
+VkResult Rhi::initSwapChain(SDL_Window* window) {
+	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice.value());
+
+	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+	VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
+
+	uint32_t imageCount = 2;
+	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
+		imageCount = swapChainSupport.capabilities.maxImageCount;
+	}
+
+	VkSwapchainCreateInfoKHR createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = m_surface.value();
+	createInfo.minImageCount = imageCount;
+	createInfo.imageFormat = surfaceFormat.format;
+	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+	createInfo.imageExtent = extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	// Just one queue family right now.
+	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	createInfo.queueFamilyIndexCount = 0;
+	createInfo.pQueueFamilyIndices = nullptr;
+
+	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE;
+
+	// TODO: support window resize
+	createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+	VkSwapchainKHR swapchain;
+	VkResult result = vkCreateSwapchainKHR(m_device.value(), &createInfo, nullptr, &swapchain);
+	if (result != VK_SUCCESS) return result;
+	m_swapchain = swapchain;
+	return result;
 }
 
 void Rhi::debug() {
@@ -448,6 +536,9 @@ void Rhi::initAllocator() {
 }
 
 Rhi::~Rhi() {
+	if (m_swapchain.has_value()) {
+		vkDestroySwapchainKHR(m_device.value(), m_swapchain.value(), nullptr);
+	}
 	if (m_debugMessenger.has_value()) {
 		DestroyDebugUtilsMessengerEXT(m_instance.value(), m_debugMessenger.value(), nullptr);
 	}

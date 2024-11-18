@@ -20,7 +20,6 @@ int main(int argc, char* argv[])
 
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Rosy", WIDTH, HEIGHT, SDL_WINDOW_VULKAN);
-    renderer = SDL_CreateRenderer(window, NULL);
 
     rosy_config::Config cfg = {};
     rosy_config::debug();
