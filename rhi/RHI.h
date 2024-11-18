@@ -35,6 +35,7 @@ private:
 	VkResult queryDeviceLayers();
 	VkResult queryInstanceExtensions();
 	VkResult queryDeviceExtensions();
+	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 	VkResult createDebugCallback();
 	VkResult initInstance();
 	VkResult initSurface(SDL_Window* window);

@@ -149,7 +149,7 @@ VkResult Rhi::queryInstanceExtensions() {
 		for (uint32_t i = 0; i < std::size(instanceExtensions); i++) {
 			rosy_utils::DebugPrintA("pushing back required rosy instance extension with name: %s\n", instanceExtensions[i]);
 			m_instanceExtensions.push_back(instanceExtensions[i]);
-		} 
+		}
 	}
 	rosy_utils::DebugPrintA("num m_instanceExtensions: %d\n", m_instanceExtensions.size());
 
@@ -236,7 +236,7 @@ VkResult Rhi::initInstance() {
 	VkDebugUtilsMessengerCreateInfoEXT createDebugCallackInfo = createDebugCallbackInfo();
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &createDebugCallackInfo;
+	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&createDebugCallackInfo;
 	createInfo.pApplicationInfo = &appInfo;
 	createInfo.enabledLayerCount = m_instanceLayerProperties.size();
 	createInfo.ppEnabledLayerNames = m_instanceLayerProperties.data();
@@ -251,6 +251,27 @@ VkResult Rhi::initInstance() {
 	return result;
 }
 
+SwapChainSupportDetails Rhi::querySwapChainSupport(VkPhysicalDevice device) {
+	SwapChainSupportDetails details = {};
+	VkSurfaceKHR surface = m_surface.value();
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+	uint32_t formatCount;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+
+	if (formatCount != 0) {
+		details.formats.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+	}
+	uint32_t presentModeCount;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+
+	if (presentModeCount != 0) {
+		details.presentModes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+	}
+	return details;
+}
+
 VkResult Rhi::initPhysicalDevice() {
 	if (!m_instance.has_value()) return VK_NOT_READY;
 	std::vector<VkPhysicalDevice> physicalDevices;
@@ -260,12 +281,18 @@ VkResult Rhi::initPhysicalDevice() {
 
 	physicalDevices.resize(physicalDeviceCount);
 	vkEnumeratePhysicalDevices(m_instance.value(), &physicalDeviceCount, &physicalDevices[0]);
+	bool foundDevice = false;
 	for (const VkPhysicalDevice& p_device : physicalDevices) {
 		// get device properties
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(p_device, &deviceProperties);
+		bool swapChainAdequate = false;
+		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(p_device);
+		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+		if (!swapChainAdequate) continue;
 		if (deviceProperties.vendorID == m_cfg.device_vendor) {
 			{
+				foundDevice = true;
 				m_physicalDevice = p_device;
 				m_physicalDeviceProperties = deviceProperties;
 			}
@@ -293,6 +320,7 @@ VkResult Rhi::initPhysicalDevice() {
 		}
 
 	}
+	if (!foundDevice) return VK_ERROR_FEATURE_NOT_PRESENT;
 	uint32_t queueCount = 0;
 	uint32_t queueIndex = 0;
 	VkPhysicalDeviceFeatures supportedFeaturesData = m_supportedFeatures.value_or(requiredFeatures);

@@ -18,3 +18,11 @@
             abort();                                                    \
         }                                                               \
     } while (0)
+
+
+
+struct SwapChainSupportDetails {
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
+};
