@@ -51,5 +51,5 @@ private:
 	VkResult initSwapChain(SDL_Window* window);
 	VkResult initImageViews();
 	VkResult initGraphics();
-	VkShaderEXT createShaderObject(const std::vector<char>& code);
+	ShaderObjects createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag);
 };

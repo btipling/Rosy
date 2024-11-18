@@ -582,12 +582,16 @@ void Rhi::initAllocator() {
 
 
 VkResult Rhi::initGraphics() {
+	auto vertShaderCode = readFile("out/vert.spv");
+	auto fragShaderCode = readFile("out/vert.spv");
+
+	ShaderObjects shaders = createShaderObjects(vertShaderCode, fragShaderCode);
 	return VK_SUCCESS;
 }
 
-VkShaderEXT Rhi::createShaderObject(const std::vector<char>& code) {
-	VkShaderEXT shader = {};
-	return shader;
+ShaderObjects Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag) {
+	ShaderObjects shaders = {};
+	return shaders;
 }
 
 Rhi::~Rhi() {
