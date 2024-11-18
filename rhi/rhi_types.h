@@ -9,6 +9,7 @@
 #include "../config/Config.h"
 #include "../utils/utils.h"
 #include "rhi_debug.h"
+#include "rhi_spirv.h"
 
 #define VK_CHECK(x)                                                     \
     do {                                                                \

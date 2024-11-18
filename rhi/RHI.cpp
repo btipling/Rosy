@@ -91,6 +91,11 @@ VkResult Rhi::init(SDL_Window* window) {
 		rosy_utils::DebugPrintW(L"Failed to init image views! %d\n", result);
 		return result;
 	}
+	result = this->initGraphics();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to init graphics! %d\n", result);
+		return result;
+	}
 	return VK_SUCCESS;
 }
 
@@ -573,6 +578,16 @@ void Rhi::initAllocator() {
 	VmaAllocator allocator;
 	vmaCreateAllocator(&allocatorCreateInfo, &allocator);
 	m_allocator = allocator;
+}
+
+
+VkResult Rhi::initGraphics() {
+	return VK_SUCCESS;
+}
+
+VkShaderEXT Rhi::createShaderObject(const std::vector<char>& code) {
+	VkShaderEXT shader = {};
+	return shader;
 }
 
 Rhi::~Rhi() {

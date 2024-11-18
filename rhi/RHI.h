@@ -50,4 +50,6 @@ private:
 	VkResult initPresentationQueue();
 	VkResult initSwapChain(SDL_Window* window);
 	VkResult initImageViews();
+	VkResult initGraphics();
+	VkShaderEXT createShaderObject(const std::vector<char>& code);
 };

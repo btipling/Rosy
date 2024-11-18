@@ -138,6 +138,7 @@
     <ClInclude Include="config\Config.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="rhi\rhi_spirv.h" />
     <ClInclude Include="rhi\RHI.h" />
     <ClInclude Include="rhi\rhi_debug.h" />
     <ClInclude Include="rhi\rhi_types.h" />
@@ -149,6 +150,7 @@
     <ClCompile Include="config\Config.cpp" />
     <ClCompile Include="rhi\RHI.cpp" />
     <ClCompile Include="rhi\rhi_debug.cpp" />
+    <ClCompile Include="rhi\rhi_spirv.cpp" />
     <ClCompile Include="Rosy.cpp" />
     <ClCompile Include="utils\utils.cpp" />
   </ItemGroup>
@@ -160,6 +162,7 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="compile.ps1" />
     <None Include="SDL3.dll" />
   </ItemGroup>
   <ItemGroup>
