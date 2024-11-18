@@ -28,46 +28,51 @@ Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg }, m_requiredFeatures{ requiredFea
 	memset(&m_requiredFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
 }
 
-void Rhi::init() {
+VkResult Rhi::init() {
 
 	VkResult result;
 	result = this->queryInstanceLayers();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to query instance layers! %d\n", result);
-		return;
+		return result;
 	}
 	result = this->queryInstanceExtensions();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to query instance extensions! %d\n", result);
-		return;
+		return result;
 	}
 	result = this->initInstance();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan instance! %d\n", result);
-		return;
+		return result;
+	}
+	result = this->createDebugCallback();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to create Vulkan debug callback! %d", result);
+		return result;
 	}
 	result = this->initPhysicalDevice();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan physical device! %d\n", result);
-		return;
+		return result;
 	}
 	result = this->queryDeviceLayers();
 	rosy_utils::DebugPrintW(L"Failed to query device layers! %d\n", result);
 	if (result != VK_SUCCESS) {
-		return;
+		return result;
 	}
 	result = this->queryDeviceExtensions();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to query device extensions! %d\n", result);
-		return;
+		return result;
 	}
 	result = this->initDevice();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
-		return;
+		return result;
 	}
 	this->initAllocator();
-
+	return VK_SUCCESS;
 }
 
 VkResult Rhi::queryInstanceLayers() {
@@ -114,25 +119,30 @@ VkResult Rhi::queryInstanceExtensions() {
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, nullptr);
 	if (result != VK_SUCCESS) return result;
+
 	rosy_utils::DebugPrintA("Found %d instance extensions\n", pPropertyCount);
 	if (pPropertyCount == 0) return result;
+
 	std::vector<VkExtensionProperties> extensions;
 	extensions.resize(pPropertyCount);
 	result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, extensions.data());
 	if (result != VK_SUCCESS) return result;
-
+	rosy_utils::DebugPrintA("num required instance extensions: %d\n", std::size(instanceExtensions));
 	{
 		// Setup required instance extensions
 		size_t found_extensions = 0;
 		uint32_t extensionCount;
 		auto extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
 		for (uint32_t i = 0; i < extensionCount; i++) {
+			rosy_utils::DebugPrintA("pushing back required SDL instance extension with name: %s\n", extensionNames[i]);
 			m_instanceExtensions.push_back(extensionNames[i]);
 		}
 		for (uint32_t i = 0; i < std::size(instanceExtensions); i++) {
+			rosy_utils::DebugPrintA("pushing back required rosy instance extension with name: %s\n", instanceExtensions[i]);
 			m_instanceExtensions.push_back(instanceExtensions[i]);
-		}
+		} 
 	}
+	rosy_utils::DebugPrintA("num m_instanceExtensions: %d\n", m_instanceExtensions.size());
 
 	std::vector<const char*> requiredInstanceExtensions(std::begin(m_instanceExtensions), std::end(m_instanceExtensions));
 	for (VkExtensionProperties ep : extensions) {
@@ -140,7 +150,6 @@ VkResult Rhi::queryInstanceExtensions() {
 		for (const char* extensionName : m_instanceExtensions) {
 			if (strcmp(extensionName, ep.extensionName) == 0) {
 				rosy_utils::DebugPrintA("\tRequiring instance extension: %s\n", extensionName);
-				m_deviceDeviceExtensions.push_back(extensionName);
 				requiredInstanceExtensions.erase(std::remove(requiredInstanceExtensions.begin(), requiredInstanceExtensions.end(), extensionName), requiredInstanceExtensions.end());
 			}
 		}
@@ -154,16 +163,22 @@ VkResult Rhi::queryInstanceExtensions() {
 VkResult Rhi::queryDeviceExtensions() {
 	uint32_t pPropertyCount = 0;
 	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
+
 	VkResult result = vkEnumerateDeviceExtensionProperties(m_physicalDevice.value(), nullptr, &pPropertyCount, nullptr);
 	if (result != VK_SUCCESS) return result;
+
 	rosy_utils::DebugPrintA("Found %d device extensions\n", pPropertyCount);
 	if (pPropertyCount == 0) return result;
+
 	std::vector<VkExtensionProperties> extensions;
 	extensions.resize(pPropertyCount);
+
 	result = vkEnumerateDeviceExtensionProperties(m_physicalDevice.value(), nullptr, &pPropertyCount, extensions.data());
 	if (result != VK_SUCCESS) return result;
-	size_t found_extensions = 0;
+
+	// validate required device extensions
 	std::vector<const char*> requiredDeviceExtensions(std::begin(deviceExtensions), std::end(deviceExtensions));
+
 	for (VkExtensionProperties ep : extensions) {
 		rosy_utils::DebugPrintA("Device extension name: %s\n", ep.extensionName);
 		for (const char* extensionName : deviceExtensions) {
@@ -174,6 +189,7 @@ VkResult Rhi::queryDeviceExtensions() {
 			}
 		}
 	}
+
 	if (requiredDeviceExtensions.size() != 0) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
@@ -189,6 +205,7 @@ VkResult Rhi::createDebugCallback() {
 	VkResult result = CreateDebugUtilsMessengerEXT(m_instance.value(), &createInfo, nullptr, &debugMessenger);
 	if (result != VK_SUCCESS) return result;
 	m_debugMessenger = debugMessenger;
+	return result;
 }
 
 VkResult Rhi::initInstance() {

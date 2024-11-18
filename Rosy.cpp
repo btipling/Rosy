@@ -27,7 +27,15 @@ int main(int argc, char* argv[])
 
     Rhi* rhi = new Rhi{ cfg };
 
-    rhi->init();
+    VkResult result = rhi->init();
+    if (result != VK_SUCCESS) {
+        rosy_utils::DebugPrintA("rhi init failed %d\n", result);
+        delete rhi;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
     rhi->debug();
 
     bool should_run = true;

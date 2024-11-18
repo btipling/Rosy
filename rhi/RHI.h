@@ -5,7 +5,7 @@
 class Rhi {
 public:
 	Rhi(rosy_config::Config cfg);
-	void init();
+	VkResult init();
 	void debug();
 	~Rhi();
 private:
