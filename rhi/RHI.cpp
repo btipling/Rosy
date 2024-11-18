@@ -445,7 +445,7 @@ VkResult Rhi::initSwapChain(SDL_Window* window) {
 	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 	VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
 
-	uint32_t imageCount = 2;
+	uint32_t imageCount = swapChainSupport.capabilities.minImageCount;
 	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
 		imageCount = swapChainSupport.capabilities.maxImageCount;
 	}
