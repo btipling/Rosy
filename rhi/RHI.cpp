@@ -217,8 +217,10 @@ VkResult Rhi::initInstance() {
 	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.apiVersion = VK_API_VERSION_1_3;
 
+	VkDebugUtilsMessengerCreateInfoEXT createDebugCallackInfo = createDebugCallbackInfo();
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &createDebugCallackInfo;
 	createInfo.pApplicationInfo = &appInfo;
 	createInfo.enabledLayerCount = m_instanceLayerProperties.size();
 	createInfo.ppEnabledLayerNames = m_instanceLayerProperties.data();
