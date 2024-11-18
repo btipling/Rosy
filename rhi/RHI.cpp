@@ -299,14 +299,23 @@ VkResult Rhi::initPhysicalDevice() {
 
 	VkPhysicalDevice p_device = m_physicalDevice.value();
 	std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = m_queueFamilyProperties.value();
+	bool foundQueue = false;
 	for (std::uint32_t i = 0; i < queueFamilyPropertiesData.size(); ++i) {
 		VkQueueFamilyProperties qfmp = queueFamilyPropertiesData[i];
 		if (qfmp.timestampValidBits < 64) continue;
 		if (!(qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT))) continue;
+		VkBool32 presentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(p_device, i, m_surface.value(), &presentSupport);
+		if (presentSupport) continue;
 		if (qfmp.queueCount > queueCount) {
+			foundQueue = true;
 			queueIndex = i;
 			queueCount = qfmp.queueCount;
 		}
+	}
+	if (!foundQueue) {
+		rosy_utils::DebugPrintA("No suitable queue found!");
+		return VK_ERROR_FEATURE_NOT_PRESENT;
 	}
 	m_queueIndex = queueIndex;
 	m_queueCount = queueCount;
