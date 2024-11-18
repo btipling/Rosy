@@ -29,6 +29,10 @@ private:
 	std::optional<VkSurfaceKHR> m_surface = std::nullopt;
 	std::optional<VkQueue> m_presentQueue = std::nullopt;
 	std::optional<VkSwapchainKHR> m_swapchain = std::nullopt;
+	std::vector<VkImage> swapChainImages;
+	VkFormat m_swapChainImageFormat;
+	VkExtent2D m_swapChainExtent;
+	std::vector<VkImageView> m_swapChainImageViews;
 
 	std::optional <VkDebugUtilsMessengerEXT> m_debugMessenger = std::nullopt;
 
@@ -42,7 +46,8 @@ private:
 	VkResult initSurface(SDL_Window* window);
 	VkResult initPhysicalDevice();
 	VkResult initDevice();
+	void initAllocator();
 	VkResult initPresentationQueue();
 	VkResult initSwapChain(SDL_Window* window);
-	void initAllocator();
+	VkResult initImageViews();
 };
