@@ -410,7 +410,7 @@ Rhi::~Rhi() {
 		if (result == VK_SUCCESS) vkDestroyDevice(m_device.value(), NULL);
 	}
 	if (m_surface.has_value()) {
-		vkDestroySurfaceKHR(m_instance.value(), m_surface.value(), nullptr);
+		SDL_Vulkan_DestroySurface(m_instance.value(), m_surface.value(), nullptr);
 	}
 	if (m_instance.has_value()) {
 		vkDestroyInstance(m_instance.value(), NULL);
