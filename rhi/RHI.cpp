@@ -76,6 +76,11 @@ VkResult Rhi::init(SDL_Window* window) {
 		return result;
 	}
 	this->initAllocator();
+	result = this->initPresentationQueue();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to get presentation queue! %d\n", result);
+		return result;
+	}
 	return VK_SUCCESS;
 }
 
@@ -352,6 +357,13 @@ VkResult Rhi::initDevice() {
 	rosy_utils::DebugPrintW(L"Vulkan device created successfully!\n");
 	m_device = device;
 	return result;
+}
+
+VkResult Rhi::initPresentationQueue() {
+	VkQueue queue;
+	vkGetDeviceQueue(m_device.value(), m_queueIndex, 0, &queue);
+	m_presentQueue = queue;
+	return VK_SUCCESS;
 }
 
 void Rhi::debug() {

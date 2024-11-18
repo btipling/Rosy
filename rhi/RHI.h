@@ -27,6 +27,7 @@ private:
 	std::optional<VkDevice> m_device = std::nullopt;
 	std::optional<VmaAllocator> m_allocator = std::nullopt;
 	std::optional<VkSurfaceKHR> m_surface = std::nullopt;
+	std::optional<VkQueue> m_presentQueue = std::nullopt;
 
 	std::optional <VkDebugUtilsMessengerEXT> m_debugMessenger = std::nullopt;
 
@@ -39,5 +40,6 @@ private:
 	VkResult initSurface(SDL_Window* window);
 	VkResult initPhysicalDevice();
 	VkResult initDevice();
+	VkResult initPresentationQueue();
 	void initAllocator();
 };
