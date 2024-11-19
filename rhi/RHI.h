@@ -1,6 +1,7 @@
 #pragma once
 #include "rhi_types.h"
 
+#define MAX_FRAMES_IN_FLIGHT 2
 
 class Rhi {
 public:
@@ -30,9 +31,11 @@ private:
 	std::optional<VkQueue> m_presentQueue = std::nullopt;
 	std::optional<VkSwapchainKHR> m_swapchain = std::nullopt;
 	std::vector<VkImage> swapChainImages;
-	VkFormat m_swapChainImageFormat;
-	VkExtent2D m_swapChainExtent;
+	VkFormat m_swapChainImageFormat = {};
+	VkExtent2D m_swapChainExtent = {};
 	std::vector<VkImageView> m_swapChainImageViews;
+	std::optional<VkCommandPool> m_commandPool;
+	std::vector<VkCommandBuffer> m_commandBuffers;
 
 	std::optional <VkDebugUtilsMessengerEXT> m_debugMessenger = std::nullopt;
 
@@ -52,4 +55,6 @@ private:
 	VkResult initImageViews();
 	VkResult initGraphics();
 	ShaderObjects createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag);
+	VkResult initCommandPool();
+	VkResult initCommandBuffers();
 };

@@ -104,6 +104,16 @@ VkResult Rhi::init(SDL_Window* window) {
 		rosy_utils::DebugPrintW(L"Failed to init graphics! %d\n", result);
 		return result;
 	}
+	result = this->initCommandPool();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to init command pool! %d\n", result);
+		return result;
+	}
+	result = this->initCommandBuffers();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to init command buffers! %d\n", result);
+		return result;
+	}
 	return VK_SUCCESS;
 }
 
@@ -621,6 +631,33 @@ VkResult Rhi::initGraphics() {
 	return VK_SUCCESS;
 }
 
+
+VkResult Rhi::initCommandPool() {
+	VkCommandPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = m_queueIndex;
+
+	VkCommandPool commandPool;
+	VkResult result = vkCreateCommandPool(m_device.value(), &poolInfo, nullptr, &commandPool);
+	if (result != VK_SUCCESS) return result;
+	m_commandPool = commandPool;
+	return result;
+}
+
+VkResult Rhi::initCommandBuffers() {
+	m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_commandPool.value();
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = (uint32_t)m_commandBuffers.size();
+
+	VkResult result = vkAllocateCommandBuffers(m_device.value(), &allocInfo, m_commandBuffers.data());
+	return result;
+}
+
 ShaderObjects Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag) {
 	ShaderObjects shadersObjects = {};
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -668,6 +705,10 @@ ShaderObjects Rhi::createShaderObjects(const std::vector<char>& vert, const std:
 }
 
 Rhi::~Rhi() {
+
+	if (m_commandPool.has_value()) {
+		vkDestroyCommandPool(m_device.value(), m_commandPool.value(), nullptr);
+	}
 	for (auto imageView : m_swapChainImageViews) {
 		vkDestroyImageView(m_device.value(), imageView, nullptr);
 	}
