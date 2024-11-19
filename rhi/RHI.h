@@ -35,6 +35,7 @@ private:
 	VkFormat m_swapChainImageFormat = {};
 	VkExtent2D m_swapChainExtent = {};
 	std::vector<VkImageView> m_swapChainImageViews;
+	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkCommandPool> m_commandPool;
 	std::vector<VkCommandBuffer> m_commandBuffers;
 	std::vector<VkSemaphore> m_imageAvailableSemaphores;
@@ -58,7 +59,7 @@ private:
 	VkResult initSwapChain(SDL_Window* window);
 	VkResult initImageViews();
 	VkResult initGraphics();
-	ShaderObjects createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag);
+	VkResult createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag);
 	VkResult initCommandPool();
 	VkResult initCommandBuffers();
 	VkResult initSyncObjects();

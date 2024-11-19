@@ -639,15 +639,23 @@ void Rhi::initAllocator() {
 
 
 VkResult Rhi::initGraphics() {
-	auto vertShaderCode = readFile("out/vert.spv");
-	auto fragShaderCode = readFile("out/frag.spv");
+	std::vector<char> vertShaderCode;
+	std::vector<char> fragShaderCode;
+	try {
+		vertShaderCode = readFile("out/vert.spv");
+		fragShaderCode = readFile("out/frag.spv");
+	}
+	catch (const std::exception& e) {
+		rosy_utils::DebugPrintA("error reading shader files! %s", e.what());
+		return VK_ERROR_FEATURE_NOT_PRESENT;
+	}
 
-	ShaderObjects shaders = createShaderObjects(vertShaderCode, fragShaderCode);
-	return VK_SUCCESS;
+	VkResult result;
+	result = createShaderObjects(vertShaderCode, fragShaderCode);
+	return result;
 }
 
-ShaderObjects Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag) {
-	ShaderObjects shadersObjects = {};
+VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag) {
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkShaderCreateInfoEXT shaderCreateInfos[2] =
 	{
@@ -686,10 +694,9 @@ ShaderObjects Rhi::createShaderObjects(const std::vector<char>& vert, const std:
 	};
 
 	VkResult result;
-	VkShaderEXT shaders[2];
-
-	result = vkCreateShadersEXT(m_device.value(), 2, shaderCreateInfos, nullptr, shaders);
-	return shadersObjects;
+	m_shaders.resize(2);
+	result = vkCreateShadersEXT(m_device.value(), 2, shaderCreateInfos, nullptr, m_shaders.data());
+	return result;
 }
 
 
@@ -761,6 +768,9 @@ Rhi::~Rhi() {
 	}
 	if (m_commandPool.has_value()) {
 		vkDestroyCommandPool(m_device.value(), m_commandPool.value(), nullptr);
+	}
+	for (VkShaderEXT shader : m_shaders) {
+		vkDestroyShaderEXT(m_device.value(), shader, nullptr);
 	}
 	for (VkImageView imageView : m_swapChainImageViews) {
 		vkDestroyImageView(m_device.value(), imageView, nullptr);

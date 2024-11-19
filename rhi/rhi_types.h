@@ -17,9 +17,3 @@ struct SwapChainSupportDetails {
 	std::vector<VkSurfaceFormatKHR> formats;
 	std::vector<VkPresentModeKHR> presentModes;
 };
-
-struct ShaderObjects {
-    VkResult result;
-    VkShaderEXT vertex;
-    VkShaderEXT fragment;
-};
