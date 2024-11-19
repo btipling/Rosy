@@ -125,9 +125,7 @@ VkResult Rhi::init(SDL_Window* window) {
 VkResult Rhi::drawFrame() {
 	VkResult result;
 	size_t currentFrame = 0;
-	VkCommandBuffer commandBuffer = m_commandBuffers[currentFrame];
-	VkImageView imageView = m_swapChainImageViews[currentFrame];
-	result = this->recordCommandBuffer(commandBuffer, imageView);
+	result = this->renderFrame(currentFrame);
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to record command buffer! %d\n", result);
 		return result;
@@ -450,21 +448,28 @@ VkResult Rhi::initDevice() {
 	deviceQueueCreateInfo.queueCount = m_queueCount;
 	VkDeviceCreateInfo deviceCreateInfo = {};
 
+	VkPhysicalDeviceVulkan13Features vulkan13Features = {};
+	vulkan13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+	vulkan13Features.pNext = nullptr;
+	vulkan13Features.dynamicRendering = true;
+	vulkan13Features.synchronization2 = true;
+
+
+	VkPhysicalDeviceVulkan12Features vulkan12Features = {};
+	vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	vulkan12Features.pNext = &vulkan13Features;
+	vulkan12Features.bufferDeviceAddress = true;
+	vulkan12Features.descriptorIndexing = true;
+
+
 	VkPhysicalDeviceShaderObjectFeaturesEXT enableShaderObject = {
 	  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
-	  .pNext = NULL,
+	  .pNext = &vulkan12Features,
 	  .shaderObject = VK_TRUE
 	};
 
-
-	VkPhysicalDeviceDynamicRenderingFeaturesKHR enableDynamicRendering = {
-	  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-	  .pNext = &enableShaderObject,
-	  .dynamicRendering = VK_TRUE
-	};
-
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.pNext = &enableDynamicRendering;
+	deviceCreateInfo.pNext = &enableShaderObject;
 	deviceCreateInfo.flags = 0;
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
@@ -484,7 +489,12 @@ VkResult Rhi::initDevice() {
 
 VkResult Rhi::initPresentationQueue() {
 	VkQueue queue;
-	vkGetDeviceQueue(m_device.value(), m_queueIndex, 0, &queue);
+	VkDeviceQueueInfo2 getInfo = {};
+	getInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
+	getInfo.flags = 0;
+	getInfo.queueFamilyIndex = m_queueIndex;
+	getInfo.queueIndex = 0;
+	vkGetDeviceQueue2(m_device.value(), &getInfo, &queue);
 	m_presentQueue = queue;
 	return VK_SUCCESS;
 }
@@ -775,10 +785,23 @@ VkResult Rhi::initSyncObjects() {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::recordCommandBuffer(VkCommandBuffer cmd, VkImageView imageView) {
+VkResult Rhi::renderFrame(size_t currentFrame) {
+	VkCommandBuffer cmd = m_commandBuffers[currentFrame];
+	VkImageView imageView = m_swapChainImageViews[currentFrame];
+	VkSemaphore availableSemaphore = m_imageAvailableSemaphores[currentFrame];
+	VkSemaphore finishedSemaphore = m_renderFinishedSemaphores[currentFrame];
+	VkFence fence = m_inFlightFence[currentFrame];
+
+	VkResult result;
+	VkDevice device = m_device.value();
+
+	result = vkWaitForFences(device, 1, &fence, true, 1000000000);
+	if (result != VK_SUCCESS) return result;
+
+	vkResetFences(device, 1, &fence);
+
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	VkResult result;
 	result = vkBeginCommandBuffer(cmd, &beginInfo);
 	if (result != VK_SUCCESS) return result;
 
@@ -814,11 +837,19 @@ VkResult Rhi::recordCommandBuffer(VkCommandBuffer cmd, VkImageView imageView) {
 	}
 	{
 		vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
+		vkCmdSetCullModeEXT(cmd, VK_TRUE);
 		vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
 	}
 	{
+		vkCmdSetViewportWithCountEXT(cmd, 1, &viewport);
+	}
+	{
+		vkCmdSetScissorWithCountEXT(cmd, 1, &scissor);
+	}
+	{
 		vkCmdSetFrontFaceEXT(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-		vkCmdSetDepthTestEnableEXT(cmd, VK_TRUE);
+		vkCmdSetDepthTestEnableEXT(cmd, VK_FALSE);
+		vkCmdSetDepthWriteEnableEXT(cmd, VK_FALSE);
 		vkCmdSetDepthCompareOpEXT(cmd, VK_COMPARE_OP_GREATER);
 		vkCmdSetDepthBoundsTestEnableEXT(cmd, VK_FALSE);
 		vkCmdSetDepthBiasEnableEXT(cmd, VK_FALSE);
@@ -833,8 +864,25 @@ VkResult Rhi::recordCommandBuffer(VkCommandBuffer cmd, VkImageView imageView) {
 		VkColorComponentFlags color_component_flags[] = { VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_A_BIT };
 		vkCmdSetColorWriteMaskEXT(cmd, 0, 1, color_component_flags);
 	}
+	{
+		vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
+	}
+	{
+		const VkShaderStageFlagBits stages[2] =
+		{
+			VK_SHADER_STAGE_VERTEX_BIT,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		};
+		vkCmdBindShadersEXT(cmd, 2, stages, m_shaders.data());
+		const VkShaderStageFlagBits unusedStages[3] =
+		{
+			VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+			VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+			VK_SHADER_STAGE_GEOMETRY_BIT
+		};
+		vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
+	}
 
-	// begin rendering
 	{
 		{
 			VkRenderingAttachmentInfo colorAttachment = {};
@@ -862,6 +910,8 @@ VkResult Rhi::recordCommandBuffer(VkCommandBuffer cmd, VkImageView imageView) {
 
 	}
 
+
+	vkCmdDraw(cmd, 3, 1, 0, 0);
 
 	vkCmdEndRendering(cmd);
 	result = vkEndCommandBuffer(cmd);

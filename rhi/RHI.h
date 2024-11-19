@@ -35,13 +35,14 @@ private:
 	VkExtent2D m_swapChainExtent = {};
 	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkCommandPool> m_commandPool;
-	std::vector<VkSemaphore> m_imageAvailableSemaphores;
-	std::vector<VkSemaphore> m_renderFinishedSemaphores;
-	std::vector<VkFence> m_inFlightFence;
+
 	// per frame data
 	std::vector<VkImage> m_swapChainImages;
 	std::vector<VkImageView> m_swapChainImageViews;
 	std::vector<VkCommandBuffer> m_commandBuffers;
+	std::vector<VkSemaphore> m_imageAvailableSemaphores;
+	std::vector<VkSemaphore> m_renderFinishedSemaphores;
+	std::vector<VkFence> m_inFlightFence;
 
 	std::optional <VkDebugUtilsMessengerEXT> m_debugMessenger = std::nullopt;
 
@@ -65,5 +66,5 @@ private:
 	VkResult initCommandBuffers();
 	VkResult initSyncObjects();
 
-	VkResult recordCommandBuffer(VkCommandBuffer commandBuffer, VkImageView imageView);
+	VkResult renderFrame(size_t currentFrame);
 };
