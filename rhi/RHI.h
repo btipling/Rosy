@@ -36,6 +36,9 @@ private:
 	std::vector<VkImageView> m_swapChainImageViews;
 	std::optional<VkCommandPool> m_commandPool;
 	std::vector<VkCommandBuffer> m_commandBuffers;
+	std::vector<VkSemaphore> m_imageAvailableSemaphores;
+	std::vector<VkSemaphore> m_renderFinishedSemaphores;
+	std::vector<VkFence> m_inFlightFence;
 
 	std::optional <VkDebugUtilsMessengerEXT> m_debugMessenger = std::nullopt;
 
@@ -57,4 +60,5 @@ private:
 	ShaderObjects createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag);
 	VkResult initCommandPool();
 	VkResult initCommandBuffers();
+	VkResult initSyncObjects();
 };

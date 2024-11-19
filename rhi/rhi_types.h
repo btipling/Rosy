@@ -11,16 +11,6 @@
 #include "rhi_debug.h"
 #include "rhi_spirv.h"
 
-#define VK_CHECK(x)                                                     \
-    do {                                                                \
-        VkResult err = x;                                               \
-        if (err) {                                                      \
-             fmt::print("Detected Vulkan error: {}", string_VkResult(err)); \
-            abort();                                                    \
-        }                                                               \
-    } while (0)
-
-
 
 struct SwapChainSupportDetails {
 	VkSurfaceCapabilitiesKHR capabilities;

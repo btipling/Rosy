@@ -114,6 +114,11 @@ VkResult Rhi::init(SDL_Window* window) {
 		rosy_utils::DebugPrintW(L"Failed to init command buffers! %d\n", result);
 		return result;
 	}
+	result = this->initSyncObjects();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to init sync objects! %d\n", result);
+		return result;
+	}
 	return VK_SUCCESS;
 }
 
@@ -631,33 +636,6 @@ VkResult Rhi::initGraphics() {
 	return VK_SUCCESS;
 }
 
-
-VkResult Rhi::initCommandPool() {
-	VkCommandPoolCreateInfo poolInfo{};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = m_queueIndex;
-
-	VkCommandPool commandPool;
-	VkResult result = vkCreateCommandPool(m_device.value(), &poolInfo, nullptr, &commandPool);
-	if (result != VK_SUCCESS) return result;
-	m_commandPool = commandPool;
-	return result;
-}
-
-VkResult Rhi::initCommandBuffers() {
-	m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = m_commandPool.value();
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = (uint32_t)m_commandBuffers.size();
-
-	VkResult result = vkAllocateCommandBuffers(m_device.value(), &allocInfo, m_commandBuffers.data());
-	return result;
-}
-
 ShaderObjects Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag) {
 	ShaderObjects shadersObjects = {};
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -704,12 +682,73 @@ ShaderObjects Rhi::createShaderObjects(const std::vector<char>& vert, const std:
 	return shadersObjects;
 }
 
-Rhi::~Rhi() {
 
+VkResult Rhi::initCommandPool() {
+	VkCommandPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = m_queueIndex;
+
+	VkCommandPool commandPool;
+	VkResult result = vkCreateCommandPool(m_device.value(), &poolInfo, nullptr, &commandPool);
+	if (result != VK_SUCCESS) return result;
+	m_commandPool = commandPool;
+	return result;
+}
+
+VkResult Rhi::initCommandBuffers() {
+	m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_commandPool.value();
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = (uint32_t)m_commandBuffers.size();
+
+	VkResult result = vkAllocateCommandBuffers(m_device.value(), &allocInfo, m_commandBuffers.data());
+	return result;
+}
+
+VkResult Rhi::initSyncObjects() {
+	VkSemaphoreCreateInfo semaphoreInfo{};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	VkResult result;
+	VkDevice device = m_device.value();
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		VkSemaphore semaphore;
+		result = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
+		if (result != VK_SUCCESS) return result;
+		m_imageAvailableSemaphores.push_back(semaphore);
+		result = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
+		if (result != VK_SUCCESS) return result;
+		m_renderFinishedSemaphores.push_back(semaphore);
+		VkFence fence;
+		result = vkCreateFence(device, &fenceInfo, nullptr, &fence);
+		if (result != VK_SUCCESS) return result;
+		m_inFlightFence.push_back(fence);
+	}
+	return VK_SUCCESS;
+}
+
+Rhi::~Rhi() {
+	for (VkFence fence : m_inFlightFence) {
+		vkDestroyFence(m_device.value(), fence, nullptr);
+	}
+	for (VkSemaphore semaphore : m_imageAvailableSemaphores) {
+		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
+	}
+	for (VkSemaphore semaphore : m_renderFinishedSemaphores) {
+		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
+	}
 	if (m_commandPool.has_value()) {
 		vkDestroyCommandPool(m_device.value(), m_commandPool.value(), nullptr);
 	}
-	for (auto imageView : m_swapChainImageViews) {
+	for (VkImageView imageView : m_swapChainImageViews) {
 		vkDestroyImageView(m_device.value(), imageView, nullptr);
 	}
 	if (m_swapchain.has_value()) {
