@@ -1,6 +1,9 @@
-#include "RHI.h"
+#define VK_USE_PLATFORM_WIN32_KHR
+#define VOLK_IMPLEMENTATION
+#include "volk/volk.h"
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
+#include "RHI.h"
 
 static const char* instanceLayers[] = {
 	"VK_LAYER_LUNARG_api_dump",
@@ -30,6 +33,11 @@ Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg }, m_requiredFeatures{ requiredFea
 VkResult Rhi::init(SDL_Window* window) {
 
 	VkResult result;
+	result = volkInitialize();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed initialize volk! %d\n", result);
+		return result;
+	}
 	result = this->queryInstanceLayers();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to query instance layers! %d\n", result);
@@ -226,7 +234,7 @@ VkResult Rhi::createDebugCallback() {
 
 	VkDebugUtilsMessengerCreateInfoEXT createInfo = createDebugCallbackInfo();
 	VkDebugUtilsMessengerEXT debugMessenger;
-	VkResult result = CreateDebugUtilsMessengerEXT(m_instance.value(), &createInfo, nullptr, &debugMessenger);
+	VkResult result = vkCreateDebugUtilsMessengerEXT(m_instance.value(), &createInfo, nullptr, &debugMessenger);
 	if (result != VK_SUCCESS) return result;
 	m_debugMessenger = debugMessenger;
 	return result;
@@ -262,6 +270,7 @@ VkResult Rhi::initInstance() {
 	VkResult result = vkCreateInstance(&createInfo, NULL, &instance);
 	if (result != VK_SUCCESS) return result;
 	OutputDebugStringW(L"Vulkan instance created successfully!\n");
+	volkLoadInstance(instance);
 	m_instance = instance;
 	return result;
 }
@@ -588,8 +597,8 @@ void Rhi::debug() {
 
 void Rhi::initAllocator() {
 	VmaVulkanFunctions vulkanFunctions = {};
-	vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
-	vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+	vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+	vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
 	VmaAllocatorCreateInfo allocatorCreateInfo = {};
 	allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
@@ -654,7 +663,7 @@ ShaderObjects Rhi::createShaderObjects(const std::vector<char>& vert, const std:
 	VkResult result;
 	VkShaderEXT shaders[2];
 
-	result = CreateShadersEXT(m_instance.value(), m_device.value(), 2, shaderCreateInfos, nullptr, shaders);
+	result = vkCreateShadersEXT(m_device.value(), 2, shaderCreateInfos, nullptr, shaders);
 	return shadersObjects;
 }
 
@@ -666,7 +675,7 @@ Rhi::~Rhi() {
 		vkDestroySwapchainKHR(m_device.value(), m_swapchain.value(), nullptr);
 	}
 	if (m_debugMessenger.has_value()) {
-		DestroyDebugUtilsMessengerEXT(m_instance.value(), m_debugMessenger.value(), nullptr);
+		vkDestroyDebugUtilsMessengerEXT(m_instance.value(), m_debugMessenger.value(), nullptr);
 	}
 	if (m_allocator.has_value()) {
 		vmaDestroyAllocator(m_allocator.value());

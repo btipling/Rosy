@@ -145,6 +145,7 @@
     <ClInclude Include="Rosy.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="utils\utils.h" />
+    <ClInclude Include="volk\volk.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="config\Config.cpp" />
