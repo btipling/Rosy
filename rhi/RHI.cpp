@@ -126,7 +126,8 @@ VkResult Rhi::drawFrame() {
 	VkResult result;
 	size_t currentFrame = 0;
 	VkCommandBuffer commandBuffer = m_commandBuffers[currentFrame];
-	result = this->recordCommandBuffer(commandBuffer);
+	VkImageView imageView = m_swapChainImageViews[currentFrame];
+	result = this->recordCommandBuffer(commandBuffer, imageView);
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to record command buffer! %d\n", result);
 		return result;
@@ -357,6 +358,19 @@ VkResult Rhi::initPhysicalDevice() {
 		if (!shaderObjectFeatures.shaderObject) continue;
 
 
+		// dynamic rendering required
+		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {};
+		dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+		dynamicRenderingFeatures.pNext = nullptr;
+
+		deviceFeatures2 = {};
+		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+		deviceFeatures2.pNext = &dynamicRenderingFeatures;
+		vkGetPhysicalDeviceFeatures2(p_device, &deviceFeatures2);
+
+		if (!dynamicRenderingFeatures.dynamicRendering) continue;
+
+
 		if (deviceProperties.vendorID == m_cfg.device_vendor) {
 			{
 				foundDevice = true;
@@ -442,8 +456,15 @@ VkResult Rhi::initDevice() {
 	  .shaderObject = VK_TRUE
 	};
 
+
+	VkPhysicalDeviceDynamicRenderingFeaturesKHR enableDynamicRendering = {
+	  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+	  .pNext = &enableShaderObject,
+	  .dynamicRendering = VK_TRUE
+	};
+
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.pNext = &enableShaderObject;
+	deviceCreateInfo.pNext = &enableDynamicRendering;
 	deviceCreateInfo.flags = 0;
 	deviceCreateInfo.queueCreateInfoCount = 1;
 	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
@@ -551,8 +572,8 @@ VkResult Rhi::initSwapChain(SDL_Window* window) {
 	if (result != VK_SUCCESS) return result;
 
 	vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
-	swapChainImages.resize(imageCount);
-	vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapChainImages.data());
+	m_swapChainImages.resize(imageCount);
+	vkGetSwapchainImagesKHR(device, swapchain, &imageCount, m_swapChainImages.data());
 
 	m_swapChainImageFormat = surfaceFormat.format;
 	m_swapChainExtent = extent;
@@ -562,10 +583,10 @@ VkResult Rhi::initSwapChain(SDL_Window* window) {
 
 VkResult Rhi::initImageViews() {
 	VkDevice device = m_device.value();
-	for (size_t i = 0; i < swapChainImages.size(); i++) {
+	for (size_t i = 0; i < m_swapChainImages.size(); i++) {
 		VkImageViewCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = swapChainImages[i];
+		createInfo.image = m_swapChainImages[i];
 		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		createInfo.format = m_swapChainImageFormat;
 		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -754,7 +775,7 @@ VkResult Rhi::initSyncObjects() {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::recordCommandBuffer(VkCommandBuffer cmd) {
+VkResult Rhi::recordCommandBuffer(VkCommandBuffer cmd, VkImageView imageView) {
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	VkResult result;
@@ -813,7 +834,36 @@ VkResult Rhi::recordCommandBuffer(VkCommandBuffer cmd) {
 		vkCmdSetColorWriteMaskEXT(cmd, 0, 1, color_component_flags);
 	}
 
+	// begin rendering
+	{
+		{
+			VkRenderingAttachmentInfo colorAttachment = {};
+			colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+			colorAttachment.pNext = nullptr;
+			colorAttachment.imageView = imageView;
+			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			colorAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
+			VkRect2D render_area = VkRect2D{ VkOffset2D{ 0, 0 }, m_swapChainExtent };
+
+			VkRenderingInfo renderInfo = {};
+			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+			renderInfo.pNext = nullptr;
+			renderInfo.renderArea = render_area;
+			renderInfo.layerCount = 1;
+			renderInfo.colorAttachmentCount = 1;
+			renderInfo.pColorAttachments = &colorAttachment;
+			renderInfo.pDepthAttachment = nullptr;
+			renderInfo.pStencilAttachment = nullptr;
+			vkCmdBeginRendering(cmd, &renderInfo);
+		}
+
+	}
+
+
+	vkCmdEndRendering(cmd);
 	result = vkEndCommandBuffer(cmd);
 	if (result != VK_SUCCESS) return result;
 	return VK_SUCCESS;
