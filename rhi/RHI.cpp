@@ -124,7 +124,9 @@ VkResult Rhi::init(SDL_Window* window) {
 
 VkResult Rhi::drawFrame() {
 	VkResult result;
-	result = this->recordCommandBuffer();
+	size_t currentFrame = 0;
+	VkCommandBuffer commandBuffer = m_commandBuffers[currentFrame];
+	result = this->recordCommandBuffer(commandBuffer);
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to record command buffer! %d\n", result);
 		return result;
@@ -752,7 +754,30 @@ VkResult Rhi::initSyncObjects() {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::recordCommandBuffer() {
+VkResult Rhi::recordCommandBuffer(VkCommandBuffer commandBuffer) {
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	VkResult result;
+	result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	if (result != VK_SUCCESS) return result;
+
+	VkExtent2D swapChainExtent = m_swapChainExtent;
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = (float)swapChainExtent.width;
+	viewport.height = (float)swapChainExtent.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+	VkRect2D scissor{};
+	scissor.offset = { 0, 0 };
+	scissor.extent = swapChainExtent;
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+	result = vkEndCommandBuffer(commandBuffer);
+	if (result != VK_SUCCESS) return result;
 	return VK_SUCCESS;
 }
 

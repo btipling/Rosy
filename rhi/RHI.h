@@ -64,5 +64,5 @@ private:
 	VkResult initCommandBuffers();
 	VkResult initSyncObjects();
 
-	VkResult recordCommandBuffer();
+	VkResult recordCommandBuffer(VkCommandBuffer commandBuffer);
 };
