@@ -754,11 +754,11 @@ VkResult Rhi::initSyncObjects() {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::recordCommandBuffer(VkCommandBuffer commandBuffer) {
+VkResult Rhi::recordCommandBuffer(VkCommandBuffer cmd) {
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	VkResult result;
-	result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	result = vkBeginCommandBuffer(cmd, &beginInfo);
 	if (result != VK_SUCCESS) return result;
 
 	VkExtent2D swapChainExtent = m_swapChainExtent;
@@ -769,14 +769,52 @@ VkResult Rhi::recordCommandBuffer(VkCommandBuffer commandBuffer) {
 	viewport.height = (float)swapChainExtent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+	vkCmdSetViewport(cmd, 0, 1, &viewport);
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
 	scissor.extent = swapChainExtent;
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+	vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-	result = vkEndCommandBuffer(commandBuffer);
+	// Configure the dynamic shader pipeline
+	{
+		vkCmdSetRasterizerDiscardEnableEXT(cmd, VK_FALSE);
+		VkColorBlendEquationEXT colorBlendEquationEXT{};
+		vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &colorBlendEquationEXT);
+	}
+	{
+		vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+		vkCmdSetPrimitiveRestartEnableEXT(cmd, VK_FALSE);
+		vkCmdSetRasterizationSamplesEXT(cmd, VK_SAMPLE_COUNT_1_BIT);
+	}
+	{
+		const VkSampleMask sample_mask = 0x1;
+		vkCmdSetSampleMaskEXT(cmd, VK_SAMPLE_COUNT_1_BIT, &sample_mask);
+	}
+	{
+		vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
+		vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
+	}
+	{
+		vkCmdSetFrontFaceEXT(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+		vkCmdSetDepthTestEnableEXT(cmd, VK_TRUE);
+		vkCmdSetDepthCompareOpEXT(cmd, VK_COMPARE_OP_GREATER);
+		vkCmdSetDepthBoundsTestEnableEXT(cmd, VK_FALSE);
+		vkCmdSetDepthBiasEnableEXT(cmd, VK_FALSE);
+		vkCmdSetStencilTestEnableEXT(cmd, VK_FALSE);
+		vkCmdSetLogicOpEnableEXT(cmd, VK_FALSE);
+	}
+	{
+		VkBool32 color_blend_enables[] = { VK_FALSE };
+		vkCmdSetColorBlendEnableEXT(cmd, 0, 1, color_blend_enables);
+	}
+	{
+		VkColorComponentFlags color_component_flags[] = { VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_A_BIT };
+		vkCmdSetColorWriteMaskEXT(cmd, 0, 1, color_component_flags);
+	}
+
+
+	result = vkEndCommandBuffer(cmd);
 	if (result != VK_SUCCESS) return result;
 	return VK_SUCCESS;
 }
