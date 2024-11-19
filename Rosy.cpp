@@ -46,7 +46,11 @@ int main(int argc, char* argv[])
                 break;
             }
             else {
-                // do nothing
+                result = rhi->drawFrame();
+                if (result != VK_SUCCESS) {
+                    rosy_utils::DebugPrintA("rhi draw failed %d\n", result);
+                    should_run = false;
+                }
             }
         }
     }

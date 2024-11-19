@@ -122,6 +122,16 @@ VkResult Rhi::init(SDL_Window* window) {
 	return VK_SUCCESS;
 }
 
+VkResult Rhi::drawFrame() {
+	VkResult result;
+	result = this->recordCommandBuffer();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to record command buffer! %d\n", result);
+		return result;
+	}
+	return VK_SUCCESS;
+}
+
 VkResult Rhi::queryInstanceLayers() {
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateInstanceLayerProperties(&pPropertyCount, nullptr);
@@ -732,6 +742,10 @@ VkResult Rhi::initSyncObjects() {
 		if (result != VK_SUCCESS) return result;
 		m_inFlightFence.push_back(fence);
 	}
+	return VK_SUCCESS;
+}
+
+VkResult Rhi::recordCommandBuffer() {
 	return VK_SUCCESS;
 }
 

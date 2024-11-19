@@ -7,6 +7,7 @@ class Rhi {
 public:
 	Rhi(rosy_config::Config cfg);
 	VkResult init(SDL_Window* window);
+	VkResult drawFrame();
 	void debug();
 	~Rhi();
 private:
@@ -61,4 +62,6 @@ private:
 	VkResult initCommandPool();
 	VkResult initCommandBuffers();
 	VkResult initSyncObjects();
+
+	VkResult recordCommandBuffer();
 };
