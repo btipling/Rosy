@@ -831,8 +831,8 @@ void Rhi::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout curr
 
 VkResult Rhi::renderFrame() {
 	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
-	VkSemaphore waitSemaphore = m_imageAvailableSemaphores[m_currentFrame];
-	VkSemaphore signalSemaphore = m_renderFinishedSemaphores[m_currentFrame];
+	VkSemaphore imageAvailableSignal = m_imageAvailableSemaphores[m_currentFrame];
+	VkSemaphore renderedFinisishedSignal = m_renderFinishedSemaphores[m_currentFrame];
 	VkFence fence = m_inFlightFence[m_currentFrame];
 	VkResult result;
 	VkDevice device = m_device.value();
@@ -841,7 +841,7 @@ VkResult Rhi::renderFrame() {
 	if (result != VK_SUCCESS) return result;
 
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(m_device.value(), m_swapchain.value(), UINT64_MAX, waitSemaphore, VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(m_device.value(), m_swapchain.value(), UINT64_MAX, imageAvailableSignal, VK_NULL_HANDLE, &imageIndex);
 	VkImage image = m_swapChainImages[imageIndex];
 	VkImageView imageView = m_swapChainImageViews[imageIndex];
 
@@ -1010,7 +1010,7 @@ VkResult Rhi::renderFrame() {
 			VkSemaphoreSubmitInfo waitInfo = {};
 			waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			waitInfo.pNext = nullptr;
-			waitInfo.semaphore = waitSemaphore;
+			waitInfo.semaphore = imageAvailableSignal;
 			waitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
 			waitInfo.deviceIndex = 0;
 			waitInfo.value = 1;
@@ -1018,7 +1018,7 @@ VkResult Rhi::renderFrame() {
 			VkSemaphoreSubmitInfo signalInfo = {};
 			signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			signalInfo.pNext = nullptr;
-			signalInfo.semaphore = signalSemaphore;
+			signalInfo.semaphore = renderedFinisishedSignal;
 			signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
 			signalInfo.deviceIndex = 0;
 			signalInfo.value = 1;
@@ -1041,7 +1041,7 @@ VkResult Rhi::renderFrame() {
 			VkPresentInfoKHR presentInfo = {};
 			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 			presentInfo.waitSemaphoreCount = 1;
-			presentInfo.pWaitSemaphores = &signalSemaphore;
+			presentInfo.pWaitSemaphores = &renderedFinisishedSignal;
 			presentInfo.swapchainCount = 1;
 			presentInfo.pSwapchains = swapChains;
 			presentInfo.pImageIndices = &imageIndex;
