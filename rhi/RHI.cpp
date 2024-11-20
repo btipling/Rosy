@@ -788,8 +788,8 @@ VkResult Rhi::initSyncObjects() {
 VkResult Rhi::renderFrame(size_t currentFrame) {
 	VkCommandBuffer cmd = m_commandBuffers[currentFrame];
 	VkImageView imageView = m_swapChainImageViews[currentFrame];
-	VkSemaphore availableSemaphore = m_imageAvailableSemaphores[currentFrame];
-	VkSemaphore finishedSemaphore = m_renderFinishedSemaphores[currentFrame];
+	VkSemaphore waitSemaphore = m_imageAvailableSemaphores[currentFrame];
+	VkSemaphore signalSemaphore = m_renderFinishedSemaphores[currentFrame];
 	VkFence fence = m_inFlightFence[currentFrame];
 
 	VkResult result;
@@ -802,6 +802,7 @@ VkResult Rhi::renderFrame(size_t currentFrame) {
 
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	result = vkBeginCommandBuffer(cmd, &beginInfo);
 	if (result != VK_SUCCESS) return result;
 
@@ -916,6 +917,41 @@ VkResult Rhi::renderFrame(size_t currentFrame) {
 	vkCmdEndRendering(cmd);
 	result = vkEndCommandBuffer(cmd);
 	if (result != VK_SUCCESS) return result;
+
+	VkCommandBufferSubmitInfo cmdBufferSubmitInfo = {};
+	cmdBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+	cmdBufferSubmitInfo.pNext = nullptr;
+	cmdBufferSubmitInfo.commandBuffer = cmd;
+	cmdBufferSubmitInfo.deviceMask = 0;
+
+	VkSemaphoreSubmitInfo waitInfo = {};
+	waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+	waitInfo.pNext = nullptr;
+	waitInfo.semaphore = waitSemaphore;
+	waitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+	waitInfo.deviceIndex = 0;
+	waitInfo.value = 1;
+
+	VkSemaphoreSubmitInfo signalInfo = {};
+	signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+	signalInfo.pNext = nullptr;
+	signalInfo.semaphore = signalSemaphore;
+	signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+	signalInfo.deviceIndex = 0;
+	signalInfo.value = 1;
+
+	VkSubmitInfo2 submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+	submitInfo.pNext = nullptr;
+	submitInfo.waitSemaphoreInfoCount = 1;
+	submitInfo.pWaitSemaphoreInfos = &waitInfo;
+	submitInfo.signalSemaphoreInfoCount = 1;
+	submitInfo.pSignalSemaphoreInfos = &signalInfo;
+	submitInfo.commandBufferInfoCount = 1;
+	submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
+	result = vkQueueSubmit2(m_presentQueue.value(), 1, &submitInfo, fence);
+	if (result != VK_SUCCESS) return result;
+
 	return VK_SUCCESS;
 }
 
