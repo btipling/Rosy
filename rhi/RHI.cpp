@@ -835,6 +835,9 @@ VkResult Rhi::renderFrame() {
 
 	vkResetFences(device, 1, &fence);
 
+	result = vkResetCommandBuffer(cmd, 0);
+	if (result != VK_SUCCESS) return result;
+
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
