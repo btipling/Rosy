@@ -822,17 +822,16 @@ VkResult Rhi::renderFrame() {
 	VkSemaphore waitSemaphore = m_imageAvailableSemaphores[m_currentFrame];
 	VkSemaphore signalSemaphore = m_renderFinishedSemaphores[m_currentFrame];
 	VkFence fence = m_inFlightFence[m_currentFrame];
-
-	uint32_t imageIndex;
-	vkAcquireNextImageKHR(m_device.value(), m_swapchain.value(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
-	VkImage image = m_swapChainImages[imageIndex];
-	VkImageView imageView = m_swapChainImageViews[imageIndex];
-
 	VkResult result;
 	VkDevice device = m_device.value();
 
 	result = vkWaitForFences(device, 1, &fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
+
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(m_device.value(), m_swapchain.value(), UINT64_MAX, waitSemaphore, VK_NULL_HANDLE, &imageIndex);
+	VkImage image = m_swapChainImages[imageIndex];
+	VkImageView imageView = m_swapChainImageViews[imageIndex];
 
 	vkResetFences(device, 1, &fence);
 
@@ -947,7 +946,6 @@ VkResult Rhi::renderFrame() {
 		}
 
 	}
-
 
 	vkCmdDraw(cmd, 3, 1, 0, 0);
 
