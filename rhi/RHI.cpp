@@ -784,12 +784,49 @@ VkResult Rhi::initSyncObjects() {
 	return VK_SUCCESS;
 }
 
+
+void Rhi::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout) {
+	VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	VkImageSubresourceRange subresourceRange = {};
+	subresourceRange.aspectMask = aspectMask;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+	subresourceRange.baseArrayLayer = 0;
+	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+
+	VkImageMemoryBarrier2 imageBarrier = {};
+	imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+	imageBarrier.pNext = nullptr;
+	imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+	imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+	imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+	imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
+	imageBarrier.oldLayout = currentLayout;
+	imageBarrier.newLayout = newLayout;
+	imageBarrier.subresourceRange = subresourceRange;
+	imageBarrier.image = image;
+
+	VkDependencyInfo dependencyInfo{};
+	dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependencyInfo.pNext = nullptr;
+
+	dependencyInfo.imageMemoryBarrierCount = 1;
+	dependencyInfo.pImageMemoryBarriers = &imageBarrier;
+
+	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
+}
+
 VkResult Rhi::renderFrame() {
 	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
-	VkImageView imageView = m_swapChainImageViews[m_currentFrame];
 	VkSemaphore waitSemaphore = m_imageAvailableSemaphores[m_currentFrame];
 	VkSemaphore signalSemaphore = m_renderFinishedSemaphores[m_currentFrame];
 	VkFence fence = m_inFlightFence[m_currentFrame];
+
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(m_device.value(), m_swapchain.value(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+	VkImage image = m_swapChainImages[imageIndex];
+	VkImageView imageView = m_swapChainImageViews[imageIndex];
 
 	VkResult result;
 	VkDevice device = m_device.value();
@@ -804,6 +841,8 @@ VkResult Rhi::renderFrame() {
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	result = vkBeginCommandBuffer(cmd, &beginInfo);
 	if (result != VK_SUCCESS) return result;
+
+	transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	VkExtent2D swapChainExtent = m_swapChainExtent;
 	VkViewport viewport{};
@@ -882,7 +921,6 @@ VkResult Rhi::renderFrame() {
 		};
 		vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
 	}
-
 	{
 		{
 			VkRenderingAttachmentInfo colorAttachment = {};
@@ -914,6 +952,8 @@ VkResult Rhi::renderFrame() {
 	vkCmdDraw(cmd, 3, 1, 0, 0);
 
 	vkCmdEndRendering(cmd);
+
+	transitionImage(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	result = vkEndCommandBuffer(cmd);
 	if (result != VK_SUCCESS) return result;
 
@@ -950,6 +990,20 @@ VkResult Rhi::renderFrame() {
 	submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
 	result = vkQueueSubmit2(m_presentQueue.value(), 1, &submitInfo, fence);
 	if (result != VK_SUCCESS) return result;
+
+	VkSwapchainKHR swapChains[] = { m_swapchain.value() };
+	VkPresentInfoKHR presentInfo = {};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &signalSemaphore;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+	presentInfo.pImageIndices = &imageIndex;
+
+	result = vkQueuePresentKHR(m_presentQueue.value(), &presentInfo);
+	if (result != VK_SUCCESS) return result;
+
+
 
 	m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	return VK_SUCCESS;

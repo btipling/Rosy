@@ -38,9 +38,11 @@ private:
 
 	size_t m_currentFrame;
 
-	// per frame data
+	// swapchain images
 	std::vector<VkImage> m_swapChainImages;
 	std::vector<VkImageView> m_swapChainImageViews;
+
+	// per frame data
 	std::vector<VkCommandBuffer> m_commandBuffers;
 	std::vector<VkSemaphore> m_imageAvailableSemaphores;
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
@@ -67,6 +69,7 @@ private:
 	VkResult initCommandPool();
 	VkResult initCommandBuffers();
 	VkResult initSyncObjects();
-
+	
+	void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);
 	VkResult renderFrame();
 };
