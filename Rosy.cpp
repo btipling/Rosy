@@ -6,6 +6,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_vulkan.h>
+#include <thread>
 #include <vector>
 #include "rhi/RHI.h"
 #include "config/Config.h"
@@ -38,19 +39,28 @@ int main(int argc, char* argv[])
     rhi->debug();
 
     bool should_run = true;
+    bool should_render = true;
     while (should_run) {
-        SDL_Event windowEvent;
-        while (SDL_PollEvent(&windowEvent)) {
-            if (windowEvent.type == SDL_EVENT_QUIT) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_QUIT) {
                 should_run = false;
                 break;
             }
-            else {
-                result = rhi->drawFrame();
-                if (result != VK_SUCCESS) {
-                    rosy_utils::DebugPrintA("rhi draw failed %d\n", result);
-                    should_run = false;
-                }
+            if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
+                should_render = false;
+            }
+            if (event.type == SDL_EVENT_WINDOW_RESTORED) {
+                should_render = true;
+            }
+            if (!should_render) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            }
+            result = rhi->drawFrame();
+            if (result != VK_SUCCESS) {
+                rosy_utils::DebugPrintA("rhi draw failed %d\n", result);
+                should_run = false;
             }
         }
     }
