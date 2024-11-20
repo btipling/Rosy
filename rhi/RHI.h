@@ -36,6 +36,8 @@ private:
 	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkCommandPool> m_commandPool;
 
+	size_t m_currentFrame;
+
 	// per frame data
 	std::vector<VkImage> m_swapChainImages;
 	std::vector<VkImageView> m_swapChainImageViews;
@@ -66,5 +68,5 @@ private:
 	VkResult initCommandBuffers();
 	VkResult initSyncObjects();
 
-	VkResult renderFrame(size_t currentFrame);
+	VkResult renderFrame();
 };

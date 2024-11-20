@@ -124,8 +124,7 @@ VkResult Rhi::init(SDL_Window* window) {
 
 VkResult Rhi::drawFrame() {
 	VkResult result;
-	size_t currentFrame = 0;
-	result = this->renderFrame(currentFrame);
+	result = this->renderFrame();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to record command buffer! %d\n", result);
 		return result;
@@ -785,12 +784,12 @@ VkResult Rhi::initSyncObjects() {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::renderFrame(size_t currentFrame) {
-	VkCommandBuffer cmd = m_commandBuffers[currentFrame];
-	VkImageView imageView = m_swapChainImageViews[currentFrame];
-	VkSemaphore waitSemaphore = m_imageAvailableSemaphores[currentFrame];
-	VkSemaphore signalSemaphore = m_renderFinishedSemaphores[currentFrame];
-	VkFence fence = m_inFlightFence[currentFrame];
+VkResult Rhi::renderFrame() {
+	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
+	VkImageView imageView = m_swapChainImageViews[m_currentFrame];
+	VkSemaphore waitSemaphore = m_imageAvailableSemaphores[m_currentFrame];
+	VkSemaphore signalSemaphore = m_renderFinishedSemaphores[m_currentFrame];
+	VkFence fence = m_inFlightFence[m_currentFrame];
 
 	VkResult result;
 	VkDevice device = m_device.value();
@@ -952,6 +951,7 @@ VkResult Rhi::renderFrame(size_t currentFrame) {
 	result = vkQueueSubmit2(m_presentQueue.value(), 1, &submitInfo, fence);
 	if (result != VK_SUCCESS) return result;
 
+	m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	return VK_SUCCESS;
 }
 
