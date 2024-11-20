@@ -10,7 +10,7 @@ static const char* instanceLayers[] = {
 	"VK_LAYER_KHRONOS_validation",
 	//"VK_LAYER_LUNARG_monitor",
 	//"VK_LAYER_KHRONOS_profiles",
-	"VK_LAYER_LUNARG_crash_diagnostic",
+	//"VK_LAYER_LUNARG_crash_diagnostic",
 	"VK_LAYER_KHRONOS_shader_object",
 	"VK_LAYER_KHRONOS_synchronization2",
 };
@@ -724,10 +724,22 @@ VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vect
 			.pSpecializationInfo = nullptr
 		}
 	};
-
 	VkResult result;
 	m_shaders.resize(2);
 	result = vkCreateShadersEXT(m_device.value(), 2, shaderCreateInfos, nullptr, m_shaders.data());
+	VkDebugUtilsObjectNameInfoEXT vertexName = {};
+	vertexName.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	vertexName.pNext = nullptr;
+	vertexName.objectType = VK_OBJECT_TYPE_SHADER_EXT;
+	vertexName.objectHandle = (uint64_t)m_shaders[0];
+	vertexName.pObjectName = "vertex";
+
+	VkDebugUtilsObjectNameInfoEXT fragName = {};
+	fragName.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	fragName.pNext = nullptr;
+	fragName.objectType = VK_OBJECT_TYPE_SHADER_EXT;
+	fragName.objectHandle = (uint64_t)m_shaders[0];
+	fragName.pObjectName = "frag";
 	return result;
 }
 
@@ -933,7 +945,7 @@ VkResult Rhi::renderFrame() {
 			colorAttachment.imageView = imageView;
 			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			colorAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 			VkRect2D render_area = VkRect2D{ VkOffset2D{ 0, 0 }, m_swapChainExtent };
@@ -953,6 +965,14 @@ VkResult Rhi::renderFrame() {
 	}
 	{
 		// triangle
+		const VkDebugUtilsLabelEXT triangleLabel =
+		{
+			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+			.pNext = NULL,
+			.pLabelName = "triangleLabel",
+			.color = { 1.0f, 0.0f, 0.0f, 1.0f },
+		};
+		vkCmdBeginDebugUtilsLabelEXT(cmd, &triangleLabel);
 		const VkShaderStageFlagBits stages[2] =
 		{
 			VK_SHADER_STAGE_VERTEX_BIT,
@@ -967,6 +987,7 @@ VkResult Rhi::renderFrame() {
 		};
 		vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
 		vkCmdDraw(cmd, 3, 1, 0, 0);
+		vkCmdEndDebugUtilsLabelEXT(cmd);
 	}
 
 	{
