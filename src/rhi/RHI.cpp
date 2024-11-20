@@ -560,7 +560,7 @@ VkResult Rhi::initSwapChain(SDL_Window* window) {
 
 	createInfo.imageExtent = extent;
 	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	// Just one queue family right now.
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -834,96 +834,98 @@ VkResult Rhi::renderFrame() {
 	VkImageView imageView = m_swapChainImageViews[imageIndex];
 
 	vkResetFences(device, 1, &fence);
+	{
+		// Start recording commands
+		result = vkResetCommandBuffer(cmd, 0);
+		if (result != VK_SUCCESS) return result;
 
-	result = vkResetCommandBuffer(cmd, 0);
-	if (result != VK_SUCCESS) return result;
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		result = vkBeginCommandBuffer(cmd, &beginInfo);
+		if (result != VK_SUCCESS) return result;
+	}
 
-	VkCommandBufferBeginInfo beginInfo = {};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	result = vkBeginCommandBuffer(cmd, &beginInfo);
-	if (result != VK_SUCCESS) return result;
 
-	transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-	VkExtent2D swapChainExtent = m_swapChainExtent;
-	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = (float)swapChainExtent.width;
-	viewport.height = (float)swapChainExtent.height;
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(cmd, 0, 1, &viewport);
-
-	VkRect2D scissor{};
-	scissor.offset = { 0, 0 };
-	scissor.extent = swapChainExtent;
-	vkCmdSetScissor(cmd, 0, 1, &scissor);
-
-	// Configure the dynamic shader pipeline
 	{
-		vkCmdSetRasterizerDiscardEnableEXT(cmd, VK_FALSE);
-		VkColorBlendEquationEXT colorBlendEquationEXT{};
-		vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &colorBlendEquationEXT);
-	}
-	{
-		vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-		vkCmdSetPrimitiveRestartEnableEXT(cmd, VK_FALSE);
-		vkCmdSetRasterizationSamplesEXT(cmd, VK_SAMPLE_COUNT_1_BIT);
-	}
-	{
-		const VkSampleMask sample_mask = 0x1;
-		vkCmdSetSampleMaskEXT(cmd, VK_SAMPLE_COUNT_1_BIT, &sample_mask);
-	}
-	{
-		vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
-		vkCmdSetCullModeEXT(cmd, VK_TRUE);
-		vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
-	}
-	{
-		vkCmdSetViewportWithCountEXT(cmd, 1, &viewport);
-	}
-	{
-		vkCmdSetScissorWithCountEXT(cmd, 1, &scissor);
-	}
-	{
-		vkCmdSetFrontFaceEXT(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-		vkCmdSetDepthTestEnableEXT(cmd, VK_FALSE);
-		vkCmdSetDepthWriteEnableEXT(cmd, VK_FALSE);
-		vkCmdSetDepthCompareOpEXT(cmd, VK_COMPARE_OP_GREATER);
-		vkCmdSetDepthBoundsTestEnableEXT(cmd, VK_FALSE);
-		vkCmdSetDepthBiasEnableEXT(cmd, VK_FALSE);
-		vkCmdSetStencilTestEnableEXT(cmd, VK_FALSE);
-		vkCmdSetLogicOpEnableEXT(cmd, VK_FALSE);
-	}
-	{
-		VkBool32 color_blend_enables[] = { VK_FALSE };
-		vkCmdSetColorBlendEnableEXT(cmd, 0, 1, color_blend_enables);
-	}
-	{
-		VkColorComponentFlags color_component_flags[] = { VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_A_BIT };
-		vkCmdSetColorWriteMaskEXT(cmd, 0, 1, color_component_flags);
-	}
-	{
-		vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
-	}
-	{
-		const VkShaderStageFlagBits stages[2] =
+		// Configure the dynamic shader pipeline
+		VkExtent2D swapChainExtent = m_swapChainExtent;
 		{
-			VK_SHADER_STAGE_VERTEX_BIT,
-			VK_SHADER_STAGE_FRAGMENT_BIT
-		};
-		vkCmdBindShadersEXT(cmd, 2, stages, m_shaders.data());
-		const VkShaderStageFlagBits unusedStages[3] =
+			vkCmdSetRasterizerDiscardEnableEXT(cmd, VK_FALSE);
+			VkColorBlendEquationEXT colorBlendEquationEXT{};
+			vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &colorBlendEquationEXT);
+		}
 		{
-			VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-			VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-			VK_SHADER_STAGE_GEOMETRY_BIT
-		};
-		vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
+			vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+			vkCmdSetPrimitiveRestartEnableEXT(cmd, VK_FALSE);
+			vkCmdSetRasterizationSamplesEXT(cmd, VK_SAMPLE_COUNT_1_BIT);
+		}
+		{
+			const VkSampleMask sample_mask = 0x1;
+			vkCmdSetSampleMaskEXT(cmd, VK_SAMPLE_COUNT_1_BIT, &sample_mask);
+		}
+		{
+			vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
+			vkCmdSetCullModeEXT(cmd, VK_TRUE);
+			vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
+		}
+		{
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = 0.0f;
+			viewport.width = (float)swapChainExtent.width;
+			viewport.height = (float)swapChainExtent.height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+			vkCmdSetViewport(cmd, 0, 1, &viewport);
+			vkCmdSetViewportWithCountEXT(cmd, 1, &viewport);
+		}
+		{
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = swapChainExtent;
+			vkCmdSetScissor(cmd, 0, 1, &scissor);
+			vkCmdSetScissorWithCountEXT(cmd, 1, &scissor);
+		}
+		{
+			vkCmdSetFrontFaceEXT(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+			vkCmdSetDepthTestEnableEXT(cmd, VK_FALSE);
+			vkCmdSetDepthWriteEnableEXT(cmd, VK_FALSE);
+			vkCmdSetDepthCompareOpEXT(cmd, VK_COMPARE_OP_GREATER);
+			vkCmdSetDepthBoundsTestEnableEXT(cmd, VK_FALSE);
+			vkCmdSetDepthBiasEnableEXT(cmd, VK_FALSE);
+			vkCmdSetStencilTestEnableEXT(cmd, VK_FALSE);
+			vkCmdSetLogicOpEnableEXT(cmd, VK_FALSE);
+		}
+		{
+			VkBool32 color_blend_enables[] = { VK_FALSE };
+			vkCmdSetColorBlendEnableEXT(cmd, 0, 1, color_blend_enables);
+		}
+		{
+			VkColorComponentFlags color_component_flags[] = { VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_A_BIT };
+			vkCmdSetColorWriteMaskEXT(cmd, 0, 1, color_component_flags);
+		}
+		{
+			vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
+		}
+	}
+
+	{
+		// Clear image
+		transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+		VkClearColorValue clearValue;
+		clearValue = { { 0.0f, 0.05f, 0.1f, 1.0f } };
+		VkImageSubresourceRange subresourceRange = {};
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.baseMipLevel = 0;
+		subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+		subresourceRange.baseArrayLayer = 0;
+		subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+		vkCmdClearColorImage(cmd, image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &subresourceRange);
 	}
 	{
+		// Start dynamic render pass
+		transitionImage(cmd, image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		{
 			VkRenderingAttachmentInfo colorAttachment = {};
 			colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -949,60 +951,84 @@ VkResult Rhi::renderFrame() {
 		}
 
 	}
+	{
+		// triangle
+		const VkShaderStageFlagBits stages[2] =
+		{
+			VK_SHADER_STAGE_VERTEX_BIT,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		};
+		vkCmdBindShadersEXT(cmd, 2, stages, m_shaders.data());
+		const VkShaderStageFlagBits unusedStages[3] =
+		{
+			VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+			VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+			VK_SHADER_STAGE_GEOMETRY_BIT
+		};
+		vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
+		vkCmdDraw(cmd, 3, 1, 0, 0);
+	}
 
-	vkCmdDraw(cmd, 3, 1, 0, 0);
+	{
+		// end rendering, transition image and submit for presentation
+		vkCmdEndRendering(cmd);
+		{
+			transitionImage(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			result = vkEndCommandBuffer(cmd);
+			if (result != VK_SUCCESS) return result;
+		}
 
-	vkCmdEndRendering(cmd);
+		{
+			// submit recorded commands to the queue
+			VkCommandBufferSubmitInfo cmdBufferSubmitInfo = {};
+			cmdBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+			cmdBufferSubmitInfo.pNext = nullptr;
+			cmdBufferSubmitInfo.commandBuffer = cmd;
+			cmdBufferSubmitInfo.deviceMask = 0;
 
-	transitionImage(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-	result = vkEndCommandBuffer(cmd);
-	if (result != VK_SUCCESS) return result;
+			VkSemaphoreSubmitInfo waitInfo = {};
+			waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+			waitInfo.pNext = nullptr;
+			waitInfo.semaphore = waitSemaphore;
+			waitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+			waitInfo.deviceIndex = 0;
+			waitInfo.value = 1;
 
-	VkCommandBufferSubmitInfo cmdBufferSubmitInfo = {};
-	cmdBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-	cmdBufferSubmitInfo.pNext = nullptr;
-	cmdBufferSubmitInfo.commandBuffer = cmd;
-	cmdBufferSubmitInfo.deviceMask = 0;
+			VkSemaphoreSubmitInfo signalInfo = {};
+			signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+			signalInfo.pNext = nullptr;
+			signalInfo.semaphore = signalSemaphore;
+			signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+			signalInfo.deviceIndex = 0;
+			signalInfo.value = 1;
 
-	VkSemaphoreSubmitInfo waitInfo = {};
-	waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-	waitInfo.pNext = nullptr;
-	waitInfo.semaphore = waitSemaphore;
-	waitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
-	waitInfo.deviceIndex = 0;
-	waitInfo.value = 1;
+			VkSubmitInfo2 submitInfo = {};
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+			submitInfo.pNext = nullptr;
+			submitInfo.waitSemaphoreInfoCount = 1;
+			submitInfo.pWaitSemaphoreInfos = &waitInfo;
+			submitInfo.signalSemaphoreInfoCount = 1;
+			submitInfo.pSignalSemaphoreInfos = &signalInfo;
+			submitInfo.commandBufferInfoCount = 1;
+			submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
+			result = vkQueueSubmit2(m_presentQueue.value(), 1, &submitInfo, fence);
+			if (result != VK_SUCCESS) return result;
+		}
+		{
+			// Queue image for presentation
+			VkSwapchainKHR swapChains[] = { m_swapchain.value() };
+			VkPresentInfoKHR presentInfo = {};
+			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+			presentInfo.waitSemaphoreCount = 1;
+			presentInfo.pWaitSemaphores = &signalSemaphore;
+			presentInfo.swapchainCount = 1;
+			presentInfo.pSwapchains = swapChains;
+			presentInfo.pImageIndices = &imageIndex;
 
-	VkSemaphoreSubmitInfo signalInfo = {};
-	signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-	signalInfo.pNext = nullptr;
-	signalInfo.semaphore = signalSemaphore;
-	signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
-	signalInfo.deviceIndex = 0;
-	signalInfo.value = 1;
-
-	VkSubmitInfo2 submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-	submitInfo.pNext = nullptr;
-	submitInfo.waitSemaphoreInfoCount = 1;
-	submitInfo.pWaitSemaphoreInfos = &waitInfo;
-	submitInfo.signalSemaphoreInfoCount = 1;
-	submitInfo.pSignalSemaphoreInfos = &signalInfo;
-	submitInfo.commandBufferInfoCount = 1;
-	submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
-	result = vkQueueSubmit2(m_presentQueue.value(), 1, &submitInfo, fence);
-	if (result != VK_SUCCESS) return result;
-
-	VkSwapchainKHR swapChains[] = { m_swapchain.value() };
-	VkPresentInfoKHR presentInfo = {};
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &signalSemaphore;
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = swapChains;
-	presentInfo.pImageIndices = &imageIndex;
-
-	result = vkQueuePresentKHR(m_presentQueue.value(), &presentInfo);
-	if (result != VK_SUCCESS) return result;
+			result = vkQueuePresentKHR(m_presentQueue.value(), &presentInfo);
+			if (result != VK_SUCCESS) return result;
+		}
+	}
 
 
 
