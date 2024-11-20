@@ -1008,6 +1008,9 @@ VkResult Rhi::renderFrame() {
 }
 
 Rhi::~Rhi() {
+	if (m_device.has_value()) {
+		vkDeviceWaitIdle(m_device.value());
+	}
 	for (VkFence fence : m_inFlightFence) {
 		vkDestroyFence(m_device.value(), fence, nullptr);
 	}
