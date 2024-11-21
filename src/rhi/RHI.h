@@ -36,7 +36,7 @@ private:
 	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkCommandPool> m_commandPool;
 
-	size_t m_currentFrame;
+	size_t m_currentFrame = 0;
 
 	// swapchain images
 	std::vector<VkImage> m_swapChainImages;

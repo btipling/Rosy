@@ -831,8 +831,8 @@ void Rhi::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout curr
 
 VkResult Rhi::renderFrame() {
 	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
-	VkSemaphore imageAvailableSignal = m_imageAvailableSemaphores[m_currentFrame];
-	VkSemaphore renderedFinisishedSignal = m_renderFinishedSemaphores[m_currentFrame];
+	VkSemaphore imageAvailable = m_imageAvailableSemaphores[m_currentFrame];
+	VkSemaphore renderedFinisished = m_renderFinishedSemaphores[m_currentFrame];
 	VkFence fence = m_inFlightFence[m_currentFrame];
 	VkResult result;
 	VkDevice device = m_device.value();
@@ -841,13 +841,17 @@ VkResult Rhi::renderFrame() {
 	if (result != VK_SUCCESS) return result;
 
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(m_device.value(), m_swapchain.value(), UINT64_MAX, imageAvailableSignal, VK_NULL_HANDLE, &imageIndex);
+	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
+	vkAcquireNextImageKHR(m_device.value(), m_swapchain.value(), UINT64_MAX, imageAvailable, VK_NULL_HANDLE, &imageIndex);
 	VkImage image = m_swapChainImages[imageIndex];
 	VkImageView imageView = m_swapChainImageViews[imageIndex];
 
 	vkResetFences(device, 1, &fence);
 	{
-		// Start recording commands
+		// Start recording commands. This records commands that aren't actually submitted to a queue to do anything with until 
+		// 1. The submit queue call has been made but also
+		// 2. The wait semaphore given to the submit queue has been signeled, which
+		// 3. Doesn't happen until the image we requested with vkAcquireNextImageKHR has been made available
 		result = vkResetCommandBuffer(cmd, 0);
 		if (result != VK_SUCCESS) return result;
 
@@ -923,8 +927,10 @@ VkResult Rhi::renderFrame() {
 	}
 
 	{
-		// Clear image
+		// Clear image. This transition means that all the commands recorded before now happen before
+		// any calls after. The calls themselves before this may have executed in any order up until this point.
 		transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+		// vkCmdClearColorImage is guaranteed to happen after previous calls.
 		VkClearColorValue clearValue;
 		clearValue = { { 0.0f, 0.05f, 0.1f, 1.0f } };
 		VkImageSubresourceRange subresourceRange = {};
@@ -936,8 +942,9 @@ VkResult Rhi::renderFrame() {
 		vkCmdClearColorImage(cmd, image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &subresourceRange);
 	}
 	{
-		// Start dynamic render pass
+		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
 		transitionImage(cmd, image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
 			VkRenderingAttachmentInfo colorAttachment = {};
 			colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -1010,7 +1017,7 @@ VkResult Rhi::renderFrame() {
 			VkSemaphoreSubmitInfo waitInfo = {};
 			waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			waitInfo.pNext = nullptr;
-			waitInfo.semaphore = imageAvailableSignal;
+			waitInfo.semaphore = imageAvailable;
 			waitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
 			waitInfo.deviceIndex = 0;
 			waitInfo.value = 1;
@@ -1018,7 +1025,7 @@ VkResult Rhi::renderFrame() {
 			VkSemaphoreSubmitInfo signalInfo = {};
 			signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			signalInfo.pNext = nullptr;
-			signalInfo.semaphore = renderedFinisishedSignal;
+			signalInfo.semaphore = renderedFinisished;
 			signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
 			signalInfo.deviceIndex = 0;
 			signalInfo.value = 1;
@@ -1026,9 +1033,18 @@ VkResult Rhi::renderFrame() {
 			VkSubmitInfo2 submitInfo = {};
 			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
 			submitInfo.pNext = nullptr;
+			// This should be obvious but it wasn't for me. Wait blocks this submit until the semaphore assigned to it is signaled.
+			// To state again, wait semaphores means the submit waits for the semaphore in wait info to be signaled before it begins
+			// in this case we're waiting for the image we requested at the beginning of render frame to be available.
+			// What we have to remember is that up until this point we've only *recorded* the commands we want to execute
+			// on to the command buffer. This submit will actually start the process of telling the GPU to do the commands.
+			// None of that has happened yet. We're declaring future work there. Up until this point the only actual work we've done
+			// is request an image and record commands we want to perform unto the command buffer.
+			// vkAcquireNextImageKHR will signal `imageAvailable` when done, `imageAvailable` is the semaphore in waitinfo
 			submitInfo.waitSemaphoreInfoCount = 1;
 			submitInfo.pWaitSemaphoreInfos = &waitInfo;
 			submitInfo.signalSemaphoreInfoCount = 1;
+			// When submit is done it signals this `signalInfo` semaphore and unbocks anything which is waiting for it.
 			submitInfo.pSignalSemaphoreInfos = &signalInfo;
 			submitInfo.commandBufferInfoCount = 1;
 			submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
@@ -1041,7 +1057,8 @@ VkResult Rhi::renderFrame() {
 			VkPresentInfoKHR presentInfo = {};
 			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 			presentInfo.waitSemaphoreCount = 1;
-			presentInfo.pWaitSemaphores = &renderedFinisishedSignal;
+			// Present is waiting for the submit queue above to signal `renderedFinisished`
+			presentInfo.pWaitSemaphores = &renderedFinisished;
 			presentInfo.swapchainCount = 1;
 			presentInfo.pSwapchains = swapChains;
 			presentInfo.pImageIndices = &imageIndex;
