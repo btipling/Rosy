@@ -864,6 +864,10 @@ VkResult Rhi::renderFrame() {
 	VkImage image = m_swapChainImages[imageIndex];
 	VkImageView imageView = m_swapChainImageViews[imageIndex];
 
+	AllocatedImage drawImage = m_drawImage.value();
+	m_drawExtent.width = drawImage.imageExtent.width;
+	m_drawExtent.height = drawImage.imageExtent.height;
+
 	vkResetFences(device, 1, &fence);
 	{
 		// Start recording commands. This records commands that aren't actually submitted to a queue to do anything with until 
@@ -947,7 +951,7 @@ VkResult Rhi::renderFrame() {
 	{
 		// Clear image. This transition means that all the commands recorded before now happen before
 		// any calls after. The calls themselves before this may have executed in any order up until this point.
-		transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+		transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 		// vkCmdClearColorImage is guaranteed to happen after previous calls.
 		VkClearColorValue clearValue;
 		clearValue = { { 0.0f, 0.05f, 0.1f, 1.0f } };
@@ -957,17 +961,17 @@ VkResult Rhi::renderFrame() {
 		subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 		subresourceRange.baseArrayLayer = 0;
 		subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-		vkCmdClearColorImage(cmd, image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &subresourceRange);
+		vkCmdClearColorImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &subresourceRange);
 	}
 	{
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
-		transitionImage(cmd, image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
 			VkRenderingAttachmentInfo colorAttachment = {};
 			colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 			colorAttachment.pNext = nullptr;
-			colorAttachment.imageView = imageView;
+			colorAttachment.imageView = drawImage.imageView;
 			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			colorAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
 			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -1019,7 +1023,14 @@ VkResult Rhi::renderFrame() {
 		// end rendering, transition image and submit for presentation
 		vkCmdEndRendering(cmd);
 		{
-			transitionImage(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			// blit the draw image to the swapchain image
+			transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+			transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			blitImages(cmd, drawImage.image, image, m_drawExtent, m_swapChainExtent);
+		}
+		{
+			// Transition swapchain image for presentation
+			transitionImage(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 			result = vkEndCommandBuffer(cmd);
 			if (result != VK_SUCCESS) return result;
 		}
