@@ -9,10 +9,3 @@
 #include "../config/Config.h"
 #include "../utils/utils.h"
 #include "rhi_utils.h"
-
-
-struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
-};

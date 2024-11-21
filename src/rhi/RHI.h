@@ -38,6 +38,11 @@ private:
 
 	size_t m_currentFrame = 0;
 
+	// main draw image
+
+	std::optional<AllocatedImage> m_drawImage;
+	VkExtent2D m_drawExtent;
+
 	// swapchain images
 	std::vector<VkImage> m_swapChainImages;
 	std::vector<VkImageView> m_swapChainImageViews;
@@ -63,6 +68,7 @@ private:
 	void initAllocator();
 	VkResult initPresentationQueue();
 	VkResult initSwapChain(SDL_Window* window);
+	VkResult initDrawImage();
 	VkResult initImageViews();
 	VkResult initGraphics();
 	VkResult createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag);
@@ -72,4 +78,7 @@ private:
 	
 	void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);
 	VkResult renderFrame();
+
+	VkImageCreateInfo imgCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
+	VkImageViewCreateInfo imgViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
 };

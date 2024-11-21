@@ -94,6 +94,11 @@ VkResult Rhi::init(SDL_Window* window) {
 		rosy_utils::DebugPrintW(L"Failed to init swap chain! %d\n", result);
 		return result;
 	}
+	result = this->initDrawImage();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to init draw image! %d\n", result);
+		return result;
+	}
 	result = this->initImageViews();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to init image views! %d\n", result);
@@ -298,27 +303,6 @@ VkResult Rhi::initInstance() {
 	volkLoadInstance(instance);
 	m_instance = instance;
 	return result;
-}
-
-SwapChainSupportDetails Rhi::querySwapChainSupport(VkPhysicalDevice device) {
-	SwapChainSupportDetails details = {};
-	VkSurfaceKHR surface = m_surface.value();
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-	uint32_t formatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
-	if (formatCount != 0) {
-		details.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
-	}
-	uint32_t presentModeCount;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
-
-	if (presentModeCount != 0) {
-		details.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-	}
-	return details;
 }
 
 VkResult Rhi::initPhysicalDevice() {
@@ -587,6 +571,40 @@ VkResult Rhi::initSwapChain(SDL_Window* window) {
 	m_swapChainImageFormat = surfaceFormat.format;
 	m_swapChainExtent = extent;
 	m_swapchain = swapchain;
+	return result;
+}
+
+VkResult Rhi::initDrawImage() {
+	VkResult result;
+
+	VkExtent3D drawImageExtent = {
+		m_swapChainExtent.width,
+		m_swapChainExtent.height,
+		1
+	};
+	AllocatedImage drawImage = {};
+	drawImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+	drawImage.imageExtent = drawImageExtent;
+
+	VkImageUsageFlags drawImageUsages{};
+	drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;
+	drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	VkImageCreateInfo rimg_info = imgCreateInfo(drawImage.imageFormat, drawImageUsages, drawImageExtent);
+
+	VmaAllocationCreateInfo rimg_allocinfo = {};
+	rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	rimg_allocinfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	vmaCreateImage(m_allocator.value(), &rimg_info, &rimg_allocinfo, &drawImage.image, &drawImage.allocation, nullptr);
+
+	VkImageViewCreateInfo rview_info = imgViewCreateInfo(drawImage.imageFormat, drawImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	result = vkCreateImageView(m_device.value(), &rview_info, nullptr, &drawImage.imageView);
+	if (result != VK_SUCCESS) return result;
+	m_drawImage = drawImage;
 	return result;
 }
 
@@ -1095,6 +1113,11 @@ Rhi::~Rhi() {
 	}
 	for (VkImageView imageView : m_swapChainImageViews) {
 		vkDestroyImageView(m_device.value(), imageView, nullptr);
+	}
+	if (m_drawImage.has_value()) {
+		AllocatedImage drawImage = m_drawImage.value();
+		vkDestroyImageView(m_device.value(), drawImage.imageView, nullptr);
+		vmaDestroyImage(m_allocator.value(), drawImage.image, drawImage.allocation);
 	}
 	if (m_swapchain.has_value()) {
 		vkDestroySwapchainKHR(m_device.value(), m_swapchain.value(), nullptr);
