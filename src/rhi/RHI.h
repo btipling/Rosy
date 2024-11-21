@@ -59,7 +59,6 @@ private:
 	VkResult queryDeviceLayers();
 	VkResult queryInstanceExtensions();
 	VkResult queryDeviceExtensions();
-	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 	VkResult createDebugCallback();
 	VkResult initInstance();
 	VkResult initSurface(SDL_Window* window);
@@ -79,6 +78,9 @@ private:
 	void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);
 	VkResult renderFrame();
 
+	// Utils
+	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 	VkImageCreateInfo imgCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
 	VkImageViewCreateInfo imgViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
+	void blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize);
 };
