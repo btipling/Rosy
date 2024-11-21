@@ -39,10 +39,7 @@
     <ClInclude Include="rhi\rhi_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rhi\rhi_debug.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi_spirv.h">
+    <ClInclude Include="rhi\rhi_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -59,10 +56,7 @@
     <ClCompile Include="utils\utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rhi\rhi_debug.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_spirv.cpp">
+    <ClCompile Include="rhi\rhi_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

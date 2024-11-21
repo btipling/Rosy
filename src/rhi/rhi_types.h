@@ -8,8 +8,7 @@
 #include <vector>
 #include "../config/Config.h"
 #include "../utils/utils.h"
-#include "rhi_debug.h"
-#include "rhi_spirv.h"
+#include "rhi_utils.h"
 
 
 struct SwapChainSupportDetails {
