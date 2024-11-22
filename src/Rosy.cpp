@@ -88,7 +88,11 @@ int main(int argc, char* argv[])
 				ImGui_ImplVulkan_NewFrame();
 				ImGui_ImplSDL3_NewFrame();
 				ImGui::NewFrame();
-				ImGui::ShowDemoWindow();
+				result = rhi->drawUI();
+				if (result != VK_SUCCESS) {
+					rosy_utils::DebugPrintA("rhi draw ui failed %d\n", result);
+					should_run = false;
+				}
 				ImGui::Render();
 			}
 

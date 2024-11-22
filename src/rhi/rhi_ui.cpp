@@ -4,6 +4,8 @@
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 VkResult Rhi::initUI(SDL_Window* window) {
 	VkDescriptorPoolSize poolSizes[] = { 
@@ -66,7 +68,7 @@ VkResult Rhi::initUI(SDL_Window* window) {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::drawUI(VkCommandBuffer cmd, VkImageView targetImageView) {
+VkResult Rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 	VkResult result;
 
 	VkRenderingAttachmentInfo colorAttachment = attachmentInfo(targetImageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -76,6 +78,11 @@ VkResult Rhi::drawUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 
 	vkCmdEndRendering(cmd);
+	return VK_SUCCESS;
+}
+
+VkResult Rhi::drawUI() {
+	ImGui::SliderFloat("Rotate triangle", &m_triangle_rot, 0, glm::pi<float>() * 2.0f);
 	return VK_SUCCESS;
 }
 

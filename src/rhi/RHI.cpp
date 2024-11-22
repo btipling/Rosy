@@ -1049,7 +1049,7 @@ VkResult Rhi::renderFrame() {
 		{
 			// draw ui onto swapchain image
 			transitionImage(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			result = drawUI(cmd, imageView);
+			result = renderUI(cmd, imageView);
 			if (result != VK_SUCCESS) return result;
 		}
 		{

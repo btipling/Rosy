@@ -7,6 +7,7 @@ class Rhi {
 public:
 	Rhi(rosy_config::Config cfg);
 	VkResult init(SDL_Window* window);
+	VkResult drawUI();
 	VkResult drawFrame();
 	void debug();
 	~Rhi();
@@ -96,7 +97,7 @@ private:
 
 	// ui
 	VkResult initUI(SDL_Window* window);
-	VkResult drawUI(VkCommandBuffer cmd, VkImageView targetImageView);
+	VkResult renderUI(VkCommandBuffer cmd, VkImageView targetImageView);
 	void deinitUI();
 
 };
