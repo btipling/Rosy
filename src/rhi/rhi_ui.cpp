@@ -55,6 +55,13 @@ VkResult Rhi::initUI(SDL_Window* window) {
 	ImGui_ImplVulkan_Init(&init_info);
 	ImGui_ImplVulkan_CreateFontsTexture();
 
+	int displaysCount = 0; // TODO: don't always get the first display
+	auto displayIds = SDL_GetDisplays(&displaysCount);
+	float contentScale = SDL_GetDisplayContentScale(*displayIds);
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.FontGlobalScale = contentScale;
+
 	m_uiPool = imguiPool;
 	return VK_SUCCESS;
 }

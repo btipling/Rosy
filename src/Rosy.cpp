@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 		SDL_free((void*)err);
 		abort();
 	}
-	// just get first display for now
+	// TODO: don't always get the first display
 	SDL_Rect displayBounds = {};
 	if (SDL_GetDisplayBounds(*displayIds, &displayBounds)) {
 		width = displayBounds.w;
