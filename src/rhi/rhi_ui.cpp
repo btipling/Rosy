@@ -1,7 +1,6 @@
 
 #include <array>
 #include "RHI.h"
-#define IMGUI_IMPL_VULKAN_USE_VOLK
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
