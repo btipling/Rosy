@@ -51,6 +51,7 @@ int main(int argc, char* argv[])
     while (should_run) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
+            ImGui_ImplSDL3_ProcessEvent(&event);
             if (event.type == SDL_EVENT_QUIT) {
                 should_run = false;
                 break;
