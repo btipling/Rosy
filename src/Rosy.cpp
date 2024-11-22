@@ -83,11 +83,6 @@ int main(int argc, char* argv[])
     }
     delete rhi;
     {
-        ImGui_ImplVulkan_Shutdown();
-        ImGui_ImplSDL3_Shutdown();
-        ImGui::DestroyContext();
-    }
-    {
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();

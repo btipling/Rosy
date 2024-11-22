@@ -75,6 +75,8 @@ VkResult Rhi::drawUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 void Rhi::deinitUI() {
 	if (m_uiPool.value()) {
 		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplSDL3_Shutdown();
+		ImGui::DestroyContext();
 		vkDestroyDescriptorPool(m_device.value(), m_uiPool.value(), nullptr);
 	}
 }
