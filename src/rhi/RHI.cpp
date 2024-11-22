@@ -715,8 +715,6 @@ VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vect
 	VkPushConstantRange pushContantRange = {};
 	pushContantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	pushContantRange.offset = 0;
-	glm::mat4 m = glm::mat4(1.0f);
-	m = glm::rotate(m, 0.0f, glm::vec3(0, 0, 1));
 	pushContantRange.size = sizeof(glm::mat4);
 
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -968,6 +966,21 @@ VkResult Rhi::renderFrame() {
 		}
 		{
 			vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
+		}
+		{
+			glm::mat4 m = glm::mat4(1.0f);
+			m = glm::rotate(m, m_triangle_rot, glm::vec3(0, 0, 1));
+			//rosy_utils::DebugPrintA("Matrix:\n"
+			//	"[%.2f %.2f %.2f %.2f]\n"
+			//	"[%.2f %.2f %.2f %.2f]\n"
+			//	"[%.2f %.2f %.2f %.2f]\n"
+			//	"[%.2f %.2f %.2f %.2f]\n",
+			//	m[0][0], m[0][1], m[0][2], m[0][3],
+			//	m[1][0], m[1][1], m[1][2], m[1][3],
+			//	m[2][0], m[2][1], m[2][2], m[2][3],
+			//	m[3][0], m[3][1], m[3][2], m[3][3]);
+			//rosy_utils::DebugPrintA("glm::mat4 size: %d\n", sizeof(glm::mat4));
+			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &m);
 		}
 	}
 
