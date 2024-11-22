@@ -28,6 +28,9 @@
     <Filter Include="Header Files\windows">
       <UniqueIdentifier>{f371c8eb-1362-4738-8f79-ad8ddf9a430f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\shaders">
+      <UniqueIdentifier>{6bc48daa-beb3-41e9-9c7f-65b348bd827b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rosy.h">
@@ -140,6 +143,15 @@
     <None Include="compile.ps1" />
     <None Include="SDL3.dll">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\shader.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="shaders\shader.vert">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="shaders\imgui.frag">
+      <Filter>Resource Files\shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

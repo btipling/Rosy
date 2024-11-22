@@ -179,6 +179,9 @@
   <ItemGroup>
     <None Include="compile.ps1" />
     <None Include="SDL3.dll" />
+    <None Include="shaders\imgui.frag" />
+    <None Include="shaders\shader.frag" />
+    <None Include="shaders\shader.vert" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="SDL3.lib" />
