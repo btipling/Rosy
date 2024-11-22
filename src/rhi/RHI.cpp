@@ -123,6 +123,11 @@ VkResult Rhi::init(SDL_Window* window) {
 		rosy_utils::DebugPrintW(L"Failed to init sync objects! %d\n", result);
 		return result;
 	}
+	result = this->initUI(window);
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to init UI! %d\n", result);
+		return result;
+	}
 	return VK_SUCCESS;
 }
 
