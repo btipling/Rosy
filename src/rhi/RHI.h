@@ -33,11 +33,16 @@ private:
 	std::optional<VkSwapchainKHR> m_swapchain = std::nullopt;
 	VkFormat m_swapChainImageFormat = {};
 	VkExtent2D m_swapChainExtent = {};
-	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkCommandPool> m_commandPool = std::nullopt;
+
+	// hello triangle stuff
+	std::vector<VkShaderEXT> m_shaders;
+	std::optional<VkPipelineLayout> m_shaderPL;
+	float m_triangle_rot = 0.5;
 
 	// ui
 	std::optional<VkDescriptorPool> m_uiPool = std::nullopt;
+
 
 	size_t m_currentFrame = 0;
 

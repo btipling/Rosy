@@ -3,6 +3,8 @@
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
 #include "RHI.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 static const char* instanceLayers[] = {
 	"VK_LAYER_LUNARG_api_dump",
@@ -710,6 +712,13 @@ VkResult Rhi::initGraphics() {
 }
 
 VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag) {
+	VkPushConstantRange pushContantRange = {};
+	pushContantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	pushContantRange.offset = 0;
+	glm::mat4 m = glm::mat4(1.0f);
+	m = glm::rotate(m, 0.0f, glm::vec3(0, 0, 1));
+	pushContantRange.size = sizeof(glm::mat4);
+
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkShaderCreateInfoEXT shaderCreateInfos[2] =
 	{
@@ -725,8 +734,8 @@ VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vect
 			.pName = "main",
 			.setLayoutCount = 0,
 			.pSetLayouts = nullptr,
-			.pushConstantRangeCount = 0,
-			.pPushConstantRanges = nullptr,
+			.pushConstantRangeCount = 1,
+			.pPushConstantRanges = &pushContantRange,
 			.pSpecializationInfo = nullptr
 		},
 		{
@@ -741,8 +750,8 @@ VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vect
 			.pName = "main",
 			.setLayoutCount = 0,
 			.pSetLayouts = nullptr,
-			.pushConstantRangeCount = 0,
-			.pPushConstantRanges = nullptr,
+			.pushConstantRangeCount = 1,
+			.pPushConstantRanges = &pushContantRange,
 			.pSpecializationInfo = nullptr
 		}
 	};
@@ -762,6 +771,16 @@ VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vect
 	fragName.objectType = VK_OBJECT_TYPE_SHADER_EXT;
 	fragName.objectHandle = (uint64_t)m_shaders[0];
 	fragName.pObjectName = "frag";
+
+	VkPipelineLayoutCreateInfo plInfo = {};
+	plInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	plInfo.pNext = nullptr;
+	plInfo.pushConstantRangeCount = 1;
+	plInfo.pPushConstantRanges = &pushContantRange;
+	VkPipelineLayout layout;
+	result = vkCreatePipelineLayout(m_device.value(), &plInfo, nullptr, &layout);
+	m_shaderPL = layout;
+			
 	return result;
 }
 
@@ -1116,6 +1135,9 @@ Rhi::~Rhi() {
 	}
 	if (m_commandPool.has_value()) {
 		vkDestroyCommandPool(m_device.value(), m_commandPool.value(), nullptr);
+	}
+	if (m_shaderPL.has_value()) {
+		vkDestroyPipelineLayout(m_device.value(), m_shaderPL.value(), nullptr);
 	}
 	for (VkShaderEXT shader : m_shaders) {
 		vkDestroyShaderEXT(m_device.value(), shader, nullptr);
