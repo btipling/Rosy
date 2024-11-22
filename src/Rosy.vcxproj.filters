@@ -19,33 +19,24 @@
     <Filter Include="Source Files\imgui">
       <UniqueIdentifier>{5f0fbe7a-7fc9-4e3a-b621-c3f536b23655}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\rhi">
+      <UniqueIdentifier>{300099fd-89af-447e-97f0-6734f218f435}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\rhi">
+      <UniqueIdentifier>{e4c658cc-fda3-4a47-ba3a-06ae22a08ca4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\windows">
+      <UniqueIdentifier>{f371c8eb-1362-4738-8f79-ad8ddf9a430f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Rosy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="config\Config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rhi\RHI.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="utils\utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi_types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="lib\imgui\imgui.h">
@@ -66,6 +57,30 @@
     <ClInclude Include="lib\imgui\imconfig.h">
       <Filter>Header Files\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="rhi\RHI.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="rhi\rhi_types.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="rhi\rhi_utils.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Header Files\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\imgui\backends\imgui_impl_sdl3.h">
+      <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\imgui\backends\imgui_impl_vulkan.h">
+      <Filter>Header Files\imgui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">
@@ -74,13 +89,7 @@
     <ClCompile Include="config\Config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rhi\RHI.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="utils\utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="lib\imgui\imgui.cpp">
@@ -98,6 +107,21 @@
     <ClCompile Include="lib\imgui\imgui_widgets.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="rhi\RHI.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="rhi\rhi_utils.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\backends\imgui_impl_sdl3.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\backends\imgui_impl_vulkan.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="rhi\rhi_ui.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc">
@@ -113,10 +137,14 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="SDL3.dll" />
     <None Include="compile.ps1" />
+    <None Include="SDL3.dll">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="SDL3.lib" />
+    <Library Include="SDL3.lib">
+      <Filter>Resource Files</Filter>
+    </Library>
   </ItemGroup>
 </Project>

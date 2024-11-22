@@ -138,6 +138,8 @@
   <ItemGroup>
     <ClInclude Include="config\Config.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="lib\imgui\backends\imgui_impl_sdl3.h" />
+    <ClInclude Include="lib\imgui\backends\imgui_impl_vulkan.h" />
     <ClInclude Include="lib\imgui\imconfig.h" />
     <ClInclude Include="lib\imgui\imgui.h" />
     <ClInclude Include="lib\imgui\imgui_internal.h" />
@@ -154,12 +156,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="config\Config.cpp" />
+    <ClCompile Include="lib\imgui\backends\imgui_impl_sdl3.cpp" />
+    <ClCompile Include="lib\imgui\backends\imgui_impl_vulkan.cpp" />
     <ClCompile Include="lib\imgui\imgui.cpp" />
     <ClCompile Include="lib\imgui\imgui_demo.cpp" />
     <ClCompile Include="lib\imgui\imgui_draw.cpp" />
     <ClCompile Include="lib\imgui\imgui_tables.cpp" />
     <ClCompile Include="lib\imgui\imgui_widgets.cpp" />
     <ClCompile Include="rhi\RHI.cpp" />
+    <ClCompile Include="rhi\rhi_ui.cpp" />
     <ClCompile Include="rhi\rhi_utils.cpp" />
     <ClCompile Include="Rosy.cpp" />
     <ClCompile Include="utils\utils.cpp" />

@@ -1,5 +1,4 @@
 #define VK_USE_PLATFORM_WIN32_KHR
-#define VOLK_IMPLEMENTATION
 #include "volk/volk.h"
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
@@ -968,26 +967,8 @@ VkResult Rhi::renderFrame() {
 		transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
-			VkRenderingAttachmentInfo colorAttachment = {};
-			colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-			colorAttachment.pNext = nullptr;
-			colorAttachment.imageView = drawImage.imageView;
-			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			colorAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-			VkRect2D render_area = VkRect2D{ VkOffset2D{ 0, 0 }, m_swapChainExtent };
-
-			VkRenderingInfo renderInfo = {};
-			renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-			renderInfo.pNext = nullptr;
-			renderInfo.renderArea = render_area;
-			renderInfo.layerCount = 1;
-			renderInfo.colorAttachmentCount = 1;
-			renderInfo.pColorAttachments = &colorAttachment;
-			renderInfo.pDepthAttachment = nullptr;
-			renderInfo.pStencilAttachment = nullptr;
+			VkRenderingAttachmentInfo colorAttachment = attachmentInfo(drawImage.imageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			VkRenderingInfo renderInfo = renderingInfo(m_swapChainExtent, colorAttachment);
 			vkCmdBeginRendering(cmd, &renderInfo);
 		}
 
@@ -1020,7 +1001,7 @@ VkResult Rhi::renderFrame() {
 	}
 
 	{
-		// end rendering, transition image and submit for presentation
+		// end app rendering
 		vkCmdEndRendering(cmd);
 		{
 			// blit the draw image to the swapchain image
@@ -1029,8 +1010,14 @@ VkResult Rhi::renderFrame() {
 			blitImages(cmd, drawImage.image, image, m_drawExtent, m_swapChainExtent);
 		}
 		{
+			// draw ui onto swapchain image
+			transitionImage(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			result = drawUI(cmd, imageView);
+			if (result != VK_SUCCESS) return result;
+		}
+		{
 			// Transition swapchain image for presentation
-			transitionImage(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			transitionImage(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 			result = vkEndCommandBuffer(cmd);
 			if (result != VK_SUCCESS) return result;
 		}
@@ -1104,9 +1091,15 @@ VkResult Rhi::renderFrame() {
 }
 
 Rhi::~Rhi() {
-	if (m_device.has_value()) {
-		vkDeviceWaitIdle(m_device.value());
+	{
+		// Wait for everything to be done.
+		if (m_device.has_value()) {
+			vkDeviceWaitIdle(m_device.value());
+		}
 	}
+
+	// Deinit begin in the reverse order from how it was created.
+	deinitUI();
 	for (VkFence fence : m_inFlightFence) {
 		vkDestroyFence(m_device.value(), fence, nullptr);
 	}

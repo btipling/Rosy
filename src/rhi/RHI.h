@@ -34,7 +34,10 @@ private:
 	VkFormat m_swapChainImageFormat = {};
 	VkExtent2D m_swapChainExtent = {};
 	std::vector<VkShaderEXT> m_shaders;
-	std::optional<VkCommandPool> m_commandPool;
+	std::optional<VkCommandPool> m_commandPool = std::nullopt;
+
+	// ui
+	std::optional<VkDescriptorPool> m_uiPool = std::nullopt;
 
 	size_t m_currentFrame = 0;
 
@@ -82,5 +85,13 @@ private:
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 	VkImageCreateInfo imgCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
 	VkImageViewCreateInfo imgViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
+	VkRenderingAttachmentInfo attachmentInfo(VkImageView view, VkImageLayout layout);
+	VkRenderingInfo renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment);
 	void blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize);
+
+	// ui
+	VkResult initUI(SDL_Window* window);
+	VkResult drawUI(VkCommandBuffer cmd, VkImageView targetImageView);
+	void deinitUI();
+
 };

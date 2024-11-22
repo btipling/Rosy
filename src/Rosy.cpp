@@ -8,6 +8,12 @@
 #include <SDL3/SDL_vulkan.h>
 #include <thread>
 #include <vector>
+#define VOLK_IMPLEMENTATION
+#include "volk/volk.h"
+#define IMGUI_IMPL_VULKAN_USE_VOLK
+#include "imgui.h"
+#include "backends/imgui_impl_sdl3.h"
+#include "backends/imgui_impl_vulkan.h"
 #include "rhi/RHI.h"
 #include "config/Config.h"
 #include "utils/utils.h"
@@ -31,9 +37,11 @@ int main(int argc, char* argv[])
     if (result != VK_SUCCESS) {
         rosy_utils::DebugPrintA("rhi init failed %d\n", result);
         delete rhi;
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        {
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            SDL_Quit();
+        }
         return 1;
     }
     rhi->debug();
@@ -57,6 +65,15 @@ int main(int argc, char* argv[])
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
+
+            {
+                ImGui_ImplVulkan_NewFrame();
+                ImGui_ImplSDL3_NewFrame();
+                ImGui::NewFrame();
+                ImGui::ShowDemoWindow();
+                ImGui::Render();
+            }
+
             result = rhi->drawFrame();
             if (result != VK_SUCCESS) {
                 rosy_utils::DebugPrintA("rhi draw failed %d\n", result);
@@ -65,8 +82,15 @@ int main(int argc, char* argv[])
         }
     }
     delete rhi;
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    {
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplSDL3_Shutdown();
+        ImGui::DestroyContext();
+    }
+    {
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+    }
     return 0;
 }

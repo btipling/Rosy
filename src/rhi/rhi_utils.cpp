@@ -87,6 +87,34 @@ VkImageViewCreateInfo Rhi::imgViewCreateInfo(VkFormat format, VkImage image, VkI
     return info;
 }
 
+VkRenderingAttachmentInfo Rhi::attachmentInfo(VkImageView view, VkImageLayout layout) {
+	VkRenderingAttachmentInfo colorAttachment = {};
+	colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+	colorAttachment.pNext = nullptr;
+	colorAttachment.imageView = view;
+	colorAttachment.imageLayout = layout;
+	colorAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	return colorAttachment;
+}
+
+VkRenderingInfo Rhi::renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment) {
+	VkRect2D renderArea = VkRect2D{ VkOffset2D{ 0, 0 }, renderExtent };
+	VkRenderingInfo renderInfo = {};
+	renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+	renderInfo.pNext = nullptr;
+	renderInfo.renderArea = renderArea;
+	renderInfo.layerCount = 1;
+	renderInfo.colorAttachmentCount = 1;
+	renderInfo.pColorAttachments = &colorAttachment;
+	renderInfo.pDepthAttachment = nullptr;
+	renderInfo.pStencilAttachment = nullptr;
+	return renderInfo;
+}
+
+
+
 void Rhi::blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize) {
 	VkImageBlit2 blitRegion = {};
 	blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
