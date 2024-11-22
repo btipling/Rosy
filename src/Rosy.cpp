@@ -20,73 +20,90 @@
 
 int main(int argc, char* argv[])
 {
-    const int WIDTH = 640;
-    const int HEIGHT = 480;
-    SDL_Window* window = NULL;
-    SDL_Renderer* renderer = NULL;
 
-    SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("Rosy", WIDTH, HEIGHT, SDL_WINDOW_VULKAN);
+	SDL_Window* window = NULL;
+	SDL_Renderer* renderer = NULL;
 
-    rosy_config::Config cfg = {};
-    rosy_config::debug();
+	SDL_Init(SDL_INIT_VIDEO);
 
-    Rhi* rhi = new Rhi{ cfg };
+	int width = 640;
+	int height = 480;
+	int displaysCount = 0;
+	auto displayIds = SDL_GetDisplays(&displaysCount);
+	if (displaysCount == 0) {
+		auto err = SDL_GetError();
+		rosy_utils::DebugPrintA("SDL error: %s\n", err);
+		SDL_free((void*)err);
+		abort();
+	}
+	// just get first display for now
+	SDL_Rect displayBounds = {};
+	if (SDL_GetDisplayBounds(*displayIds, &displayBounds)) {
+		width = displayBounds.w;
+		height = displayBounds.h;
+	}
 
-    VkResult result = rhi->init(window);
-    if (result != VK_SUCCESS) {
-        rosy_utils::DebugPrintA("rhi init failed %d\n", result);
-        delete rhi;
-        {
-            SDL_DestroyRenderer(renderer);
-            SDL_DestroyWindow(window);
-            SDL_Quit();
-        }
-        return 1;
-    }
-    rhi->debug();
+	window = SDL_CreateWindow("Rosy", width, height, SDL_WINDOW_VULKAN);
 
-    bool should_run = true;
-    bool should_render = true;
-    while (should_run) {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            ImGui_ImplSDL3_ProcessEvent(&event);
-            if (event.type == SDL_EVENT_QUIT) {
-                should_run = false;
-                break;
-            }
-            if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
-                should_render = false;
-            }
-            if (event.type == SDL_EVENT_WINDOW_RESTORED) {
-                should_render = true;
-            }
-            if (!should_render) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
-            }
+	rosy_config::Config cfg = {};
+	rosy_config::debug();
 
-            {
-                ImGui_ImplVulkan_NewFrame();
-                ImGui_ImplSDL3_NewFrame();
-                ImGui::NewFrame();
-                ImGui::ShowDemoWindow();
-                ImGui::Render();
-            }
+	Rhi* rhi = new Rhi{ cfg };
 
-            result = rhi->drawFrame();
-            if (result != VK_SUCCESS) {
-                rosy_utils::DebugPrintA("rhi draw failed %d\n", result);
-                should_run = false;
-            }
-        }
-    }
-    delete rhi;
-    {
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-    }
-    return 0;
+	VkResult result = rhi->init(window);
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintA("rhi init failed %d\n", result);
+		delete rhi;
+		{
+			SDL_DestroyRenderer(renderer);
+			SDL_DestroyWindow(window);
+			SDL_Quit();
+		}
+		return 1;
+	}
+	rhi->debug();
+
+	bool should_run = true;
+	bool should_render = true;
+	while (should_run) {
+		SDL_Event event;
+		while (SDL_PollEvent(&event)) {
+			ImGui_ImplSDL3_ProcessEvent(&event);
+			if (event.type == SDL_EVENT_QUIT) {
+				should_run = false;
+				break;
+			}
+			if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
+				should_render = false;
+			}
+			if (event.type == SDL_EVENT_WINDOW_RESTORED) {
+				should_render = true;
+			}
+			if (!should_render) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				continue;
+			}
+
+			{
+				ImGui_ImplVulkan_NewFrame();
+				ImGui_ImplSDL3_NewFrame();
+				ImGui::NewFrame();
+				ImGui::ShowDemoWindow();
+				ImGui::Render();
+			}
+
+			result = rhi->drawFrame();
+			if (result != VK_SUCCESS) {
+				rosy_utils::DebugPrintA("rhi draw failed %d\n", result);
+				should_run = false;
+			}
+		}
+	}
+	delete rhi;
+	{
+		SDL_DestroyRenderer(renderer);
+		SDL_DestroyWindow(window);
+		SDL_Quit();
+	}
+	return 0;
 }
