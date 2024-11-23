@@ -160,39 +160,41 @@ VkResult Rhi::renderFrame() {
 	}
 	{
 		// triangle
-		const VkDebugUtilsLabelEXT triangleLabel =
-		{
-			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-			.pNext = NULL,
-			.pLabelName = "triangleLabel",
-			.color = { 1.0f, 0.0f, 0.0f, 1.0f },
-		};
-		vkCmdBeginDebugUtilsLabelEXT(cmd, &triangleLabel);
-		const VkShaderStageFlagBits stages[2] =
-		{
-			VK_SHADER_STAGE_VERTEX_BIT,
-			VK_SHADER_STAGE_FRAGMENT_BIT
-		};
-		vkCmdBindShadersEXT(cmd, 2, stages, m_shaders.data());
-		const VkShaderStageFlagBits unusedStages[3] =
-		{
-			VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-			VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-			VK_SHADER_STAGE_GEOMETRY_BIT
-		};
 
 		{
+			const VkDebugUtilsLabelEXT triangleLabel =
+			{
+				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+				.pNext = NULL,
+				.pLabelName = "triangleLabel",
+				.color = { 1.0f, 0.0f, 0.0f, 1.0f },
+			};
+			vkCmdBeginDebugUtilsLabelEXT(cmd, &triangleLabel);
+			const VkShaderStageFlagBits stages[2] =
+			{
+				VK_SHADER_STAGE_VERTEX_BIT,
+				VK_SHADER_STAGE_FRAGMENT_BIT
+			};
+			vkCmdBindShadersEXT(cmd, 2, stages, m_shaders.data());
+			const VkShaderStageFlagBits unusedStages[3] =
+			{
+				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+				VK_SHADER_STAGE_GEOMETRY_BIT
+			};
 			vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
 			glm::mat4 m = glm::mat4(1.0f);
 			m = glm::rotate(m, m_triangle_rot, glm::vec3(0, 0, 1));
 			GPUDrawPushConstants push_constants;
 			push_constants.worldMatrix = m;
-			push_constants.vertexBuffer = m_rectangle.value().vertexBufferAddress;
-			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &m);
+			uint64_t va = m_rectangle.value().vertexBufferAddress;
+			rosy_utils::DebugPrintA("vertex address? %d 0x%llx\n", va, va);
+			push_constants.vertexBuffer = va;
+			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), &push_constants);
 			vkCmdBindIndexBuffer(cmd, m_rectangle.value().indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
+			vkCmdEndDebugUtilsLabelEXT(cmd);
 		}
-		vkCmdEndDebugUtilsLabelEXT(cmd);
 	}
 
 	{

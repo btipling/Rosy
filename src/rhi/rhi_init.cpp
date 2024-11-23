@@ -949,7 +949,7 @@ VkResult Rhi::initDefaultData() {
 		rectVertices[3].normal = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 
-		rectVertices[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		rectVertices[0].color = { 1.0f, 1.0f, 0.0f, 1.0f };
 		rectVertices[1].color = { 0.5f, 0.5f, 0.5f, 1.0f };
 		rectVertices[2].color = { 1.0f, 0.0f, 0.0f, 1.0f };
 		rectVertices[3].color = { 0.0f, 1.0f, 0.0f, 1.0f };
