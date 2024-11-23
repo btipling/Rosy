@@ -190,7 +190,7 @@ VkResult Rhi::renderFrame() {
 			uint64_t va = m_rectangle.value().vertexBufferAddress;
 			rosy_utils::DebugPrintA("vertex address? %d 0x%llx\n", va, va);
 			push_constants.vertexBuffer = va;
-			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), &push_constants);
+			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &push_constants);
 			vkCmdBindIndexBuffer(cmd, m_rectangle.value().indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
 			vkCmdEndDebugUtilsLabelEXT(cmd);
