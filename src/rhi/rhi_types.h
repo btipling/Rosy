@@ -7,6 +7,8 @@
 #include <optional>
 #include <vector>
 #include <span>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "../config/Config.h"
 #include "../utils/utils.h"
 #include "rhi_utils.h"
