@@ -93,7 +93,7 @@ private:
 	// Rendering
 	void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);
 	VkResult renderFrame();
-	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
+	VkResult immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 	// Utils
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);

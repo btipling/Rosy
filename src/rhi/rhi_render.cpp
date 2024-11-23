@@ -288,6 +288,51 @@ VkResult Rhi::renderFrame() {
 	return VK_SUCCESS;
 }
 
-void Rhi::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function) {
+VkResult Rhi::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& recordFunc) {
+	VkResult result;
 
+	VkDevice device = m_device.value();
+	result = vkResetFences(device, 1, &m_immFence.value());
+	if (result != VK_SUCCESS) return result;
+
+	result = vkResetCommandBuffer(m_immCommandBuffer.value(), 0);
+	if (result != VK_SUCCESS) return result;
+
+	VkCommandBuffer cmd = m_immCommandBuffer.value();
+
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	result = vkBeginCommandBuffer(cmd, &beginInfo);
+	if (result != VK_SUCCESS) return result;
+
+	recordFunc(cmd);
+
+	result = vkEndCommandBuffer(cmd);
+	if (result != VK_SUCCESS) return result;
+
+	VkCommandBufferSubmitInfo cmdBufferSubmitInfo = {};
+	cmdBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+	cmdBufferSubmitInfo.pNext = nullptr;
+	cmdBufferSubmitInfo.commandBuffer = cmd;
+	cmdBufferSubmitInfo.deviceMask = 0;
+	VkSubmitInfo2 submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+	submitInfo.pNext = nullptr;
+
+	submitInfo.waitSemaphoreInfoCount = 1;
+	submitInfo.pWaitSemaphoreInfos = nullptr;
+	submitInfo.signalSemaphoreInfoCount = 1;
+	submitInfo.pSignalSemaphoreInfos = nullptr;
+	submitInfo.commandBufferInfoCount = 1;
+	submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
+
+	result = vkQueueSubmit2(m_presentQueue.value(), 1, &submitInfo, m_immFence.value());
+	if (result != VK_SUCCESS) return result;
+
+	result = vkWaitForFences(device, 1, &m_immFence.value(), true, 9999999999);
+	if (result != VK_SUCCESS) return result;
+
+	return VK_SUCCESS;
 }

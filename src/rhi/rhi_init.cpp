@@ -868,6 +868,11 @@ VkResult Rhi::initSyncObjects() {
 		if (result != VK_SUCCESS) return result;
 		m_inFlightFence.push_back(fence);
 	}
+	{
+		VkFence fence;
+		result = vkCreateFence(device, &fenceInfo, nullptr, &fence);
+		m_immFence = fence;
+	}
 	return VK_SUCCESS;
 }
 
