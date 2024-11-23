@@ -110,7 +110,7 @@
     <ClCompile Include="lib\imgui\imgui_widgets.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="rhi\RHI.cpp">
+    <ClCompile Include="rhi\rhi_render.cpp">
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
     <ClCompile Include="rhi\rhi_utils.cpp">

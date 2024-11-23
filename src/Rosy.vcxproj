@@ -163,7 +163,7 @@
     <ClCompile Include="lib\imgui\imgui_draw.cpp" />
     <ClCompile Include="lib\imgui\imgui_tables.cpp" />
     <ClCompile Include="lib\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="rhi\RHI.cpp" />
+    <ClCompile Include="rhi\rhi_render.cpp" />
     <ClCompile Include="rhi\rhi_buffer.cpp" />
     <ClCompile Include="rhi\rhi_init.cpp" />
     <ClCompile Include="rhi\rhi_ui.cpp" />

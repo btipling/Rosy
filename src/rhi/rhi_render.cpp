@@ -1,41 +1,5 @@
 #include "RHI.h"
 
-void Rhi::debug() {
-	rosy_utils::DebugPrintA("RHI Debug Data::");
-	if (!m_instance.has_value()) {
-		rosy_utils::DebugPrintA("No instance!");
-		return;
-	}
-
-	if (!m_physicalDeviceProperties.has_value()) {
-		rosy_utils::DebugPrintA("No physical device!");
-		return;
-	}
-	VkPhysicalDeviceProperties deviceProperties = m_physicalDeviceProperties.value();
-	VkPhysicalDeviceFeatures deviceFeatures = m_supportedFeatures.value();
-	VkPhysicalDeviceMemoryProperties deviceMemProps = m_physicalDeviceMemoryProperties.value();
-	std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = m_queueFamilyProperties.value();
-	rosy_utils::DebugPrintA("result device property vendor %s \n", deviceProperties.deviceName);
-	rosy_utils::DebugPrintA("result: vendor: %u \n", deviceProperties.vendorID);
-
-	rosy_utils::DebugPrintA("has multiDrawIndirect? %d \n", deviceFeatures.multiDrawIndirect);
-	for (uint32_t i = 0; i < deviceMemProps.memoryHeapCount; i++) {
-		rosy_utils::DebugPrintA("memory size: %d\n", deviceMemProps.memoryHeaps[i].size);
-		rosy_utils::DebugPrintA("memory flags: %d\n", deviceMemProps.memoryHeaps[i].flags);
-	}
-	for (const VkQueueFamilyProperties& qfmp : queueFamilyPropertiesData) {
-		rosy_utils::DebugPrintA("queue count: %d and time bits: %d\n", qfmp.queueCount, qfmp.timestampValidBits);
-		if (qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT)) {
-			rosy_utils::DebugPrintA("VkQueueFamilyProperties got all the things\n");
-		}
-		else {
-			rosy_utils::DebugPrintA("VkQueueFamilyProperties missing stuff\n");
-		}
-	}
-	rosy_utils::DebugPrintA("Selected queue index %d with count: %d\n", m_queueIndex, m_queueCount);
-
-}
-
 void Rhi::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout) {
 	VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	VkImageSubresourceRange subresourceRange = {};
@@ -44,7 +8,6 @@ void Rhi::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout curr
 	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 	subresourceRange.baseArrayLayer = 0;
 	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-
 
 	VkImageMemoryBarrier2 imageBarrier = {};
 	imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -321,65 +284,6 @@ VkResult Rhi::renderFrame() {
 		}
 	}
 
-
-
 	m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	return VK_SUCCESS;
-}
-
-Rhi::~Rhi() {
-	{
-		// Wait for everything to be done.
-		if (m_device.has_value()) {
-			vkDeviceWaitIdle(m_device.value());
-		}
-	}
-
-	// Deinit begin in the reverse order from how it was created.
-	deinitUI();
-	for (VkFence fence : m_inFlightFence) {
-		vkDestroyFence(m_device.value(), fence, nullptr);
-	}
-	for (VkSemaphore semaphore : m_imageAvailableSemaphores) {
-		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
-	}
-	for (VkSemaphore semaphore : m_renderFinishedSemaphores) {
-		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
-	}
-	if (m_commandPool.has_value()) {
-		vkDestroyCommandPool(m_device.value(), m_commandPool.value(), nullptr);
-	}
-	if (m_shaderPL.has_value()) {
-		vkDestroyPipelineLayout(m_device.value(), m_shaderPL.value(), nullptr);
-	}
-	for (VkShaderEXT shader : m_shaders) {
-		vkDestroyShaderEXT(m_device.value(), shader, nullptr);
-	}
-	for (VkImageView imageView : m_swapChainImageViews) {
-		vkDestroyImageView(m_device.value(), imageView, nullptr);
-	}
-	if (m_drawImage.has_value()) {
-		AllocatedImage drawImage = m_drawImage.value();
-		vkDestroyImageView(m_device.value(), drawImage.imageView, nullptr);
-		vmaDestroyImage(m_allocator.value(), drawImage.image, drawImage.allocation);
-	}
-	if (m_swapchain.has_value()) {
-		vkDestroySwapchainKHR(m_device.value(), m_swapchain.value(), nullptr);
-	}
-	if (m_debugMessenger.has_value()) {
-		vkDestroyDebugUtilsMessengerEXT(m_instance.value(), m_debugMessenger.value(), nullptr);
-	}
-	if (m_allocator.has_value()) {
-		vmaDestroyAllocator(m_allocator.value());
-	}
-	if (m_device.has_value()) {
-		VkResult result = vkDeviceWaitIdle(m_device.value());
-		if (result == VK_SUCCESS) vkDestroyDevice(m_device.value(), NULL);
-	}
-	if (m_surface.has_value()) {
-		SDL_Vulkan_DestroySurface(m_instance.value(), m_surface.value(), nullptr);
-	}
-	if (m_instance.has_value()) {
-		vkDestroyInstance(m_instance.value(), NULL);
-	}
 }

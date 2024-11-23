@@ -7,11 +7,13 @@ class Rhi {
 public:
 	Rhi(rosy_config::Config cfg);
 	VkResult init(SDL_Window* window);
+	void deinit();
 	VkResult drawUI();
 	VkResult drawFrame();
 	void debug();
 	~Rhi();
 private:
+	bool m_deinited = false;
 	rosy_config::Config m_cfg;
 	std::vector<const char*> m_instanceLayerProperties;
 	std::vector<const char*> m_deviceLayerProperties;

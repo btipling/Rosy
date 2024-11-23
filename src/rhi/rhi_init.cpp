@@ -29,6 +29,10 @@ Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg }, m_requiredFeatures{ requiredFea
 	memset(&m_requiredFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
 }
 
+Rhi::~Rhi() {
+	deinit();
+}
+
 VkResult Rhi::init(SDL_Window* window) {
 
 	VkResult result;
@@ -129,6 +133,65 @@ VkResult Rhi::init(SDL_Window* window) {
 		return result;
 	}
 	return VK_SUCCESS;
+}
+
+void Rhi::deinit() {
+	if (m_deinited) return;
+	m_deinited = true;
+	{
+		// Wait for everything to be done.
+		if (m_device.has_value()) {
+			vkDeviceWaitIdle(m_device.value());
+		}
+	}
+
+	// Deinit begin in the reverse order from how it was created.
+	deinitUI();
+	for (VkFence fence : m_inFlightFence) {
+		vkDestroyFence(m_device.value(), fence, nullptr);
+	}
+	for (VkSemaphore semaphore : m_imageAvailableSemaphores) {
+		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
+	}
+	for (VkSemaphore semaphore : m_renderFinishedSemaphores) {
+		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
+	}
+	if (m_commandPool.has_value()) {
+		vkDestroyCommandPool(m_device.value(), m_commandPool.value(), nullptr);
+	}
+	if (m_shaderPL.has_value()) {
+		vkDestroyPipelineLayout(m_device.value(), m_shaderPL.value(), nullptr);
+	}
+	for (VkShaderEXT shader : m_shaders) {
+		vkDestroyShaderEXT(m_device.value(), shader, nullptr);
+	}
+	for (VkImageView imageView : m_swapChainImageViews) {
+		vkDestroyImageView(m_device.value(), imageView, nullptr);
+	}
+	if (m_drawImage.has_value()) {
+		AllocatedImage drawImage = m_drawImage.value();
+		vkDestroyImageView(m_device.value(), drawImage.imageView, nullptr);
+		vmaDestroyImage(m_allocator.value(), drawImage.image, drawImage.allocation);
+	}
+	if (m_swapchain.has_value()) {
+		vkDestroySwapchainKHR(m_device.value(), m_swapchain.value(), nullptr);
+	}
+	if (m_debugMessenger.has_value()) {
+		vkDestroyDebugUtilsMessengerEXT(m_instance.value(), m_debugMessenger.value(), nullptr);
+	}
+	if (m_allocator.has_value()) {
+		vmaDestroyAllocator(m_allocator.value());
+	}
+	if (m_device.has_value()) {
+		VkResult result = vkDeviceWaitIdle(m_device.value());
+		if (result == VK_SUCCESS) vkDestroyDevice(m_device.value(), NULL);
+	}
+	if (m_surface.has_value()) {
+		SDL_Vulkan_DestroySurface(m_instance.value(), m_surface.value(), nullptr);
+	}
+	if (m_instance.has_value()) {
+		vkDestroyInstance(m_instance.value(), NULL);
+	}
 }
 
 VkResult Rhi::drawFrame() {

@@ -10,6 +10,41 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	return VK_FALSE;
 }
 
+void Rhi::debug() {
+	rosy_utils::DebugPrintA("RHI Debug Data::");
+	if (!m_instance.has_value()) {
+		rosy_utils::DebugPrintA("No instance!");
+		return;
+	}
+
+	if (!m_physicalDeviceProperties.has_value()) {
+		rosy_utils::DebugPrintA("No physical device!");
+		return;
+	}
+	VkPhysicalDeviceProperties deviceProperties = m_physicalDeviceProperties.value();
+	VkPhysicalDeviceFeatures deviceFeatures = m_supportedFeatures.value();
+	VkPhysicalDeviceMemoryProperties deviceMemProps = m_physicalDeviceMemoryProperties.value();
+	std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = m_queueFamilyProperties.value();
+	rosy_utils::DebugPrintA("result device property vendor %s \n", deviceProperties.deviceName);
+	rosy_utils::DebugPrintA("result: vendor: %u \n", deviceProperties.vendorID);
+
+	rosy_utils::DebugPrintA("has multiDrawIndirect? %d \n", deviceFeatures.multiDrawIndirect);
+	for (uint32_t i = 0; i < deviceMemProps.memoryHeapCount; i++) {
+		rosy_utils::DebugPrintA("memory size: %d\n", deviceMemProps.memoryHeaps[i].size);
+		rosy_utils::DebugPrintA("memory flags: %d\n", deviceMemProps.memoryHeaps[i].flags);
+	}
+	for (const VkQueueFamilyProperties& qfmp : queueFamilyPropertiesData) {
+		rosy_utils::DebugPrintA("queue count: %d and time bits: %d\n", qfmp.queueCount, qfmp.timestampValidBits);
+		if (qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT)) {
+			rosy_utils::DebugPrintA("VkQueueFamilyProperties got all the things\n");
+		}
+		else {
+			rosy_utils::DebugPrintA("VkQueueFamilyProperties missing stuff\n");
+		}
+	}
+	rosy_utils::DebugPrintA("Selected queue index %d with count: %d\n", m_queueIndex, m_queueCount);
+}
+
 VkDebugUtilsMessengerCreateInfoEXT createDebugCallbackInfo() {
 	VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
