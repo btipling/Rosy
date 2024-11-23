@@ -1,4 +1,5 @@
 #pragma once
+#include "RHI.h"
 #include "rhi_types.h"
 
 #define MAX_FRAMES_IN_FLIGHT 2

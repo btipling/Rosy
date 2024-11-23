@@ -927,6 +927,17 @@ VkResult Rhi::initDefaultData() {
 		rectVertices[2].position = { -0.5f, -0.5f, 0.0f, 1.0f };
 		rectVertices[3].position = { -0.5f, 0.5f, 0.0f, 1.0f };
 
+		rectVertices[0].textureCoordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
+		rectVertices[1].textureCoordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
+		rectVertices[2].textureCoordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
+		rectVertices[3].textureCoordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		rectVertices[0].normal = { 0.0f, 0.0f, 0.0f, 0.0f };
+		rectVertices[1].normal = { 0.0f, 0.0f, 0.0f, 0.0f };
+		rectVertices[2].normal = { 0.0f, 0.0f, 0.0f, 0.0f };
+		rectVertices[3].normal = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+
 		rectVertices[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
 		rectVertices[1].color = { 0.5f, 0.5f, 0.5f, 1.0f };
 		rectVertices[2].color = { 1.0f, 0.0f, 0.0f, 1.0f };

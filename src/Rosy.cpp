@@ -92,6 +92,7 @@ int main(int argc, char* argv[])
 				if (result != VK_SUCCESS) {
 					rosy_utils::DebugPrintA("rhi draw ui failed %d\n", result);
 					should_run = false;
+					break;
 				}
 				ImGui::Render();
 			}
@@ -100,6 +101,7 @@ int main(int argc, char* argv[])
 			if (result != VK_SUCCESS) {
 				rosy_utils::DebugPrintA("rhi draw failed %d\n", result);
 				should_run = false;
+				break;
 			}
 		}
 	}

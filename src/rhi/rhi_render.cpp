@@ -130,14 +130,6 @@ VkResult Rhi::renderFrame() {
 		{
 			vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 		}
-		{
-			glm::mat4 m = glm::mat4(1.0f);
-			m = glm::rotate(m, m_triangle_rot, glm::vec3(0, 0, 1));
-			GPUDrawPushConstants push_constants;
-			push_constants.worldMatrix = m;
-			push_constants.vertexBuffer = m_rectangle.value().vertexBufferAddress;
-			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &m);
-		}
 	}
 
 	{
@@ -188,8 +180,18 @@ VkResult Rhi::renderFrame() {
 			VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
 			VK_SHADER_STAGE_GEOMETRY_BIT
 		};
-		vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
-		vkCmdDraw(cmd, 3, 1, 0, 0);
+
+		{
+			vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
+			glm::mat4 m = glm::mat4(1.0f);
+			m = glm::rotate(m, m_triangle_rot, glm::vec3(0, 0, 1));
+			GPUDrawPushConstants push_constants;
+			push_constants.worldMatrix = m;
+			push_constants.vertexBuffer = m_rectangle.value().vertexBufferAddress;
+			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &m);
+			vkCmdBindIndexBuffer(cmd, m_rectangle.value().indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
+		}
 		vkCmdEndDebugUtilsLabelEXT(cmd);
 	}
 
