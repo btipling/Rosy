@@ -148,3 +148,31 @@ void Rhi::blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, V
 
 	vkCmdBlitImage2(cmd, &blitInfo);
 }
+
+AllocatedBufferResult Rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
+	VkResult result;
+
+	VkBufferCreateInfo bufferInfo = {};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.pNext = nullptr;
+	bufferInfo.size = allocSize;
+	bufferInfo.usage = usage;
+
+	VmaAllocationCreateInfo vmaallocInfo = {};
+	vmaallocInfo.usage = memoryUsage;
+	vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+	AllocatedBuffer newBuffer;
+	result = vmaCreateBuffer(m_allocator.value(), &bufferInfo, &vmaallocInfo, &newBuffer.buffer, &newBuffer.allocation,
+		&newBuffer.info);
+	if (result != VK_SUCCESS) return { .result = result };
+
+	return {
+		.result = VK_SUCCESS,
+		.buffer = newBuffer,
+	};
+}
+
+void Rhi::destroyBuffer(const AllocatedBuffer& buffer) {
+	vmaDestroyBuffer(m_allocator.value(), buffer.buffer, buffer.allocation);
+}

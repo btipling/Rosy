@@ -717,7 +717,6 @@ VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vect
 	pushContantRange.offset = 0;
 	pushContantRange.size = sizeof(glm::mat4);
 
-	VkDescriptorSetLayout descriptorSetLayout;
 	VkShaderCreateInfoEXT shaderCreateInfos[2] =
 	{
 		{

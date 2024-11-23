@@ -6,6 +6,7 @@
 #include "vma/vk_mem_alloc.h"
 #include <optional>
 #include <vector>
+#include <span>
 #include "../config/Config.h"
 #include "../utils/utils.h"
 #include "rhi_utils.h"

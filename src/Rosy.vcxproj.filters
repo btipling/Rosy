@@ -125,6 +125,9 @@
     <ClCompile Include="rhi\rhi_ui.cpp">
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
+    <ClCompile Include="rhi\rhi_buffer.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc">

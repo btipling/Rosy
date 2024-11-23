@@ -44,13 +44,11 @@ private:
 	// ui
 	std::optional<VkDescriptorPool> m_uiPool = std::nullopt;
 
-
 	size_t m_currentFrame = 0;
 
 	// main draw image
-
 	std::optional<AllocatedImage> m_drawImage;
-	VkExtent2D m_drawExtent;
+	VkExtent2D m_drawExtent = {};
 
 	// swapchain images
 	std::vector<VkImage> m_swapChainImages;
@@ -94,6 +92,12 @@ private:
 	VkRenderingAttachmentInfo attachmentInfo(VkImageView view, VkImageLayout layout);
 	VkRenderingInfo renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment);
 	void blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize);
+	AllocatedBufferResult createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+	void destroyBuffer(const AllocatedBuffer& buffer);
+
+	// Buffer read write
+	GPUMeshBuffersResult uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
+
 
 	// ui
 	VkResult initUI(SDL_Window* window);
