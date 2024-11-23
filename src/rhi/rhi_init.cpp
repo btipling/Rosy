@@ -431,6 +431,19 @@ VkResult Rhi::initPhysicalDevice() {
 
 
 		// dynamic rendering required
+		VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
+		bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+		bufferDeviceAddressFeatures.pNext = nullptr;
+
+		deviceFeatures2 = {};
+		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		deviceFeatures2.pNext = &bufferDeviceAddressFeatures;
+		vkGetPhysicalDeviceFeatures2(p_device, &deviceFeatures2);
+
+		if (!bufferDeviceAddressFeatures.bufferDeviceAddress) continue;
+
+
+		// buffer device address required
 		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {};
 		dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
 		dynamicRenderingFeatures.pNext = nullptr;
@@ -528,13 +541,11 @@ VkResult Rhi::initDevice() {
 	vulkan13Features.dynamicRendering = true;
 	vulkan13Features.synchronization2 = true;
 
-
 	VkPhysicalDeviceVulkan12Features vulkan12Features = {};
 	vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	vulkan12Features.pNext = &vulkan13Features;
 	vulkan12Features.bufferDeviceAddress = true;
 	vulkan12Features.descriptorIndexing = true;
-
 
 	VkPhysicalDeviceShaderObjectFeaturesEXT enableShaderObject = {
 	  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,

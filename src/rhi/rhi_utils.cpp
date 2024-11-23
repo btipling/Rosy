@@ -211,3 +211,14 @@ AllocatedBufferResult Rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usa
 void Rhi::destroyBuffer(const AllocatedBuffer& buffer) {
 	vmaDestroyBuffer(m_allocator.value(), buffer.buffer, buffer.allocation);
 }
+
+VkDebugUtilsObjectNameInfoEXT Rhi::addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName) {
+	VkDebugUtilsObjectNameInfoEXT debugName = {};
+	debugName.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	debugName.pNext = nullptr;
+	debugName.objectType = objectType;
+	debugName.objectHandle = objectHandle;
+	debugName.pObjectName = pObjectName;
+	return debugName;
+}
+ 

@@ -21,6 +21,7 @@ GPUMeshBuffersResult Rhi::uploadMesh(std::span<uint32_t> indices, std::span<Vert
 	// *** SETTING VERTEX BUFFER *** //
 	vertexBuffer = vertexBufferResult.buffer;
 	rosy_utils::DebugPrintA("vertex buffer set!\n");
+	addName(VK_OBJECT_TYPE_BUFFER, (uint64_t)vertexBuffer.buffer, "vertexBuffer");
 
 	VkBufferDeviceAddressInfo deviceAddressInfo = {};
 	deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
@@ -43,6 +44,7 @@ GPUMeshBuffersResult Rhi::uploadMesh(std::span<uint32_t> indices, std::span<Vert
 	// *** SETTING INDEX BUFFER *** //
 	indexBuffer = indexBufferResult.buffer;
 	rosy_utils::DebugPrintA("index buffer address set!\n");
+	addName(VK_OBJECT_TYPE_BUFFER, (uint64_t)indexBuffer.buffer, "indexBuffer");
 
 	AllocatedBufferResult stagingBuffeResult = createBuffer(vertexBufferSize + indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 	if (stagingBuffeResult.result != VK_SUCCESS) {
