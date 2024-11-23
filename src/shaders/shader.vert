@@ -1,25 +1,29 @@
 #version 460 core
+#extension GL_EXT_buffer_reference : require
 
 layout(location = 0) out vec3 fragColor;
+layout (location = 1) out vec2 tcOut;
+
+struct Vertex {
+	vec4 position;
+	vec4 normal;
+	vec4 textureCoordinates;
+	vec4 color;
+}; 
+
+layout(buffer_reference, std430) readonly buffer VertexBuffer{ 
+	Vertex vertices[];
+};
 
 layout( push_constant ) uniform constants
 {
- mat4 rotZ;
+	mat4 worldMatrix;
+	VertexBuffer vertexBuffer;
 } PushConstants;
 
-vec2 positions[3] = vec2[](
-    vec2(0.0, -0.5),
-    vec2(0.5, 0.5),
-    vec2(-0.5, 0.5)
-);
-
-vec3 colors[3] = vec3[](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
-);
-
 void main() {
-    gl_Position = PushConstants.rotZ * vec4(positions[gl_VertexIndex], 0.0, 1.0);
-    fragColor = colors[gl_VertexIndex];
+	Vertex v = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
+    gl_Position = PushConstants.worldMatrix * v.position;
+    fragColor = v.color.xyz;
+	tcOut = v.textureCoordinates.xy;
 }

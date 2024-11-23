@@ -47,6 +47,7 @@ private:
 	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkPipelineLayout> m_shaderPL;
 	float m_triangle_rot = 0.5;
+	std::optional<GPUMeshBuffers> m_rectangle;
 
 	// ui
 	std::optional<VkDescriptorPool> m_uiPool = std::nullopt;
@@ -89,6 +90,7 @@ private:
 	VkResult initCommandBuffers();
 	VkResult initSyncObjects();
 	VkResult initCommands();
+	VkResult initDefaultData();
 	
 	// Rendering
 	void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);

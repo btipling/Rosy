@@ -133,16 +133,9 @@ VkResult Rhi::renderFrame() {
 		{
 			glm::mat4 m = glm::mat4(1.0f);
 			m = glm::rotate(m, m_triangle_rot, glm::vec3(0, 0, 1));
-			//rosy_utils::DebugPrintA("Matrix:\n"
-			//	"[%.2f %.2f %.2f %.2f]\n"
-			//	"[%.2f %.2f %.2f %.2f]\n"
-			//	"[%.2f %.2f %.2f %.2f]\n"
-			//	"[%.2f %.2f %.2f %.2f]\n",
-			//	m[0][0], m[0][1], m[0][2], m[0][3],
-			//	m[1][0], m[1][1], m[1][2], m[1][3],
-			//	m[2][0], m[2][1], m[2][2], m[2][3],
-			//	m[3][0], m[3][1], m[3][2], m[3][3]);
-			//rosy_utils::DebugPrintA("glm::mat4 size: %d\n", sizeof(glm::mat4));
+			GPUDrawPushConstants push_constants;
+			push_constants.worldMatrix = m;
+			push_constants.vertexBuffer = m_rectangle.value().vertexBufferAddress;
 			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &m);
 		}
 	}
@@ -321,9 +314,9 @@ VkResult Rhi::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& recordF
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
 	submitInfo.pNext = nullptr;
 
-	submitInfo.waitSemaphoreInfoCount = 1;
+	submitInfo.waitSemaphoreInfoCount = 0;
 	submitInfo.pWaitSemaphoreInfos = nullptr;
-	submitInfo.signalSemaphoreInfoCount = 1;
+	submitInfo.signalSemaphoreInfoCount = 0;
 	submitInfo.pSignalSemaphoreInfos = nullptr;
 	submitInfo.commandBufferInfoCount = 1;
 	submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;

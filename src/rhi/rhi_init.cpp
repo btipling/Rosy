@@ -3,6 +3,8 @@
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
 #include "RHI.h"
+#include "rhi_utils.h"
+#include <array>
 
 static const char* instanceLayers[] = {
 	"VK_LAYER_LUNARG_api_dump",
@@ -137,6 +139,11 @@ VkResult Rhi::init(SDL_Window* window) {
 		rosy_utils::DebugPrintW(L"Failed to init commands! %d\n", result);
 		return result;
 	}
+	result = this->initDefaultData();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to init default data! %d\n", result);
+		return result;
+	}
 	return VK_SUCCESS;
 }
 
@@ -153,6 +160,11 @@ void Rhi::deinit() {
 	// Deinit begin in the reverse order from how it was created.
 	deinitUI();
 
+	if (m_rectangle.has_value()) {
+		GPUMeshBuffers rectangle = m_rectangle.value();
+		destroyBuffer(rectangle.vertexBuffer);
+		destroyBuffer(rectangle.indexBuffer);
+	}
 	if (m_immFence.has_value()) {
 		vkDestroyFence(m_device.value(), m_immFence.value(), nullptr);
 	}
@@ -725,6 +737,7 @@ void Rhi::initAllocator() {
 	allocatorCreateInfo.device = m_device.value();
 	allocatorCreateInfo.instance = m_instance.value();
 	allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+	allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
 	VmaAllocator allocator;
 	vmaCreateAllocator(&allocatorCreateInfo, &allocator);
@@ -753,7 +766,7 @@ VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vect
 	VkPushConstantRange pushContantRange = {};
 	pushContantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	pushContantRange.offset = 0;
-	pushContantRange.size = sizeof(glm::mat4);
+	pushContantRange.size = sizeof(GPUDrawPushConstants);
 
 	VkShaderCreateInfoEXT shaderCreateInfos[2] =
 	{
@@ -904,4 +917,33 @@ VkResult Rhi::initCommands() {
 	m_immCommandBuffer = buffer;
 
 	return VK_SUCCESS;
+}
+
+VkResult Rhi::initDefaultData() {
+		std::array<Vertex, 4> rectVertices;
+
+		rectVertices[0].position = { 0.5f ,-0.5f, 0.0f, 1.0f };
+		rectVertices[1].position = { 0.5f, 0.5f, 0.0f, 1.0f };
+		rectVertices[2].position = { -0.5f, -0.5f, 0.0f, 1.0f };
+		rectVertices[3].position = { -0.5f, 0.5f, 0.0f, 1.0f };
+
+		rectVertices[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		rectVertices[1].color = { 0.5f, 0.5f, 0.5f, 1.0f };
+		rectVertices[2].color = { 1.0f, 0.0f, 0.0f, 1.0f };
+		rectVertices[3].color = { 0.0f, 1.0f, 0.0f, 1.0f };
+
+		std::array<uint32_t, 6> rectIndices;
+
+		rectIndices[0] = 0;
+		rectIndices[1] = 1;
+		rectIndices[2] = 2;
+
+		rectIndices[3] = 2;
+		rectIndices[4] = 1;
+		rectIndices[5] = 3;
+
+		GPUMeshBuffersResult rectangleResult = uploadMesh(rectIndices, rectVertices);
+		if (rectangleResult.result != VK_SUCCESS) return rectangleResult.result;
+		m_rectangle = rectangleResult.buffers;
+		return VK_SUCCESS;
 }

@@ -44,6 +44,7 @@ GPUMeshBuffersResult Rhi::uploadMesh(std::span<uint32_t> indices, std::span<Vert
 	vmaMapMemory(m_allocator.value(), staging.allocation, &data);
 	memcpy(data, vertices.data(), vertexBufferSize);
 	memcpy((char*)data + vertexBufferSize, indices.data(), indexBufferSize);
+	vmaUnmapMemory(m_allocator.value(), staging.allocation);
 
 	VkResult result;
 	result = immediateSubmit([&](VkCommandBuffer cmd) {

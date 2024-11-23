@@ -37,6 +37,7 @@ struct Vertex {
     glm::vec4 normal;
     glm::vec4 color;
 };
+
 struct GPUMeshBuffers {
     AllocatedBuffer indexBuffer;
     AllocatedBuffer vertexBuffer;
