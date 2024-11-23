@@ -38,6 +38,11 @@ private:
 	VkExtent2D m_swapChainExtent = {};
 	std::optional<VkCommandPool> m_commandPool = std::nullopt;
 
+	// immediate submits
+	std::optional<VkFence> m_immFence;
+	std::optional<VkCommandBuffer> m_immCommandBuffer;
+	std::optional<VkCommandPool> m_immCommandPool;
+
 	// hello triangle stuff
 	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkPipelineLayout> m_shaderPL;
@@ -83,9 +88,12 @@ private:
 	VkResult initCommandPool();
 	VkResult initCommandBuffers();
 	VkResult initSyncObjects();
+	VkResult initCommands();
 	
+	// Rendering
 	void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);
 	VkResult renderFrame();
+	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 	// Utils
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
@@ -99,7 +107,6 @@ private:
 
 	// Buffer read write
 	GPUMeshBuffersResult uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
-
 
 	// ui
 	VkResult initUI(SDL_Window* window);

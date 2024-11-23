@@ -287,3 +287,7 @@ VkResult Rhi::renderFrame() {
 	m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	return VK_SUCCESS;
 }
+
+void Rhi::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function) {
+
+}

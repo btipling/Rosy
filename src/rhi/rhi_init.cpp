@@ -132,6 +132,11 @@ VkResult Rhi::init(SDL_Window* window) {
 		rosy_utils::DebugPrintW(L"Failed to init UI! %d\n", result);
 		return result;
 	}
+	result = this->initCommands();
+	if (result != VK_SUCCESS) {
+		rosy_utils::DebugPrintW(L"Failed to init commands! %d\n", result);
+		return result;
+	}
 	return VK_SUCCESS;
 }
 
@@ -147,6 +152,13 @@ void Rhi::deinit() {
 
 	// Deinit begin in the reverse order from how it was created.
 	deinitUI();
+
+	if (m_immFence.has_value()) {
+		vkDestroyFence(m_device.value(), m_immFence.value(), nullptr);
+	}
+	if (m_immCommandPool.has_value()) {
+		vkDestroyCommandPool(m_device.value(), m_immCommandPool.value(), nullptr);
+	}
 	for (VkFence fence : m_inFlightFence) {
 		vkDestroyFence(m_device.value(), fence, nullptr);
 	}
@@ -399,7 +411,7 @@ VkResult Rhi::initPhysicalDevice() {
 		shaderObjectFeatures.pNext = nullptr;
 
 		VkPhysicalDeviceFeatures2  deviceFeatures2 = {};
-		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		deviceFeatures2.pNext = &shaderObjectFeatures;
 		vkGetPhysicalDeviceFeatures2(p_device, &deviceFeatures2);
 
@@ -412,7 +424,7 @@ VkResult Rhi::initPhysicalDevice() {
 		dynamicRenderingFeatures.pNext = nullptr;
 
 		deviceFeatures2 = {};
-		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		deviceFeatures2.pNext = &dynamicRenderingFeatures;
 		vkGetPhysicalDeviceFeatures2(p_device, &deviceFeatures2);
 
@@ -856,5 +868,35 @@ VkResult Rhi::initSyncObjects() {
 		if (result != VK_SUCCESS) return result;
 		m_inFlightFence.push_back(fence);
 	}
+	return VK_SUCCESS;
+}
+
+
+VkResult Rhi::initCommands() {
+	VkResult result;
+
+	VkCommandPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = m_queueIndex;
+
+	VkDevice device = m_device.value();
+	VkCommandPool commandPool;
+	result = vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool);
+	if (result != VK_SUCCESS) return result;
+	m_immCommandPool = commandPool;
+
+	// allocate the command buffer for immediate submits
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_immCommandPool.value();
+	allocInfo.commandBufferCount = 1;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+	VkCommandBuffer buffer;
+	result = vkAllocateCommandBuffers(device, &allocInfo, &buffer);
+	if (result != VK_SUCCESS) return result;
+	m_immCommandBuffer = buffer;
+
 	return VK_SUCCESS;
 }
