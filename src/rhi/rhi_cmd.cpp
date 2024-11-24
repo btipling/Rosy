@@ -65,3 +65,40 @@ void Rhi::setViewPort(VkCommandBuffer cmd, VkExtent2D extent) {
 		vkCmdSetScissorWithCountEXT(cmd, 1, &scissor);
 	}
 }
+
+void Rhi::disableBlending(VkCommandBuffer cmd) {
+	VkColorBlendEquationEXT colorBlendEquationEXT{};
+	vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &colorBlendEquationEXT);
+	VkBool32 enable = VK_FALSE;
+	vkCmdSetColorBlendEnableEXT(cmd, 0, 1, &enable);
+}
+
+void Rhi::enableBlendingAdditive(VkCommandBuffer cmd) {
+	VkColorComponentFlags flags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	vkCmdSetColorWriteMaskEXT(cmd, 0, 1, &flags);
+	VkBool32 enable = VK_TRUE;
+	vkCmdSetColorBlendEnableEXT(cmd, 0, 1, &enable);
+	VkColorBlendEquationEXT blendConfig = {};
+	blendConfig.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	blendConfig.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+	blendConfig.colorBlendOp = VK_BLEND_OP_ADD;
+	blendConfig.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	blendConfig.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	blendConfig.alphaBlendOp = VK_BLEND_OP_ADD;
+	vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &blendConfig);
+}
+
+void Rhi::enableBlendingAlphaBlend(VkCommandBuffer cmd) {
+	VkColorComponentFlags flags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	vkCmdSetColorWriteMaskEXT(cmd, 0, 1, &flags);
+	VkBool32 enable = VK_TRUE;
+	vkCmdSetColorBlendEnableEXT(cmd, 0, 1, &enable);
+	VkColorBlendEquationEXT blendConfig = {};
+	blendConfig.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	blendConfig.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	blendConfig.colorBlendOp = VK_BLEND_OP_ADD;
+	blendConfig.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	blendConfig.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	blendConfig.alphaBlendOp = VK_BLEND_OP_ADD;
+	vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &blendConfig);
+}

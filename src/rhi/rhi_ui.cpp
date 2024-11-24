@@ -90,6 +90,10 @@ VkResult Rhi::drawUI() {
 	ImGui::SliderFloat("Translate Z", &m_model_z, -1000.0f, 10.0f);
 	ImGui::SliderFloat("Scale", &m_model_scale, 0.1f, 10.0f);
 	ImGui::Checkbox("Wireframe", &m_toggleWireFrame);
+	ImGui::Text("Blending");
+	ImGui::RadioButton("disabled", &m_blendMode, 0); ImGui::SameLine();
+	ImGui::RadioButton("additive", &m_blendMode, 1); ImGui::SameLine();
+	ImGui::RadioButton("alpha blend", &m_blendMode, 2);
 	return VK_SUCCESS;
 }
 

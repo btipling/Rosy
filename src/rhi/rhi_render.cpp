@@ -78,12 +78,16 @@ VkResult Rhi::renderFrame() {
 		toggleWireFrame(cmd, m_toggleWireFrame);
 		setViewPort(cmd, m_swapChainExtent);
 		toggleDepth(cmd, VK_TRUE);
-		{
-			VkColorBlendEquationEXT colorBlendEquationEXT{};
-			vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &colorBlendEquationEXT);
-			VkBool32 color_blend_enables[] = { VK_FALSE };
-			vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
-			vkCmdSetColorBlendEnableEXT(cmd, 0, 1, color_blend_enables);
+		switch (m_blendMode) {
+		case 0:
+			disableBlending(cmd);
+			break;
+		case 1:
+			enableBlendingAdditive(cmd);
+			break;
+		case 2:
+			enableBlendingAlphaBlend(cmd);
+			break;
 		}
 	}
 

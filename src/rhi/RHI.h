@@ -58,6 +58,7 @@ private:
 	float m_model_z = -15.0f;
 	float m_model_scale = 1.0f;
 	bool m_toggleWireFrame = false;
+	int m_blendMode = 0;
 
 	std::vector<std::shared_ptr<MeshAsset>> m_testMeshes;
 
@@ -116,6 +117,9 @@ private:
 	void toggleCulling(VkCommandBuffer cmd, bool enable);
 	void toggleWireFrame(VkCommandBuffer cmd, bool enable);
 	void setViewPort(VkCommandBuffer cmd, VkExtent2D extent);
+	void disableBlending(VkCommandBuffer cmd);
+	void enableBlendingAdditive(VkCommandBuffer cmd);
+	void enableBlendingAlphaBlend(VkCommandBuffer cmd);
 
 	// Utils
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
