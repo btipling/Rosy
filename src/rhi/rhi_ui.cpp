@@ -82,7 +82,10 @@ VkResult Rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 }
 
 VkResult Rhi::drawUI() {
-	ImGui::SliderFloat("Rotate triangle", &m_triangle_rot, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Rotate", &m_model_rot, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("X", &m_model_x, -1.0f, 1.0f);
+	ImGui::SliderFloat("Y", &m_model_y, -1.0f, 1.0f);
+	ImGui::SliderFloat("Z", &m_model_z, -1.0f, 1.0f);
 	return VK_SUCCESS;
 }
 

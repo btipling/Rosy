@@ -191,8 +191,8 @@ VkResult Rhi::renderFrame() {
 
 			GPUDrawPushConstants push_constants;
 			glm::mat4 m = glm::mat4(1.0f);
-			m = glm::rotate(m, m_triangle_rot, glm::vec3(0, 0, 1));
-			glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3{ 0,0,-5 });
+			m = glm::rotate(m, m_model_rot, glm::vec3(0, 0, 1));
+			glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3{ m_model_x, m_model_y, m_model_z });
 			glm::mat4 projection = glm::perspective(glm::radians(70.f), (float)m_drawExtent.width / (float)m_drawExtent.height, 10000.f, 0.1f);
 			projection[1][1] *= -1;
 			push_constants.worldMatrix = projection * view * m;
