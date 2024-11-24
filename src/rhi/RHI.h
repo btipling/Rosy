@@ -50,10 +50,13 @@ private:
 	// test meshes
 	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkPipelineLayout> m_shaderPL;
-	float m_model_rot = 0.0f;
-	float m_model_x = 0.0f;
-	float m_model_y = 0.0f;
-	float m_model_z = 0.0f;
+	float m_model_rot_x = 0.0f;
+	float m_model_rot_y = 0.0f;
+	float m_model_rot_z = 3.14f;
+	float m_model_x = -0.023f;
+	float m_model_y = -0.024f;
+	float m_model_z = -0.254;
+	float m_model_scale = 0.132f;
 	std::vector<std::shared_ptr<MeshAsset>> m_testMeshes;
 
 	// ui

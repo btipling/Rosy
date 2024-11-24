@@ -82,10 +82,13 @@ VkResult Rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 }
 
 VkResult Rhi::drawUI() {
-	ImGui::SliderFloat("Rotate", &m_model_rot, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("X", &m_model_x, -1.0f, 1.0f);
-	ImGui::SliderFloat("Y", &m_model_y, -1.0f, 1.0f);
-	ImGui::SliderFloat("Z", &m_model_z, -1.0f, 1.0f);
+	ImGui::SliderFloat("Rotate X", &m_model_rot_x, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Rotate Y", &m_model_rot_y, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Rotate Z", &m_model_rot_z, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Translate X", &m_model_x, -10.0f, 10.0f);
+	ImGui::SliderFloat("Translate Y", &m_model_y, -10.0f, 10.0f);
+	ImGui::SliderFloat("Translate Z", &m_model_z, -10.0f, 10.0f);
+	ImGui::SliderFloat("Scale", &m_model_scale, 0.001f, 1.0f);
 	return VK_SUCCESS;
 }
 
