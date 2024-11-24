@@ -73,37 +73,10 @@ VkResult Rhi::renderFrame() {
 
 	{
 		// Configure the dynamic shader pipeline
-		VkExtent2D swapChainExtent = m_swapChainExtent;
-		{
-			vkCmdSetRasterizerDiscardEnableEXT(cmd, VK_FALSE);
-			vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-			vkCmdSetPrimitiveRestartEnableEXT(cmd, VK_FALSE);
-			vkCmdSetRasterizationSamplesEXT(cmd, VK_SAMPLE_COUNT_1_BIT);
-		}
-		{
-			const VkSampleMask sample_mask = 0x1;
-			vkCmdSetSampleMaskEXT(cmd, VK_SAMPLE_COUNT_1_BIT, &sample_mask);
-		}
+		setRenderingDefaults(cmd);
 		toggleCulling(cmd, VK_TRUE);
 		toggleWireFrame(cmd, m_toggleWireFrame);
-		{
-			VkViewport viewport{};
-			viewport.x = 0.0f;
-			viewport.y = 0.0f;
-			viewport.width = (float)swapChainExtent.width;
-			viewport.height = (float)swapChainExtent.height;
-			viewport.minDepth = 0.0f;
-			viewport.maxDepth = 1.0f;
-			vkCmdSetViewport(cmd, 0, 1, &viewport);
-			vkCmdSetViewportWithCountEXT(cmd, 1, &viewport);
-		}
-		{
-			VkRect2D scissor{};
-			scissor.offset = { 0, 0 };
-			scissor.extent = swapChainExtent;
-			vkCmdSetScissor(cmd, 0, 1, &scissor);
-			vkCmdSetScissorWithCountEXT(cmd, 1, &scissor);
-		}
+		setViewPort(cmd, m_swapChainExtent);
 		toggleDepth(cmd, VK_TRUE);
 		{
 			VkColorBlendEquationEXT colorBlendEquationEXT{};
@@ -111,13 +84,6 @@ VkResult Rhi::renderFrame() {
 			VkBool32 color_blend_enables[] = { VK_FALSE };
 			vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
 			vkCmdSetColorBlendEnableEXT(cmd, 0, 1, color_blend_enables);
-		}
-		{
-			VkColorComponentFlags color_component_flags[] = { VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_A_BIT };
-			vkCmdSetColorWriteMaskEXT(cmd, 0, 1, color_component_flags);
-		}
-		{
-			vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
 		}
 	}
 

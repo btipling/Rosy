@@ -111,9 +111,11 @@ private:
 	VkResult immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 	// Cmd
+	void setRenderingDefaults(VkCommandBuffer cmd);
 	void toggleDepth(VkCommandBuffer cmd, bool enable);
 	void toggleCulling(VkCommandBuffer cmd, bool enable);
 	void toggleWireFrame(VkCommandBuffer cmd, bool enable);
+	void setViewPort(VkCommandBuffer cmd, VkExtent2D extent);
 
 	// Utils
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
