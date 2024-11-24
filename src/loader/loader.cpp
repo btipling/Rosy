@@ -14,9 +14,11 @@
 std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, std::filesystem::path filePath) {
 	fastgltf::Asset gltf;
 	fastgltf::Parser parser{};
-	fastgltf::GltfDataBuffer data;
-	data.loadFromFile(filePath);
-	auto asset = parser.loadGltf(&data, filePath.parent_path(), fastgltf::Options::None);
+    auto data = fastgltf::GltfDataBuffer::FromPath(filePath);
+    if (data.error() != fastgltf::Error::None) {
+        return std::nullopt;
+    }
+    auto asset = parser.loadGltf(data.get(), filePath.parent_path(), fastgltf::Options::None);
 	if (asset) {
 		gltf = std::move(asset.get());
 	} else {
@@ -39,7 +41,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
         indices.clear();
         vertices.clear();
 
-        for (auto&& p : mesh.primitives) {
+        for (fastgltf::Primitive p : mesh.primitives) {
             GeoSurface newSurface;
             newSurface.startIndex = (uint32_t)indices.size();
             newSurface.count = (uint32_t)gltf.accessors[p.indicesAccessor.value()].count;
@@ -60,7 +62,8 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
 
             // load vertex positions
             {
-                fastgltf::Accessor& posAccessor = gltf.accessors[p.findAttribute("POSITION")->second];
+                auto positionIt = p.findAttribute("POSITION");
+                auto& posAccessor = gltf.accessors[positionIt->accessorIndex];
                 vertices.resize(vertices.size() + posAccessor.count);
 
                 fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, posAccessor,
@@ -78,7 +81,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
             auto normals = p.findAttribute("NORMAL");
             if (normals != p.attributes.end()) {
 
-                fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, gltf.accessors[(*normals).second],
+                fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, gltf.accessors[(*normals).accessorIndex],
                     [&](glm::vec3 v, size_t index) {
                         vertices[initial_vtx + index].normal = glm::vec4{ v, 0.0f };
                     });
@@ -88,7 +91,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
             auto uv = p.findAttribute("TEXCOORD_0");
             if (uv != p.attributes.end()) {
 
-                fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[(*uv).second],
+                fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[(*uv).accessorIndex],
                     [&](glm::vec2 v, size_t index) {
                         vertices[initial_vtx + index].textureCoordinates = { v.x, v.y, 0.0f, 0.0f };
                     });
@@ -98,7 +101,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
             auto colors = p.findAttribute("COLOR_0");
             if (colors != p.attributes.end()) {
 
-                fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*colors).second],
+                fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*colors).accessorIndex],
                     [&](glm::vec4 v, size_t index) {
                         vertices[initial_vtx + index].color = v;
                     });
