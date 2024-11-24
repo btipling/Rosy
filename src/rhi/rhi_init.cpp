@@ -967,7 +967,7 @@ VkResult Rhi::initDefaultData() {
 		GPUMeshBuffersResult rectangleResult = uploadMesh(rectIndices, rectVertices);
 		if (rectangleResult.result != VK_SUCCESS) return rectangleResult.result;
 		m_rectangle = rectangleResult.buffers;
-		auto result = loadGltfMeshes(this, "..\\assets\\basicmesh.glb");
+		auto result = loadGltfMeshes(this, "assets\\basicmesh.glb");
 		if (result.has_value()) {
 			m_testMeshes = result.value();
 		}
