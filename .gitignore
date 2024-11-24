@@ -364,5 +364,6 @@ FodyWeavers.xsd
 SDL3.dll
 SDL3.lib
 vcpkg_installed/
-
+!vcpkg_installed/x64-windows/include/
+!vcpkg_installed/x64-windows/lib/
 imgui.ini

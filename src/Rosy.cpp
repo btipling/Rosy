@@ -8,6 +8,8 @@
 #include <SDL3/SDL_vulkan.h>
 #include <thread>
 #include <vector>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 #define VOLK_IMPLEMENTATION
 #include "volk/volk.h"
 #define IMGUI_IMPL_VULKAN_USE_VOLK

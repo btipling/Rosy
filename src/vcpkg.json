@@ -1,6 +1,6 @@
 {
   "dependencies": [
-    "vulkan-memory-allocator",
-    "glm"
+    "fastgltf",
+    "stb"
   ]
 }

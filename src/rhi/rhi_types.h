@@ -13,3 +13,5 @@
 #include "../config/Config.h"
 #include "../utils/utils.h"
 #include "rhi_utils.h"
+#include <fastgltf/core.hpp>
+#include <fastgltf/types.hpp>

@@ -11,6 +11,8 @@ public:
 	void deinit();
 	VkResult drawUI();
 	VkResult drawFrame();
+	// Buffer read write
+	GPUMeshBuffersResult uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 	void debug();
 	~Rhi();
 private:
@@ -109,8 +111,6 @@ private:
 	VkDebugUtilsObjectNameInfoEXT addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName);
 	void destroyBuffer(const AllocatedBuffer& buffer);
 
-	// Buffer read write
-	GPUMeshBuffersResult uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 
 	// ui
 	VkResult initUI(SDL_Window* window);

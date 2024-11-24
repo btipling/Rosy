@@ -84,6 +84,12 @@
     <ClInclude Include="lib\imgui\backends\imgui_impl_vulkan.h">
       <Filter>Header Files\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="lib\stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="loader\loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">
@@ -131,6 +137,9 @@
     <ClCompile Include="rhi\rhi_init.cpp">
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
+    <ClCompile Include="loader\loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc">
@@ -147,9 +156,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="compile.ps1" />
-    <None Include="SDL3.dll">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="shaders\shader.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
@@ -161,7 +167,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="SDL3.lib">
+    <Library Include="lib\SDL3.lib">
       <Filter>Resource Files</Filter>
     </Library>
   </ItemGroup>
