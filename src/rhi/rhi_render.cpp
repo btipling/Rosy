@@ -188,11 +188,18 @@ VkResult Rhi::renderFrame() {
 			GPUDrawPushConstants push_constants;
 			push_constants.worldMatrix = m;
 			uint64_t va = m_rectangle.value().vertexBufferAddress;
-			rosy_utils::DebugPrintA("vertex address? %d 0x%llx\n", va, va);
 			push_constants.vertexBuffer = va;
 			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &push_constants);
 			vkCmdBindIndexBuffer(cmd, m_rectangle.value().indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
+
+			if (m_testMeshes.size() > 0) {
+				push_constants.vertexBuffer = m_testMeshes[2]->meshBuffers.vertexBufferAddress;
+				vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &push_constants);
+				vkCmdBindIndexBuffer(cmd, m_testMeshes[2]->meshBuffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(cmd, m_testMeshes[2]->surfaces[0].count, 1, m_testMeshes[2]->surfaces[0].startIndex, 0, 0);
+			}
+
 			vkCmdEndDebugUtilsLabelEXT(cmd);
 		}
 	}

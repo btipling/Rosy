@@ -20,7 +20,8 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
 	if (asset) {
 		gltf = std::move(asset.get());
 	} else {
-		rosy_utils::DebugPrintA("failed to load gltf: %s\n", fastgltf::to_underlying(asset.error()));
+        auto err = fastgltf::to_underlying(asset.error());
+		rosy_utils::DebugPrintA("failed to load gltf: %d %s\n", err, filePath.string());
 		return {};
 	}
     std::vector<std::shared_ptr<MeshAsset>> meshes;

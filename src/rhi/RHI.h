@@ -1,6 +1,7 @@
 #pragma once
 #include "RHI.h"
-#include "rhi_types.h"
+#include "../Rosy.h"
+#include "../loader/loader.h"
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
@@ -46,11 +47,12 @@ private:
 	std::optional<VkCommandBuffer> m_immCommandBuffer;
 	std::optional<VkCommandPool> m_immCommandPool;
 
-	// hello triangle stuff
+	// test meshes
 	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkPipelineLayout> m_shaderPL;
 	float m_triangle_rot = 0.5;
 	std::optional<GPUMeshBuffers> m_rectangle;
+	std::vector<std::shared_ptr<MeshAsset>> m_testMeshes;
 
 	// ui
 	std::optional<VkDescriptorPool> m_uiPool = std::nullopt;

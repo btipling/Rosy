@@ -63,9 +63,6 @@
     <ClInclude Include="rhi\RHI.h">
       <Filter>Header Files\rhi</Filter>
     </ClInclude>
-    <ClInclude Include="rhi\rhi_types.h">
-      <Filter>Header Files\rhi</Filter>
-    </ClInclude>
     <ClInclude Include="rhi\rhi_utils.h">
       <Filter>Header Files\rhi</Filter>
     </ClInclude>
