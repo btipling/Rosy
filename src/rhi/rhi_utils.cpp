@@ -92,7 +92,7 @@ SwapChainSupportDetails Rhi::querySwapChainSupport(VkPhysicalDevice device) {
 	return details;
 }
 
-VkImageCreateInfo Rhi::imgCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent) {
+VkImageCreateInfo Rhi::imgCreateInfo (VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent) {
     VkImageCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     info.pNext = nullptr;
@@ -134,7 +134,20 @@ VkRenderingAttachmentInfo Rhi::attachmentInfo(VkImageView view, VkImageLayout la
 	return colorAttachment;
 }
 
-VkRenderingInfo Rhi::renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment) {
+VkRenderingAttachmentInfo Rhi::depthAttachmentInfo(VkImageView view, VkImageLayout layout) {
+	VkRenderingAttachmentInfo depthAttachment = {};
+	depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+	depthAttachment.pNext = nullptr;
+	depthAttachment.imageView = view;
+	depthAttachment.imageLayout = layout;
+	depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	depthAttachment.clearValue.depthStencil.depth = 0.f;
+	return depthAttachment;
+}
+
+VkRenderingInfo Rhi::renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment, std::optional<VkRenderingAttachmentInfo> depthAttachment) {
 	VkRect2D renderArea = VkRect2D{ VkOffset2D{ 0, 0 }, renderExtent };
 	VkRenderingInfo renderInfo = {};
 	renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -143,7 +156,12 @@ VkRenderingInfo Rhi::renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmen
 	renderInfo.layerCount = 1;
 	renderInfo.colorAttachmentCount = 1;
 	renderInfo.pColorAttachments = &colorAttachment;
-	renderInfo.pDepthAttachment = nullptr;
+	if (depthAttachment.has_value()) {
+		renderInfo.pDepthAttachment = &depthAttachment.value();
+	}
+	else {
+		renderInfo.pDepthAttachment = nullptr;
+	}
 	renderInfo.pStencilAttachment = nullptr;
 	return renderInfo;
 }

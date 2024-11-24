@@ -51,7 +51,6 @@ private:
 	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkPipelineLayout> m_shaderPL;
 	float m_triangle_rot = 0.5;
-	std::optional<GPUMeshBuffers> m_rectangle;
 	std::vector<std::shared_ptr<MeshAsset>> m_testMeshes;
 
 	// ui
@@ -61,6 +60,7 @@ private:
 
 	// main draw image
 	std::optional<AllocatedImage> m_drawImage;
+	std::optional<AllocatedImage> m_depthImage;
 	VkExtent2D m_drawExtent = {};
 
 	// swapchain images
@@ -98,7 +98,7 @@ private:
 	VkResult initDefaultData();
 	
 	// Rendering
-	void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout);
+	void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectMask);
 	VkResult renderFrame();
 	VkResult immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
@@ -107,7 +107,8 @@ private:
 	VkImageCreateInfo imgCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
 	VkImageViewCreateInfo imgViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
 	VkRenderingAttachmentInfo attachmentInfo(VkImageView view, VkImageLayout layout);
-	VkRenderingInfo renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment);
+	VkRenderingAttachmentInfo depthAttachmentInfo(VkImageView view, VkImageLayout layout);
+	VkRenderingInfo renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment, std::optional<VkRenderingAttachmentInfo> depthAttachment);
 	void blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize);
 	AllocatedBufferResult createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	VkDebugUtilsObjectNameInfoEXT addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName);

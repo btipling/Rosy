@@ -72,7 +72,7 @@ VkResult Rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 	VkResult result;
 
 	VkRenderingAttachmentInfo colorAttachment = attachmentInfo(targetImageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-	VkRenderingInfo renderInfo = renderingInfo(m_swapChainExtent, colorAttachment);
+	VkRenderingInfo renderInfo = renderingInfo(m_swapChainExtent, colorAttachment, std::nullopt);
 	vkCmdBeginRendering(cmd, &renderInfo);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);

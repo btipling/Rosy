@@ -1,7 +1,8 @@
 #include "RHI.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-void Rhi::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout) {
-	VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+void Rhi::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectMask) {
 	VkImageSubresourceRange subresourceRange = {};
 	subresourceRange.aspectMask = aspectMask;
 	subresourceRange.baseMipLevel = 0;
@@ -49,6 +50,7 @@ VkResult Rhi::renderFrame() {
 	VkImageView imageView = m_swapChainImageViews[imageIndex];
 
 	AllocatedImage drawImage = m_drawImage.value();
+	AllocatedImage depthImage = m_depthImage.value();
 	m_drawExtent.width = drawImage.imageExtent.width;
 	m_drawExtent.height = drawImage.imageExtent.height;
 
@@ -111,13 +113,14 @@ VkResult Rhi::renderFrame() {
 		}
 		{
 			vkCmdSetFrontFaceEXT(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-			vkCmdSetDepthTestEnableEXT(cmd, VK_FALSE);
-			vkCmdSetDepthWriteEnableEXT(cmd, VK_FALSE);
-			vkCmdSetDepthCompareOpEXT(cmd, VK_COMPARE_OP_GREATER);
+			vkCmdSetDepthTestEnableEXT(cmd, VK_TRUE);
+			vkCmdSetDepthWriteEnableEXT(cmd, VK_TRUE);
+			vkCmdSetDepthCompareOpEXT(cmd, VK_COMPARE_OP_GREATER_OR_EQUAL);
 			vkCmdSetDepthBoundsTestEnableEXT(cmd, VK_FALSE);
 			vkCmdSetDepthBiasEnableEXT(cmd, VK_FALSE);
 			vkCmdSetStencilTestEnableEXT(cmd, VK_FALSE);
 			vkCmdSetLogicOpEnableEXT(cmd, VK_FALSE);
+			vkCmdSetDepthBounds(cmd, 0.0f, 1.0f);
 		}
 		{
 			VkBool32 color_blend_enables[] = { VK_FALSE };
@@ -135,7 +138,7 @@ VkResult Rhi::renderFrame() {
 	{
 		// Clear image. This transition means that all the commands recorded before now happen before
 		// any calls after. The calls themselves before this may have executed in any order up until this point.
-		transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+		transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
 		// vkCmdClearColorImage is guaranteed to happen after previous calls.
 		VkClearColorValue clearValue;
 		clearValue = { { 0.0f, 0.05f, 0.1f, 1.0f } };
@@ -149,11 +152,13 @@ VkResult Rhi::renderFrame() {
 	}
 	{
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
-		transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		transitionImage(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
 			VkRenderingAttachmentInfo colorAttachment = attachmentInfo(drawImage.imageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			VkRenderingInfo renderInfo = renderingInfo(m_swapChainExtent, colorAttachment);
+			VkRenderingAttachmentInfo depthAttachment = depthAttachmentInfo(depthImage.imageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+			VkRenderingInfo renderInfo = renderingInfo(m_swapChainExtent, colorAttachment, depthAttachment);
 			vkCmdBeginRendering(cmd, &renderInfo);
 		}
 
@@ -183,15 +188,14 @@ VkResult Rhi::renderFrame() {
 				VK_SHADER_STAGE_GEOMETRY_BIT
 			};
 			vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
+
+			GPUDrawPushConstants push_constants;
 			glm::mat4 m = glm::mat4(1.0f);
 			m = glm::rotate(m, m_triangle_rot, glm::vec3(0, 0, 1));
-			GPUDrawPushConstants push_constants;
-			push_constants.worldMatrix = m;
-			uint64_t va = m_rectangle.value().vertexBufferAddress;
-			push_constants.vertexBuffer = va;
-			vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &push_constants);
-			vkCmdBindIndexBuffer(cmd, m_rectangle.value().indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
+			glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3{ 0,0,-5 });
+			glm::mat4 projection = glm::perspective(glm::radians(70.f), (float)m_drawExtent.width / (float)m_drawExtent.height, 10000.f, 0.1f);
+			projection[1][1] *= -1;
+			push_constants.worldMatrix = projection * view * m;
 
 			if (m_testMeshes.size() > 0) {
 				push_constants.vertexBuffer = m_testMeshes[2]->meshBuffers.vertexBufferAddress;
@@ -209,19 +213,19 @@ VkResult Rhi::renderFrame() {
 		vkCmdEndRendering(cmd);
 		{
 			// blit the draw image to the swapchain image
-			transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-			transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+			transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			blitImages(cmd, drawImage.image, image, m_drawExtent, m_swapChainExtent);
 		}
 		{
 			// draw ui onto swapchain image
-			transitionImage(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			transitionImage(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			result = renderUI(cmd, imageView);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
 			// Transition swapchain image for presentation
-			transitionImage(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			transitionImage(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
 			result = vkEndCommandBuffer(cmd);
 			if (result != VK_SUCCESS) return result;
 		}

@@ -22,7 +22,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
 	} else {
         auto err = fastgltf::to_underlying(asset.error());
 		rosy_utils::DebugPrintA("failed to load gltf: %d %s\n", err, filePath.string().c_str());
-		return {};
+		return std::nullopt;
 	}
     std::vector<std::shared_ptr<MeshAsset>> meshes;
 
@@ -116,7 +116,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
         auto result = rhi->uploadMesh(indices, vertices);
         if (result.result != VK_SUCCESS) {
             rosy_utils::DebugPrintA("failed to upload mesh: %d\n", result.result);
-            return {};
+            return std::nullopt;
         }
         newmesh.meshBuffers = result.buffers;
         meshes.emplace_back(std::make_shared<MeshAsset>(std::move(newmesh)));

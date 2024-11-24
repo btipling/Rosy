@@ -160,10 +160,11 @@ void Rhi::deinit() {
 	// Deinit begin in the reverse order from how it was created.
 	deinitUI();
 
-	if (m_rectangle.has_value()) {
-		GPUMeshBuffers rectangle = m_rectangle.value();
+	for (std::shared_ptr<MeshAsset> mesh : m_testMeshes) {
+		GPUMeshBuffers rectangle = mesh.get()->meshBuffers;
 		destroyBuffer(rectangle.vertexBuffer);
 		destroyBuffer(rectangle.indexBuffer);
+		mesh.reset();
 	}
 	if (m_immFence.has_value()) {
 		vkDestroyFence(m_device.value(), m_immFence.value(), nullptr);
@@ -191,6 +192,11 @@ void Rhi::deinit() {
 	}
 	for (VkImageView imageView : m_swapChainImageViews) {
 		vkDestroyImageView(m_device.value(), imageView, nullptr);
+	}
+	if (m_depthImage.has_value()) {
+		AllocatedImage depthImage = m_depthImage.value();
+		vkDestroyImageView(m_device.value(), depthImage.imageView, nullptr);
+		vmaDestroyImage(m_allocator.value(), depthImage.image, depthImage.allocation);
 	}
 	if (m_drawImage.has_value()) {
 		AllocatedImage drawImage = m_drawImage.value();
@@ -694,19 +700,36 @@ VkResult Rhi::initDrawImage() {
 	drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;
 	drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	VkImageCreateInfo rimg_info = imgCreateInfo(drawImage.imageFormat, drawImageUsages, drawImageExtent);
+	VkImageCreateInfo drawInfo = imgCreateInfo(drawImage.imageFormat, drawImageUsages, drawImageExtent);
 
 	VmaAllocationCreateInfo rimg_allocinfo = {};
 	rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	rimg_allocinfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	vmaCreateImage(m_allocator.value(), &rimg_info, &rimg_allocinfo, &drawImage.image, &drawImage.allocation, nullptr);
+	vmaCreateImage(m_allocator.value(), &drawInfo, &rimg_allocinfo, &drawImage.image, &drawImage.allocation, nullptr);
 
 	VkImageViewCreateInfo rview_info = imgViewCreateInfo(drawImage.imageFormat, drawImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
 
 	result = vkCreateImageView(m_device.value(), &rview_info, nullptr, &drawImage.imageView);
 	if (result != VK_SUCCESS) return result;
 	m_drawImage = drawImage;
+
+	AllocatedImage depthImage = {};
+	depthImage.imageFormat = VK_FORMAT_D32_SFLOAT;
+	depthImage.imageExtent = drawImageExtent;
+	VkImageUsageFlags depthImageUsages{};
+	depthImageUsages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+	VkImageCreateInfo depthInfo = imgCreateInfo(depthImage.imageFormat, depthImageUsages, drawImageExtent);
+
+	vmaCreateImage(m_allocator.value(), &depthInfo, &rimg_allocinfo, &depthImage.image, &depthImage.allocation, nullptr);
+
+	VkImageViewCreateInfo dview_info = imgViewCreateInfo(depthImage.imageFormat, depthImage.image, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+	result = vkCreateImageView(m_device.value(), &dview_info, nullptr, &depthImage.imageView);
+	if (result != VK_SUCCESS) return result;
+	m_depthImage = depthImage;
+
 	return result;
 }
 
@@ -931,42 +954,6 @@ VkResult Rhi::initCommands() {
 }
 
 VkResult Rhi::initDefaultData() {
-		std::array<Vertex, 4> rectVertices;
-
-		rectVertices[0].position = { 0.5f ,-0.5f, 0.0f, 1.0f };
-		rectVertices[1].position = { 0.5f, 0.5f, 0.0f, 1.0f };
-		rectVertices[2].position = { -0.5f, -0.5f, 0.0f, 1.0f };
-		rectVertices[3].position = { -0.5f, 0.5f, 0.0f, 1.0f };
-
-		rectVertices[0].textureCoordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
-		rectVertices[1].textureCoordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
-		rectVertices[2].textureCoordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
-		rectVertices[3].textureCoordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-		rectVertices[0].normal = { 0.0f, 0.0f, 0.0f, 0.0f };
-		rectVertices[1].normal = { 0.0f, 0.0f, 0.0f, 0.0f };
-		rectVertices[2].normal = { 0.0f, 0.0f, 0.0f, 0.0f };
-		rectVertices[3].normal = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-
-		rectVertices[0].color = { 1.0f, 1.0f, 0.0f, 1.0f };
-		rectVertices[1].color = { 0.5f, 0.5f, 0.5f, 1.0f };
-		rectVertices[2].color = { 1.0f, 0.0f, 0.0f, 1.0f };
-		rectVertices[3].color = { 0.0f, 1.0f, 0.0f, 1.0f };
-
-		std::array<uint32_t, 6> rectIndices;
-
-		rectIndices[0] = 0;
-		rectIndices[1] = 1;
-		rectIndices[2] = 2;
-
-		rectIndices[3] = 2;
-		rectIndices[4] = 1;
-		rectIndices[5] = 3;
-
-		GPUMeshBuffersResult rectangleResult = uploadMesh(rectIndices, rectVertices);
-		if (rectangleResult.result != VK_SUCCESS) return rectangleResult.result;
-		m_rectangle = rectangleResult.buffers;
 		auto result = loadGltfMeshes(this, "assets\\basicmesh.glb");
 		if (result.has_value()) {
 			m_testMeshes = result.value();
