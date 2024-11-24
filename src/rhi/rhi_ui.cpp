@@ -89,7 +89,7 @@ VkResult Rhi::drawUI() {
 	ImGui::SliderFloat("Translate Y", &m_model_y, -100.0f, 100.0f);
 	ImGui::SliderFloat("Translate Z", &m_model_z, -1000.0f, 10.0f);
 	ImGui::SliderFloat("Scale", &m_model_scale, 0.1f, 10.0f);
-	ImGui::SliderFloat("Perspective Depth", &m_perspective_d, 100.0f, 20000.0f);
+	ImGui::Checkbox("Wireframe", &m_toggleWireFrame);
 	return VK_SUCCESS;
 }
 

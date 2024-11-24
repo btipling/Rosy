@@ -76,10 +76,6 @@ VkResult Rhi::renderFrame() {
 		VkExtent2D swapChainExtent = m_swapChainExtent;
 		{
 			vkCmdSetRasterizerDiscardEnableEXT(cmd, VK_FALSE);
-			VkColorBlendEquationEXT colorBlendEquationEXT{};
-			vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &colorBlendEquationEXT);
-		}
-		{
 			vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 			vkCmdSetPrimitiveRestartEnableEXT(cmd, VK_FALSE);
 			vkCmdSetRasterizationSamplesEXT(cmd, VK_SAMPLE_COUNT_1_BIT);
@@ -88,11 +84,8 @@ VkResult Rhi::renderFrame() {
 			const VkSampleMask sample_mask = 0x1;
 			vkCmdSetSampleMaskEXT(cmd, VK_SAMPLE_COUNT_1_BIT, &sample_mask);
 		}
-		{
-			vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
-			vkCmdSetCullModeEXT(cmd, VK_TRUE);
-			vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
-		}
+		toggleCulling(cmd, VK_TRUE);
+		toggleWireFrame(cmd, m_toggleWireFrame);
 		{
 			VkViewport viewport{};
 			viewport.x = 0.0f;
@@ -111,19 +104,12 @@ VkResult Rhi::renderFrame() {
 			vkCmdSetScissor(cmd, 0, 1, &scissor);
 			vkCmdSetScissorWithCountEXT(cmd, 1, &scissor);
 		}
+		toggleDepth(cmd, VK_TRUE);
 		{
-			vkCmdSetFrontFaceEXT(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-			vkCmdSetDepthTestEnableEXT(cmd, VK_TRUE);
-			vkCmdSetDepthWriteEnableEXT(cmd, VK_TRUE);
-			vkCmdSetDepthCompareOpEXT(cmd, VK_COMPARE_OP_GREATER_OR_EQUAL);
-			vkCmdSetDepthBoundsTestEnableEXT(cmd, VK_FALSE);
-			vkCmdSetDepthBiasEnableEXT(cmd, VK_FALSE);
-			vkCmdSetStencilTestEnableEXT(cmd, VK_FALSE);
-			vkCmdSetLogicOpEnableEXT(cmd, VK_FALSE);
-			vkCmdSetDepthBounds(cmd, 0.0f, 1.0f);
-		}
-		{
+			VkColorBlendEquationEXT colorBlendEquationEXT{};
+			vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &colorBlendEquationEXT);
 			VkBool32 color_blend_enables[] = { VK_FALSE };
+			vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
 			vkCmdSetColorBlendEnableEXT(cmd, 0, 1, color_blend_enables);
 		}
 		{
@@ -203,12 +189,11 @@ VkResult Rhi::renderFrame() {
 			m = glm::rotate(m, m_model_rot_y, glm::vec3(0, 1, 0));
 			m = glm::rotate(m, m_model_rot_z, glm::vec3(0, 0, 1));
 			m = glm::scale(m, glm::vec3(m_model_scale, m_model_scale, m_model_scale));
-			glm::mat4 projection = glm::perspective(glm::radians(70.f), (float)m_drawExtent.width / (float)m_drawExtent.height, 0.1f, m_perspective_d);
 
 			float znear = 0.1f;
-			float zfar = m_perspective_d;
+			float zfar = 1000.0f;
 			float aspect = (float)m_drawExtent.width / (float)m_drawExtent.height;
-			float fov = glm::radians(70.0f);
+			constexpr float fov = glm::radians(70.0f);
 			float h = 1.0 / tan(fov * 0.5);
 			float w = h / aspect;
 			float a = -znear / (zfar - znear);

@@ -57,7 +57,7 @@ private:
 	float m_model_y = 0.0f;
 	float m_model_z = -15.0f;
 	float m_model_scale = 1.0f;
-	float m_perspective_d = 1000.0f;
+	bool m_toggleWireFrame = false;
 
 	std::vector<std::shared_ptr<MeshAsset>> m_testMeshes;
 
@@ -110,6 +110,11 @@ private:
 	VkResult renderFrame();
 	VkResult immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
+	// Cmd
+	void toggleDepth(VkCommandBuffer cmd, bool enable);
+	void toggleCulling(VkCommandBuffer cmd, bool enable);
+	void toggleWireFrame(VkCommandBuffer cmd, bool enable);
+
 	// Utils
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 	VkImageCreateInfo imgCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
@@ -121,7 +126,6 @@ private:
 	AllocatedBufferResult createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	VkDebugUtilsObjectNameInfoEXT addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName);
 	void destroyBuffer(const AllocatedBuffer& buffer);
-
 
 	// ui
 	VkResult initUI(SDL_Window* window);

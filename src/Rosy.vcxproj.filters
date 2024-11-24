@@ -137,6 +137,9 @@
     <ClCompile Include="loader\loader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rhi\rhi_cmd.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc">
