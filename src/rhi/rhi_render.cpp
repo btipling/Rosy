@@ -191,13 +191,31 @@ VkResult Rhi::renderFrame() {
 
 			GPUDrawPushConstants push_constants;
 			glm::mat4 m = glm::mat4(1.0f);
+			auto view = m;
+			m = glm::translate(m, glm::vec3{ m_model_x, m_model_y, m_model_z });
 			m = glm::rotate(m, m_model_rot_x, glm::vec3(1, 0, 0));
 			m = glm::rotate(m, m_model_rot_y, glm::vec3(0, 1, 0));
 			m = glm::rotate(m, m_model_rot_z, glm::vec3(0, 0, 1));
 			m = glm::scale(m, glm::vec3(m_model_scale, m_model_scale, m_model_scale));
-			glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3{ m_model_x, m_model_y, m_model_z });
-			glm::mat4 projection = glm::perspective(glm::radians(70.f), (float)m_drawExtent.width / (float)m_drawExtent.height, 1000.f, 0.1f);
-			push_constants.worldMatrix = projection * view * m;
+			glm::mat4 projection = glm::perspective(glm::radians(70.f), (float)m_drawExtent.width / (float)m_drawExtent.height, 0.1f, m_perspective_d);
+
+
+			float fov = glm::radians(70.0f);
+			float aspectRatio = m_drawExtent.width / (float)m_drawExtent.height;
+			float nearPlane = 0.1f;
+			float farPlane = m_perspective_d;
+			float tanHalfFovy = tan(glm::radians(70.f) / 2.0f);
+
+			glm::mat4 proj(0.0f);
+
+			proj[0][0] = 1.0f / (aspectRatio * tanHalfFovy);
+			proj[1][1] = -1.0f / (tanHalfFovy);  // Vulkan Y flip
+
+			float rangeInv = 1.0f / (nearPlane - farPlane);
+			proj[2][2] = farPlane * rangeInv; // Note: This will be positive
+			proj[3][2] = nearPlane * farPlane * rangeInv; // Preserve perspective division
+			proj[2][3] = -1.0f;
+			push_constants.worldMatrix = proj * view * m;
 
 			if (m_testMeshes.size() > 0) {
 				push_constants.vertexBuffer = m_testMeshes[2]->meshBuffers.vertexBufferAddress;
