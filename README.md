@@ -8,4 +8,5 @@
 * [ ] resource sync https://themaister.net/blog/2019/08/14/yet-another-blog-explaining-vulkan-synchronization/
 * [ ] read links in https://github.com/Darianopolis/Links/blob/main/Links.txt
 * [ ] 
-![image](https://github.com/user-attachments/assets/b2beacd5-5bc8-42cc-801e-e6d29373048f)
+![image](https://github.com/user-attachments/assets/258f0c51-2988-4b21-98f6-46773aacacd0)
+
