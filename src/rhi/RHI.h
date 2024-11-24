@@ -51,11 +51,11 @@ private:
 	std::vector<VkShaderEXT> m_shaders;
 	std::optional<VkPipelineLayout> m_shaderPL;
 	float m_model_rot_x = 0.0f;
-	float m_model_rot_y = 3.14f;
+	float m_model_rot_y = 0.0f;
 	float m_model_rot_z = 0.0f;
 	float m_model_x = 0.0f;
 	float m_model_y = 0.0f;
-	float m_model_z = -5.0f;
+	float m_model_z = -15.0f;
 	float m_model_scale = 1.0f;
 	float m_perspective_d = 1000.0f;
 
