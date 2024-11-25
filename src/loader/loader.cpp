@@ -116,7 +116,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(Rhi* rhi
                 vtx.color = vtx.normal;
             }
         }
-        auto result = rhi->uploadMesh(indices, vertices);
+        auto result = rhi->upload_mesh(indices, vertices);
         if (result.result != VK_SUCCESS) {
             rosy_utils::DebugPrintA("failed to upload mesh: %d\n", result.result);
             return std::nullopt;

@@ -8,78 +8,78 @@
 class Rhi
 {
 public:
-	Rhi(rosy_config::Config cfg);
+	explicit Rhi(rosy_config::Config cfg);
 	VkResult init(SDL_Window* window);
-	VkResult resizeSwapchain(SDL_Window* window);
+	VkResult resize_swapchain(SDL_Window* window);
 	void deinit();
-	VkResult drawUI();
-	VkResult drawFrame();
+	VkResult draw_ui();
+	VkResult draw_frame();
 	// Buffer read write
-	GPUMeshBuffersResult uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
+	GPUMeshBuffersResult upload_mesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 	void debug();
 	~Rhi();
 
 private:
-	bool m_deinited = false;
-	rosy_config::Config m_cfg;
-	std::vector<const char*> m_instanceLayerProperties;
-	std::vector<const char*> m_deviceLayerProperties;
-	std::vector<const char*> m_instanceExtensions;
-	std::vector<const char*> m_deviceDeviceExtensions;
-	std::optional<VkInstance> m_instance = std::nullopt;
-	std::optional<VkPhysicalDevice> m_physicalDevice = std::nullopt;
-	std::optional<VkPhysicalDeviceProperties> m_physicalDeviceProperties = std::nullopt;
-	std::optional<VkPhysicalDeviceFeatures> m_supportedFeatures = std::nullopt;
-	std::optional<VkPhysicalDeviceMemoryProperties> m_physicalDeviceMemoryProperties = std::nullopt;
-	std::optional<std::vector<VkQueueFamilyProperties>> m_queueFamilyProperties = std::nullopt;
-	std::uint32_t m_queueIndex = 0;
-	std::uint32_t m_queueCount = 0;
-	std::vector<float> m_queuePriorities;
-	VkPhysicalDeviceFeatures m_requiredFeatures;
-	std::optional<VkDevice> m_device = std::nullopt;
-	std::optional<VmaAllocator> m_allocator = std::nullopt;
-	std::optional<VkSurfaceKHR> m_surface = std::nullopt;
-	std::optional<VkQueue> m_presentQueue = std::nullopt;
-	std::optional<VkSwapchainKHR> m_swapchain = std::nullopt;
-	VkSurfaceFormatKHR m_swapchainImageFormat = {};
-	VkPresentModeKHR m_swapchainPresentMode = {};
-	uint32_t m_swapChainImageCount = 0;
-	SwapChainSupportDetails m_swapchainDetails = {};
-	VkExtent2D m_swapchainExtent = {};
-	std::optional<VkCommandPool> m_commandPool = std::nullopt;
-	std::optional<DescriptorAllocator> m_globalDescriptorAllocator;
-	std::optional<VkDescriptorSet> m_drawImageDescriptors;
-	std::optional<VkDescriptorSetLayout> m_drawImageDescriptorLayout;
+	bool m_deinited_ = false;
+	rosy_config::Config m_cfg_;
+	std::vector<const char*> m_instance_layer_properties_;
+	std::vector<const char*> m_device_layer_properties_;
+	std::vector<const char*> m_instance_extensions_;
+	std::vector<const char*> m_device_device_extensions_;
+	std::optional<VkInstance> m_instance_ = std::nullopt;
+	std::optional<VkPhysicalDevice> m_physical_device_ = std::nullopt;
+	std::optional<VkPhysicalDeviceProperties> m_physical_device_properties_ = std::nullopt;
+	std::optional<VkPhysicalDeviceFeatures> m_supported_features_ = std::nullopt;
+	std::optional<VkPhysicalDeviceMemoryProperties> m_physical_device_memory_properties_ = std::nullopt;
+	std::optional<std::vector<VkQueueFamilyProperties>> m_queue_family_properties_ = std::nullopt;
+	std::uint32_t m_queue_index_ = 0;
+	std::uint32_t m_queue_count_ = 0;
+	std::vector<float> m_queue_priorities_;
+	VkPhysicalDeviceFeatures m_required_features_;
+	std::optional<VkDevice> m_device_ = std::nullopt;
+	std::optional<VmaAllocator> m_allocator_ = std::nullopt;
+	std::optional<VkSurfaceKHR> m_surface_ = std::nullopt;
+	std::optional<VkQueue> m_present_queue_ = std::nullopt;
+	std::optional<VkSwapchainKHR> m_swapchain_ = std::nullopt;
+	VkSurfaceFormatKHR m_swapchain_image_format_ = {};
+	VkPresentModeKHR m_swapchain_present_mode_ = {};
+	uint32_t m_swap_chain_image_count_ = 0;
+	SwapChainSupportDetails m_swapchain_details_ = {};
+	VkExtent2D m_swapchain_extent_ = {};
+	std::optional<VkCommandPool> m_command_pool_ = std::nullopt;
+	std::optional<DescriptorAllocator> m_global_descriptor_allocator_;
+	std::optional<VkDescriptorSet> m_draw_image_descriptors_;
+	std::optional<VkDescriptorSetLayout> m_draw_image_descriptor_layout_;
 
 	// immediate submits
-	std::optional<VkFence> m_immFence;
-	std::optional<VkCommandBuffer> m_immCommandBuffer;
-	std::optional<VkCommandPool> m_immCommandPool;
+	std::optional<VkFence> m_imm_fence_;
+	std::optional<VkCommandBuffer> m_imm_command_buffer_;
+	std::optional<VkCommandPool> m_imm_command_pool_;
 
 	// test meshes
-	std::vector<VkShaderEXT> m_shaders;
-	std::optional<VkPipelineLayout> m_shaderPL;
-	float m_model_rot_x = 0.0f;
-	float m_model_rot_y = 0.0f;
-	float m_model_rot_z = 0.0f;
-	float m_model_x = 0.0f;
-	float m_model_y = 0.0f;
-	float m_model_z = -15.0f;
-	float m_model_scale = 1.0f;
-	bool m_toggleWireFrame = false;
-	int m_blendMode = 0;
+	std::vector<VkShaderEXT> m_shaders_;
+	std::optional<VkPipelineLayout> m_shader_pl_;
+	float m_model_rot_x_ = 0.0f;
+	float m_model_rot_y_ = 0.0f;
+	float m_model_rot_z_ = 0.0f;
+	float m_model_x_ = 0.0f;
+	float m_model_y_ = 0.0f;
+	float m_model_z_ = -15.0f;
+	float m_model_scale_ = 1.0f;
+	bool m_toggle_wire_frame_ = false;
+	int m_blend_mode_ = 0;
 
-	std::vector<std::shared_ptr<MeshAsset>> m_testMeshes;
+	std::vector<std::shared_ptr<MeshAsset>> m_test_meshes_;
 
 	// ui
-	std::optional<VkDescriptorPool> m_uiPool = std::nullopt;
+	std::optional<VkDescriptorPool> m_ui_pool_ = std::nullopt;
 
-	size_t m_currentFrame = 0;
+	size_t m_current_frame_ = 0;
 
 	// main draw image
-	std::optional<AllocatedImage> m_drawImage;
-	std::optional<AllocatedImage> m_depthImage;
-	VkExtent2D m_drawExtent = {};
+	std::optional<AllocatedImage> m_draw_image_;
+	std::optional<AllocatedImage> m_depth_image_;
+	VkExtent2D m_draw_extent_ = {};
 	float m_render_scale_ = 1.f;
 
 	// swapchain images

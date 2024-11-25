@@ -12,19 +12,19 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 void Rhi::debug() {
 	rosy_utils::DebugPrintA("RHI Debug Data::");
-	if (!m_instance.has_value()) {
+	if (!m_instance_.has_value()) {
 		rosy_utils::DebugPrintA("No instance!");
 		return;
 	}
 
-	if (!m_physicalDeviceProperties.has_value()) {
+	if (!m_physical_device_properties_.has_value()) {
 		rosy_utils::DebugPrintA("No physical device!");
 		return;
 	}
-	VkPhysicalDeviceProperties deviceProperties = m_physicalDeviceProperties.value();
-	VkPhysicalDeviceFeatures deviceFeatures = m_supportedFeatures.value();
-	VkPhysicalDeviceMemoryProperties deviceMemProps = m_physicalDeviceMemoryProperties.value();
-	std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = m_queueFamilyProperties.value();
+	VkPhysicalDeviceProperties deviceProperties = m_physical_device_properties_.value();
+	VkPhysicalDeviceFeatures deviceFeatures = m_supported_features_.value();
+	VkPhysicalDeviceMemoryProperties deviceMemProps = m_physical_device_memory_properties_.value();
+	std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = m_queue_family_properties_.value();
 	rosy_utils::DebugPrintA("result device property vendor %s \n", deviceProperties.deviceName);
 	rosy_utils::DebugPrintA("result: vendor: %u \n", deviceProperties.vendorID);
 
@@ -42,7 +42,7 @@ void Rhi::debug() {
 			rosy_utils::DebugPrintA("VkQueueFamilyProperties missing stuff\n");
 		}
 	}
-	rosy_utils::DebugPrintA("Selected queue index %d with count: %d\n", m_queueIndex, m_queueCount);
+	rosy_utils::DebugPrintA("Selected queue index %d with count: %d\n", m_queue_index_, m_queue_count_);
 }
 
 VkDebugUtilsMessengerCreateInfoEXT createDebugCallbackInfo() {
@@ -73,7 +73,7 @@ std::vector<char> readFile(const std::string& filename) {
 
 SwapChainSupportDetails Rhi::querySwapChainSupport(VkPhysicalDevice device) {
 	SwapChainSupportDetails details = {};
-	VkSurfaceKHR surface = m_surface.value();
+	VkSurfaceKHR surface = m_surface_.value();
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 	uint32_t formatCount;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
@@ -216,7 +216,7 @@ AllocatedBufferResult Rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usa
 	vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
 	AllocatedBuffer newBuffer;
-	result = vmaCreateBuffer(m_allocator.value(), &bufferInfo, &vmaallocInfo, &newBuffer.buffer, &newBuffer.allocation,
+	result = vmaCreateBuffer(m_allocator_.value(), &bufferInfo, &vmaallocInfo, &newBuffer.buffer, &newBuffer.allocation,
 		&newBuffer.info);
 	if (result != VK_SUCCESS) return { .result = result };
 
@@ -227,7 +227,7 @@ AllocatedBufferResult Rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usa
 }
 
 void Rhi::destroyBuffer(const AllocatedBuffer& buffer) {
-	vmaDestroyBuffer(m_allocator.value(), buffer.buffer, buffer.allocation);
+	vmaDestroyBuffer(m_allocator_.value(), buffer.buffer, buffer.allocation);
 }
 
 VkDebugUtilsObjectNameInfoEXT Rhi::addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName) {

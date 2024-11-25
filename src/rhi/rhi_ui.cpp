@@ -29,7 +29,7 @@ VkResult Rhi::initUI(SDL_Window* window) {
 	poolInfo.pPoolSizes = poolSizes;
 
 	VkDescriptorPool imguiPool;
-	VkDevice device = m_device.value();
+	VkDevice device = m_device_.value();
 	VkResult result;
 	result = vkCreateDescriptorPool(device, &poolInfo, nullptr, &imguiPool);
 	if (result != VK_SUCCESS) return result;
@@ -38,10 +38,10 @@ VkResult Rhi::initUI(SDL_Window* window) {
 	ImGui_ImplSDL3_InitForVulkan(window);
 
 	ImGui_ImplVulkan_InitInfo init_info = {};
-	init_info.Instance = m_instance.value();
-	init_info.PhysicalDevice = m_physicalDevice.value();
-	init_info.Device = m_device.value();
-	init_info.Queue = m_presentQueue.value();
+	init_info.Instance = m_instance_.value();
+	init_info.PhysicalDevice = m_physical_device_.value();
+	init_info.Device = m_device_.value();
+	init_info.Queue = m_present_queue_.value();
 	init_info.DescriptorPool = imguiPool;
 	init_info.MinImageCount = 2;
 	init_info.ImageCount = 2;
@@ -49,7 +49,7 @@ VkResult Rhi::initUI(SDL_Window* window) {
 
 	init_info.PipelineRenderingCreateInfo = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
 	init_info.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
-	init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_swapchainImageFormat.format;
+	init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_swapchain_image_format_.format;
 
 
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -64,7 +64,7 @@ VkResult Rhi::initUI(SDL_Window* window) {
 	ImGuiIO& io = ImGui::GetIO();
 	io.FontGlobalScale = contentScale;
 
-	m_uiPool = imguiPool;
+	m_ui_pool_ = imguiPool;
 	return VK_SUCCESS;
 }
 
@@ -72,7 +72,7 @@ VkResult Rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 	VkResult result;
 
 	VkRenderingAttachmentInfo colorAttachment = attachmentInfo(targetImageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-	VkRenderingInfo renderInfo = renderingInfo(m_swapchainExtent, colorAttachment, std::nullopt);
+	VkRenderingInfo renderInfo = renderingInfo(m_swapchain_extent_, colorAttachment, std::nullopt);
 	vkCmdBeginRendering(cmd, &renderInfo);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
@@ -81,28 +81,28 @@ VkResult Rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::drawUI() {
-	ImGui::SliderFloat("Rotate X", &m_model_rot_x, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Rotate Y", &m_model_rot_y, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Rotate Z", &m_model_rot_z, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Translate X", &m_model_x, -100.0f, 100.0f);
-	ImGui::SliderFloat("Translate Y", &m_model_y, -100.0f, 100.0f);
-	ImGui::SliderFloat("Translate Z", &m_model_z, -1000.0f, 10.0f);
-	ImGui::SliderFloat("Scale", &m_model_scale, 0.1f, 10.0f);
-	ImGui::Checkbox("Wireframe", &m_toggleWireFrame);
+VkResult Rhi::draw_ui() {
+	ImGui::SliderFloat("Rotate X", &m_model_rot_x_, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Rotate Y", &m_model_rot_y_, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Rotate Z", &m_model_rot_z_, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Translate X", &m_model_x_, -100.0f, 100.0f);
+	ImGui::SliderFloat("Translate Y", &m_model_y_, -100.0f, 100.0f);
+	ImGui::SliderFloat("Translate Z", &m_model_z_, -1000.0f, 10.0f);
+	ImGui::SliderFloat("Scale", &m_model_scale_, 0.1f, 10.0f);
+	ImGui::Checkbox("Wireframe", &m_toggle_wire_frame_);
 	ImGui::Text("Blending");
-	ImGui::RadioButton("disabled", &m_blendMode, 0); ImGui::SameLine();
-	ImGui::RadioButton("additive", &m_blendMode, 1); ImGui::SameLine();
-	ImGui::RadioButton("alpha blend", &m_blendMode, 2);
+	ImGui::RadioButton("disabled", &m_blend_mode_, 0); ImGui::SameLine();
+	ImGui::RadioButton("additive", &m_blend_mode_, 1); ImGui::SameLine();
+	ImGui::RadioButton("alpha blend", &m_blend_mode_, 2);
 	ImGui::SliderFloat("Render Scale", &m_render_scale_, 0.3f, 1.f);
 	return VK_SUCCESS;
 }
 
 void Rhi::deinitUI() {
-	if (m_uiPool.value()) {
+	if (m_ui_pool_.value()) {
 		ImGui_ImplVulkan_Shutdown();
         ImGui_ImplSDL3_Shutdown();
         ImGui::DestroyContext();
-		vkDestroyDescriptorPool(m_device.value(), m_uiPool.value(), nullptr);
+		vkDestroyDescriptorPool(m_device_.value(), m_ui_pool_.value(), nullptr);
 	}
 }

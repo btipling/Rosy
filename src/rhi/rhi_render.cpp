@@ -34,26 +34,26 @@ void Rhi::transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout cur
 }
 
 VkResult Rhi::render_frame() {
-	VkCommandBuffer cmd = m_command_buffers_[m_currentFrame];
-	VkSemaphore imageAvailable = m_image_available_semaphores_[m_currentFrame];
-	VkSemaphore renderedFinisished = m_render_finished_semaphores_[m_currentFrame];
-	VkFence fence = m_in_flight_fence_[m_currentFrame];
+	VkCommandBuffer cmd = m_command_buffers_[m_current_frame_];
+	VkSemaphore imageAvailable = m_image_available_semaphores_[m_current_frame_];
+	VkSemaphore renderedFinisished = m_render_finished_semaphores_[m_current_frame_];
+	VkFence fence = m_in_flight_fence_[m_current_frame_];
 	VkResult result;
-	VkDevice device = m_device.value();
+	VkDevice device = m_device_.value();
 
 	result = vkWaitForFences(device, 1, &fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
 
 	uint32_t imageIndex;
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
-	vkAcquireNextImageKHR(m_device.value(), m_swapchain.value(), UINT64_MAX, imageAvailable, VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(m_device_.value(), m_swapchain_.value(), UINT64_MAX, imageAvailable, VK_NULL_HANDLE, &imageIndex);
 	VkImage image = m_swap_chain_images_[imageIndex];
 	VkImageView imageView = m_swap_chain_image_views_[imageIndex];
 
-	AllocatedImage drawImage = m_drawImage.value();
-	AllocatedImage depthImage = m_depthImage.value();
-	m_drawExtent.width = std::min(m_swapchainExtent.width, drawImage.imageExtent.width) * m_render_scale_;
-	m_drawExtent.height = std::min(m_swapchainExtent.height, drawImage.imageExtent.height) * m_render_scale_;
+	AllocatedImage drawImage = m_draw_image_.value();
+	AllocatedImage depthImage = m_depth_image_.value();
+	m_draw_extent_.width = std::min(m_swapchain_extent_.width, drawImage.imageExtent.width) * m_render_scale_;
+	m_draw_extent_.height = std::min(m_swapchain_extent_.height, drawImage.imageExtent.height) * m_render_scale_;
 
 	vkResetFences(device, 1, &fence);
 	{
@@ -76,10 +76,10 @@ VkResult Rhi::render_frame() {
 		// Configure the dynamic shader pipeline
 		set_rendering_defaults(cmd);
 		toggle_culling(cmd, VK_TRUE);
-		toggle_wire_frame(cmd, m_toggleWireFrame);
-		set_view_port(cmd, m_swapchainExtent);
+		toggle_wire_frame(cmd, m_toggle_wire_frame_);
+		set_view_port(cmd, m_swapchain_extent_);
 		toggle_depth(cmd, VK_TRUE);
-		switch (m_blendMode) {
+		switch (m_blend_mode_) {
 		case 0:
 			disable_blending(cmd);
 			break;
@@ -115,7 +115,7 @@ VkResult Rhi::render_frame() {
 		{
 			VkRenderingAttachmentInfo colorAttachment = attachmentInfo(drawImage.imageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 			VkRenderingAttachmentInfo depthAttachment = depthAttachmentInfo(depthImage.imageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-			VkRenderingInfo renderInfo = renderingInfo(m_swapchainExtent, colorAttachment, depthAttachment);
+			VkRenderingInfo renderInfo = renderingInfo(m_swapchain_extent_, colorAttachment, depthAttachment);
 			vkCmdBeginRendering(cmd, &renderInfo);
 		}
 
@@ -137,7 +137,7 @@ VkResult Rhi::render_frame() {
 				VK_SHADER_STAGE_VERTEX_BIT,
 				VK_SHADER_STAGE_FRAGMENT_BIT
 			};
-			vkCmdBindShadersEXT(cmd, 2, stages, m_shaders.data());
+			vkCmdBindShadersEXT(cmd, 2, stages, m_shaders_.data());
 			const VkShaderStageFlagBits unusedStages[3] =
 			{
 				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
@@ -155,15 +155,15 @@ VkResult Rhi::render_frame() {
 
 			glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
 
-			m = glm::translate(m, glm::vec3{ m_model_x, m_model_y, m_model_z });
-			m = glm::rotate(m, m_model_rot_x, glm::vec3(1, 0, 0));
-			m = glm::rotate(m, m_model_rot_y, glm::vec3(0, 1, 0));
-			m = glm::rotate(m, m_model_rot_z, glm::vec3(0, 0, 1));
-			m = glm::scale(m, glm::vec3(m_model_scale, m_model_scale, m_model_scale));
+			m = glm::translate(m, glm::vec3{ m_model_x_, m_model_y_, m_model_z_ });
+			m = glm::rotate(m, m_model_rot_x_, glm::vec3(1, 0, 0));
+			m = glm::rotate(m, m_model_rot_y_, glm::vec3(0, 1, 0));
+			m = glm::rotate(m, m_model_rot_z_, glm::vec3(0, 0, 1));
+			m = glm::scale(m, glm::vec3(m_model_scale_, m_model_scale_, m_model_scale_));
 
 			float znear = 0.1f;
 			float zfar = 1000.0f;
-			float aspect = (float)m_drawExtent.width / (float)m_drawExtent.height;
+			float aspect = (float)m_draw_extent_.width / (float)m_draw_extent_.height;
 			constexpr float fov = glm::radians(70.0f);
 			float h = 1.0 / tan(fov * 0.5);
 			float w = h / aspect;
@@ -180,11 +180,11 @@ VkResult Rhi::render_frame() {
 			proj[2][3] = 1.0f;
 			push_constants.worldMatrix = proj * view * m;
 
-			if (m_testMeshes.size() > 0) {
-				push_constants.vertexBuffer = m_testMeshes[2]->meshBuffers.vertexBufferAddress;
-				vkCmdPushConstants(cmd, m_shaderPL.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &push_constants);
-				vkCmdBindIndexBuffer(cmd, m_testMeshes[2]->meshBuffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(cmd, m_testMeshes[2]->surfaces[0].count, 1, m_testMeshes[2]->surfaces[0].startIndex, 0, 0);
+			if (m_test_meshes_.size() > 0) {
+				push_constants.vertexBuffer = m_test_meshes_[2]->meshBuffers.vertexBufferAddress;
+				vkCmdPushConstants(cmd, m_shader_pl_.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &push_constants);
+				vkCmdBindIndexBuffer(cmd, m_test_meshes_[2]->meshBuffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(cmd, m_test_meshes_[2]->surfaces[0].count, 1, m_test_meshes_[2]->surfaces[0].startIndex, 0, 0);
 			}
 
 			vkCmdEndDebugUtilsLabelEXT(cmd);
@@ -198,7 +198,7 @@ VkResult Rhi::render_frame() {
 			// blit the draw image to the swapchain image
 			transition_image(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			blitImages(cmd, drawImage.image, image, m_drawExtent, m_swapchainExtent);
+			blitImages(cmd, drawImage.image, image, m_draw_extent_, m_swapchain_extent_);
 		}
 		{
 			// draw ui onto swapchain image
@@ -255,12 +255,12 @@ VkResult Rhi::render_frame() {
 			submitInfo.pSignalSemaphoreInfos = &signalInfo;
 			submitInfo.commandBufferInfoCount = 1;
 			submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
-			result = vkQueueSubmit2(m_presentQueue.value(), 1, &submitInfo, fence);
+			result = vkQueueSubmit2(m_present_queue_.value(), 1, &submitInfo, fence);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
 			// Queue image for presentation
-			VkSwapchainKHR swapChains[] = { m_swapchain.value() };
+			VkSwapchainKHR swapChains[] = { m_swapchain_.value() };
 			VkPresentInfoKHR presentInfo = {};
 			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 			presentInfo.waitSemaphoreCount = 1;
@@ -270,26 +270,26 @@ VkResult Rhi::render_frame() {
 			presentInfo.pSwapchains = swapChains;
 			presentInfo.pImageIndices = &imageIndex;
 
-			result = vkQueuePresentKHR(m_presentQueue.value(), &presentInfo);
+			result = vkQueuePresentKHR(m_present_queue_.value(), &presentInfo);
 			if (result != VK_SUCCESS) return result;
 		}
 	}
 
-	m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	m_current_frame_ = (m_current_frame_ + 1) % MAX_FRAMES_IN_FLIGHT;
 	return VK_SUCCESS;
 }
 
 VkResult Rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& recordFunc) {
 	VkResult result;
 
-	VkDevice device = m_device.value();
-	result = vkResetFences(device, 1, &m_immFence.value());
+	VkDevice device = m_device_.value();
+	result = vkResetFences(device, 1, &m_imm_fence_.value());
 	if (result != VK_SUCCESS) return result;
 
-	result = vkResetCommandBuffer(m_immCommandBuffer.value(), 0);
+	result = vkResetCommandBuffer(m_imm_command_buffer_.value(), 0);
 	if (result != VK_SUCCESS) return result;
 
-	VkCommandBuffer cmd = m_immCommandBuffer.value();
+	VkCommandBuffer cmd = m_imm_command_buffer_.value();
 
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -319,10 +319,10 @@ VkResult Rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record
 	submitInfo.commandBufferInfoCount = 1;
 	submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
 
-	result = vkQueueSubmit2(m_presentQueue.value(), 1, &submitInfo, m_immFence.value());
+	result = vkQueueSubmit2(m_present_queue_.value(), 1, &submitInfo, m_imm_fence_.value());
 	if (result != VK_SUCCESS) return result;
 
-	result = vkWaitForFences(device, 1, &m_immFence.value(), true, 9999999999);
+	result = vkWaitForFences(device, 1, &m_imm_fence_.value(), true, 9999999999);
 	if (result != VK_SUCCESS) return result;
 
 	return VK_SUCCESS;

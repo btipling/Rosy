@@ -26,12 +26,12 @@ bool eventHandler(void* userdata, SDL_Event* event) {
 	switch (event->type) {
 	case SDL_EVENT_WINDOW_RESIZED:
 		SDL_Window* window = SDL_GetWindowFromID(event->window.windowID);
-		result = rhi->resizeSwapchain(window);
+		result = rhi->resize_swapchain(window);
 		if (result != VK_SUCCESS) {
 			rosy_utils::DebugPrintA("resizing-event: rhi failed to resize swapchain %d\n", result);
 			return false;
 		}
-		result = rhi->drawFrame();
+		result = rhi->draw_frame();
 		if (result != VK_SUCCESS) {
 			rosy_utils::DebugPrintA("resizing-event: rhi draw failed %d\n", result);
 			return false;
@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
 			}
 			if (resizeRequested) {
 				rosy_utils::DebugPrintA("resizing swapchain\n");
-				result = rhi->resizeSwapchain(window);
+				result = rhi->resize_swapchain(window);
 				if (result != VK_SUCCESS) {
 					rosy_utils::DebugPrintA("rhi failed to resize swapchain %d\n", result);
 					shouldRun = false;
@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
 				ImGui_ImplVulkan_NewFrame();
 				ImGui_ImplSDL3_NewFrame();
 				ImGui::NewFrame();
-				result = rhi->drawUI();
+				result = rhi->draw_ui();
 				if (result != VK_SUCCESS) {
 					if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 						resizeRequested = true;
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
 				ImGui::Render();
 			}
 
-			result = rhi->drawFrame();
+			result = rhi->draw_frame();
 			if (result != VK_SUCCESS) {
 				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 					rosy_utils::DebugPrintA("swapchain out of date\n");
