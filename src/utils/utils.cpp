@@ -1,3 +1,4 @@
+// ReSharper disable CppClangTidyMiscUseInternalLinkage
 #include <strsafe.h>
 #include <Windows.h>
 
@@ -8,7 +9,7 @@ namespace rosy_utils {
         va_list args;
         va_start(args, format);
 
-        StringCbVPrintfW(buffer, sizeof(buffer), format, args);
+        int _ = StringCbVPrintfW(buffer, sizeof(buffer), format, args);
         OutputDebugStringW(buffer);
 
         va_end(args);
@@ -21,7 +22,7 @@ namespace rosy_utils {
         va_list args;
         va_start(args, format);
 
-        StringCbVPrintfA(buffer, sizeof(buffer), format, args);
+        int _ = StringCbVPrintfA(buffer, sizeof(buffer), format, args);
         OutputDebugStringA(buffer);
 
         va_end(args);
