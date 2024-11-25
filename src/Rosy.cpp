@@ -20,6 +20,27 @@
 #include "config/Config.h"
 #include "utils/utils.h"
 
+bool eventHandler(void* userdata, SDL_Event* event) {
+	 Rhi* rhi = (Rhi*)userdata;
+	 VkResult result;
+	switch (event->type) {
+	case SDL_EVENT_WINDOW_RESIZED:
+		SDL_Window* window = SDL_GetWindowFromID(event->window.windowID);
+		result = rhi->resizeSwapchain(window);
+		if (result != VK_SUCCESS) {
+			rosy_utils::DebugPrintA("resizing-event: rhi failed to resize swapchain %d\n", result);
+			return false;
+		}
+		result = rhi->drawFrame();
+		if (result != VK_SUCCESS) {
+			rosy_utils::DebugPrintA("resizing-event: rhi draw failed %d\n", result);
+			return false;
+		}
+		break;
+	}
+	return true;
+}
+
 int main(int argc, char* argv[])
 {
 
@@ -73,6 +94,9 @@ int main(int argc, char* argv[])
 	}
 	rhi->debug();
 
+
+	SDL_AddEventWatch(eventHandler, rhi);
+
 	bool shouldRun = true;
 	bool shouldRender = true;
 	bool resizeRequested = false;
@@ -89,6 +113,10 @@ int main(int argc, char* argv[])
 			}
 			if (event.type == SDL_EVENT_WINDOW_RESTORED) {
 				shouldRender = true;
+			}
+			if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+				rosy_utils::DebugPrintA("SDL_EVENT_WINDOW_RESIZED\n");
+				resizeRequested = true;
 			}
 			if (!shouldRender) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));

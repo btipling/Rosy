@@ -150,6 +150,7 @@
     <ClInclude Include="loader\loader.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="rhi\RHI.h" />
+    <ClInclude Include="rhi\rhi_descriptor.h" />
     <ClInclude Include="rhi\rhi_utils.h" />
     <ClInclude Include="Rosy.h" />
     <ClInclude Include="targetver.h" />
@@ -166,6 +167,7 @@
     <ClCompile Include="lib\imgui\imgui_widgets.cpp" />
     <ClCompile Include="loader\loader.cpp" />
     <ClCompile Include="rhi\rhi_cmd.cpp" />
+    <ClCompile Include="rhi\rhi_descriptor.cpp" />
     <ClCompile Include="rhi\rhi_render.cpp" />
     <ClCompile Include="rhi\rhi_buffer.cpp" />
     <ClCompile Include="rhi\rhi_init.cpp" />

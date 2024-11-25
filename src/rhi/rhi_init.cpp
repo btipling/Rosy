@@ -27,127 +27,157 @@ static const char* deviceExtensions[] = {
 	//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 };
 
-Rhi::Rhi(rosy_config::Config cfg) :m_cfg{ cfg }, m_requiredFeatures{ requiredFeatures } {
+Rhi::Rhi(rosy_config::Config cfg) : m_cfg{cfg}, m_requiredFeatures{requiredFeatures}
+{
 	memset(&m_requiredFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
 }
 
-Rhi::~Rhi() {
+Rhi::~Rhi()
+{
 	deinit();
 }
 
-VkResult Rhi::init(SDL_Window* window) {
-
+VkResult Rhi::init(SDL_Window* window)
+{
 	VkResult result;
 	result = volkInitialize();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed initialize volk! %d\n", result);
 		return result;
 	}
 	result = this->queryInstanceLayers();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to query instance layers! %d\n", result);
 		return result;
 	}
 	result = this->queryInstanceExtensions();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to query instance extensions! %d\n", result);
 		return result;
 	}
 	result = this->initInstance();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan instance! %d\n", result);
 		return result;
 	}
 	result = this->createDebugCallback();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan debug callback! %d", result);
 		return result;
 	}
 	result = this->initSurface(window);
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to create surface! %d", result);
 		return result;
 	}
 	result = this->initPhysicalDevice();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan physical device! %d\n", result);
 		return result;
 	}
 	result = this->queryDeviceLayers();
 	rosy_utils::DebugPrintW(L"Failed to query device layers! %d\n", result);
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		return result;
 	}
 	result = this->queryDeviceExtensions();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to query device extensions! %d\n", result);
 		return result;
 	}
 	result = this->initDevice();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
 		return result;
 	}
 	this->initAllocator();
 	result = this->initPresentationQueue();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to get presentation queue! %d\n", result);
 		return result;
 	}
 	result = this->initSwapChain(window);
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to init swap chain! %d\n", result);
 		return result;
 	}
 	result = this->initDrawImage();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to init draw image! %d\n", result);
 		return result;
 	}
+	result = this->initDescriptors();
+	if (result != VK_SUCCESS)
+	{
+		rosy_utils::DebugPrintW(L"Failed to init draw descriptors! %d\n", result);
+		return result;
+	}
 	result = this->initGraphics();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to init graphics! %d\n", result);
 		return result;
 	}
 	result = this->initCommandPool();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to init command pool! %d\n", result);
 		return result;
 	}
 	result = this->initCommandBuffers();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to init command buffers! %d\n", result);
 		return result;
 	}
 	result = this->initSyncObjects();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to init sync objects! %d\n", result);
 		return result;
 	}
 	result = this->initUI(window);
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to init UI! %d\n", result);
 		return result;
 	}
 	result = this->initCommands();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to init commands! %d\n", result);
 		return result;
 	}
 	result = this->initDefaultData();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to init default data! %d\n", result);
 		return result;
 	}
 	return VK_SUCCESS;
 }
 
-void Rhi::deinit() {
+void Rhi::deinit()
+{
 	if (m_deinited) return;
 	m_deinited = true;
 	{
 		// Wait for everything to be done.
-		if (m_device.has_value()) {
+		if (m_device.has_value())
+		{
 			vkDeviceWaitIdle(m_device.value());
 		}
 	}
@@ -155,94 +185,117 @@ void Rhi::deinit() {
 	// Deinit begin in the reverse order from how it was created.
 	deinitUI();
 
-	for (std::shared_ptr<MeshAsset> mesh : m_testMeshes) {
+	for (std::shared_ptr<MeshAsset> mesh : m_testMeshes)
+	{
 		GPUMeshBuffers rectangle = mesh.get()->meshBuffers;
 		destroyBuffer(rectangle.vertexBuffer);
 		destroyBuffer(rectangle.indexBuffer);
 		mesh.reset();
 	}
-	if (m_immFence.has_value()) {
+	if (m_immFence.has_value())
+	{
 		vkDestroyFence(m_device.value(), m_immFence.value(), nullptr);
 	}
-	if (m_immCommandPool.has_value()) {
+	if (m_immCommandPool.has_value())
+	{
 		vkDestroyCommandPool(m_device.value(), m_immCommandPool.value(), nullptr);
 	}
-	for (VkFence fence : m_inFlightFence) {
+	for (VkFence fence : m_inFlightFence)
+	{
 		vkDestroyFence(m_device.value(), fence, nullptr);
 	}
-	for (VkSemaphore semaphore : m_imageAvailableSemaphores) {
+	for (VkSemaphore semaphore : m_imageAvailableSemaphores)
+	{
 		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
 	}
-	for (VkSemaphore semaphore : m_renderFinishedSemaphores) {
+	for (VkSemaphore semaphore : m_renderFinishedSemaphores)
+	{
 		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
 	}
-	if (m_commandPool.has_value()) {
+	if (m_commandPool.has_value())
+	{
 		vkDestroyCommandPool(m_device.value(), m_commandPool.value(), nullptr);
 	}
-	if (m_shaderPL.has_value()) {
+	if (m_shaderPL.has_value())
+	{
 		vkDestroyPipelineLayout(m_device.value(), m_shaderPL.value(), nullptr);
 	}
-	for (VkShaderEXT shader : m_shaders) {
+	for (VkShaderEXT shader : m_shaders)
+	{
 		vkDestroyShaderEXT(m_device.value(), shader, nullptr);
 	}
-	if (m_depthImage.has_value()) {
+	if (m_depthImage.has_value())
+	{
 		AllocatedImage depthImage = m_depthImage.value();
 		vkDestroyImageView(m_device.value(), depthImage.imageView, nullptr);
 		vmaDestroyImage(m_allocator.value(), depthImage.image, depthImage.allocation);
 	}
-	if (m_drawImage.has_value()) {
+	if (m_drawImage.has_value())
+	{
 		AllocatedImage drawImage = m_drawImage.value();
 		vkDestroyImageView(m_device.value(), drawImage.imageView, nullptr);
 		vmaDestroyImage(m_allocator.value(), drawImage.image, drawImage.allocation);
 	}
 	destroySwapchain();
-	if (m_debugMessenger.has_value()) {
+	if (m_debugMessenger.has_value())
+	{
 		vkDestroyDebugUtilsMessengerEXT(m_instance.value(), m_debugMessenger.value(), nullptr);
 	}
-	if (m_allocator.has_value()) {
+	if (m_allocator.has_value())
+	{
 		vmaDestroyAllocator(m_allocator.value());
 	}
-	if (m_device.has_value()) {
+	if (m_device.has_value())
+	{
 		VkResult result = vkDeviceWaitIdle(m_device.value());
 		if (result == VK_SUCCESS) vkDestroyDevice(m_device.value(), NULL);
 	}
-	if (m_surface.has_value()) {
+	if (m_surface.has_value())
+	{
 		SDL_Vulkan_DestroySurface(m_instance.value(), m_surface.value(), nullptr);
 	}
-	if (m_instance.has_value()) {
+	if (m_instance.has_value())
+	{
 		vkDestroyInstance(m_instance.value(), NULL);
 	}
 }
 
-void Rhi::destroySwapchain() {
+void Rhi::destroySwapchain()
+{
 	vkDeviceWaitIdle(m_device.value());
-	for (VkImageView imageView : m_swapChainImageViews) {
+	for (VkImageView imageView : m_swapChainImageViews)
+	{
 		vkDestroyImageView(m_device.value(), imageView, nullptr);
 	}
 	m_swapChainImageViews.clear();
-	if (m_swapchain.has_value()) {
+	if (m_swapchain.has_value())
+	{
 		vkDestroySwapchainKHR(m_device.value(), m_swapchain.value(), nullptr);
 		m_swapchain = std::nullopt;
 	}
 }
 
-VkResult Rhi::resizeSwapchain(SDL_Window* window) {
+VkResult Rhi::resizeSwapchain(SDL_Window* window)
+{
 	vkDeviceWaitIdle(m_device.value());
 	destroySwapchain();
 	return createSwapchain(window, VK_NULL_HANDLE);
 }
 
-VkResult Rhi::drawFrame() {
+VkResult Rhi::drawFrame()
+{
 	VkResult result;
 	result = this->renderFrame();
-	if (result != VK_SUCCESS) {
+	if (result != VK_SUCCESS)
+	{
 		rosy_utils::DebugPrintW(L"Failed to record command buffer! %d\n", result);
 		return result;
 	}
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::queryInstanceLayers() {
+VkResult Rhi::queryInstanceLayers()
+{
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateInstanceLayerProperties(&pPropertyCount, nullptr);
 	if (result != VK_SUCCESS) return result;
@@ -253,10 +306,13 @@ VkResult Rhi::queryInstanceLayers() {
 	result = vkEnumerateInstanceLayerProperties(&pPropertyCount, layers.data());
 	if (result != VK_SUCCESS) return result;
 	if (!m_cfg.enable_validation_layers) return result;
-	for (VkLayerProperties lp : layers) {
+	for (VkLayerProperties lp : layers)
+	{
 		rosy_utils::DebugPrintA("Instance layer name: %s layer description: %s\n", lp.layerName, lp.description);
-		for (const char* layerName : instanceLayers) {
-			if (strcmp(layerName, lp.layerName) == 0) {
+		for (const char* layerName : instanceLayers)
+		{
+			if (strcmp(layerName, lp.layerName) == 0)
+			{
 				rosy_utils::DebugPrintA("\tAdding instance layer: %s\n", lp.layerName);
 				m_instanceLayerProperties.push_back(layerName);
 			}
@@ -265,7 +321,8 @@ VkResult Rhi::queryInstanceLayers() {
 	return result;
 }
 
-VkResult Rhi::queryDeviceLayers() {
+VkResult Rhi::queryDeviceLayers()
+{
 	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateDeviceLayerProperties(m_physicalDevice.value(), &pPropertyCount, nullptr);
@@ -276,13 +333,15 @@ VkResult Rhi::queryDeviceLayers() {
 	layers.resize(pPropertyCount);
 	result = vkEnumerateDeviceLayerProperties(m_physicalDevice.value(), &pPropertyCount, layers.data());
 	if (result != VK_SUCCESS) return result;
-	for (VkLayerProperties lp : layers) {
+	for (VkLayerProperties lp : layers)
+	{
 		rosy_utils::DebugPrintA("Device layer name: %s layer description: %s\n", lp.layerName, lp.description);
 	}
 	return result;
 }
 
-VkResult Rhi::queryInstanceExtensions() {
+VkResult Rhi::queryInstanceExtensions()
+{
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, nullptr);
 	if (result != VK_SUCCESS) return result;
@@ -300,34 +359,45 @@ VkResult Rhi::queryInstanceExtensions() {
 		size_t found_extensions = 0;
 		uint32_t extensionCount;
 		auto extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
-		for (uint32_t i = 0; i < extensionCount; i++) {
+		for (uint32_t i = 0; i < extensionCount; i++)
+		{
 			rosy_utils::DebugPrintA("pushing back required SDL instance extension with name: %s\n", extensionNames[i]);
 			m_instanceExtensions.push_back(extensionNames[i]);
 		}
-		for (uint32_t i = 0; i < std::size(instanceExtensions); i++) {
-			rosy_utils::DebugPrintA("pushing back required rosy instance extension with name: %s\n", instanceExtensions[i]);
+		for (uint32_t i = 0; i < std::size(instanceExtensions); i++)
+		{
+			rosy_utils::DebugPrintA("pushing back required rosy instance extension with name: %s\n",
+			                        instanceExtensions[i]);
 			m_instanceExtensions.push_back(instanceExtensions[i]);
 		}
 	}
 	rosy_utils::DebugPrintA("num m_instanceExtensions: %d\n", m_instanceExtensions.size());
 
-	std::vector<const char*> requiredInstanceExtensions(std::begin(m_instanceExtensions), std::end(m_instanceExtensions));
-	for (VkExtensionProperties ep : extensions) {
+	std::vector<const char*> requiredInstanceExtensions(std::begin(m_instanceExtensions),
+	                                                    std::end(m_instanceExtensions));
+	for (VkExtensionProperties ep : extensions)
+	{
 		rosy_utils::DebugPrintA("Instance extension name: %s\n", ep.extensionName);
-		for (const char* extensionName : m_instanceExtensions) {
-			if (strcmp(extensionName, ep.extensionName) == 0) {
+		for (const char* extensionName : m_instanceExtensions)
+		{
+			if (strcmp(extensionName, ep.extensionName) == 0)
+			{
 				rosy_utils::DebugPrintA("\tRequiring instance extension: %s\n", extensionName);
-				requiredInstanceExtensions.erase(std::remove(requiredInstanceExtensions.begin(), requiredInstanceExtensions.end(), extensionName), requiredInstanceExtensions.end());
+				requiredInstanceExtensions.erase(
+					std::remove(requiredInstanceExtensions.begin(), requiredInstanceExtensions.end(), extensionName),
+					requiredInstanceExtensions.end());
 			}
 		}
 	}
-	if (requiredInstanceExtensions.size() != 0) {
+	if (requiredInstanceExtensions.size() != 0)
+	{
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 	return result;
 }
 
-VkResult Rhi::queryDeviceExtensions() {
+VkResult Rhi::queryDeviceExtensions()
+{
 	uint32_t pPropertyCount = 0;
 	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
 
@@ -340,31 +410,39 @@ VkResult Rhi::queryDeviceExtensions() {
 	std::vector<VkExtensionProperties> extensions;
 	extensions.resize(pPropertyCount);
 
-	result = vkEnumerateDeviceExtensionProperties(m_physicalDevice.value(), nullptr, &pPropertyCount, extensions.data());
+	result = vkEnumerateDeviceExtensionProperties(m_physicalDevice.value(), nullptr, &pPropertyCount,
+	                                              extensions.data());
 	if (result != VK_SUCCESS) return result;
 
 	// validate required device extensions
 	std::vector<const char*> requiredDeviceExtensions(std::begin(deviceExtensions), std::end(deviceExtensions));
 
-	for (VkExtensionProperties ep : extensions) {
+	for (VkExtensionProperties ep : extensions)
+	{
 		rosy_utils::DebugPrintA("Device extension name: %s\n", ep.extensionName);
-		for (const char* extensionName : deviceExtensions) {
-			if (strcmp(extensionName, ep.extensionName) == 0) {
+		for (const char* extensionName : deviceExtensions)
+		{
+			if (strcmp(extensionName, ep.extensionName) == 0)
+			{
 				rosy_utils::DebugPrintA("\tRequiring device extension: %s\n", extensionName);
 				m_deviceDeviceExtensions.push_back(extensionName);
-				requiredDeviceExtensions.erase(std::remove(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end(), extensionName), requiredDeviceExtensions.end());
+				requiredDeviceExtensions.erase(
+					std::remove(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end(), extensionName),
+					requiredDeviceExtensions.end());
 			}
 		}
 	}
 
-	if (requiredDeviceExtensions.size() != 0) {
+	if (requiredDeviceExtensions.size() != 0)
+	{
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 	return result;
 }
 
 
-VkResult Rhi::createDebugCallback() {
+VkResult Rhi::createDebugCallback()
+{
 	if (!m_cfg.enable_validation_layers) return VK_SUCCESS;
 
 	VkDebugUtilsMessengerCreateInfoEXT createInfo = createDebugCallbackInfo();
@@ -375,14 +453,16 @@ VkResult Rhi::createDebugCallback() {
 	return result;
 }
 
-VkResult Rhi::initSurface(SDL_Window* window) {
+VkResult Rhi::initSurface(SDL_Window* window)
+{
 	VkSurfaceKHR surface;
 	SDL_Vulkan_CreateSurface(window, m_instance.value(), nullptr, &surface);
 	m_surface = surface;
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::initInstance() {
+VkResult Rhi::initInstance()
+{
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "Rosy";
@@ -410,7 +490,8 @@ VkResult Rhi::initInstance() {
 	return result;
 }
 
-VkResult Rhi::initPhysicalDevice() {
+VkResult Rhi::initPhysicalDevice()
+{
 	if (!m_instance.has_value()) return VK_NOT_READY;
 	std::vector<VkPhysicalDevice> physicalDevices;
 
@@ -420,7 +501,8 @@ VkResult Rhi::initPhysicalDevice() {
 	physicalDevices.resize(physicalDeviceCount);
 	vkEnumeratePhysicalDevices(m_instance.value(), &physicalDeviceCount, &physicalDevices[0]);
 	bool foundDevice = false;
-	for (const VkPhysicalDevice& p_device : physicalDevices) {
+	for (const VkPhysicalDevice& p_device : physicalDevices)
+	{
 		// get device properties
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(p_device, &deviceProperties);
@@ -436,7 +518,7 @@ VkResult Rhi::initPhysicalDevice() {
 		shaderObjectFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
 		shaderObjectFeatures.pNext = nullptr;
 
-		VkPhysicalDeviceFeatures2  deviceFeatures2 = {};
+		VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
 		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		deviceFeatures2.pNext = &shaderObjectFeatures;
 		vkGetPhysicalDeviceFeatures2(p_device, &deviceFeatures2);
@@ -470,7 +552,8 @@ VkResult Rhi::initPhysicalDevice() {
 		if (!dynamicRenderingFeatures.dynamicRendering) continue;
 
 
-		if (deviceProperties.vendorID == m_cfg.device_vendor) {
+		if (deviceProperties.vendorID == m_cfg.device_vendor)
+		{
 			{
 				foundDevice = true;
 				m_physicalDevice = p_device;
@@ -498,7 +581,6 @@ VkResult Rhi::initPhysicalDevice() {
 				m_queueFamilyProperties = queueFamilyPropertiesData;
 			}
 		}
-
 	}
 	if (!foundDevice) return VK_ERROR_FEATURE_NOT_PRESENT;
 	uint32_t queueCount = 0;
@@ -513,20 +595,24 @@ VkResult Rhi::initPhysicalDevice() {
 	VkPhysicalDevice p_device = m_physicalDevice.value();
 	std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = m_queueFamilyProperties.value();
 	bool foundQueue = false;
-	for (std::uint32_t i = 0; i < queueFamilyPropertiesData.size(); ++i) {
+	for (std::uint32_t i = 0; i < queueFamilyPropertiesData.size(); ++i)
+	{
 		VkQueueFamilyProperties qfmp = queueFamilyPropertiesData[i];
 		if (qfmp.timestampValidBits < 64) continue;
-		if (!(qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT))) continue;
+		if (!(qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT |
+			VK_QUEUE_SPARSE_BINDING_BIT))) continue;
 		VkBool32 presentSupport = false;
 		vkGetPhysicalDeviceSurfaceSupportKHR(p_device, i, m_surface.value(), &presentSupport);
 		if (!presentSupport) continue;
-		if (qfmp.queueCount > queueCount) {
+		if (qfmp.queueCount > queueCount)
+		{
 			foundQueue = true;
 			queueIndex = i;
 			queueCount = qfmp.queueCount;
 		}
 	}
-	if (!foundQueue) {
+	if (!foundQueue)
+	{
 		rosy_utils::DebugPrintA("No suitable queue found!");
 		return VK_ERROR_FEATURE_NOT_PRESENT;
 	}
@@ -536,7 +622,8 @@ VkResult Rhi::initPhysicalDevice() {
 	return result;
 }
 
-VkResult Rhi::initDevice() {
+VkResult Rhi::initDevice()
+{
 	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
 
 	VkDeviceQueueCreateInfo deviceQueueCreateInfo = {};
@@ -562,9 +649,9 @@ VkResult Rhi::initDevice() {
 	vulkan12Features.descriptorIndexing = true;
 
 	VkPhysicalDeviceShaderObjectFeaturesEXT enableShaderObject = {
-	  .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
-	  .pNext = &vulkan12Features,
-	  .shaderObject = VK_TRUE
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
+		.pNext = &vulkan12Features,
+		.shaderObject = VK_TRUE
 	};
 
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -586,7 +673,8 @@ VkResult Rhi::initDevice() {
 	return result;
 }
 
-VkResult Rhi::initPresentationQueue() {
+VkResult Rhi::initPresentationQueue()
+{
 	VkQueue queue;
 	VkDeviceQueueInfo2 getInfo = {};
 	getInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
@@ -598,18 +686,25 @@ VkResult Rhi::initPresentationQueue() {
 	return VK_SUCCESS;
 }
 
-VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
-	for (const auto& availableFormat : availableFormats) {
-		if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+{
+	for (const auto& availableFormat : availableFormats)
+	{
+		if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace ==
+			VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+		{
 			return availableFormat;
 		}
 	}
 	return availableFormats[0];
 }
 
-VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
-	for (const auto& availablePresentMode : availablePresentModes) {
-		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+{
+	for (const auto& availablePresentMode : availablePresentModes)
+	{
+		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+		{
 			return availablePresentMode;
 		}
 	}
@@ -617,12 +712,15 @@ VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& avai
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, SDL_Window* window) {
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, SDL_Window* window)
+{
 	uint32_t max_u32 = (std::numeric_limits<uint32_t>::max)();
-	if (capabilities.currentExtent.width != max_u32) {
+	if (capabilities.currentExtent.width != max_u32)
+	{
 		return capabilities.currentExtent;
 	}
-	else {
+	else
+	{
 		int width, height;
 		SDL_GetWindowSizeInPixels(window, &width, &height);
 
@@ -631,25 +729,31 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, SDL_Wi
 			static_cast<uint32_t>(height)
 		};
 
-		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
+		                                capabilities.maxImageExtent.width);
+		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height,
+		                                 capabilities.maxImageExtent.height);
 
 		return actualExtent;
 	}
 }
 
-VkResult Rhi::initSwapChain(SDL_Window* window) {
+VkResult Rhi::initSwapChain(SDL_Window* window)
+{
 	return createSwapchain(window, VK_NULL_HANDLE);
 }
 
-VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain) {
+VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain)
+{
 	m_swapchainDetails = querySwapChainSupport(m_physicalDevice.value());
 
 	m_swapchainImageFormat = chooseSwapSurfaceFormat(m_swapchainDetails.formats);
 	m_swapchainPresentMode = chooseSwapPresentMode(m_swapchainDetails.presentModes);
 
 	m_swapChainImageCount = m_swapchainDetails.capabilities.minImageCount;
-	if (m_swapchainDetails.capabilities.maxImageCount > 0 && m_swapChainImageCount > m_swapchainDetails.capabilities.maxImageCount) {
+	if (m_swapchainDetails.capabilities.maxImageCount > 0 && m_swapChainImageCount > m_swapchainDetails.capabilities.
+		maxImageCount)
+	{
 		m_swapChainImageCount = m_swapchainDetails.capabilities.maxImageCount;
 	}
 	VkExtent2D extent = chooseSwapExtent(m_swapchainDetails.capabilities, window);
@@ -682,7 +786,8 @@ VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain) {
 	VkResult result = vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain);
 	if (result != VK_SUCCESS) return result;
 
-	if (oldSwapchain != VK_NULL_HANDLE) {
+	if (oldSwapchain != VK_NULL_HANDLE)
+	{
 		destroySwapchain();
 	}
 
@@ -694,7 +799,8 @@ VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain) {
 	m_swapChainImages.resize(m_swapChainImageCount);
 	vkGetSwapchainImagesKHR(device, swapchain, &m_swapChainImageCount, m_swapChainImages.data());
 
-	for (size_t i = 0; i < m_swapChainImages.size(); i++) {
+	for (size_t i = 0; i < m_swapChainImages.size(); i++)
+	{
 		VkImageViewCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		createInfo.image = m_swapChainImages[i];
@@ -718,59 +824,107 @@ VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain) {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::initDrawImage() {
+VkResult Rhi::initDrawImage()
+{
 	VkResult result;
 
-	VkExtent3D drawImageExtent = {
-		m_cfg.maxWindowWidth,
-		m_cfg.maxWindowHeight,
-		1
+	VkExtent3D draw_image_extent = {
+		.width = static_cast<uint32_t>(m_cfg.maxWindowWidth),
+		.height = static_cast<uint32_t>(m_cfg.maxWindowHeight),
+		.depth = 1
 	};
-	AllocatedImage drawImage = {};
-	drawImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-	drawImage.imageExtent = drawImageExtent;
+	AllocatedImage draw_image = {};
+	draw_image.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+	draw_image.imageExtent = draw_image_extent;
 
-	VkImageUsageFlags drawImageUsages{};
-	drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-	drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;
-	drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	VkImageUsageFlags draw_image_usages{};
+	draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+	draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	VkImageCreateInfo drawInfo = imgCreateInfo(drawImage.imageFormat, drawImageUsages, drawImageExtent);
+	VkImageCreateInfo draw_info = imgCreateInfo(draw_image.imageFormat, draw_image_usages, draw_image_extent);
 
-	VmaAllocationCreateInfo rimg_allocinfo = {};
-	rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-	rimg_allocinfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	VmaAllocationCreateInfo r_img_alloc_info = {};
+	r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	vmaCreateImage(m_allocator.value(), &drawInfo, &rimg_allocinfo, &drawImage.image, &drawImage.allocation, nullptr);
+	vmaCreateImage(m_allocator.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation, nullptr);
 
-	VkImageViewCreateInfo rview_info = imgViewCreateInfo(drawImage.imageFormat, drawImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+	VkImageViewCreateInfo r_view_info = imgViewCreateInfo(draw_image.imageFormat, draw_image.image,
+	                                                     VK_IMAGE_ASPECT_COLOR_BIT);
 
-	result = vkCreateImageView(m_device.value(), &rview_info, nullptr, &drawImage.imageView);
+	result = vkCreateImageView(m_device.value(), &r_view_info, nullptr, &draw_image.imageView);
 	if (result != VK_SUCCESS) return result;
-	m_drawImage = drawImage;
+	m_drawImage = draw_image;
 
-	AllocatedImage depthImage = {};
-	depthImage.imageFormat = VK_FORMAT_D32_SFLOAT;
-	depthImage.imageExtent = drawImageExtent;
-	VkImageUsageFlags depthImageUsages{};
-	depthImageUsages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	AllocatedImage depth_image = {};
+	depth_image.imageFormat = VK_FORMAT_D32_SFLOAT;
+	depth_image.imageExtent = draw_image_extent;
+	VkImageUsageFlags depth_image_usages{};
+	depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-	VkImageCreateInfo depthInfo = imgCreateInfo(depthImage.imageFormat, depthImageUsages, drawImageExtent);
+	VkImageCreateInfo depth_info = imgCreateInfo(depth_image.imageFormat, depth_image_usages, draw_image_extent);
 
-	vmaCreateImage(m_allocator.value(), &depthInfo, &rimg_allocinfo, &depthImage.image, &depthImage.allocation, nullptr);
+	vmaCreateImage(m_allocator.value(), &depth_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation,
+	               nullptr);
 
-	VkImageViewCreateInfo dview_info = imgViewCreateInfo(depthImage.imageFormat, depthImage.image, VK_IMAGE_ASPECT_DEPTH_BIT);
+	VkImageViewCreateInfo d_view_info = imgViewCreateInfo(depth_image.imageFormat, depth_image.image,
+	                                                     VK_IMAGE_ASPECT_DEPTH_BIT);
 
-	result = vkCreateImageView(m_device.value(), &dview_info, nullptr, &depthImage.imageView);
+	result = vkCreateImageView(m_device.value(), &d_view_info, nullptr, &depth_image.imageView);
 	if (result != VK_SUCCESS) return result;
-	m_depthImage = depthImage;
+	m_depthImage = depth_image;
 
 	return result;
 }
 
+VkResult Rhi::initDescriptors()
+{
+	std::vector<DescriptorAllocator::PoolSizeRatio> sizes = {
+		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}
+	};
 
-void Rhi::initAllocator() {
+	const VkDevice device = m_device.value();
+
+	{
+		DescriptorAllocator allocator = {};
+		allocator.initPool(device, 10, sizes);
+		m_globalDescriptorAllocator = allocator;
+		DescriptorLayoutBuilder builder;
+		builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+		const auto [result, set] = builder.build(device, VK_SHADER_STAGE_COMPUTE_BIT);
+		if (result != VK_SUCCESS)
+		{
+			return result;
+		}
+		m_drawImageDescriptorLayout = set;
+	}
+	{
+		const auto [result, set] = m_globalDescriptorAllocator.value().allocate(device, m_drawImageDescriptorLayout.value());
+		m_drawImageDescriptors = set;
+	}
+
+	VkDescriptorImageInfo img_info{};
+	img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	img_info.imageView = m_drawImage.value().imageView;
+
+	VkWriteDescriptorSet draw_image_write = {};
+	draw_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	draw_image_write.pNext = nullptr;
+	draw_image_write.dstBinding = 0;
+	draw_image_write.dstSet = m_drawImageDescriptors.value();
+	draw_image_write.descriptorCount = 1;
+	draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	draw_image_write.pImageInfo = &img_info;
+
+	vkUpdateDescriptorSets(device, 1, &draw_image_write, 0, nullptr);
+
+	return VK_SUCCESS;
+}
+
+void Rhi::initAllocator()
+{
 	VmaVulkanFunctions vulkanFunctions = {};
 	vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
 	vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
@@ -789,14 +943,17 @@ void Rhi::initAllocator() {
 }
 
 
-VkResult Rhi::initGraphics() {
+VkResult Rhi::initGraphics()
+{
 	std::vector<char> vertShaderCode;
 	std::vector<char> fragShaderCode;
-	try {
+	try
+	{
 		vertShaderCode = readFile("out/vert.spv");
 		fragShaderCode = readFile("out/frag.spv");
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception& e)
+	{
 		rosy_utils::DebugPrintA("error reading shader files! %s", e.what());
 		return VK_ERROR_FEATURE_NOT_PRESENT;
 	}
@@ -806,7 +963,8 @@ VkResult Rhi::initGraphics() {
 	return result;
 }
 
-VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag) {
+VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag)
+{
 	VkPushConstantRange pushContantRange = {};
 	pushContantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	pushContantRange.offset = 0;
@@ -876,7 +1034,8 @@ VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vect
 	return result;
 }
 
-VkResult Rhi::initCommandPool() {
+VkResult Rhi::initCommandPool()
+{
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -889,7 +1048,8 @@ VkResult Rhi::initCommandPool() {
 	return result;
 }
 
-VkResult Rhi::initCommandBuffers() {
+VkResult Rhi::initCommandBuffers()
+{
 	m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
 	VkCommandBufferAllocateInfo allocInfo{};
@@ -902,7 +1062,8 @@ VkResult Rhi::initCommandBuffers() {
 	return result;
 }
 
-VkResult Rhi::initSyncObjects() {
+VkResult Rhi::initSyncObjects()
+{
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -912,7 +1073,8 @@ VkResult Rhi::initSyncObjects() {
 
 	VkResult result;
 	VkDevice device = m_device.value();
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
 		VkSemaphore semaphore;
 		result = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
 		if (result != VK_SUCCESS) return result;
@@ -934,7 +1096,8 @@ VkResult Rhi::initSyncObjects() {
 }
 
 
-VkResult Rhi::initCommands() {
+VkResult Rhi::initCommands()
+{
 	VkResult result;
 
 	VkCommandPoolCreateInfo poolInfo{};
@@ -963,10 +1126,12 @@ VkResult Rhi::initCommands() {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::initDefaultData() {
-		auto result = loadGltfMeshes(this, "assets\\basicmesh.glb");
-		if (result.has_value()) {
-			m_testMeshes = result.value();
-		}
-		return VK_SUCCESS;
+VkResult Rhi::initDefaultData()
+{
+	auto result = loadGltfMeshes(this, "assets\\basicmesh.glb");
+	if (result.has_value())
+	{
+		m_testMeshes = result.value();
+	}
+	return VK_SUCCESS;
 }

@@ -1,7 +1,7 @@
 #pragma once
-#include "RHI.h"
 #include "../Rosy.h"
 #include "../loader/loader.h"
+#include "rhi_descriptor.h"
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
@@ -17,6 +17,8 @@ public:
 	GPUMeshBuffersResult uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 	void debug();
 	~Rhi();
+
+
 private:
 	bool m_deinited = false;
 	rosy_config::Config m_cfg;
@@ -45,6 +47,9 @@ private:
 	SwapChainSupportDetails m_swapchainDetails = {};
 	VkExtent2D m_swapchainExtent = {};
 	std::optional<VkCommandPool> m_commandPool = std::nullopt;
+	std::optional<DescriptorAllocator> m_globalDescriptorAllocator;
+	std::optional<VkDescriptorSet> m_drawImageDescriptors;
+	std::optional<VkDescriptorSetLayout> m_drawImageDescriptorLayout;
 
 	// immediate submits
 	std::optional<VkFence> m_immFence;
@@ -103,6 +108,7 @@ private:
 	VkResult initSwapChain(SDL_Window* window);
 	VkResult createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain);
 	VkResult initDrawImage();
+	VkResult initDescriptors();
 	VkResult initGraphics();
 	VkResult createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag);
 	VkResult initCommandPool();
