@@ -1,4 +1,5 @@
 #include "RHI.h"
+#include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -51,8 +52,8 @@ VkResult Rhi::renderFrame() {
 
 	AllocatedImage drawImage = m_drawImage.value();
 	AllocatedImage depthImage = m_depthImage.value();
-	m_drawExtent.width = drawImage.imageExtent.width;
-	m_drawExtent.height = drawImage.imageExtent.height;
+	m_drawExtent.width = std::min(m_swapchainExtent.width, drawImage.imageExtent.width) * m_renderScale;
+	m_drawExtent.height = std::min(m_swapchainExtent.height, drawImage.imageExtent.height) * m_renderScale;
 
 	vkResetFences(device, 1, &fence);
 	{
@@ -76,7 +77,7 @@ VkResult Rhi::renderFrame() {
 		setRenderingDefaults(cmd);
 		toggleCulling(cmd, VK_TRUE);
 		toggleWireFrame(cmd, m_toggleWireFrame);
-		setViewPort(cmd, m_swapChainExtent);
+		setViewPort(cmd, m_swapchainExtent);
 		toggleDepth(cmd, VK_TRUE);
 		switch (m_blendMode) {
 		case 0:
@@ -114,7 +115,7 @@ VkResult Rhi::renderFrame() {
 		{
 			VkRenderingAttachmentInfo colorAttachment = attachmentInfo(drawImage.imageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 			VkRenderingAttachmentInfo depthAttachment = depthAttachmentInfo(depthImage.imageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-			VkRenderingInfo renderInfo = renderingInfo(m_swapChainExtent, colorAttachment, depthAttachment);
+			VkRenderingInfo renderInfo = renderingInfo(m_swapchainExtent, colorAttachment, depthAttachment);
 			vkCmdBeginRendering(cmd, &renderInfo);
 		}
 
@@ -197,7 +198,7 @@ VkResult Rhi::renderFrame() {
 			// blit the draw image to the swapchain image
 			transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			blitImages(cmd, drawImage.image, image, m_drawExtent, m_swapChainExtent);
+			blitImages(cmd, drawImage.image, image, m_drawExtent, m_swapchainExtent);
 		}
 		{
 			// draw ui onto swapchain image

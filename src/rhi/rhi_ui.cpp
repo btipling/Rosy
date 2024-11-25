@@ -72,7 +72,7 @@ VkResult Rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 	VkResult result;
 
 	VkRenderingAttachmentInfo colorAttachment = attachmentInfo(targetImageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-	VkRenderingInfo renderInfo = renderingInfo(m_swapChainExtent, colorAttachment, std::nullopt);
+	VkRenderingInfo renderInfo = renderingInfo(m_swapchainExtent, colorAttachment, std::nullopt);
 	vkCmdBeginRendering(cmd, &renderInfo);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
@@ -94,6 +94,7 @@ VkResult Rhi::drawUI() {
 	ImGui::RadioButton("disabled", &m_blendMode, 0); ImGui::SameLine();
 	ImGui::RadioButton("additive", &m_blendMode, 1); ImGui::SameLine();
 	ImGui::RadioButton("alpha blend", &m_blendMode, 2);
+	ImGui::SliderFloat("Render Scale", &m_renderScale, 0.3f, 1.f);
 	return VK_SUCCESS;
 }
 

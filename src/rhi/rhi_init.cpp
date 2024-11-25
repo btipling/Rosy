@@ -691,7 +691,7 @@ VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain) {
 	m_swapChainImages.resize(m_swapChainImageCount);
 	vkGetSwapchainImagesKHR(device, swapchain, &m_swapChainImageCount, m_swapChainImages.data());
 
-	m_swapChainExtent = extent;
+	m_swapchainExtent = extent;
 	m_swapchain = swapchain;
 	for (size_t i = 0; i < m_swapChainImages.size(); i++) {
 		VkImageViewCreateInfo createInfo = {};
@@ -721,8 +721,8 @@ VkResult Rhi::initDrawImage() {
 	VkResult result;
 
 	VkExtent3D drawImageExtent = {
-		m_swapChainExtent.width,
-		m_swapChainExtent.height,
+		m_swapchainExtent.width,
+		m_swapchainExtent.height,
 		1
 	};
 	AllocatedImage drawImage = {};

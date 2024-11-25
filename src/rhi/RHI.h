@@ -43,7 +43,7 @@ private:
 	VkPresentModeKHR m_swapchainPresentMode = {};
 	uint32_t m_swapChainImageCount = 0;
 	SwapChainSupportDetails m_swapchainDetails = {};
-	VkExtent2D m_swapChainExtent = {};
+	VkExtent2D m_swapchainExtent = {};
 	std::optional<VkCommandPool> m_commandPool = std::nullopt;
 
 	// immediate submits
@@ -75,6 +75,7 @@ private:
 	std::optional<AllocatedImage> m_drawImage;
 	std::optional<AllocatedImage> m_depthImage;
 	VkExtent2D m_drawExtent = {};
+	float m_renderScale = 1.f;
 
 	// swapchain images
 	std::vector<VkImage> m_swapChainImages;
