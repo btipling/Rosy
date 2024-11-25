@@ -43,47 +43,47 @@ VkResult Rhi::init(SDL_Window* window)
 	result = volkInitialize();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed initialize volk! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed initialize volk! %d\n", result);
 		return result;
 	}
 	result = this->query_instance_layers();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to query instance layers! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to query instance layers! %d\n", result);
 		return result;
 	}
 	result = this->query_instance_extensions();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to query instance extensions! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to query instance extensions! %d\n", result);
 		return result;
 	}
 	result = this->init_instance();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to create Vulkan instance! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to create Vulkan instance! %d\n", result);
 		return result;
 	}
 	result = this->create_debug_callback();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to create Vulkan debug callback! %d", result);
+		rosy_utils::debug_print_w(L"Failed to create Vulkan debug callback! %d", result);
 		return result;
 	}
 	result = this->init_surface(window);
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to create surface! %d", result);
+		rosy_utils::debug_print_w(L"Failed to create surface! %d", result);
 		return result;
 	}
 	result = this->init_physical_device();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to create Vulkan physical device! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to create Vulkan physical device! %d\n", result);
 		return result;
 	}
 	result = this->query_device_layers();
-	rosy_utils::DebugPrintW(L"Failed to query device layers! %d\n", result);
+	rosy_utils::debug_print_w(L"Failed to query device layers! %d\n", result);
 	if (result != VK_SUCCESS)
 	{
 		return result;
@@ -91,80 +91,80 @@ VkResult Rhi::init(SDL_Window* window)
 	result = this->query_device_extensions();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to query device extensions! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to query device extensions! %d\n", result);
 		return result;
 	}
 	result = this->init_device();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to create Vulkan device! %d\n", result);
 		return result;
 	}
 	this->init_allocator();
 	result = this->init_presentation_queue();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to get presentation queue! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to get presentation queue! %d\n", result);
 		return result;
 	}
 	result = this->init_swap_chain(window);
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init swap chain! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init swap chain! %d\n", result);
 		return result;
 	}
 	result = this->init_draw_image();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init draw image! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init draw image! %d\n", result);
 		return result;
 	}
 	result = this->init_descriptors();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init draw descriptors! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init draw descriptors! %d\n", result);
 		return result;
 	}
 	result = this->init_graphics();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init graphics! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init graphics! %d\n", result);
 		return result;
 	}
 	result = this->init_command_pool();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init command pool! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init command pool! %d\n", result);
 		return result;
 	}
 	result = this->init_command_buffers();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init command buffers! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init command buffers! %d\n", result);
 		return result;
 	}
 	result = this->init_sync_objects();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init sync objects! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init sync objects! %d\n", result);
 		return result;
 	}
 	result = this->initUI(window);
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init UI! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init UI! %d\n", result);
 		return result;
 	}
 	result = this->init_commands();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init commands! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init commands! %d\n", result);
 		return result;
 	}
 	result = this->init_default_data();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to init default data! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init default data! %d\n", result);
 		return result;
 	}
 	return VK_SUCCESS;
@@ -314,7 +314,7 @@ VkResult Rhi::draw_frame()
 	result = this->render_frame();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::DebugPrintW(L"Failed to record command buffer! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to record command buffer! %d\n", result);
 		return result;
 	}
 	return VK_SUCCESS;
@@ -325,7 +325,7 @@ VkResult Rhi::query_instance_layers()
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateInstanceLayerProperties(&pPropertyCount, nullptr);
 	if (result != VK_SUCCESS) return result;
-	rosy_utils::DebugPrintA("Found %d instance layers\n", pPropertyCount);
+	rosy_utils::debug_print_a("Found %d instance layers\n", pPropertyCount);
 	if (pPropertyCount == 0) return result;
 	std::vector<VkLayerProperties> layers;
 	layers.resize(pPropertyCount);
@@ -334,12 +334,12 @@ VkResult Rhi::query_instance_layers()
 	if (!m_cfg_.enable_validation_layers) return result;
 	for (VkLayerProperties lp : layers)
 	{
-		rosy_utils::DebugPrintA("Instance layer name: %s layer description: %s\n", lp.layerName, lp.description);
+		rosy_utils::debug_print_a("Instance layer name: %s layer description: %s\n", lp.layerName, lp.description);
 		for (const char* layerName : instanceLayers)
 		{
 			if (strcmp(layerName, lp.layerName) == 0)
 			{
-				rosy_utils::DebugPrintA("\tAdding instance layer: %s\n", lp.layerName);
+				rosy_utils::debug_print_a("\tAdding instance layer: %s\n", lp.layerName);
 				m_instance_layer_properties_.push_back(layerName);
 			}
 		}
@@ -353,7 +353,7 @@ VkResult Rhi::query_device_layers()
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateDeviceLayerProperties(m_physical_device_.value(), &pPropertyCount, nullptr);
 	if (result != VK_SUCCESS) return result;
-	rosy_utils::DebugPrintA("Found %d device layers\n", pPropertyCount);
+	rosy_utils::debug_print_a("Found %d device layers\n", pPropertyCount);
 	if (pPropertyCount == 0) return result;
 	std::vector<VkLayerProperties> layers;
 	layers.resize(pPropertyCount);
@@ -361,7 +361,7 @@ VkResult Rhi::query_device_layers()
 	if (result != VK_SUCCESS) return result;
 	for (VkLayerProperties lp : layers)
 	{
-		rosy_utils::DebugPrintA("Device layer name: %s layer description: %s\n", lp.layerName, lp.description);
+		rosy_utils::debug_print_a("Device layer name: %s layer description: %s\n", lp.layerName, lp.description);
 	}
 	return result;
 }
@@ -372,14 +372,14 @@ VkResult Rhi::query_instance_extensions()
 	VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, nullptr);
 	if (result != VK_SUCCESS) return result;
 
-	rosy_utils::DebugPrintA("Found %d instance extensions\n", pPropertyCount);
+	rosy_utils::debug_print_a("Found %d instance extensions\n", pPropertyCount);
 	if (pPropertyCount == 0) return result;
 
 	std::vector<VkExtensionProperties> extensions;
 	extensions.resize(pPropertyCount);
 	result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, extensions.data());
 	if (result != VK_SUCCESS) return result;
-	rosy_utils::DebugPrintA("num required instance extensions: %d\n", std::size(instanceExtensions));
+	rosy_utils::debug_print_a("num required instance extensions: %d\n", std::size(instanceExtensions));
 	{
 		// Setup required instance extensions
 		size_t found_extensions = 0;
@@ -387,28 +387,28 @@ VkResult Rhi::query_instance_extensions()
 		auto extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
 		for (uint32_t i = 0; i < extensionCount; i++)
 		{
-			rosy_utils::DebugPrintA("pushing back required SDL instance extension with name: %s\n", extensionNames[i]);
+			rosy_utils::debug_print_a("pushing back required SDL instance extension with name: %s\n", extensionNames[i]);
 			m_instance_extensions_.push_back(extensionNames[i]);
 		}
 		for (uint32_t i = 0; i < std::size(instanceExtensions); i++)
 		{
-			rosy_utils::DebugPrintA("pushing back required rosy instance extension with name: %s\n",
+			rosy_utils::debug_print_a("pushing back required rosy instance extension with name: %s\n",
 			                        instanceExtensions[i]);
 			m_instance_extensions_.push_back(instanceExtensions[i]);
 		}
 	}
-	rosy_utils::DebugPrintA("num m_instanceExtensions: %d\n", m_instance_extensions_.size());
+	rosy_utils::debug_print_a("num m_instanceExtensions: %d\n", m_instance_extensions_.size());
 
 	std::vector<const char*> requiredInstanceExtensions(std::begin(m_instance_extensions_),
 	                                                    std::end(m_instance_extensions_));
 	for (VkExtensionProperties ep : extensions)
 	{
-		rosy_utils::DebugPrintA("Instance extension name: %s\n", ep.extensionName);
+		rosy_utils::debug_print_a("Instance extension name: %s\n", ep.extensionName);
 		for (const char* extensionName : m_instance_extensions_)
 		{
 			if (strcmp(extensionName, ep.extensionName) == 0)
 			{
-				rosy_utils::DebugPrintA("\tRequiring instance extension: %s\n", extensionName);
+				rosy_utils::debug_print_a("\tRequiring instance extension: %s\n", extensionName);
 				requiredInstanceExtensions.erase(
 					std::remove(requiredInstanceExtensions.begin(), requiredInstanceExtensions.end(), extensionName),
 					requiredInstanceExtensions.end());
@@ -430,7 +430,7 @@ VkResult Rhi::query_device_extensions()
 	VkResult result = vkEnumerateDeviceExtensionProperties(m_physical_device_.value(), nullptr, &pPropertyCount, nullptr);
 	if (result != VK_SUCCESS) return result;
 
-	rosy_utils::DebugPrintA("Found %d device extensions\n", pPropertyCount);
+	rosy_utils::debug_print_a("Found %d device extensions\n", pPropertyCount);
 	if (pPropertyCount == 0) return result;
 
 	std::vector<VkExtensionProperties> extensions;
@@ -445,12 +445,12 @@ VkResult Rhi::query_device_extensions()
 
 	for (VkExtensionProperties ep : extensions)
 	{
-		rosy_utils::DebugPrintA("Device extension name: %s\n", ep.extensionName);
+		rosy_utils::debug_print_a("Device extension name: %s\n", ep.extensionName);
 		for (const char* extensionName : deviceExtensions)
 		{
 			if (strcmp(extensionName, ep.extensionName) == 0)
 			{
-				rosy_utils::DebugPrintA("\tRequiring device extension: %s\n", extensionName);
+				rosy_utils::debug_print_a("\tRequiring device extension: %s\n", extensionName);
 				m_device_device_extensions_.push_back(extensionName);
 				requiredDeviceExtensions.erase(
 					std::remove(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end(), extensionName),
@@ -639,7 +639,7 @@ VkResult Rhi::init_physical_device()
 	}
 	if (!foundQueue)
 	{
-		rosy_utils::DebugPrintA("No suitable queue found!");
+		rosy_utils::debug_print_a("No suitable queue found!");
 		return VK_ERROR_FEATURE_NOT_PRESENT;
 	}
 	m_queue_index_ = queueIndex;
@@ -694,7 +694,7 @@ VkResult Rhi::init_device()
 	VkResult result = vkCreateDevice(m_physical_device_.value(), &deviceCreateInfo, nullptr, &device);
 	if (result != VK_SUCCESS) return result;
 
-	rosy_utils::DebugPrintW(L"Vulkan device created successfully!\n");
+	rosy_utils::debug_print_w(L"Vulkan device created successfully!\n");
 	m_device_ = device;
 	return result;
 }
@@ -980,7 +980,7 @@ VkResult Rhi::init_graphics()
 	}
 	catch (const std::exception& e)
 	{
-		rosy_utils::DebugPrintA("error reading shader files! %s", e.what());
+		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
 		return VK_ERROR_FEATURE_NOT_PRESENT;
 	}
 

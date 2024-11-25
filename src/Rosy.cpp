@@ -28,12 +28,12 @@ bool eventHandler(void* userdata, SDL_Event* event) {
 		SDL_Window* window = SDL_GetWindowFromID(event->window.windowID);
 		result = rhi->resize_swapchain(window);
 		if (result != VK_SUCCESS) {
-			rosy_utils::DebugPrintA("resizing-event: rhi failed to resize swapchain %d\n", result);
+			rosy_utils::debug_print_a("resizing-event: rhi failed to resize swapchain %d\n", result);
 			return false;
 		}
 		result = rhi->draw_frame();
 		if (result != VK_SUCCESS) {
-			rosy_utils::DebugPrintA("resizing-event: rhi draw failed %d\n", result);
+			rosy_utils::debug_print_a("resizing-event: rhi draw failed %d\n", result);
 			return false;
 		}
 		break;
@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 	auto displayIds = SDL_GetDisplays(&displaysCount);
 	if (displaysCount == 0) {
 		auto err = SDL_GetError();
-		rosy_utils::DebugPrintA("SDL error: %s\n", err);
+		rosy_utils::debug_print_a("SDL error: %s\n", err);
 		SDL_free((void*)err);
 		abort();
 	}
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 
 	VkResult result = rhi->init(window);
 	if (result != VK_SUCCESS) {
-		rosy_utils::DebugPrintA("rhi init failed %d\n", result);
+		rosy_utils::debug_print_a("rhi init failed %d\n", result);
 		delete rhi;
 		{
 			SDL_DestroyRenderer(renderer);
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
 				shouldRender = true;
 			}
 			if (event.type == SDL_EVENT_WINDOW_RESIZED) {
-				rosy_utils::DebugPrintA("SDL_EVENT_WINDOW_RESIZED\n");
+				rosy_utils::debug_print_a("SDL_EVENT_WINDOW_RESIZED\n");
 				resizeRequested = true;
 			}
 			if (!shouldRender) {
@@ -123,10 +123,10 @@ int main(int argc, char* argv[])
 				continue;
 			}
 			if (resizeRequested) {
-				rosy_utils::DebugPrintA("resizing swapchain\n");
+				rosy_utils::debug_print_a("resizing swapchain\n");
 				result = rhi->resize_swapchain(window);
 				if (result != VK_SUCCESS) {
-					rosy_utils::DebugPrintA("rhi failed to resize swapchain %d\n", result);
+					rosy_utils::debug_print_a("rhi failed to resize swapchain %d\n", result);
 					shouldRun = false;
 					break;
 				}
@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
 						resizeRequested = true;
 						break;
 					}
-					rosy_utils::DebugPrintA("rhi draw ui failed %d\n", result);
+					rosy_utils::debug_print_a("rhi draw ui failed %d\n", result);
 					shouldRun = false;
 					break;
 				}
@@ -153,11 +153,11 @@ int main(int argc, char* argv[])
 			result = rhi->draw_frame();
 			if (result != VK_SUCCESS) {
 				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-					rosy_utils::DebugPrintA("swapchain out of date\n");
+					rosy_utils::debug_print_a("swapchain out of date\n");
 					resizeRequested = true;
 					break;
 				}
-				rosy_utils::DebugPrintA("rhi draw failed %d\n", result);
+				rosy_utils::debug_print_a("rhi draw failed %d\n", result);
 				shouldRun = false;
 				break;
 			}
