@@ -1,5 +1,6 @@
 #pragma once
 
+#include <deque>
 #include "../Rosy.h"
 
 struct descriptor_set_layout_result {
@@ -48,7 +49,7 @@ public:
 	void clear_pools(VkDevice device);
 	void destroy_pools(VkDevice device);
 
-	descriptor_set_result allocate(VkDevice device, VkDescriptorSetLayout layout, void* p_next = nullptr);
+	descriptor_set_result allocate(VkDevice device, VkDescriptorSetLayout layout, const void* p_next = nullptr);
 private:
 	VkDescriptorPool get_pool(VkDevice device);
 	static VkDescriptorPool create_pool(VkDevice device, uint32_t set_count, std::span<pool_size_ratio> pool_ratios);
@@ -58,4 +59,16 @@ private:
 	std::vector<VkDescriptorPool> ready_pools_;
 	uint32_t sets_per_pool_ = 0;
 
+};
+
+struct descriptor_writer {
+	std::deque<VkDescriptorImageInfo> image_infos;
+	std::deque<VkDescriptorBufferInfo> buffer_infos;
+	std::vector<VkWriteDescriptorSet> writes;
+
+	void write_image(int binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type);
+	void write_buffer(int binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type);
+
+	void clear();
+	void update_set(VkDevice device, VkDescriptorSet set);
 };
