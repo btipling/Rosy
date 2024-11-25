@@ -104,11 +104,6 @@ VkResult Rhi::init(SDL_Window* window) {
 		rosy_utils::DebugPrintW(L"Failed to init draw image! %d\n", result);
 		return result;
 	}
-	result = this->initImageViews();
-	if (result != VK_SUCCESS) {
-		rosy_utils::DebugPrintW(L"Failed to init image views! %d\n", result);
-		return result;
-	}
 	result = this->initGraphics();
 	if (result != VK_SUCCESS) {
 		rosy_utils::DebugPrintW(L"Failed to init graphics! %d\n", result);
@@ -233,9 +228,10 @@ void Rhi::destroySwapchain() {
 VkResult Rhi::resizeSwapchain(SDL_Window* window) {
 	vkDeviceWaitIdle(m_device.value());
 
+	VkSwapchainKHR oldSwapchain = m_swapchain.value();
 	destroySwapchain();
 
-	return VK_NOT_READY;
+	return createSwapchain(window, oldSwapchain);
 }
 
 VkResult Rhi::drawFrame() {
@@ -645,23 +641,28 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, SDL_Wi
 }
 
 VkResult Rhi::initSwapChain(SDL_Window* window) {
-	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice.value());
+	m_swapchainDetails = querySwapChainSupport(m_physicalDevice.value());
 
-	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-	VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
+	m_swapchainImageFormat = chooseSwapSurfaceFormat(m_swapchainDetails.formats);
+	m_swapchainPresentMode = chooseSwapPresentMode(m_swapchainDetails.presentModes);
 
-	uint32_t imageCount = swapChainSupport.capabilities.minImageCount;
-	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
-		imageCount = swapChainSupport.capabilities.maxImageCount;
+	m_swapChainImageCount = m_swapchainDetails.capabilities.minImageCount;
+	if (m_swapchainDetails.capabilities.maxImageCount > 0 && m_swapChainImageCount > m_swapchainDetails.capabilities.maxImageCount) {
+		m_swapChainImageCount = m_swapchainDetails.capabilities.maxImageCount;
 	}
 
+	return createSwapchain(window, VK_NULL_HANDLE);
+}
+
+VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain) {
+
+	VkExtent2D extent = chooseSwapExtent(m_swapchainDetails.capabilities, window);
 	VkSwapchainCreateInfoKHR createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfo.surface = m_surface.value();
-	createInfo.minImageCount = imageCount;
-	createInfo.imageFormat = surfaceFormat.format;
-	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.minImageCount = m_swapChainImageCount;
+	createInfo.imageFormat = m_swapchainImageFormat.format;
+	createInfo.imageColorSpace = m_swapchainImageFormat.colorSpace;
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
 	createInfo.imageExtent = extent;
@@ -673,27 +674,47 @@ VkResult Rhi::initSwapChain(SDL_Window* window) {
 	createInfo.queueFamilyIndexCount = 0;
 	createInfo.pQueueFamilyIndices = nullptr;
 
-	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+	createInfo.preTransform = m_swapchainDetails.capabilities.currentTransform;
 
-	createInfo.presentMode = presentMode;
+	createInfo.presentMode = m_swapchainPresentMode;
 	createInfo.clipped = VK_TRUE;
 
-	// TODO: support window resize
-	createInfo.oldSwapchain = VK_NULL_HANDLE;
+	createInfo.oldSwapchain = oldSwapchain;
 
 	VkSwapchainKHR swapchain;
 	VkDevice device = m_device.value();
 	VkResult result = vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain);
 	if (result != VK_SUCCESS) return result;
 
-	vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
-	m_swapChainImages.resize(imageCount);
-	vkGetSwapchainImagesKHR(device, swapchain, &imageCount, m_swapChainImages.data());
+	m_swapChainImages.clear();
+	vkGetSwapchainImagesKHR(device, swapchain, &m_swapChainImageCount, nullptr);
+	m_swapChainImages.resize(m_swapChainImageCount);
+	vkGetSwapchainImagesKHR(device, swapchain, &m_swapChainImageCount, m_swapChainImages.data());
 
-	m_swapChainImageFormat = surfaceFormat.format;
 	m_swapChainExtent = extent;
 	m_swapchain = swapchain;
-	return result;
+	for (size_t i = 0; i < m_swapChainImages.size(); i++) {
+		VkImageViewCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		createInfo.image = m_swapChainImages[i];
+		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		createInfo.format = m_swapchainImageFormat.format;
+		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+		VkImageView imageView;
+		VkResult result = vkCreateImageView(device, &createInfo, nullptr, &imageView);
+		if (result != VK_SUCCESS) return result;
+		// don't initially size these so we can clean this up nicely if any fail
+		m_swapChainImageViews.push_back(imageView);
+	}
+	return VK_SUCCESS;
 }
 
 VkResult Rhi::initDrawImage() {
@@ -745,32 +766,6 @@ VkResult Rhi::initDrawImage() {
 	m_depthImage = depthImage;
 
 	return result;
-}
-
-VkResult Rhi::initImageViews() {
-	VkDevice device = m_device.value();
-	for (size_t i = 0; i < m_swapChainImages.size(); i++) {
-		VkImageViewCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = m_swapChainImages[i];
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		createInfo.format = m_swapChainImageFormat;
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
-		VkImageView imageView;
-		VkResult result = vkCreateImageView(device, &createInfo, nullptr, &imageView);
-		if (result != VK_SUCCESS) return result;
-		// don't initially size these so we can clean this up nicely if any fail
-		m_swapChainImageViews.push_back(imageView);
-	}
-	return VK_SUCCESS;
 }
 
 

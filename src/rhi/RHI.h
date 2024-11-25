@@ -39,7 +39,10 @@ private:
 	std::optional<VkSurfaceKHR> m_surface = std::nullopt;
 	std::optional<VkQueue> m_presentQueue = std::nullopt;
 	std::optional<VkSwapchainKHR> m_swapchain = std::nullopt;
-	VkFormat m_swapChainImageFormat = {};
+	VkSurfaceFormatKHR m_swapchainImageFormat = {};
+	VkPresentModeKHR m_swapchainPresentMode = {};
+	uint32_t m_swapChainImageCount = 0;
+	SwapChainSupportDetails m_swapchainDetails = {};
 	VkExtent2D m_swapChainExtent = {};
 	std::optional<VkCommandPool> m_commandPool = std::nullopt;
 
@@ -97,8 +100,8 @@ private:
 	void initAllocator();
 	VkResult initPresentationQueue();
 	VkResult initSwapChain(SDL_Window* window);
+	VkResult createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain);
 	VkResult initDrawImage();
-	VkResult initImageViews();
 	VkResult initGraphics();
 	VkResult createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag);
 	VkResult initCommandPool();
