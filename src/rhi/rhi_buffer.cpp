@@ -64,7 +64,7 @@ GPUMeshBuffersResult Rhi::uploadMesh(std::span<uint32_t> indices, std::span<Vert
 	rosy_utils::DebugPrintA("staging buffer mapped!\n");
 
 	VkResult submitResult;
-	submitResult = immediateSubmit([&](VkCommandBuffer cmd) {
+	submitResult = immediate_submit([&](VkCommandBuffer cmd) {
 		VkBufferCopy vertexCopy{ 0 };
 		vertexCopy.dstOffset = 0;
 		vertexCopy.srcOffset = 0;

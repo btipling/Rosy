@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-void Rhi::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectMask) {
+void Rhi::transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectMask) {
 	VkImageSubresourceRange subresourceRange = {};
 	subresourceRange.aspectMask = aspectMask;
 	subresourceRange.baseMipLevel = 0;
@@ -33,11 +33,11 @@ void Rhi::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout curr
 	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 }
 
-VkResult Rhi::renderFrame() {
-	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
-	VkSemaphore imageAvailable = m_imageAvailableSemaphores[m_currentFrame];
-	VkSemaphore renderedFinisished = m_renderFinishedSemaphores[m_currentFrame];
-	VkFence fence = m_inFlightFence[m_currentFrame];
+VkResult Rhi::render_frame() {
+	VkCommandBuffer cmd = m_command_buffers_[m_currentFrame];
+	VkSemaphore imageAvailable = m_image_available_semaphores_[m_currentFrame];
+	VkSemaphore renderedFinisished = m_render_finished_semaphores_[m_currentFrame];
+	VkFence fence = m_in_flight_fence_[m_currentFrame];
 	VkResult result;
 	VkDevice device = m_device.value();
 
@@ -47,13 +47,13 @@ VkResult Rhi::renderFrame() {
 	uint32_t imageIndex;
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
 	vkAcquireNextImageKHR(m_device.value(), m_swapchain.value(), UINT64_MAX, imageAvailable, VK_NULL_HANDLE, &imageIndex);
-	VkImage image = m_swapChainImages[imageIndex];
-	VkImageView imageView = m_swapChainImageViews[imageIndex];
+	VkImage image = m_swap_chain_images_[imageIndex];
+	VkImageView imageView = m_swap_chain_image_views_[imageIndex];
 
 	AllocatedImage drawImage = m_drawImage.value();
 	AllocatedImage depthImage = m_depthImage.value();
-	m_drawExtent.width = std::min(m_swapchainExtent.width, drawImage.imageExtent.width) * m_renderScale;
-	m_drawExtent.height = std::min(m_swapchainExtent.height, drawImage.imageExtent.height) * m_renderScale;
+	m_drawExtent.width = std::min(m_swapchainExtent.width, drawImage.imageExtent.width) * m_render_scale_;
+	m_drawExtent.height = std::min(m_swapchainExtent.height, drawImage.imageExtent.height) * m_render_scale_;
 
 	vkResetFences(device, 1, &fence);
 	{
@@ -74,20 +74,20 @@ VkResult Rhi::renderFrame() {
 
 	{
 		// Configure the dynamic shader pipeline
-		setRenderingDefaults(cmd);
-		toggleCulling(cmd, VK_TRUE);
-		toggleWireFrame(cmd, m_toggleWireFrame);
-		setViewPort(cmd, m_swapchainExtent);
-		toggleDepth(cmd, VK_TRUE);
+		set_rendering_defaults(cmd);
+		toggle_culling(cmd, VK_TRUE);
+		toggle_wire_frame(cmd, m_toggleWireFrame);
+		set_view_port(cmd, m_swapchainExtent);
+		toggle_depth(cmd, VK_TRUE);
 		switch (m_blendMode) {
 		case 0:
-			disableBlending(cmd);
+			disable_blending(cmd);
 			break;
 		case 1:
-			enableBlendingAdditive(cmd);
+			enable_blending_additive(cmd);
 			break;
 		case 2:
-			enableBlendingAlphaBlend(cmd);
+			enable_blending_alpha_blend(cmd);
 			break;
 		}
 	}
@@ -95,7 +95,7 @@ VkResult Rhi::renderFrame() {
 	{
 		// Clear image. This transition means that all the commands recorded before now happen before
 		// any calls after. The calls themselves before this may have executed in any order up until this point.
-		transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		transition_image(cmd, drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
 		// vkCmdClearColorImage is guaranteed to happen after previous calls.
 		VkClearColorValue clearValue;
 		clearValue = { { 0.0f, 0.05f, 0.1f, 1.0f } };
@@ -109,8 +109,8 @@ VkResult Rhi::renderFrame() {
 	}
 	{
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
-		transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-		transitionImage(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+		transition_image(cmd, drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		transition_image(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
 			VkRenderingAttachmentInfo colorAttachment = attachmentInfo(drawImage.imageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -196,19 +196,19 @@ VkResult Rhi::renderFrame() {
 		vkCmdEndRendering(cmd);
 		{
 			// blit the draw image to the swapchain image
-			transitionImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			transitionImage(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+			transition_image(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+			transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			blitImages(cmd, drawImage.image, image, m_drawExtent, m_swapchainExtent);
 		}
 		{
 			// draw ui onto swapchain image
-			transitionImage(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+			transition_image(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			result = renderUI(cmd, imageView);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
 			// Transition swapchain image for presentation
-			transitionImage(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
+			transition_image(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
 			result = vkEndCommandBuffer(cmd);
 			if (result != VK_SUCCESS) return result;
 		}
@@ -279,7 +279,7 @@ VkResult Rhi::renderFrame() {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& recordFunc) {
+VkResult Rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& recordFunc) {
 	VkResult result;
 
 	VkDevice device = m_device.value();

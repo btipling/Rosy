@@ -11,31 +11,31 @@
 #include <fastgltf/tools.hpp>
 
 
-std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, std::filesystem::path filePath) {
+std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(Rhi* rhi, std::filesystem::path file_path) {
 	fastgltf::Asset gltf;
 	fastgltf::Parser parser{};
-    auto data = fastgltf::GltfDataBuffer::FromPath(filePath);
+    auto data = fastgltf::GltfDataBuffer::FromPath(file_path);
     if (data.error() != fastgltf::Error::None) {
         return std::nullopt;
     }
-    auto asset = parser.loadGltf(data.get(), filePath.parent_path(), fastgltf::Options::None);
+    auto asset = parser.loadGltf(data.get(), file_path.parent_path(), fastgltf::Options::None);
 	if (asset) {
 		gltf = std::move(asset.get());
 	} else {
         auto err = fastgltf::to_underlying(asset.error());
-		rosy_utils::DebugPrintA("failed to load gltf: %d %s\n", err, filePath.string().c_str());
+		rosy_utils::DebugPrintA("failed to load gltf: %d %s\n", err, file_path.string().c_str());
 		return std::nullopt;
 	}
     std::vector<std::shared_ptr<MeshAsset>> meshes;
 
-    // use the same vectors for all meshes so that the memory doesnt reallocate as
+    // use the same vectors for all meshes so that the memory doesn't reallocate as
     // often
     std::vector<uint32_t> indices;
     std::vector<Vertex> vertices;
     for (fastgltf::Mesh& mesh : gltf.meshes) {
-        MeshAsset newmesh;
+        MeshAsset new_mesh;
 
-        newmesh.name = mesh.name;
+        new_mesh.name = mesh.name;
 
         // clear the mesh arrays each mesh, we dont want to merge them by error
         indices.clear();
@@ -43,17 +43,17 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
 
         for (fastgltf::Primitive p : mesh.primitives) {
             GeoSurface newSurface;
-            newSurface.startIndex = (uint32_t)indices.size();
-            newSurface.count = (uint32_t)gltf.accessors[p.indicesAccessor.value()].count;
+            newSurface.startIndex = static_cast<uint32_t>(indices.size());
+            newSurface.count = static_cast<uint32_t>(gltf.accessors[p.indicesAccessor.value()].count);
 
             size_t initial_vtx = vertices.size();
 
             // load indexes
             {
-                fastgltf::Accessor& indexaccessor = gltf.accessors[p.indicesAccessor.value()];
-                indices.reserve(indices.size() + indexaccessor.count);
+                fastgltf::Accessor& index_accessor = gltf.accessors[p.indicesAccessor.value()];
+                indices.reserve(indices.size() + index_accessor.count);
 
-                fastgltf::iterateAccessor<std::uint32_t>(gltf, indexaccessor,
+                fastgltf::iterateAccessor<std::uint32_t>(gltf, index_accessor,
                     [&](std::uint32_t idx) {
                         indices.push_back(idx + initial_vtx);
                     });
@@ -106,7 +106,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
                         vertices[initial_vtx + index].color = v;
                     });
             }
-            newmesh.surfaces.push_back(newSurface);
+            new_mesh.surfaces.push_back(newSurface);
         }
 
         // display the vertex normals
@@ -121,8 +121,8 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, 
             rosy_utils::DebugPrintA("failed to upload mesh: %d\n", result.result);
             return std::nullopt;
         }
-        newmesh.meshBuffers = result.buffers;
-        meshes.emplace_back(std::make_shared<MeshAsset>(std::move(newmesh)));
+        new_mesh.meshBuffers = result.buffers;
+        meshes.emplace_back(std::make_shared<MeshAsset>(std::move(new_mesh)));
     }
 
     return meshes;

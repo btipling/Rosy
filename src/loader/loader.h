@@ -5,4 +5,4 @@
 
 class Rhi;
 
-std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(Rhi* rhi, std::filesystem::path filePath);
+std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(Rhi* rhi, std::filesystem::path file_path);

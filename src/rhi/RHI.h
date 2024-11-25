@@ -5,7 +5,8 @@
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
-class Rhi {
+class Rhi
+{
 public:
 	Rhi(rosy_config::Config cfg);
 	VkResult init(SDL_Window* window);
@@ -17,7 +18,6 @@ public:
 	GPUMeshBuffersResult uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 	void debug();
 	~Rhi();
-
 
 private:
 	bool m_deinited = false;
@@ -80,57 +80,58 @@ private:
 	std::optional<AllocatedImage> m_drawImage;
 	std::optional<AllocatedImage> m_depthImage;
 	VkExtent2D m_drawExtent = {};
-	float m_renderScale = 1.f;
+	float m_render_scale_ = 1.f;
 
 	// swapchain images
-	std::vector<VkImage> m_swapChainImages;
-	std::vector<VkImageView> m_swapChainImageViews;
+	std::vector<VkImage> m_swap_chain_images_;
+	std::vector<VkImageView> m_swap_chain_image_views_;
 
 	// per frame data
-	std::vector<VkCommandBuffer> m_commandBuffers;
-	std::vector<VkSemaphore> m_imageAvailableSemaphores;
-	std::vector<VkSemaphore> m_renderFinishedSemaphores;
-	std::vector<VkFence> m_inFlightFence;
+	std::vector<VkCommandBuffer> m_command_buffers_;
+	std::vector<VkSemaphore> m_image_available_semaphores_;
+	std::vector<VkSemaphore> m_render_finished_semaphores_;
+	std::vector<VkFence> m_in_flight_fence_;
 
-	std::optional <VkDebugUtilsMessengerEXT> m_debugMessenger = std::nullopt;
+	std::optional<VkDebugUtilsMessengerEXT> m_debug_messenger_ = std::nullopt;
 
-	VkResult queryInstanceLayers();
-	VkResult queryDeviceLayers();
-	VkResult queryInstanceExtensions();
-	VkResult queryDeviceExtensions();
-	VkResult createDebugCallback();
-	VkResult initInstance();
-	VkResult initSurface(SDL_Window* window);
-	VkResult initPhysicalDevice();
-	VkResult initDevice();
-	void initAllocator();
-	VkResult initPresentationQueue();
-	VkResult initSwapChain(SDL_Window* window);
-	VkResult createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain);
-	VkResult initDrawImage();
-	VkResult initDescriptors();
-	VkResult initGraphics();
-	VkResult createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag);
-	VkResult initCommandPool();
-	VkResult initCommandBuffers();
-	VkResult initSyncObjects();
-	VkResult initCommands();
-	VkResult initDefaultData();
-	
+	VkResult query_instance_layers();
+	VkResult query_device_layers();
+	VkResult query_instance_extensions();
+	VkResult query_device_extensions();
+	VkResult create_debug_callback();
+	VkResult init_instance();
+	VkResult init_surface(SDL_Window* window);
+	VkResult init_physical_device();
+	VkResult init_device();
+	void init_allocator();
+	VkResult init_presentation_queue();
+	VkResult init_swap_chain(SDL_Window* window);
+	VkResult create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain);
+	VkResult init_draw_image();
+	VkResult init_descriptors();
+	VkResult init_graphics();
+	VkResult create_shader_objects(const std::vector<char>& vert, const std::vector<char>& frag);
+	VkResult init_command_pool();
+	VkResult init_command_buffers();
+	VkResult init_sync_objects();
+	VkResult init_commands();
+	VkResult init_default_data();
+
 	// Rendering
-	void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectMask);
-	VkResult renderFrame();
-	VkResult immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
+	void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout,
+	                      VkImageAspectFlags aspectMask);
+	VkResult render_frame();
+	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 	// Cmd
-	void setRenderingDefaults(VkCommandBuffer cmd);
-	void toggleDepth(VkCommandBuffer cmd, bool enable);
-	void toggleCulling(VkCommandBuffer cmd, bool enable);
-	void toggleWireFrame(VkCommandBuffer cmd, bool enable);
-	void setViewPort(VkCommandBuffer cmd, VkExtent2D extent);
-	void disableBlending(VkCommandBuffer cmd);
-	void enableBlendingAdditive(VkCommandBuffer cmd);
-	void enableBlendingAlphaBlend(VkCommandBuffer cmd);
+	void set_rendering_defaults(VkCommandBuffer cmd);
+	void toggle_depth(VkCommandBuffer cmd, bool enable);
+	void toggle_culling(VkCommandBuffer cmd, bool enable);
+	void toggle_wire_frame(VkCommandBuffer cmd, bool enable);
+	void set_view_port(VkCommandBuffer cmd, VkExtent2D extent);
+	void disable_blending(VkCommandBuffer cmd);
+	void enable_blending_additive(VkCommandBuffer cmd);
+	void enable_blending_alpha_blend(VkCommandBuffer cmd);
 
 	// Utils
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
@@ -138,7 +139,8 @@ private:
 	VkImageViewCreateInfo imgViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
 	VkRenderingAttachmentInfo attachmentInfo(VkImageView view, VkImageLayout layout);
 	VkRenderingAttachmentInfo depthAttachmentInfo(VkImageView view, VkImageLayout layout);
-	VkRenderingInfo renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment, std::optional<VkRenderingAttachmentInfo> depthAttachment);
+	VkRenderingInfo renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment,
+	                              std::optional<VkRenderingAttachmentInfo> depthAttachment);
 	void blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize);
 	AllocatedBufferResult createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	VkDebugUtilsObjectNameInfoEXT addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName);
@@ -151,5 +153,4 @@ private:
 	void destroySwapchain();
 	void destroyBuffer(const AllocatedBuffer& buffer);
 	void deinitUI();
-
 };

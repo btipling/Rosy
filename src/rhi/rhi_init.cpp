@@ -46,104 +46,104 @@ VkResult Rhi::init(SDL_Window* window)
 		rosy_utils::DebugPrintW(L"Failed initialize volk! %d\n", result);
 		return result;
 	}
-	result = this->queryInstanceLayers();
+	result = this->query_instance_layers();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to query instance layers! %d\n", result);
 		return result;
 	}
-	result = this->queryInstanceExtensions();
+	result = this->query_instance_extensions();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to query instance extensions! %d\n", result);
 		return result;
 	}
-	result = this->initInstance();
+	result = this->init_instance();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan instance! %d\n", result);
 		return result;
 	}
-	result = this->createDebugCallback();
+	result = this->create_debug_callback();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan debug callback! %d", result);
 		return result;
 	}
-	result = this->initSurface(window);
+	result = this->init_surface(window);
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to create surface! %d", result);
 		return result;
 	}
-	result = this->initPhysicalDevice();
+	result = this->init_physical_device();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan physical device! %d\n", result);
 		return result;
 	}
-	result = this->queryDeviceLayers();
+	result = this->query_device_layers();
 	rosy_utils::DebugPrintW(L"Failed to query device layers! %d\n", result);
 	if (result != VK_SUCCESS)
 	{
 		return result;
 	}
-	result = this->queryDeviceExtensions();
+	result = this->query_device_extensions();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to query device extensions! %d\n", result);
 		return result;
 	}
-	result = this->initDevice();
+	result = this->init_device();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to create Vulkan device! %d\n", result);
 		return result;
 	}
-	this->initAllocator();
-	result = this->initPresentationQueue();
+	this->init_allocator();
+	result = this->init_presentation_queue();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to get presentation queue! %d\n", result);
 		return result;
 	}
-	result = this->initSwapChain(window);
+	result = this->init_swap_chain(window);
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to init swap chain! %d\n", result);
 		return result;
 	}
-	result = this->initDrawImage();
+	result = this->init_draw_image();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to init draw image! %d\n", result);
 		return result;
 	}
-	result = this->initDescriptors();
+	result = this->init_descriptors();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to init draw descriptors! %d\n", result);
 		return result;
 	}
-	result = this->initGraphics();
+	result = this->init_graphics();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to init graphics! %d\n", result);
 		return result;
 	}
-	result = this->initCommandPool();
+	result = this->init_command_pool();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to init command pool! %d\n", result);
 		return result;
 	}
-	result = this->initCommandBuffers();
+	result = this->init_command_buffers();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to init command buffers! %d\n", result);
 		return result;
 	}
-	result = this->initSyncObjects();
+	result = this->init_sync_objects();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to init sync objects! %d\n", result);
@@ -155,13 +155,13 @@ VkResult Rhi::init(SDL_Window* window)
 		rosy_utils::DebugPrintW(L"Failed to init UI! %d\n", result);
 		return result;
 	}
-	result = this->initCommands();
+	result = this->init_commands();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to init commands! %d\n", result);
 		return result;
 	}
-	result = this->initDefaultData();
+	result = this->init_default_data();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to init default data! %d\n", result);
@@ -200,15 +200,15 @@ void Rhi::deinit()
 	{
 		vkDestroyCommandPool(m_device.value(), m_immCommandPool.value(), nullptr);
 	}
-	for (VkFence fence : m_inFlightFence)
+	for (VkFence fence : m_in_flight_fence_)
 	{
 		vkDestroyFence(m_device.value(), fence, nullptr);
 	}
-	for (VkSemaphore semaphore : m_imageAvailableSemaphores)
+	for (VkSemaphore semaphore : m_image_available_semaphores_)
 	{
 		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
 	}
-	for (VkSemaphore semaphore : m_renderFinishedSemaphores)
+	for (VkSemaphore semaphore : m_render_finished_semaphores_)
 	{
 		vkDestroySemaphore(m_device.value(), semaphore, nullptr);
 	}
@@ -237,9 +237,9 @@ void Rhi::deinit()
 		vmaDestroyImage(m_allocator.value(), drawImage.image, drawImage.allocation);
 	}
 	destroySwapchain();
-	if (m_debugMessenger.has_value())
+	if (m_debug_messenger_.has_value())
 	{
-		vkDestroyDebugUtilsMessengerEXT(m_instance.value(), m_debugMessenger.value(), nullptr);
+		vkDestroyDebugUtilsMessengerEXT(m_instance.value(), m_debug_messenger_.value(), nullptr);
 	}
 	if (m_allocator.has_value())
 	{
@@ -263,11 +263,11 @@ void Rhi::deinit()
 void Rhi::destroySwapchain()
 {
 	vkDeviceWaitIdle(m_device.value());
-	for (VkImageView imageView : m_swapChainImageViews)
+	for (VkImageView imageView : m_swap_chain_image_views_)
 	{
 		vkDestroyImageView(m_device.value(), imageView, nullptr);
 	}
-	m_swapChainImageViews.clear();
+	m_swap_chain_image_views_.clear();
 	if (m_swapchain.has_value())
 	{
 		vkDestroySwapchainKHR(m_device.value(), m_swapchain.value(), nullptr);
@@ -279,13 +279,13 @@ VkResult Rhi::resizeSwapchain(SDL_Window* window)
 {
 	vkDeviceWaitIdle(m_device.value());
 	destroySwapchain();
-	return createSwapchain(window, VK_NULL_HANDLE);
+	return create_swapchain(window, VK_NULL_HANDLE);
 }
 
 VkResult Rhi::drawFrame()
 {
 	VkResult result;
-	result = this->renderFrame();
+	result = this->render_frame();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::DebugPrintW(L"Failed to record command buffer! %d\n", result);
@@ -294,7 +294,7 @@ VkResult Rhi::drawFrame()
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::queryInstanceLayers()
+VkResult Rhi::query_instance_layers()
 {
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateInstanceLayerProperties(&pPropertyCount, nullptr);
@@ -321,7 +321,7 @@ VkResult Rhi::queryInstanceLayers()
 	return result;
 }
 
-VkResult Rhi::queryDeviceLayers()
+VkResult Rhi::query_device_layers()
 {
 	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
 	uint32_t pPropertyCount = 0;
@@ -340,7 +340,7 @@ VkResult Rhi::queryDeviceLayers()
 	return result;
 }
 
-VkResult Rhi::queryInstanceExtensions()
+VkResult Rhi::query_instance_extensions()
 {
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, nullptr);
@@ -396,7 +396,7 @@ VkResult Rhi::queryInstanceExtensions()
 	return result;
 }
 
-VkResult Rhi::queryDeviceExtensions()
+VkResult Rhi::query_device_extensions()
 {
 	uint32_t pPropertyCount = 0;
 	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
@@ -441,7 +441,7 @@ VkResult Rhi::queryDeviceExtensions()
 }
 
 
-VkResult Rhi::createDebugCallback()
+VkResult Rhi::create_debug_callback()
 {
 	if (!m_cfg.enable_validation_layers) return VK_SUCCESS;
 
@@ -449,11 +449,11 @@ VkResult Rhi::createDebugCallback()
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkResult result = vkCreateDebugUtilsMessengerEXT(m_instance.value(), &createInfo, nullptr, &debugMessenger);
 	if (result != VK_SUCCESS) return result;
-	m_debugMessenger = debugMessenger;
+	m_debug_messenger_ = debugMessenger;
 	return result;
 }
 
-VkResult Rhi::initSurface(SDL_Window* window)
+VkResult Rhi::init_surface(SDL_Window* window)
 {
 	VkSurfaceKHR surface;
 	SDL_Vulkan_CreateSurface(window, m_instance.value(), nullptr, &surface);
@@ -461,7 +461,7 @@ VkResult Rhi::initSurface(SDL_Window* window)
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::initInstance()
+VkResult Rhi::init_instance()
 {
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -490,7 +490,7 @@ VkResult Rhi::initInstance()
 	return result;
 }
 
-VkResult Rhi::initPhysicalDevice()
+VkResult Rhi::init_physical_device()
 {
 	if (!m_instance.has_value()) return VK_NOT_READY;
 	std::vector<VkPhysicalDevice> physicalDevices;
@@ -622,7 +622,7 @@ VkResult Rhi::initPhysicalDevice()
 	return result;
 }
 
-VkResult Rhi::initDevice()
+VkResult Rhi::init_device()
 {
 	if (!m_physicalDevice.has_value()) return VK_NOT_READY;
 
@@ -673,7 +673,7 @@ VkResult Rhi::initDevice()
 	return result;
 }
 
-VkResult Rhi::initPresentationQueue()
+VkResult Rhi::init_presentation_queue()
 {
 	VkQueue queue;
 	VkDeviceQueueInfo2 getInfo = {};
@@ -738,12 +738,12 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, SDL_Wi
 	}
 }
 
-VkResult Rhi::initSwapChain(SDL_Window* window)
+VkResult Rhi::init_swap_chain(SDL_Window* window)
 {
-	return createSwapchain(window, VK_NULL_HANDLE);
+	return create_swapchain(window, VK_NULL_HANDLE);
 }
 
-VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain)
+VkResult Rhi::create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain)
 {
 	m_swapchainDetails = querySwapChainSupport(m_physicalDevice.value());
 
@@ -779,14 +779,14 @@ VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain)
 	createInfo.presentMode = m_swapchainPresentMode;
 	createInfo.clipped = VK_TRUE;
 
-	createInfo.oldSwapchain = oldSwapchain;
+	createInfo.oldSwapchain = old_swapchain;
 
 	VkSwapchainKHR swapchain;
 	VkDevice device = m_device.value();
 	VkResult result = vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain);
 	if (result != VK_SUCCESS) return result;
 
-	if (oldSwapchain != VK_NULL_HANDLE)
+	if (old_swapchain != VK_NULL_HANDLE)
 	{
 		destroySwapchain();
 	}
@@ -794,16 +794,16 @@ VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain)
 	m_swapchainExtent = extent;
 	m_swapchain = swapchain;
 
-	m_swapChainImages.clear();
+	m_swap_chain_images_.clear();
 	vkGetSwapchainImagesKHR(device, swapchain, &m_swapChainImageCount, nullptr);
-	m_swapChainImages.resize(m_swapChainImageCount);
-	vkGetSwapchainImagesKHR(device, swapchain, &m_swapChainImageCount, m_swapChainImages.data());
+	m_swap_chain_images_.resize(m_swapChainImageCount);
+	vkGetSwapchainImagesKHR(device, swapchain, &m_swapChainImageCount, m_swap_chain_images_.data());
 
-	for (size_t i = 0; i < m_swapChainImages.size(); i++)
+	for (size_t i = 0; i < m_swap_chain_images_.size(); i++)
 	{
 		VkImageViewCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = m_swapChainImages[i];
+		createInfo.image = m_swap_chain_images_[i];
 		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		createInfo.format = m_swapchainImageFormat.format;
 		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -819,12 +819,12 @@ VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain)
 		VkResult result = vkCreateImageView(device, &createInfo, nullptr, &imageView);
 		if (result != VK_SUCCESS) return result;
 		// don't initially size these so we can clean this up nicely if any fail
-		m_swapChainImageViews.push_back(imageView);
+		m_swap_chain_image_views_.push_back(imageView);
 	}
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::initDrawImage()
+VkResult Rhi::init_draw_image()
 {
 	VkResult result;
 
@@ -879,7 +879,7 @@ VkResult Rhi::initDrawImage()
 	return result;
 }
 
-VkResult Rhi::initDescriptors()
+VkResult Rhi::init_descriptors()
 {
 	std::vector<DescriptorAllocator::PoolSizeRatio> sizes = {
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}
@@ -923,7 +923,7 @@ VkResult Rhi::initDescriptors()
 	return VK_SUCCESS;
 }
 
-void Rhi::initAllocator()
+void Rhi::init_allocator()
 {
 	VmaVulkanFunctions vulkanFunctions = {};
 	vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
@@ -943,7 +943,7 @@ void Rhi::initAllocator()
 }
 
 
-VkResult Rhi::initGraphics()
+VkResult Rhi::init_graphics()
 {
 	std::vector<char> vertShaderCode;
 	std::vector<char> fragShaderCode;
@@ -959,11 +959,11 @@ VkResult Rhi::initGraphics()
 	}
 
 	VkResult result;
-	result = createShaderObjects(vertShaderCode, fragShaderCode);
+	result = create_shader_objects(vertShaderCode, fragShaderCode);
 	return result;
 }
 
-VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vector<char>& frag)
+VkResult Rhi::create_shader_objects(const std::vector<char>& vert, const std::vector<char>& frag)
 {
 	VkPushConstantRange pushContantRange = {};
 	pushContantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1034,7 +1034,7 @@ VkResult Rhi::createShaderObjects(const std::vector<char>& vert, const std::vect
 	return result;
 }
 
-VkResult Rhi::initCommandPool()
+VkResult Rhi::init_command_pool()
 {
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1048,21 +1048,21 @@ VkResult Rhi::initCommandPool()
 	return result;
 }
 
-VkResult Rhi::initCommandBuffers()
+VkResult Rhi::init_command_buffers()
 {
-	m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	m_command_buffers_.resize(MAX_FRAMES_IN_FLIGHT);
 
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.commandPool = m_commandPool.value();
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = (uint32_t)m_commandBuffers.size();
+	allocInfo.commandBufferCount = (uint32_t)m_command_buffers_.size();
 
-	VkResult result = vkAllocateCommandBuffers(m_device.value(), &allocInfo, m_commandBuffers.data());
+	VkResult result = vkAllocateCommandBuffers(m_device.value(), &allocInfo, m_command_buffers_.data());
 	return result;
 }
 
-VkResult Rhi::initSyncObjects()
+VkResult Rhi::init_sync_objects()
 {
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1078,14 +1078,14 @@ VkResult Rhi::initSyncObjects()
 		VkSemaphore semaphore;
 		result = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
 		if (result != VK_SUCCESS) return result;
-		m_imageAvailableSemaphores.push_back(semaphore);
+		m_image_available_semaphores_.push_back(semaphore);
 		result = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
 		if (result != VK_SUCCESS) return result;
-		m_renderFinishedSemaphores.push_back(semaphore);
+		m_render_finished_semaphores_.push_back(semaphore);
 		VkFence fence;
 		result = vkCreateFence(device, &fenceInfo, nullptr, &fence);
 		if (result != VK_SUCCESS) return result;
-		m_inFlightFence.push_back(fence);
+		m_in_flight_fence_.push_back(fence);
 	}
 	{
 		VkFence fence;
@@ -1096,7 +1096,7 @@ VkResult Rhi::initSyncObjects()
 }
 
 
-VkResult Rhi::initCommands()
+VkResult Rhi::init_commands()
 {
 	VkResult result;
 
@@ -1126,9 +1126,9 @@ VkResult Rhi::initCommands()
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::initDefaultData()
+VkResult Rhi::init_default_data()
 {
-	auto result = loadGltfMeshes(this, "assets\\basicmesh.glb");
+	auto result = load_gltf_meshes(this, "assets\\basicmesh.glb");
 	if (result.has_value())
 	{
 		m_testMeshes = result.value();
