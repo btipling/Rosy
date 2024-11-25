@@ -190,9 +190,6 @@ void Rhi::deinit() {
 	for (VkShaderEXT shader : m_shaders) {
 		vkDestroyShaderEXT(m_device.value(), shader, nullptr);
 	}
-	for (VkImageView imageView : m_swapChainImageViews) {
-		vkDestroyImageView(m_device.value(), imageView, nullptr);
-	}
 	if (m_depthImage.has_value()) {
 		AllocatedImage depthImage = m_depthImage.value();
 		vkDestroyImageView(m_device.value(), depthImage.imageView, nullptr);
@@ -203,9 +200,7 @@ void Rhi::deinit() {
 		vkDestroyImageView(m_device.value(), drawImage.imageView, nullptr);
 		vmaDestroyImage(m_allocator.value(), drawImage.image, drawImage.allocation);
 	}
-	if (m_swapchain.has_value()) {
-		vkDestroySwapchainKHR(m_device.value(), m_swapchain.value(), nullptr);
-	}
+	destroySwapchain();
 	if (m_debugMessenger.has_value()) {
 		vkDestroyDebugUtilsMessengerEXT(m_instance.value(), m_debugMessenger.value(), nullptr);
 	}
@@ -224,7 +219,22 @@ void Rhi::deinit() {
 	}
 }
 
+void Rhi::destroySwapchain() {
+	for (VkImageView imageView : m_swapChainImageViews) {
+		vkDestroyImageView(m_device.value(), imageView, nullptr);
+	}
+	m_swapChainImageViews.clear();
+	if (m_swapchain.has_value()) {
+		vkDestroySwapchainKHR(m_device.value(), m_swapchain.value(), nullptr);
+		m_swapchain = std::nullopt;
+	}
+}
+
 VkResult Rhi::resizeSwapchain(SDL_Window* window) {
+	vkDeviceWaitIdle(m_device.value());
+
+	destroySwapchain();
+
 	return VK_NOT_READY;
 }
 

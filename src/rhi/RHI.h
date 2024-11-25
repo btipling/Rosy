@@ -132,11 +132,14 @@ private:
 	void blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize);
 	AllocatedBufferResult createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	VkDebugUtilsObjectNameInfoEXT addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName);
-	void destroyBuffer(const AllocatedBuffer& buffer);
 
 	// ui
 	VkResult initUI(SDL_Window* window);
 	VkResult renderUI(VkCommandBuffer cmd, VkImageView targetImageView);
+
+	// destructors
+	void destroySwapchain();
+	void destroyBuffer(const AllocatedBuffer& buffer);
 	void deinitUI();
 
 };
