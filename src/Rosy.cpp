@@ -88,6 +88,7 @@ int main(int argc, char* argv[])
 				continue;
 			}
 			if (resizeRequested) {
+				rosy_utils::DebugPrintA("resizing swapchain\n");
 				result = rhi->resizeSwapchain(window);
 				if (result != VK_SUCCESS) {
 					rosy_utils::DebugPrintA("rhi failed to resize swapchain %d\n", result);
@@ -117,6 +118,7 @@ int main(int argc, char* argv[])
 			result = rhi->drawFrame();
 			if (result != VK_SUCCESS) {
 				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+					rosy_utils::DebugPrintA("swapchain out of date\n");
 					resizeRequested = true;
 					break;
 				}

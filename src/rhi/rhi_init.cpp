@@ -227,11 +227,7 @@ void Rhi::destroySwapchain() {
 
 VkResult Rhi::resizeSwapchain(SDL_Window* window) {
 	vkDeviceWaitIdle(m_device.value());
-
-	VkSwapchainKHR oldSwapchain = m_swapchain.value();
-	destroySwapchain();
-
-	return createSwapchain(window, oldSwapchain);
+	return createSwapchain(window, m_swapchain.value());
 }
 
 VkResult Rhi::drawFrame() {
@@ -686,13 +682,18 @@ VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain) {
 	VkResult result = vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain);
 	if (result != VK_SUCCESS) return result;
 
+	if (oldSwapchain != VK_NULL_HANDLE) {
+		destroySwapchain();
+	}
+
+	m_swapchainExtent = extent;
+	m_swapchain = swapchain;
+
 	m_swapChainImages.clear();
 	vkGetSwapchainImagesKHR(device, swapchain, &m_swapChainImageCount, nullptr);
 	m_swapChainImages.resize(m_swapChainImageCount);
 	vkGetSwapchainImagesKHR(device, swapchain, &m_swapChainImageCount, m_swapChainImages.data());
 
-	m_swapchainExtent = extent;
-	m_swapchain = swapchain;
 	for (size_t i = 0; i < m_swapChainImages.size(); i++) {
 		VkImageViewCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
