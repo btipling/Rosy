@@ -215,6 +215,7 @@ void Rhi::deinit() {
 }
 
 void Rhi::destroySwapchain() {
+	vkDeviceWaitIdle(m_device.value());
 	for (VkImageView imageView : m_swapChainImageViews) {
 		vkDestroyImageView(m_device.value(), imageView, nullptr);
 	}
@@ -227,7 +228,8 @@ void Rhi::destroySwapchain() {
 
 VkResult Rhi::resizeSwapchain(SDL_Window* window) {
 	vkDeviceWaitIdle(m_device.value());
-	return createSwapchain(window, m_swapchain.value());
+	destroySwapchain();
+	return createSwapchain(window, VK_NULL_HANDLE);
 }
 
 VkResult Rhi::drawFrame() {
@@ -637,6 +639,10 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, SDL_Wi
 }
 
 VkResult Rhi::initSwapChain(SDL_Window* window) {
+	return createSwapchain(window, VK_NULL_HANDLE);
+}
+
+VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain) {
 	m_swapchainDetails = querySwapChainSupport(m_physicalDevice.value());
 
 	m_swapchainImageFormat = chooseSwapSurfaceFormat(m_swapchainDetails.formats);
@@ -646,12 +652,6 @@ VkResult Rhi::initSwapChain(SDL_Window* window) {
 	if (m_swapchainDetails.capabilities.maxImageCount > 0 && m_swapChainImageCount > m_swapchainDetails.capabilities.maxImageCount) {
 		m_swapChainImageCount = m_swapchainDetails.capabilities.maxImageCount;
 	}
-
-	return createSwapchain(window, VK_NULL_HANDLE);
-}
-
-VkResult Rhi::createSwapchain(SDL_Window* window, VkSwapchainKHR oldSwapchain) {
-
 	VkExtent2D extent = chooseSwapExtent(m_swapchainDetails.capabilities, window);
 	VkSwapchainCreateInfoKHR createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -722,8 +722,8 @@ VkResult Rhi::initDrawImage() {
 	VkResult result;
 
 	VkExtent3D drawImageExtent = {
-		m_swapchainExtent.width,
-		m_swapchainExtent.height,
+		m_cfg.maxWindowWidth,
+		m_cfg.maxWindowHeight,
 		1
 	};
 	AllocatedImage drawImage = {};

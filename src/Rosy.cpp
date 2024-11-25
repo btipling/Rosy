@@ -30,6 +30,8 @@ int main(int argc, char* argv[])
 
 	int width = 640;
 	int height = 480;
+	int maxWidth = 640;
+	int maxHeight = 480;
 	int displaysCount = 0;
 	auto displayIds = SDL_GetDisplays(&displaysCount);
 	if (displaysCount == 0) {
@@ -41,6 +43,8 @@ int main(int argc, char* argv[])
 	// TODO: don't always get the first display
 	SDL_Rect displayBounds = {};
 	if (SDL_GetDisplayBounds(*displayIds, &displayBounds)) {
+		maxWidth = displayBounds.w;
+		maxHeight = displayBounds.h;
 		width = displayBounds.w * 0.75;
 		height = displayBounds.h * 0.75;
 	}
@@ -48,7 +52,10 @@ int main(int argc, char* argv[])
 	SDL_WindowFlags windowFlags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 	window = SDL_CreateWindow("Rosy", width, height, windowFlags);
 
-	rosy_config::Config cfg = {};
+	rosy_config::Config cfg = {
+		.maxWindowWidth = maxWidth,
+		.maxWindowHeight = maxHeight,
+	};
 	rosy_config::debug();
 
 	Rhi* rhi = new Rhi{ cfg };
