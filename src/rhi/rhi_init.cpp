@@ -192,76 +192,94 @@ void Rhi::deinit()
 		destroyBuffer(rectangle.indexBuffer);
 		mesh.reset();
 	}
+
 	if (m_imm_fence_.has_value())
 	{
 		vkDestroyFence(m_device_.value(), m_imm_fence_.value(), nullptr);
 	}
+
 	if (m_imm_command_pool_.has_value())
 	{
 		vkDestroyCommandPool(m_device_.value(), m_imm_command_pool_.value(), nullptr);
 	}
-	for (VkFence fence : m_in_flight_fence_)
+
+	for (const VkFence fence : m_in_flight_fence_)
 	{
 		vkDestroyFence(m_device_.value(), fence, nullptr);
 	}
-	for (VkSemaphore semaphore : m_image_available_semaphores_)
+
+	for (const VkSemaphore semaphore : m_image_available_semaphores_)
 	{
 		vkDestroySemaphore(m_device_.value(), semaphore, nullptr);
 	}
-	for (VkSemaphore semaphore : m_render_finished_semaphores_)
+
+	for (const VkSemaphore semaphore : m_render_finished_semaphores_)
 	{
 		vkDestroySemaphore(m_device_.value(), semaphore, nullptr);
 	}
+
 	if (m_command_pool_.has_value())
 	{
 		vkDestroyCommandPool(m_device_.value(), m_command_pool_.value(), nullptr);
 	}
+
 	if (m_shader_pl_.has_value())
 	{
 		vkDestroyPipelineLayout(m_device_.value(), m_shader_pl_.value(), nullptr);
 	}
-	for (VkShaderEXT shader : m_shaders_)
+
+	for (const VkShaderEXT shader : m_shaders_)
 	{
 		vkDestroyShaderEXT(m_device_.value(), shader, nullptr);
 	}
+
 	if (m_draw_image_descriptor_layout_.has_value())
 	{
 		vkDestroyDescriptorSetLayout(m_device_.value(), m_draw_image_descriptor_layout_.value(), nullptr);
 	}
+
 	if (m_global_descriptor_allocator_.has_value())
 	{
 		m_global_descriptor_allocator_.value().destroyPool(m_device_.value());
 	}
+
 	if (m_depth_image_.has_value())
 	{
-		AllocatedImage depthImage = m_depth_image_.value();
-		vkDestroyImageView(m_device_.value(), depthImage.imageView, nullptr);
-		vmaDestroyImage(m_allocator_.value(), depthImage.image, depthImage.allocation);
+		const AllocatedImage depth_image = m_depth_image_.value();
+		vkDestroyImageView(m_device_.value(), depth_image.imageView, nullptr);
+		vmaDestroyImage(m_allocator_.value(), depth_image.image, depth_image.allocation);
 	}
+
 	if (m_draw_image_.has_value())
 	{
-		AllocatedImage drawImage = m_draw_image_.value();
-		vkDestroyImageView(m_device_.value(), drawImage.imageView, nullptr);
-		vmaDestroyImage(m_allocator_.value(), drawImage.image, drawImage.allocation);
+		const AllocatedImage draw_image = m_draw_image_.value();
+		vkDestroyImageView(m_device_.value(), draw_image.imageView, nullptr);
+		vmaDestroyImage(m_allocator_.value(), draw_image.image, draw_image.allocation);
 	}
+
 	destroySwapchain();
+
 	if (m_debug_messenger_.has_value())
 	{
 		vkDestroyDebugUtilsMessengerEXT(m_instance_.value(), m_debug_messenger_.value(), nullptr);
 	}
+
 	if (m_allocator_.has_value())
 	{
 		vmaDestroyAllocator(m_allocator_.value());
 	}
+
 	if (m_device_.has_value())
 	{
-		VkResult result = vkDeviceWaitIdle(m_device_.value());
-		if (result == VK_SUCCESS) vkDestroyDevice(m_device_.value(), NULL);
+		const VkResult result = vkDeviceWaitIdle(m_device_.value());
+		if (result == VK_SUCCESS) vkDestroyDevice(m_device_.value(), nullptr);
 	}
+
 	if (m_surface_.has_value())
 	{
 		SDL_Vulkan_DestroySurface(m_instance_.value(), m_surface_.value(), nullptr);
 	}
+
 	if (m_instance_.has_value())
 	{
 		vkDestroyInstance(m_instance_.value(), NULL);
