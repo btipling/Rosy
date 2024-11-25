@@ -224,6 +224,10 @@ void Rhi::deinit() {
 	}
 }
 
+VkResult Rhi::resizeSwapchain(SDL_Window* window) {
+	return VK_NOT_READY;
+}
+
 VkResult Rhi::drawFrame() {
 	VkResult result;
 	result = this->renderFrame();

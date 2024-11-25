@@ -9,6 +9,7 @@ class Rhi {
 public:
 	Rhi(rosy_config::Config cfg);
 	VkResult init(SDL_Window* window);
+	VkResult resizeSwapchain(SDL_Window* window);
 	void deinit();
 	VkResult drawUI();
 	VkResult drawFrame();

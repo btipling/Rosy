@@ -41,11 +41,12 @@ int main(int argc, char* argv[])
 	// TODO: don't always get the first display
 	SDL_Rect displayBounds = {};
 	if (SDL_GetDisplayBounds(*displayIds, &displayBounds)) {
-		width = displayBounds.w;
-		height = displayBounds.h;
+		width = displayBounds.w * 0.75;
+		height = displayBounds.h * 0.75;
 	}
 
-	window = SDL_CreateWindow("Rosy", width, height, SDL_WINDOW_VULKAN);
+	SDL_WindowFlags windowFlags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+	window = SDL_CreateWindow("Rosy", width, height, windowFlags);
 
 	rosy_config::Config cfg = {};
 	rosy_config::debug();
@@ -65,25 +66,35 @@ int main(int argc, char* argv[])
 	}
 	rhi->debug();
 
-	bool should_run = true;
-	bool should_render = true;
-	while (should_run) {
+	bool shouldRun = true;
+	bool shouldRender = true;
+	bool resizeRequested = false;
+	while (shouldRun) {
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			if (event.type == SDL_EVENT_QUIT) {
-				should_run = false;
+				shouldRun = false;
 				break;
 			}
 			if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
-				should_render = false;
+				shouldRender = false;
 			}
 			if (event.type == SDL_EVENT_WINDOW_RESTORED) {
-				should_render = true;
+				shouldRender = true;
 			}
-			if (!should_render) {
+			if (!shouldRender) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				continue;
+			}
+			if (resizeRequested) {
+				result = rhi->resizeSwapchain(window);
+				if (result != VK_SUCCESS) {
+					rosy_utils::DebugPrintA("rhi failed to resize swapchain %d\n", result);
+					shouldRun = false;
+					break;
+				}
+				resizeRequested = false;
 			}
 
 			{
@@ -92,8 +103,12 @@ int main(int argc, char* argv[])
 				ImGui::NewFrame();
 				result = rhi->drawUI();
 				if (result != VK_SUCCESS) {
+					if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+						resizeRequested = true;
+						break;
+					}
 					rosy_utils::DebugPrintA("rhi draw ui failed %d\n", result);
-					should_run = false;
+					shouldRun = false;
 					break;
 				}
 				ImGui::Render();
@@ -101,8 +116,12 @@ int main(int argc, char* argv[])
 
 			result = rhi->drawFrame();
 			if (result != VK_SUCCESS) {
+				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+					resizeRequested = true;
+					break;
+				}
 				rosy_utils::DebugPrintA("rhi draw failed %d\n", result);
-				should_run = false;
+				shouldRun = false;
 				break;
 			}
 		}

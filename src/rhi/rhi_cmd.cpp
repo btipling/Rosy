@@ -30,6 +30,7 @@ void Rhi::toggleDepth(VkCommandBuffer cmd, bool enable) {
 	vkCmdSetStencilTestEnableEXT(cmd, VK_FALSE);
 	vkCmdSetLogicOpEnableEXT(cmd, VK_FALSE);
 	vkCmdSetDepthBounds(cmd, 0.0f, 1.0f);
+	vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
 }
 
 void Rhi::toggleCulling(VkCommandBuffer cmd, bool enable) {
