@@ -240,7 +240,7 @@ void Rhi::deinit()
 
 	if (m_global_descriptor_allocator_.has_value())
 	{
-		m_global_descriptor_allocator_.value().destroyPool(m_device_.value());
+		m_global_descriptor_allocator_.value().destroy_pool(m_device_.value());
 	}
 
 	if (m_depth_image_.has_value())
@@ -907,18 +907,18 @@ VkResult Rhi::init_draw_image()
 
 VkResult Rhi::init_descriptors()
 {
-	std::vector<DescriptorAllocator::PoolSizeRatio> sizes = {
+	std::vector<descriptor_allocator::pool_size_ratio> sizes = {
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}
 	};
 
 	const VkDevice device = m_device_.value();
 
 	{
-		DescriptorAllocator allocator = {};
-		allocator.initPool(device, 10, sizes);
+		descriptor_allocator allocator = {};
+		allocator.init_pool(device, 10, sizes);
 		m_global_descriptor_allocator_ = allocator;
-		DescriptorLayoutBuilder builder;
-		builder.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+		descriptor_layout_builder builder;
+		builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 		const auto [result, set] = builder.build(device, VK_SHADER_STAGE_COMPUTE_BIT);
 		if (result != VK_SUCCESS)
 		{

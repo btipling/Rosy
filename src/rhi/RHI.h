@@ -47,7 +47,7 @@ private:
 	SwapChainSupportDetails m_swapchain_details_ = {};
 	VkExtent2D m_swapchain_extent_ = {};
 	std::optional<VkCommandPool> m_command_pool_ = std::nullopt;
-	std::optional<DescriptorAllocator> m_global_descriptor_allocator_;
+	std::optional<descriptor_allocator> m_global_descriptor_allocator_;
 	std::optional<VkDescriptorSet> m_draw_image_descriptors_;
 	std::optional<VkDescriptorSetLayout> m_draw_image_descriptor_layout_;
 
