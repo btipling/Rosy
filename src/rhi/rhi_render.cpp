@@ -36,11 +36,14 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 VkResult rhi::render_frame() {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
 		opt_command_pool, opt_frame_descriptors] = frame_datas_[current_frame_];
-	if (!opt_command_buffers.has_value()) return VK_NOT_READY;
-	if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
-	if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
-	if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
-	if (!opt_command_pool.has_value()) return VK_NOT_READY;
+	{
+		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
+		if (!opt_command_pool.has_value()) return VK_NOT_READY;
+	}
+
 	VkCommandPool command_pool = opt_command_pool.value();
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	VkSemaphore image_available = opt_image_available_semaphores.value();
@@ -55,16 +58,16 @@ VkResult rhi::render_frame() {
 	if (result != VK_SUCCESS) return result;
 	frame_descriptors.clear_pools(device);
 
-	uint32_t imageIndex;
+	uint32_t image_index;
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
-	vkAcquireNextImageKHR(device_.value(), swapchain_.value(), UINT64_MAX, image_available, VK_NULL_HANDLE, &imageIndex);
-	VkImage image = swap_chain_images_[imageIndex];
-	VkImageView imageView = swap_chain_image_views_[imageIndex];
+	vkAcquireNextImageKHR(device_.value(), swapchain_.value(), UINT64_MAX, image_available, VK_NULL_HANDLE, &image_index);
+	VkImage image = swap_chain_images_[image_index];
+	VkImageView imageView = swap_chain_image_views_[image_index];
 
-	allocated_image drawImage = draw_image_.value();
+	allocated_image draw_image = draw_image_.value();
 	allocated_image depthImage = depth_image_.value();
-	draw_extent_.width = std::min(swapchain_extent_.width, drawImage.image_extent.width) * render_scale_;
-	draw_extent_.height = std::min(swapchain_extent_.height, drawImage.image_extent.height) * render_scale_;
+	draw_extent_.width = std::min(swapchain_extent_.width, draw_image.image_extent.width) * render_scale_;
+	draw_extent_.height = std::min(swapchain_extent_.height, draw_image.image_extent.height) * render_scale_;
 
 	vkResetFences(device, 1, &fence);
 	{
@@ -106,65 +109,64 @@ VkResult rhi::render_frame() {
 	{
 		// Clear image. This transition means that all the commands recorded before now happen before
 		// any calls after. The calls themselves before this may have executed in any order up until this point.
-		transition_image(cmd, drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
 		// vkCmdClearColorImage is guaranteed to happen after previous calls.
-		VkClearColorValue clearValue;
-		clearValue = { { 0.0f, 0.05f, 0.1f, 1.0f } };
-		VkImageSubresourceRange subresourceRange = {};
-		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-		subresourceRange.baseArrayLayer = 0;
-		subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-		vkCmdClearColorImage(cmd, drawImage.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &subresourceRange);
+		VkClearColorValue clear_value;
+		clear_value = { { 0.0f, 0.05f, 0.1f, 1.0f } };
+		VkImageSubresourceRange subresource_range = {};
+		subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresource_range.baseMipLevel = 0;
+		subresource_range.levelCount = VK_REMAINING_MIP_LEVELS;
+		subresource_range.baseArrayLayer = 0;
+		subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
+		vkCmdClearColorImage(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
 	}
 	{
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
-		transition_image(cmd, drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 		transition_image(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
-			VkRenderingAttachmentInfo colorAttachment = attachment_info(drawImage.image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			VkRenderingAttachmentInfo depthAttachment = depth_attachment_info(depthImage.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-			VkRenderingInfo renderInfo = rendering_info(swapchain_extent_, colorAttachment, depthAttachment);
-			vkCmdBeginRendering(cmd, &renderInfo);
+			VkRenderingAttachmentInfo color_attachment = attachment_info(draw_image.image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			VkRenderingAttachmentInfo depth_attachment = depth_attachment_info(depthImage.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+			VkRenderingInfo render_info = rendering_info(swapchain_extent_, color_attachment, depth_attachment);
+			vkCmdBeginRendering(cmd, &render_info);
 		}
 
 	}
 	{
-		// triangle
-
+		// meshes
 		{
-			const VkDebugUtilsLabelEXT triangleLabel =
+			constexpr VkDebugUtilsLabelEXT mesh_draw_label =
 			{
 				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-				.pNext = NULL,
-				.pLabelName = "triangleLabel",
+				.pNext = nullptr,
+				.pLabelName = "meshes",
 				.color = { 1.0f, 0.0f, 0.0f, 1.0f },
 			};
-			vkCmdBeginDebugUtilsLabelEXT(cmd, &triangleLabel);
-			const VkShaderStageFlagBits stages[2] =
+			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
+			constexpr VkShaderStageFlagBits stages[2] =
 			{
 				VK_SHADER_STAGE_VERTEX_BIT,
 				VK_SHADER_STAGE_FRAGMENT_BIT
 			};
 			vkCmdBindShadersEXT(cmd, 2, stages, shaders_.data());
-			const VkShaderStageFlagBits unusedStages[3] =
+			constexpr VkShaderStageFlagBits unused_stages[3] =
 			{
 				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
 				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
 				VK_SHADER_STAGE_GEOMETRY_BIT
 			};
-			vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
+			vkCmdBindShadersEXT(cmd, 3, unused_stages, nullptr);
 
 			gpu_draw_push_constants push_constants;
 			glm::mat4 m = glm::mat4(1.0f);
 
-			glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -10.0f); 
-			glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-			glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+			glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, -10.0f); 
+			glm::vec3 camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
+			glm::vec3 camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-			glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
+			glm::mat4 view = glm::lookAt(camera_pos, camera_target, camera_up);
 
 			m = glm::translate(m, glm::vec3{ model_x_, model_y_, model_z_ });
 			m = glm::rotate(m, model_rot_x_, glm::vec3(1, 0, 0));
@@ -172,14 +174,14 @@ VkResult rhi::render_frame() {
 			m = glm::rotate(m, model_rot_z_, glm::vec3(0, 0, 1));
 			m = glm::scale(m, glm::vec3(model_scale_, model_scale_, model_scale_));
 
-			float znear = 0.1f;
-			float zfar = 1000.0f;
-			float aspect = (float)draw_extent_.width / (float)draw_extent_.height;
+			float z_near = 0.1f;
+			float z_far = 1000.0f;
+			float aspect = static_cast<float>(draw_extent_.width) / static_cast<float>(draw_extent_.height);
 			constexpr float fov = glm::radians(70.0f);
 			float h = 1.0 / tan(fov * 0.5);
 			float w = h / aspect;
-			float a = -znear / (zfar - znear);
-			float b = (znear * zfar) / (zfar - znear);
+			float a = -z_near / (z_far - z_near);
+			float b = (z_near * z_far) / (z_far - z_near);
 
 			glm::mat4 proj(0.0f);
 
@@ -207,9 +209,9 @@ VkResult rhi::render_frame() {
 		vkCmdEndRendering(cmd);
 		{
 			// blit the draw image to the swapchain image
-			transition_image(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+			transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			blit_images(cmd, drawImage.image, image, draw_extent_, swapchain_extent_);
+			blit_images(cmd, draw_image.image, image, draw_extent_, swapchain_extent_);
 		}
 		{
 			// draw ui onto swapchain image
@@ -279,7 +281,7 @@ VkResult rhi::render_frame() {
 			presentInfo.pWaitSemaphores = &rendered_finished;
 			presentInfo.swapchainCount = 1;
 			presentInfo.pSwapchains = swapChains;
-			presentInfo.pImageIndices = &imageIndex;
+			presentInfo.pImageIndices = &image_index;
 
 			result = vkQueuePresentKHR(present_queue_.value(), &presentInfo);
 			if (result != VK_SUCCESS) return result;
