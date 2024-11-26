@@ -86,11 +86,7 @@ private:
 	std::vector<VkImage> swap_chain_images_;
 	std::vector<VkImageView> swap_chain_image_views_;
 
-	// per frame data
-	std::vector<VkCommandBuffer> command_buffers_;
-	std::vector<VkSemaphore> image_available_semaphores_;
-	std::vector<VkSemaphore> render_finished_semaphores_;
-	std::vector<VkFence> in_flight_fence_;
+	std::vector<frame_data> frame_datas_;
 
 	std::optional<VkDebugUtilsMessengerEXT> debug_messenger_ = std::nullopt;
 
@@ -118,8 +114,8 @@ private:
 	VkResult init_default_data();
 
 	// Rendering
-	void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout,
-	                      VkImageAspectFlags aspectMask);
+	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout, VkImageLayout new_layout,
+	                             VkImageAspectFlags aspect_mask);
 	VkResult render_frame();
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
@@ -134,23 +130,23 @@ private:
 	void enable_blending_alpha_blend(VkCommandBuffer cmd);
 
 	// Utils
-	swap_chain_support_details querySwapChainSupport(VkPhysicalDevice device);
-	VkImageCreateInfo imgCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
-	VkImageViewCreateInfo imgViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
-	VkRenderingAttachmentInfo attachmentInfo(VkImageView view, VkImageLayout layout);
-	VkRenderingAttachmentInfo depthAttachmentInfo(VkImageView view, VkImageLayout layout);
-	VkRenderingInfo renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment,
-	                              std::optional<VkRenderingAttachmentInfo> depthAttachment);
-	void blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize);
-	allocated_buffer_result createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
-	VkDebugUtilsObjectNameInfoEXT addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName);
+	swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device);
+	VkImageCreateInfo img_create_info(VkFormat format, VkImageUsageFlags usage_flags, VkExtent3D extent);
+	VkImageViewCreateInfo img_view_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspect_flags);
+	VkRenderingAttachmentInfo attachment_info(VkImageView view, VkImageLayout layout);
+	VkRenderingAttachmentInfo depth_attachment_info(VkImageView view, VkImageLayout layout);
+	VkRenderingInfo rendering_info(VkExtent2D render_extent, VkRenderingAttachmentInfo color_attachment,
+	                              std::optional<VkRenderingAttachmentInfo> depth_attachment);
+	void blit_images(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D src_size, VkExtent2D dst_size);
+	allocated_buffer_result create_buffer(size_t alloc_size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage);
+	VkDebugUtilsObjectNameInfoEXT add_name(VkObjectType object_type, uint64_t object_handle, const char* p_object_name);
 
 	// ui
-	VkResult initUI(SDL_Window* window);
-	VkResult renderUI(VkCommandBuffer cmd, VkImageView targetImageView);
+	VkResult init_ui(SDL_Window* window);
+	VkResult render_ui(VkCommandBuffer cmd, VkImageView target_image_view);
 
 	// destructors
 	void destroy_swapchain();
-	void destroyBuffer(const allocated_buffer& buffer);
-	void deinitUI();
+	void destroy_buffer(const allocated_buffer& buffer);
+	void deinit_ui();
 };

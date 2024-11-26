@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
-VkResult rhi::initUI(SDL_Window* window) {
+VkResult rhi::init_ui(SDL_Window* window) {
 	VkDescriptorPoolSize poolSizes[] = { 
 		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
@@ -68,11 +68,11 @@ VkResult rhi::initUI(SDL_Window* window) {
 	return VK_SUCCESS;
 }
 
-VkResult rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
+VkResult rhi::render_ui(VkCommandBuffer cmd, VkImageView target_image_view) {
 	VkResult result;
 
-	VkRenderingAttachmentInfo colorAttachment = attachmentInfo(targetImageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-	VkRenderingInfo renderInfo = renderingInfo(swapchain_extent_, colorAttachment, std::nullopt);
+	VkRenderingAttachmentInfo colorAttachment = attachment_info(target_image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	VkRenderingInfo renderInfo = rendering_info(swapchain_extent_, colorAttachment, std::nullopt);
 	vkCmdBeginRendering(cmd, &renderInfo);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
@@ -98,7 +98,7 @@ VkResult rhi::draw_ui() {
 	return VK_SUCCESS;
 }
 
-void rhi::deinitUI() {
+void rhi::deinit_ui() {
 	if (ui_pool_.value()) {
 		ImGui_ImplVulkan_Shutdown();
         ImGui_ImplSDL3_Shutdown();

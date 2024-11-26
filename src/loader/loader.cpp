@@ -10,7 +10,6 @@
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
 
-
 std::optional<std::vector<std::shared_ptr<mesh_asset>>> load_gltf_meshes(rhi* rhi, std::filesystem::path file_path) {
 	fastgltf::Asset gltf;
 	fastgltf::Parser parser{};

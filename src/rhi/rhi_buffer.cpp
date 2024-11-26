@@ -8,7 +8,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	const size_t vertexBufferSize = vertices.size() * sizeof(vertex);
 	const size_t indexBufferSize = indices.size() * sizeof(uint32_t);
 
-	allocated_buffer_result vertexBufferResult = createBuffer(
+	allocated_buffer_result vertexBufferResult = create_buffer(
 		vertexBufferSize, 
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		VMA_MEMORY_USAGE_GPU_ONLY);
@@ -21,7 +21,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	// *** SETTING VERTEX BUFFER *** //
 	vertexBuffer = vertexBufferResult.buffer;
 	rosy_utils::debug_print_a("vertex buffer set!\n");
-	addName(VK_OBJECT_TYPE_BUFFER, (uint64_t)vertexBuffer.buffer, "vertexBuffer");
+	add_name(VK_OBJECT_TYPE_BUFFER, (uint64_t)vertexBuffer.buffer, "vertexBuffer");
 
 	VkBufferDeviceAddressInfo deviceAddressInfo = {};
 	deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
@@ -31,7 +31,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	vertexBufferAddress = vkGetBufferDeviceAddress(device_.value(), &deviceAddressInfo);
 	rosy_utils::debug_print_a("vertex buffer address set!\n");
 
-	allocated_buffer_result indexBufferResult = createBuffer(
+	allocated_buffer_result indexBufferResult = create_buffer(
 		indexBufferSize, 
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VMA_MEMORY_USAGE_GPU_ONLY);
@@ -44,9 +44,9 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	// *** SETTING INDEX BUFFER *** //
 	indexBuffer = indexBufferResult.buffer;
 	rosy_utils::debug_print_a("index buffer address set!\n");
-	addName(VK_OBJECT_TYPE_BUFFER, (uint64_t)indexBuffer.buffer, "indexBuffer");
+	add_name(VK_OBJECT_TYPE_BUFFER, (uint64_t)indexBuffer.buffer, "indexBuffer");
 
-	allocated_buffer_result stagingBuffeResult = createBuffer(vertexBufferSize + indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+	allocated_buffer_result stagingBuffeResult = create_buffer(vertexBufferSize + indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 	if (stagingBuffeResult.result != VK_SUCCESS) {
 		gpu_mesh_buffers_result fail = {};
 		fail.result = stagingBuffeResult.result;
@@ -84,7 +84,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 		fail.result = submitResult;
 		return fail;
 	}
-	destroyBuffer(staging);
+	destroy_buffer(staging);
 	rosy_utils::debug_print_a("staging buffer submitted!\n");
 
 	gpu_mesh_buffers buffers = {};

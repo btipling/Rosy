@@ -27,7 +27,7 @@ static const char* deviceExtensions[] = {
 	//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 };
 
-rhi::rhi(rosy_config::Config cfg) : cfg_{cfg}, required_features_{requiredFeatures}
+rhi::rhi(rosy_config::Config cfg) : cfg_{ cfg }, required_features_{ requiredFeatures }
 {
 	memset(&required_features_, 0, sizeof(VkPhysicalDeviceFeatures));
 }
@@ -149,7 +149,7 @@ VkResult rhi::init(SDL_Window* window)
 		rosy_utils::debug_print_w(L"Failed to init sync objects! %d\n", result);
 		return result;
 	}
-	result = this->initUI(window);
+	result = this->init_ui(window);
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::debug_print_w(L"Failed to init UI! %d\n", result);
@@ -183,13 +183,13 @@ void rhi::deinit()
 	}
 
 	// Deinit begin in the reverse order from how it was created.
-	deinitUI();
+	deinit_ui();
 
 	for (std::shared_ptr<mesh_asset> mesh : test_meshes_)
 	{
 		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
-		destroyBuffer(rectangle.vertex_buffer);
-		destroyBuffer(rectangle.index_buffer);
+		destroy_buffer(rectangle.vertex_buffer);
+		destroy_buffer(rectangle.index_buffer);
 		mesh.reset();
 	}
 
@@ -203,19 +203,11 @@ void rhi::deinit()
 		vkDestroyCommandPool(device_.value(), imm_command_pool_.value(), nullptr);
 	}
 
-	for (const VkFence fence : in_flight_fence_)
+	for (const frame_data fd : frame_datas_)
 	{
-		vkDestroyFence(device_.value(), fence, nullptr);
-	}
-
-	for (const VkSemaphore semaphore : image_available_semaphores_)
-	{
-		vkDestroySemaphore(device_.value(), semaphore, nullptr);
-	}
-
-	for (const VkSemaphore semaphore : render_finished_semaphores_)
-	{
-		vkDestroySemaphore(device_.value(), semaphore, nullptr);
+		vkDestroyFence(device_.value(), fd.in_flight_fence, nullptr);
+		vkDestroySemaphore(device_.value(), fd.image_available_semaphores, nullptr);
+		vkDestroySemaphore(device_.value(), fd.render_finished_semaphores, nullptr);
 	}
 
 	if (command_pool_.has_value())
@@ -391,14 +383,14 @@ VkResult rhi::query_instance_extensions()
 		for (uint32_t i = 0; i < std::size(instanceExtensions); i++)
 		{
 			rosy_utils::debug_print_a("pushing back required rosy instance extension with name: %s\n",
-			                        instanceExtensions[i]);
+				instanceExtensions[i]);
 			instance_extensions_.push_back(instanceExtensions[i]);
 		}
 	}
 	rosy_utils::debug_print_a("num instanceExtensions: %d\n", instance_extensions_.size());
 
 	std::vector<const char*> requiredInstanceExtensions(std::begin(instance_extensions_),
-	                                                    std::end(instance_extensions_));
+		std::end(instance_extensions_));
 	for (VkExtensionProperties ep : extensions)
 	{
 		rosy_utils::debug_print_a("Instance extension name: %s\n", ep.extensionName);
@@ -435,7 +427,7 @@ VkResult rhi::query_device_extensions()
 	extensions.resize(pPropertyCount);
 
 	result = vkEnumerateDeviceExtensionProperties(physical_device_.value(), nullptr, &pPropertyCount,
-	                                              extensions.data());
+		extensions.data());
 	if (result != VK_SUCCESS) return result;
 
 	// validate required device extensions
@@ -532,7 +524,7 @@ VkResult rhi::init_physical_device()
 		vkGetPhysicalDeviceProperties(p_device, &deviceProperties);
 
 		bool swapChainAdequate = false;
-		swap_chain_support_details swapChainSupport = querySwapChainSupport(p_device);
+		swap_chain_support_details swapChainSupport = query_swap_chain_support(p_device);
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.present_modes.empty();
 		if (!swapChainAdequate) continue;
 
@@ -754,9 +746,9 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, SDL_Wi
 		};
 
 		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
-		                                capabilities.maxImageExtent.width);
+			capabilities.maxImageExtent.width);
 		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height,
-		                                 capabilities.maxImageExtent.height);
+			capabilities.maxImageExtent.height);
 
 		return actualExtent;
 	}
@@ -769,7 +761,7 @@ VkResult rhi::init_swap_chain(SDL_Window* window)
 
 VkResult rhi::create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain)
 {
-	swapchain_details_ = querySwapChainSupport(physical_device_.value());
+	swapchain_details_ = query_swap_chain_support(physical_device_.value());
 
 	swapchain_image_format_ = chooseSwapSurfaceFormat(swapchain_details_.formats);
 	swapchain_present_mode_ = chooseSwapPresentMode(swapchain_details_.present_modes);
@@ -780,34 +772,35 @@ VkResult rhi::create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain)
 	{
 		swap_chain_image_count_ = swapchain_details_.capabilities.maxImageCount;
 	}
-	VkExtent2D extent = chooseSwapExtent(swapchain_details_.capabilities, window);
-	VkSwapchainCreateInfoKHR createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = surface_.value();
-	createInfo.minImageCount = swap_chain_image_count_;
-	createInfo.imageFormat = swapchain_image_format_.format;
-	createInfo.imageColorSpace = swapchain_image_format_.colorSpace;
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	frame_datas_.resize(std::min(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT), swap_chain_image_count_));
+	const VkExtent2D extent = chooseSwapExtent(swapchain_details_.capabilities, window);
+	VkSwapchainCreateInfoKHR create_info{};
+	create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	create_info.surface = surface_.value();
+	create_info.minImageCount = swap_chain_image_count_;
+	create_info.imageFormat = swapchain_image_format_.format;
+	create_info.imageColorSpace = swapchain_image_format_.colorSpace;
+	create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-	createInfo.imageExtent = extent;
-	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	create_info.imageExtent = extent;
+	create_info.imageArrayLayers = 1;
+	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	// Just one queue family right now.
-	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	createInfo.queueFamilyIndexCount = 0;
-	createInfo.pQueueFamilyIndices = nullptr;
+	create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	create_info.queueFamilyIndexCount = 0;
+	create_info.pQueueFamilyIndices = nullptr;
 
-	createInfo.preTransform = swapchain_details_.capabilities.currentTransform;
+	create_info.preTransform = swapchain_details_.capabilities.currentTransform;
 
-	createInfo.presentMode = swapchain_present_mode_;
-	createInfo.clipped = VK_TRUE;
+	create_info.presentMode = swapchain_present_mode_;
+	create_info.clipped = VK_TRUE;
 
-	createInfo.oldSwapchain = old_swapchain;
+	create_info.oldSwapchain = old_swapchain;
 
 	VkSwapchainKHR swapchain;
 	VkDevice device = device_.value();
-	VkResult result = vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain);
+	VkResult result = vkCreateSwapchainKHR(device, &create_info, nullptr, &swapchain);
 	if (result != VK_SUCCESS) return result;
 
 	if (old_swapchain != VK_NULL_HANDLE)
@@ -867,7 +860,7 @@ VkResult rhi::init_draw_image()
 	draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
 	draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	VkImageCreateInfo draw_info = imgCreateInfo(draw_image.image_format, draw_image_usages, draw_image_extent);
+	VkImageCreateInfo draw_info = img_create_info(draw_image.image_format, draw_image_usages, draw_image_extent);
 
 	VmaAllocationCreateInfo r_img_alloc_info = {};
 	r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -875,8 +868,8 @@ VkResult rhi::init_draw_image()
 
 	vmaCreateImage(allocator_.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation, nullptr);
 
-	VkImageViewCreateInfo r_view_info = imgViewCreateInfo(draw_image.image_format, draw_image.image,
-	                                                     VK_IMAGE_ASPECT_COLOR_BIT);
+	VkImageViewCreateInfo r_view_info = img_view_create_info(draw_image.image_format, draw_image.image,
+		VK_IMAGE_ASPECT_COLOR_BIT);
 
 	result = vkCreateImageView(device_.value(), &r_view_info, nullptr, &draw_image.image_view);
 	if (result != VK_SUCCESS) return result;
@@ -888,13 +881,13 @@ VkResult rhi::init_draw_image()
 	VkImageUsageFlags depth_image_usages{};
 	depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-	VkImageCreateInfo depth_info = imgCreateInfo(depth_image.image_format, depth_image_usages, draw_image_extent);
+	VkImageCreateInfo depth_info = img_create_info(depth_image.image_format, depth_image_usages, draw_image_extent);
 
 	vmaCreateImage(allocator_.value(), &depth_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation,
-	               nullptr);
+		nullptr);
 
-	VkImageViewCreateInfo d_view_info = imgViewCreateInfo(depth_image.image_format, depth_image.image,
-	                                                     VK_IMAGE_ASPECT_DEPTH_BIT);
+	VkImageViewCreateInfo d_view_info = img_view_create_info(depth_image.image_format, depth_image.image,
+		VK_IMAGE_ASPECT_DEPTH_BIT);
 
 	result = vkCreateImageView(device_.value(), &d_view_info, nullptr, &depth_image.image_view);
 	if (result != VK_SUCCESS) return result;
@@ -1074,46 +1067,56 @@ VkResult rhi::init_command_pool()
 
 VkResult rhi::init_command_buffers()
 {
-	command_buffers_.resize(MAX_FRAMES_IN_FLIGHT);
+	std::vector<VkCommandBuffer> command_buffers(frame_datas_.size());
 
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.commandPool = command_pool_.value();
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = (uint32_t)command_buffers_.size();
+	allocInfo.commandBufferCount = static_cast<uint32_t>(frame_datas_.size());
 
-	VkResult result = vkAllocateCommandBuffers(device_.value(), &allocInfo, command_buffers_.data());
-	return result;
+	if (VkResult result = vkAllocateCommandBuffers(device_.value(), &allocInfo, command_buffers.data()); result != VK_SUCCESS) return result;
+	for (size_t i = 0; const auto & buffer : command_buffers) {
+		frame_datas_[i++].command_buffers = buffer;
+	}
+	return VK_SUCCESS;
 }
 
 VkResult rhi::init_sync_objects()
 {
-	VkSemaphoreCreateInfo semaphoreInfo{};
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	VkFenceCreateInfo fenceInfo{};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	VkSemaphoreCreateInfo semaphore_info{};
+	semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fence_info{};
+	fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	VkResult result;
-	VkDevice device = device_.value();
+	const VkDevice device = device_.value();
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		VkSemaphore semaphore;
-		result = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
-		if (result != VK_SUCCESS) return result;
-		image_available_semaphores_.push_back(semaphore);
-		result = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
-		if (result != VK_SUCCESS) return result;
-		render_finished_semaphores_.push_back(semaphore);
+		{
+			VkSemaphore semaphore;
+			result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
+			if (result != VK_SUCCESS) return result;
+			frame_datas_[i].image_available_semaphores = semaphore;
+		}
+		{
+			VkSemaphore semaphore;
+			result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
+			if (result != VK_SUCCESS) return result;
+			frame_datas_[i].render_finished_semaphores = semaphore;
+		}
 		VkFence fence;
-		result = vkCreateFence(device, &fenceInfo, nullptr, &fence);
+		result = vkCreateFence(device, &fence_info, nullptr, &fence);
 		if (result != VK_SUCCESS) return result;
-		in_flight_fence_.push_back(fence);
+		frame_datas_[i].in_flight_fence = fence;
 	}
 	{
 		VkFence fence;
-		result = vkCreateFence(device, &fenceInfo, nullptr, &fence);
+		result = vkCreateFence(device, &fence_info, nullptr, &fence);
+		if (result != VK_SUCCESS) return result;
 		imm_fence_ = fence;
 	}
 	return VK_SUCCESS;
@@ -1122,28 +1125,26 @@ VkResult rhi::init_sync_objects()
 
 VkResult rhi::init_commands()
 {
-	VkResult result;
+	VkCommandPoolCreateInfo pool_info{};
+	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	pool_info.queueFamilyIndex = queue_index_;
 
-	VkCommandPoolCreateInfo poolInfo{};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = queue_index_;
-
-	VkDevice device = device_.value();
-	VkCommandPool commandPool;
-	result = vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool);
+	const VkDevice device = device_.value();
+	VkCommandPool command_pool;
+	VkResult result = vkCreateCommandPool(device, &pool_info, nullptr, &command_pool);
 	if (result != VK_SUCCESS) return result;
-	imm_command_pool_ = commandPool;
+	imm_command_pool_ = command_pool;
 
 	// allocate the command buffer for immediate submits
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = imm_command_pool_.value();
-	allocInfo.commandBufferCount = 1;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	VkCommandBufferAllocateInfo alloc_info{};
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.commandPool = imm_command_pool_.value();
+	alloc_info.commandBufferCount = 1;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
 	VkCommandBuffer buffer;
-	result = vkAllocateCommandBuffers(device, &allocInfo, &buffer);
+	result = vkAllocateCommandBuffers(device, &alloc_info, &buffer);
 	if (result != VK_SUCCESS) return result;
 	imm_command_buffer_ = buffer;
 

@@ -3,41 +3,42 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-void rhi::transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectMask) {
-	VkImageSubresourceRange subresourceRange = {};
-	subresourceRange.aspectMask = aspectMask;
-	subresourceRange.baseMipLevel = 0;
-	subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-	subresourceRange.baseArrayLayer = 0;
-	subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout, const VkImageLayout new_layout, const VkImageAspectFlags aspect_mask) {
+	VkImageSubresourceRange subresource_range = {};
+	subresource_range.aspectMask = aspect_mask;
+	subresource_range.baseMipLevel = 0;
+	subresource_range.levelCount = VK_REMAINING_MIP_LEVELS;
+	subresource_range.baseArrayLayer = 0;
+	subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-	VkImageMemoryBarrier2 imageBarrier = {};
-	imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-	imageBarrier.pNext = nullptr;
-	imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-	imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-	imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-	imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
-	imageBarrier.oldLayout = currentLayout;
-	imageBarrier.newLayout = newLayout;
-	imageBarrier.subresourceRange = subresourceRange;
-	imageBarrier.image = image;
+	VkImageMemoryBarrier2 image_barrier = {};
+	image_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+	image_barrier.pNext = nullptr;
+	image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+	image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+	image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+	image_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
+	image_barrier.oldLayout = current_layout;
+	image_barrier.newLayout = new_layout;
+	image_barrier.subresourceRange = subresource_range;
+	image_barrier.image = image;
 
-	VkDependencyInfo dependencyInfo{};
-	dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-	dependencyInfo.pNext = nullptr;
+	VkDependencyInfo dependency_info{};
+	dependency_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependency_info.pNext = nullptr;
 
-	dependencyInfo.imageMemoryBarrierCount = 1;
-	dependencyInfo.pImageMemoryBarriers = &imageBarrier;
+	dependency_info.imageMemoryBarrierCount = 1;
+	dependency_info.pImageMemoryBarriers = &image_barrier;
 
-	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
+	vkCmdPipelineBarrier2(cmd, &dependency_info);
 }
 
 VkResult rhi::render_frame() {
-	VkCommandBuffer cmd = command_buffers_[current_frame_];
-	VkSemaphore imageAvailable = image_available_semaphores_[current_frame_];
-	VkSemaphore renderedFinisished = render_finished_semaphores_[current_frame_];
-	VkFence fence = in_flight_fence_[current_frame_];
+	auto [command_buffers, image_available_semaphores, render_finished_semaphores, in_flight_fence] = frame_datas_[current_frame_];
+	VkCommandBuffer cmd = command_buffers;
+	VkSemaphore image_available = image_available_semaphores;
+	VkSemaphore rendered_finished = render_finished_semaphores;
+	VkFence fence = in_flight_fence;
 	VkResult result;
 	VkDevice device = device_.value();
 
@@ -46,7 +47,7 @@ VkResult rhi::render_frame() {
 
 	uint32_t imageIndex;
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
-	vkAcquireNextImageKHR(device_.value(), swapchain_.value(), UINT64_MAX, imageAvailable, VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(device_.value(), swapchain_.value(), UINT64_MAX, image_available, VK_NULL_HANDLE, &imageIndex);
 	VkImage image = swap_chain_images_[imageIndex];
 	VkImageView imageView = swap_chain_image_views_[imageIndex];
 
@@ -113,9 +114,9 @@ VkResult rhi::render_frame() {
 		transition_image(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
-			VkRenderingAttachmentInfo colorAttachment = attachmentInfo(drawImage.image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			VkRenderingAttachmentInfo depthAttachment = depthAttachmentInfo(depthImage.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-			VkRenderingInfo renderInfo = renderingInfo(swapchain_extent_, colorAttachment, depthAttachment);
+			VkRenderingAttachmentInfo colorAttachment = attachment_info(drawImage.image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			VkRenderingAttachmentInfo depthAttachment = depth_attachment_info(depthImage.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+			VkRenderingInfo renderInfo = rendering_info(swapchain_extent_, colorAttachment, depthAttachment);
 			vkCmdBeginRendering(cmd, &renderInfo);
 		}
 
@@ -198,12 +199,12 @@ VkResult rhi::render_frame() {
 			// blit the draw image to the swapchain image
 			transition_image(cmd, drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			blitImages(cmd, drawImage.image, image, draw_extent_, swapchain_extent_);
+			blit_images(cmd, drawImage.image, image, draw_extent_, swapchain_extent_);
 		}
 		{
 			// draw ui onto swapchain image
 			transition_image(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			result = renderUI(cmd, imageView);
+			result = render_ui(cmd, imageView);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
@@ -224,7 +225,7 @@ VkResult rhi::render_frame() {
 			VkSemaphoreSubmitInfo waitInfo = {};
 			waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			waitInfo.pNext = nullptr;
-			waitInfo.semaphore = imageAvailable;
+			waitInfo.semaphore = image_available;
 			waitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
 			waitInfo.deviceIndex = 0;
 			waitInfo.value = 1;
@@ -232,7 +233,7 @@ VkResult rhi::render_frame() {
 			VkSemaphoreSubmitInfo signalInfo = {};
 			signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			signalInfo.pNext = nullptr;
-			signalInfo.semaphore = renderedFinisished;
+			signalInfo.semaphore = rendered_finished;
 			signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
 			signalInfo.deviceIndex = 0;
 			signalInfo.value = 1;
@@ -265,7 +266,7 @@ VkResult rhi::render_frame() {
 			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 			presentInfo.waitSemaphoreCount = 1;
 			// Present is waiting for the submit queue above to signal `renderedFinisished`
-			presentInfo.pWaitSemaphores = &renderedFinisished;
+			presentInfo.pWaitSemaphores = &rendered_finished;
 			presentInfo.swapchainCount = 1;
 			presentInfo.pSwapchains = swapChains;
 			presentInfo.pImageIndices = &imageIndex;
