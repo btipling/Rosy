@@ -28,7 +28,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	deviceAddressInfo.buffer = vertexBuffer.buffer;
 
 	// *** SETTING VERTEX BUFFER ADDRESS *** //
-	vertexBufferAddress = vkGetBufferDeviceAddress(m_device_.value(), &deviceAddressInfo);
+	vertexBufferAddress = vkGetBufferDeviceAddress(device_.value(), &deviceAddressInfo);
 	rosy_utils::debug_print_a("vertex buffer address set!\n");
 
 	allocated_buffer_result indexBufferResult = createBuffer(
@@ -56,10 +56,10 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	rosy_utils::debug_print_a("staging buffer created!\n");
 
 	void* data;
-	vmaMapMemory(m_allocator_.value(), staging.allocation, &data);
+	vmaMapMemory(allocator_.value(), staging.allocation, &data);
 	memcpy(data, vertices.data(), vertexBufferSize);
 	memcpy((char*)data + vertexBufferSize, indices.data(), indexBufferSize);
-	vmaUnmapMemory(m_allocator_.value(), staging.allocation);
+	vmaUnmapMemory(allocator_.value(), staging.allocation);
 
 	rosy_utils::debug_print_a("staging buffer mapped!\n");
 

@@ -22,7 +22,10 @@
 
 struct frame_data
 {
-	
+    VkCommandBuffer command_buffers;
+    VkSemaphore image_available_semaphores;
+    VkSemaphore render_finished_semaphores;
+    VkFence in_flight_fence;
 };
 
 struct swap_chain_support_details {

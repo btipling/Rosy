@@ -20,79 +20,79 @@ public:
 	~rhi();
 
 private:
-	bool m_deinited_ = false;
-	rosy_config::Config m_cfg_;
-	std::vector<const char*> m_instance_layer_properties_;
-	std::vector<const char*> m_device_layer_properties_;
-	std::vector<const char*> m_instance_extensions_;
-	std::vector<const char*> m_device_device_extensions_;
-	std::optional<VkInstance> m_instance_ = std::nullopt;
-	std::optional<VkPhysicalDevice> m_physical_device_ = std::nullopt;
-	std::optional<VkPhysicalDeviceProperties> m_physical_device_properties_ = std::nullopt;
-	std::optional<VkPhysicalDeviceFeatures> m_supported_features_ = std::nullopt;
-	std::optional<VkPhysicalDeviceMemoryProperties> m_physical_device_memory_properties_ = std::nullopt;
-	std::optional<std::vector<VkQueueFamilyProperties>> m_queue_family_properties_ = std::nullopt;
-	std::uint32_t m_queue_index_ = 0;
-	std::uint32_t m_queue_count_ = 0;
-	std::vector<float> m_queue_priorities_;
-	VkPhysicalDeviceFeatures m_required_features_;
-	std::optional<VkDevice> m_device_ = std::nullopt;
-	std::optional<VmaAllocator> m_allocator_ = std::nullopt;
-	std::optional<VkSurfaceKHR> m_surface_ = std::nullopt;
-	std::optional<VkQueue> m_present_queue_ = std::nullopt;
-	std::optional<VkSwapchainKHR> m_swapchain_ = std::nullopt;
-	VkSurfaceFormatKHR m_swapchain_image_format_ = {};
-	VkPresentModeKHR m_swapchain_present_mode_ = {};
-	uint32_t m_swap_chain_image_count_ = 0;
-	swap_chain_support_details m_swapchain_details_ = {};
-	VkExtent2D m_swapchain_extent_ = {};
-	std::optional<VkCommandPool> m_command_pool_ = std::nullopt;
-	std::optional<descriptor_allocator> m_global_descriptor_allocator_;
-	std::optional<VkDescriptorSet> m_draw_image_descriptors_;
-	std::optional<VkDescriptorSetLayout> m_draw_image_descriptor_layout_;
+	bool deinited_ = false;
+	rosy_config::Config cfg_;
+	std::vector<const char*> instance_layer_properties_;
+	std::vector<const char*> device_layer_properties_;
+	std::vector<const char*> instance_extensions_;
+	std::vector<const char*> device_device_extensions_;
+	std::optional<VkInstance> instance_ = std::nullopt;
+	std::optional<VkPhysicalDevice> physical_device_ = std::nullopt;
+	std::optional<VkPhysicalDeviceProperties> physical_device_properties_ = std::nullopt;
+	std::optional<VkPhysicalDeviceFeatures> supported_features_ = std::nullopt;
+	std::optional<VkPhysicalDeviceMemoryProperties> physical_device_memory_properties_ = std::nullopt;
+	std::optional<std::vector<VkQueueFamilyProperties>> queue_family_properties_ = std::nullopt;
+	std::uint32_t queue_index_ = 0;
+	std::uint32_t queue_count_ = 0;
+	std::vector<float> queue_priorities_;
+	VkPhysicalDeviceFeatures required_features_;
+	std::optional<VkDevice> device_ = std::nullopt;
+	std::optional<VmaAllocator> allocator_ = std::nullopt;
+	std::optional<VkSurfaceKHR> surface_ = std::nullopt;
+	std::optional<VkQueue> present_queue_ = std::nullopt;
+	std::optional<VkSwapchainKHR> swapchain_ = std::nullopt;
+	VkSurfaceFormatKHR swapchain_image_format_ = {};
+	VkPresentModeKHR swapchain_present_mode_ = {};
+	uint32_t swap_chain_image_count_ = 0;
+	swap_chain_support_details swapchain_details_ = {};
+	VkExtent2D swapchain_extent_ = {};
+	std::optional<VkCommandPool> command_pool_ = std::nullopt;
+	std::optional<descriptor_allocator> global_descriptor_allocator_;
+	std::optional<VkDescriptorSet> draw_image_descriptors_;
+	std::optional<VkDescriptorSetLayout> draw_image_descriptor_layout_;
 
 	// immediate submits
-	std::optional<VkFence> m_imm_fence_;
-	std::optional<VkCommandBuffer> m_imm_command_buffer_;
-	std::optional<VkCommandPool> m_imm_command_pool_;
+	std::optional<VkFence> imm_fence_;
+	std::optional<VkCommandBuffer> imm_command_buffer_;
+	std::optional<VkCommandPool> imm_command_pool_;
 
 	// test meshes
-	std::vector<VkShaderEXT> m_shaders_;
-	std::optional<VkPipelineLayout> m_shader_pl_;
-	float m_model_rot_x_ = 0.0f;
-	float m_model_rot_y_ = 0.0f;
-	float m_model_rot_z_ = 0.0f;
-	float m_model_x_ = 0.0f;
-	float m_model_y_ = 0.0f;
-	float m_model_z_ = -15.0f;
-	float m_model_scale_ = 1.0f;
-	bool m_toggle_wire_frame_ = false;
-	int m_blend_mode_ = 0;
+	std::vector<VkShaderEXT> shaders_;
+	std::optional<VkPipelineLayout> shader_pl_;
+	float model_rot_x_ = 0.0f;
+	float model_rot_y_ = 0.0f;
+	float model_rot_z_ = 0.0f;
+	float model_x_ = 0.0f;
+	float model_y_ = 0.0f;
+	float model_z_ = -15.0f;
+	float model_scale_ = 1.0f;
+	bool toggle_wire_frame_ = false;
+	int blend_mode_ = 0;
 
-	std::vector<std::shared_ptr<mesh_asset>> m_test_meshes_;
+	std::vector<std::shared_ptr<mesh_asset>> test_meshes_;
 
 	// ui
-	std::optional<VkDescriptorPool> m_ui_pool_ = std::nullopt;
+	std::optional<VkDescriptorPool> ui_pool_ = std::nullopt;
 
-	size_t m_current_frame_ = 0;
+	size_t current_frame_ = 0;
 
 	// main draw image
-	std::optional<allocated_image> m_draw_image_;
-	std::optional<allocated_image> m_depth_image_;
-	VkExtent2D m_draw_extent_ = {};
-	float m_render_scale_ = 1.f;
+	std::optional<allocated_image> draw_image_;
+	std::optional<allocated_image> depth_image_;
+	VkExtent2D draw_extent_ = {};
+	float render_scale_ = 1.f;
 
 	// swapchain images
-	std::vector<VkImage> m_swap_chain_images_;
-	std::vector<VkImageView> m_swap_chain_image_views_;
+	std::vector<VkImage> swap_chain_images_;
+	std::vector<VkImageView> swap_chain_image_views_;
 
 	// per frame data
-	std::vector<VkCommandBuffer> m_command_buffers_;
-	std::vector<VkSemaphore> m_image_available_semaphores_;
-	std::vector<VkSemaphore> m_render_finished_semaphores_;
-	std::vector<VkFence> m_in_flight_fence_;
+	std::vector<VkCommandBuffer> command_buffers_;
+	std::vector<VkSemaphore> image_available_semaphores_;
+	std::vector<VkSemaphore> render_finished_semaphores_;
+	std::vector<VkFence> in_flight_fence_;
 
-	std::optional<VkDebugUtilsMessengerEXT> m_debug_messenger_ = std::nullopt;
+	std::optional<VkDebugUtilsMessengerEXT> debug_messenger_ = std::nullopt;
 
 	VkResult query_instance_layers();
 	VkResult query_device_layers();
