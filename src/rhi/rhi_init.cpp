@@ -257,7 +257,7 @@ void rhi::deinit()
 		vmaDestroyImage(allocator_.value(), draw_image.image, draw_image.allocation);
 	}
 
-	destroySwapchain();
+	destroy_swapchain();
 
 	if (debug_messenger_.has_value())
 	{
@@ -271,8 +271,7 @@ void rhi::deinit()
 
 	if (device_.has_value())
 	{
-		const VkResult result = vkDeviceWaitIdle(device_.value());
-		if (result == VK_SUCCESS) vkDestroyDevice(device_.value(), nullptr);
+		if (const VkResult result = vkDeviceWaitIdle(device_.value()); result == VK_SUCCESS) vkDestroyDevice(device_.value(), nullptr);
 	}
 
 	if (surface_.has_value())
@@ -282,11 +281,11 @@ void rhi::deinit()
 
 	if (instance_.has_value())
 	{
-		vkDestroyInstance(instance_.value(), NULL);
+		vkDestroyInstance(instance_.value(), nullptr);
 	}
 }
 
-void rhi::destroySwapchain()
+void rhi::destroy_swapchain()
 {
 	vkDeviceWaitIdle(device_.value());
 	for (VkImageView imageView : swap_chain_image_views_)
@@ -304,14 +303,13 @@ void rhi::destroySwapchain()
 VkResult rhi::resize_swapchain(SDL_Window* window)
 {
 	vkDeviceWaitIdle(device_.value());
-	destroySwapchain();
+	destroy_swapchain();
 	return create_swapchain(window, VK_NULL_HANDLE);
 }
 
 VkResult rhi::draw_frame()
 {
-	VkResult result;
-	result = this->render_frame();
+	VkResult result = this->render_frame();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::debug_print_w(L"Failed to record command buffer! %d\n", result);
@@ -322,14 +320,14 @@ VkResult rhi::draw_frame()
 
 VkResult rhi::query_instance_layers()
 {
-	uint32_t pPropertyCount = 0;
-	VkResult result = vkEnumerateInstanceLayerProperties(&pPropertyCount, nullptr);
+	uint32_t p_property_count = 0;
+	VkResult result = vkEnumerateInstanceLayerProperties(&p_property_count, nullptr);
 	if (result != VK_SUCCESS) return result;
-	rosy_utils::debug_print_a("Found %d instance layers\n", pPropertyCount);
-	if (pPropertyCount == 0) return result;
+	rosy_utils::debug_print_a("Found %d instance layers\n", p_property_count);
+	if (p_property_count == 0) return result;
 	std::vector<VkLayerProperties> layers;
-	layers.resize(pPropertyCount);
-	result = vkEnumerateInstanceLayerProperties(&pPropertyCount, layers.data());
+	layers.resize(p_property_count);
+	result = vkEnumerateInstanceLayerProperties(&p_property_count, layers.data());
 	if (result != VK_SUCCESS) return result;
 	if (!cfg_.enable_validation_layers) return result;
 	for (VkLayerProperties lp : layers)
@@ -347,7 +345,7 @@ VkResult rhi::query_instance_layers()
 	return result;
 }
 
-VkResult rhi::query_device_layers()
+VkResult rhi::query_device_layers() const
 {
 	if (!physical_device_.has_value()) return VK_NOT_READY;
 	uint32_t pPropertyCount = 0;
@@ -814,7 +812,7 @@ VkResult rhi::create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain)
 
 	if (old_swapchain != VK_NULL_HANDLE)
 	{
-		destroySwapchain();
+		destroy_swapchain();
 	}
 
 	swapchain_extent_ = extent;

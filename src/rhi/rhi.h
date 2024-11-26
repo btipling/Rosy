@@ -95,7 +95,7 @@ private:
 	std::optional<VkDebugUtilsMessengerEXT> debug_messenger_ = std::nullopt;
 
 	VkResult query_instance_layers();
-	VkResult query_device_layers();
+	VkResult query_device_layers() const;
 	VkResult query_instance_extensions();
 	VkResult query_device_extensions();
 	VkResult create_debug_callback();
@@ -150,7 +150,7 @@ private:
 	VkResult renderUI(VkCommandBuffer cmd, VkImageView targetImageView);
 
 	// destructors
-	void destroySwapchain();
+	void destroy_swapchain();
 	void destroyBuffer(const allocated_buffer& buffer);
 	void deinitUI();
 };
