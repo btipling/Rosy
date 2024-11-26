@@ -19,6 +19,7 @@
 #include <glm/glm.hpp>
 #include <Volk/volk.h>
 #include <vma/vk_mem_alloc.h>
+#include "rhi/rhi_descriptor.h"
 
 struct frame_data
 {
@@ -27,6 +28,7 @@ struct frame_data
 	std::optional<VkSemaphore> render_finished_semaphore;
 	std::optional<VkFence> in_flight_fence;
 	std::optional<VkCommandPool> command_pool;
+	std::optional<descriptor_allocator_growable> frame_descriptors;
 };
 
 struct swap_chain_support_details {

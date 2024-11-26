@@ -1,6 +1,4 @@
-#define VK_USE_PLATFORM_WIN32_KHR
 #include "volk/volk.h"
-#define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
 #include "RHI.h"
 #include "rhi_utils.h"
@@ -39,8 +37,7 @@ rhi::~rhi()
 
 VkResult rhi::init(SDL_Window* window)
 {
-	VkResult result;
-	result = volkInitialize();
+	VkResult result = volkInitialize();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::debug_print_w(L"Failed initialize volk! %d\n", result);
@@ -203,13 +200,14 @@ void rhi::deinit()
 		vkDestroyCommandPool(device_.value(), imm_command_pool_.value(), nullptr);
 	}
 
-	for (const frame_data fd : frame_datas_)
+	for (frame_data fd : frame_datas_)
 	{
 		VkDevice device = device_.value();
 		if (fd.in_flight_fence.has_value()) vkDestroyFence(device, fd.in_flight_fence.value(), nullptr);
 		if (fd.image_available_semaphore.has_value()) vkDestroySemaphore(device, fd.image_available_semaphore.value(), nullptr);
 		if (fd.render_finished_semaphore.has_value()) vkDestroySemaphore(device, fd.render_finished_semaphore.value(), nullptr);
 		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
+		if (fd.frame_descriptors.has_value()) fd.frame_descriptors.value().destroy_pools(device);
 	}
 
 	if (shader_pl_.has_value())
@@ -756,7 +754,7 @@ VkResult rhi::init_swap_chain(SDL_Window* window)
 	return create_swapchain(window, VK_NULL_HANDLE);
 }
 
-VkResult rhi::create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain)
+VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swapchain)
 {
 	swapchain_details_ = query_swap_chain_support(physical_device_.value());
 
@@ -934,6 +932,19 @@ VkResult rhi::init_descriptors()
 
 	vkUpdateDescriptorSets(device, 1, &draw_image_write, 0, nullptr);
 
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		std::vector<descriptor_allocator_growable::pool_size_ratio> frame_sizes = {
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 },
+		};
+
+		frame_datas_[i].frame_descriptors = descriptor_allocator_growable{};
+		frame_datas_[i].frame_descriptors.value().init(device, 1000, frame_sizes);
+
+	}
 	return VK_SUCCESS;
 }
 

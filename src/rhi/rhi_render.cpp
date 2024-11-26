@@ -35,7 +35,7 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 
 VkResult rhi::render_frame() {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool] = frame_datas_[current_frame_];
+		opt_command_pool, opt_frame_descriptors] = frame_datas_[current_frame_];
 	if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 	if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
 	if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
@@ -46,11 +46,14 @@ VkResult rhi::render_frame() {
 	VkSemaphore image_available = opt_image_available_semaphores.value();
 	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
 	VkFence fence = opt_in_flight_fence.value();
+	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
+
 	VkResult result;
 	VkDevice device = device_.value();
 
 	result = vkWaitForFences(device, 1, &fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
+	frame_descriptors.clear_pools(device);
 
 	uint32_t imageIndex;
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.

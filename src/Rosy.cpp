@@ -13,6 +13,8 @@
 #define VOLK_IMPLEMENTATION
 #include "volk/volk.h"
 #define IMGUI_IMPL_VULKAN_USE_VOLK
+#define VMA_IMPLEMENTATION
+#include "vma/vk_mem_alloc.h"
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
@@ -20,9 +22,10 @@
 #include "config/Config.h"
 #include "utils/utils.h"
 
-bool eventHandler(void* userdata, SDL_Event* event) {
-	 rhi* renderer = (rhi*)userdata;
-	 VkResult result;
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-use-anonymous-namespace)
+	const auto renderer = static_cast<rhi*>(userdata);
+	VkResult result;
 	switch (event->type) {
 	case SDL_EVENT_WINDOW_RESIZED:
 		SDL_Window* window = SDL_GetWindowFromID(event->window.windowID);
@@ -44,38 +47,37 @@ bool eventHandler(void* userdata, SDL_Event* event) {
 int main(int argc, char* argv[])
 {
 
-	SDL_Window* window = NULL;
-	SDL_Renderer* sdl_renderer = NULL;
+	SDL_Window* window = nullptr;
+	SDL_Renderer* sdl_renderer = nullptr;
 
 	SDL_Init(SDL_INIT_VIDEO);
 
 	int width = 640;
 	int height = 480;
-	int maxWidth = 640;
-	int maxHeight = 480;
-	int displaysCount = 0;
-	auto displayIds = SDL_GetDisplays(&displaysCount);
-	if (displaysCount == 0) {
-		auto err = SDL_GetError();
+	int max_width = 640;
+	int max_height = 480;
+	int displays_count = 0;
+	const auto displayIds = SDL_GetDisplays(&displays_count);
+	if (displays_count == 0) {
+		const auto err = SDL_GetError();
 		rosy_utils::debug_print_a("SDL error: %s\n", err);
-		SDL_free((void*)err);
 		abort();
 	}
 	// TODO: don't always get the first display
-	SDL_Rect displayBounds = {};
-	if (SDL_GetDisplayBounds(*displayIds, &displayBounds)) {
-		maxWidth = displayBounds.w;
-		maxHeight = displayBounds.h;
-		width = displayBounds.w * 0.75;
-		height = displayBounds.h * 0.75;
+	SDL_Rect display_bounds = {};
+	if (SDL_GetDisplayBounds(*displayIds, &display_bounds)) {
+		max_width = display_bounds.w;
+		max_height = display_bounds.h;
+		width = display_bounds.w * 0.75;
+		height = display_bounds.h * 0.75;
 	}
 
-	SDL_WindowFlags windowFlags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
-	window = SDL_CreateWindow("Rosy", width, height, windowFlags);
+	constexpr SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+	window = SDL_CreateWindow("Rosy", width, height, window_flags);
 
-	rosy_config::Config cfg = {
-		.maxWindowWidth = maxWidth,
-		.maxWindowHeight = maxHeight,
+	const rosy_config::Config cfg = {
+		.maxWindowWidth = max_width,
+		.maxWindowHeight = max_height,
 	};
 	rosy_config::debug();
 
@@ -95,7 +97,7 @@ int main(int argc, char* argv[])
 	renderer->debug();
 
 
-	SDL_AddEventWatch(eventHandler, renderer);
+	SDL_AddEventWatch(event_handler, renderer);
 
 	bool shouldRun = true;
 	bool shouldRender = true;
