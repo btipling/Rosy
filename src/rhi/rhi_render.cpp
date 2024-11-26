@@ -34,13 +34,18 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 }
 
 VkResult rhi::render_frame() {
-	auto [command_buffers, image_available_semaphores, render_finished_semaphores, in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
+	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
+		opt_command_pool] = frame_datas_[current_frame_];
+	if (!opt_command_buffers.has_value()) return VK_NOT_READY;
+	if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
+	if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
+	if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 	if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	VkCommandPool command_pool = opt_command_pool.value();
-	VkCommandBuffer cmd = command_buffers;
-	VkSemaphore image_available = image_available_semaphores;
-	VkSemaphore rendered_finished = render_finished_semaphores;
-	VkFence fence = in_flight_fence;
+	VkCommandBuffer cmd = opt_command_buffers.value();
+	VkSemaphore image_available = opt_image_available_semaphores.value();
+	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
+	VkFence fence = opt_in_flight_fence.value();
 	VkResult result;
 	VkDevice device = device_.value();
 

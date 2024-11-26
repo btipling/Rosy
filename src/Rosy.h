@@ -22,10 +22,10 @@
 
 struct frame_data
 {
-	VkCommandBuffer command_buffer;
-	VkSemaphore image_available_semaphore;
-	VkSemaphore render_finished_semaphore;
-	VkFence in_flight_fence;
+	std::optional<VkCommandBuffer> command_buffer;
+	std::optional<VkSemaphore> image_available_semaphore;
+	std::optional<VkSemaphore> render_finished_semaphore;
+	std::optional<VkFence> in_flight_fence;
 	std::optional<VkCommandPool> command_pool;
 };
 

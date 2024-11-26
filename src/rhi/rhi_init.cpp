@@ -206,9 +206,9 @@ void rhi::deinit()
 	for (const frame_data fd : frame_datas_)
 	{
 		VkDevice device = device_.value();
-		vkDestroyFence(device, fd.in_flight_fence, nullptr);
-		vkDestroySemaphore(device, fd.image_available_semaphore, nullptr);
-		vkDestroySemaphore(device, fd.render_finished_semaphore, nullptr);
+		if (fd.in_flight_fence.has_value()) vkDestroyFence(device, fd.in_flight_fence.value(), nullptr);
+		if (fd.image_available_semaphore.has_value()) vkDestroySemaphore(device, fd.image_available_semaphore.value(), nullptr);
+		if (fd.render_finished_semaphore.has_value()) vkDestroySemaphore(device, fd.render_finished_semaphore.value(), nullptr);
 		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
 	}
 
@@ -1082,7 +1082,6 @@ VkResult rhi::init_command_buffers()
 
 VkResult rhi::init_sync_objects()
 {
-
 	VkSemaphoreCreateInfo semaphore_info{};
 	semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
