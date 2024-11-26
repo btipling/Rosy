@@ -3,6 +3,6 @@
 #include <filesystem>
 #include "../Rosy.h"
 
-class Rhi;
+class rhi;
 
-std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(Rhi* rhi, std::filesystem::path file_path);
+std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(rhi* rhi, std::filesystem::path file_path);

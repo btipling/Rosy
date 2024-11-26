@@ -149,7 +149,7 @@
     <ClInclude Include="lib\stb_image.h" />
     <ClInclude Include="loader\loader.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="rhi\RHI.h" />
+    <ClInclude Include="rhi\rhi.h" />
     <ClInclude Include="rhi\rhi_descriptor.h" />
     <ClInclude Include="rhi\rhi_utils.h" />
     <ClInclude Include="Rosy.h" />

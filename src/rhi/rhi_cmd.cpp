@@ -1,6 +1,6 @@
 #include "RHI.h"
 
-void Rhi::set_rendering_defaults(VkCommandBuffer cmd) {
+void rhi::set_rendering_defaults(VkCommandBuffer cmd) {
 
 	{
 		vkCmdSetRasterizerDiscardEnableEXT(cmd, VK_FALSE);
@@ -21,7 +21,7 @@ void Rhi::set_rendering_defaults(VkCommandBuffer cmd) {
 	}
 }
 
-void Rhi::toggle_depth(VkCommandBuffer cmd, bool enable) {
+void rhi::toggle_depth(VkCommandBuffer cmd, bool enable) {
 	vkCmdSetDepthTestEnableEXT(cmd, enable);
 	vkCmdSetDepthWriteEnableEXT(cmd, enable);
 	vkCmdSetDepthCompareOpEXT(cmd, VK_COMPARE_OP_GREATER_OR_EQUAL);
@@ -33,12 +33,12 @@ void Rhi::toggle_depth(VkCommandBuffer cmd, bool enable) {
 	vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
 }
 
-void Rhi::toggle_culling(VkCommandBuffer cmd, bool enable) {
+void rhi::toggle_culling(VkCommandBuffer cmd, bool enable) {
 	vkCmdSetFrontFaceEXT(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 	vkCmdSetCullModeEXT(cmd, enable);
 }
 
-void Rhi::toggle_wire_frame(VkCommandBuffer cmd, bool enable) {
+void rhi::toggle_wire_frame(VkCommandBuffer cmd, bool enable) {
 	if (enable) {
 		vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_LINE);
 		return;
@@ -46,7 +46,7 @@ void Rhi::toggle_wire_frame(VkCommandBuffer cmd, bool enable) {
 	vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
 }
 
-void Rhi::set_view_port(VkCommandBuffer cmd, VkExtent2D extent) {
+void rhi::set_view_port(VkCommandBuffer cmd, VkExtent2D extent) {
 	{
 		VkViewport viewport{};
 		viewport.x = 0.0f;
@@ -67,14 +67,14 @@ void Rhi::set_view_port(VkCommandBuffer cmd, VkExtent2D extent) {
 	}
 }
 
-void Rhi::disable_blending(VkCommandBuffer cmd) {
+void rhi::disable_blending(VkCommandBuffer cmd) {
 	VkColorBlendEquationEXT colorBlendEquationEXT{};
 	vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &colorBlendEquationEXT);
 	VkBool32 enable = VK_FALSE;
 	vkCmdSetColorBlendEnableEXT(cmd, 0, 1, &enable);
 }
 
-void Rhi::enable_blending_additive(VkCommandBuffer cmd) {
+void rhi::enable_blending_additive(VkCommandBuffer cmd) {
 	VkColorComponentFlags flags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	vkCmdSetColorWriteMaskEXT(cmd, 0, 1, &flags);
 	VkBool32 enable = VK_TRUE;
@@ -89,7 +89,7 @@ void Rhi::enable_blending_additive(VkCommandBuffer cmd) {
 	vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &blendConfig);
 }
 
-void Rhi::enable_blending_alpha_blend(VkCommandBuffer cmd) {
+void rhi::enable_blending_alpha_blend(VkCommandBuffer cmd) {
 	VkColorComponentFlags flags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	vkCmdSetColorWriteMaskEXT(cmd, 0, 1, &flags);
 	VkBool32 enable = VK_TRUE;

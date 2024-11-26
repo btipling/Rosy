@@ -21,17 +21,17 @@
 #include "utils/utils.h"
 
 bool eventHandler(void* userdata, SDL_Event* event) {
-	 Rhi* rhi = (Rhi*)userdata;
+	 rhi* renderer = (rhi*)userdata;
 	 VkResult result;
 	switch (event->type) {
 	case SDL_EVENT_WINDOW_RESIZED:
 		SDL_Window* window = SDL_GetWindowFromID(event->window.windowID);
-		result = rhi->resize_swapchain(window);
+		result = renderer->resize_swapchain(window);
 		if (result != VK_SUCCESS) {
 			rosy_utils::debug_print_a("resizing-event: rhi failed to resize swapchain %d\n", result);
 			return false;
 		}
-		result = rhi->draw_frame();
+		result = renderer->draw_frame();
 		if (result != VK_SUCCESS) {
 			rosy_utils::debug_print_a("resizing-event: rhi draw failed %d\n", result);
 			return false;
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 {
 
 	SDL_Window* window = NULL;
-	SDL_Renderer* renderer = NULL;
+	SDL_Renderer* sdl_renderer = NULL;
 
 	SDL_Init(SDL_INIT_VIDEO);
 
@@ -79,23 +79,23 @@ int main(int argc, char* argv[])
 	};
 	rosy_config::debug();
 
-	Rhi* rhi = new Rhi{ cfg };
+	rhi* renderer = new rhi{ cfg };
 
-	VkResult result = rhi->init(window);
+	VkResult result = renderer->init(window);
 	if (result != VK_SUCCESS) {
 		rosy_utils::debug_print_a("rhi init failed %d\n", result);
-		delete rhi;
+		delete renderer;
 		{
-			SDL_DestroyRenderer(renderer);
+			SDL_DestroyRenderer(sdl_renderer);
 			SDL_DestroyWindow(window);
 			SDL_Quit();
 		}
 		return 1;
 	}
-	rhi->debug();
+	renderer->debug();
 
 
-	SDL_AddEventWatch(eventHandler, rhi);
+	SDL_AddEventWatch(eventHandler, renderer);
 
 	bool shouldRun = true;
 	bool shouldRender = true;
@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
 			}
 			if (resizeRequested) {
 				rosy_utils::debug_print_a("resizing swapchain\n");
-				result = rhi->resize_swapchain(window);
+				result = renderer->resize_swapchain(window);
 				if (result != VK_SUCCESS) {
 					rosy_utils::debug_print_a("rhi failed to resize swapchain %d\n", result);
 					shouldRun = false;
@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
 				ImGui_ImplVulkan_NewFrame();
 				ImGui_ImplSDL3_NewFrame();
 				ImGui::NewFrame();
-				result = rhi->draw_ui();
+				result = renderer->draw_ui();
 				if (result != VK_SUCCESS) {
 					if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 						resizeRequested = true;
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
 				ImGui::Render();
 			}
 
-			result = rhi->draw_frame();
+			result = renderer->draw_frame();
 			if (result != VK_SUCCESS) {
 				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 					rosy_utils::debug_print_a("swapchain out of date\n");
@@ -163,9 +163,9 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
-	delete rhi;
+	delete renderer;
 	{
-		SDL_DestroyRenderer(renderer);
+		SDL_DestroyRenderer(sdl_renderer);
 		SDL_DestroyWindow(window);
 		SDL_Quit();
 	}

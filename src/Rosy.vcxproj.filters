@@ -60,7 +60,7 @@
     <ClInclude Include="lib\imgui\imconfig.h">
       <Filter>Header Files\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="rhi\RHI.h">
+    <ClInclude Include="rhi\rhi.h">
       <Filter>Header Files\rhi</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi_utils.h">

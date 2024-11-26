@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-void Rhi::transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectMask) {
+void rhi::transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectMask) {
 	VkImageSubresourceRange subresourceRange = {};
 	subresourceRange.aspectMask = aspectMask;
 	subresourceRange.baseMipLevel = 0;
@@ -33,7 +33,7 @@ void Rhi::transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout cur
 	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 }
 
-VkResult Rhi::render_frame() {
+VkResult rhi::render_frame() {
 	VkCommandBuffer cmd = m_command_buffers_[m_current_frame_];
 	VkSemaphore imageAvailable = m_image_available_semaphores_[m_current_frame_];
 	VkSemaphore renderedFinisished = m_render_finished_semaphores_[m_current_frame_];
@@ -279,7 +279,7 @@ VkResult Rhi::render_frame() {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& recordFunc) {
+VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& recordFunc) {
 	VkResult result;
 
 	VkDevice device = m_device_.value();

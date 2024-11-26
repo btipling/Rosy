@@ -1,6 +1,6 @@
 #include "RHI.h"
 
-GPUMeshBuffersResult Rhi::upload_mesh(std::span<uint32_t> indices, std::span<Vertex> vertices) {
+GPUMeshBuffersResult rhi::upload_mesh(std::span<uint32_t> indices, std::span<Vertex> vertices) {
 	AllocatedBuffer indexBuffer;
 	AllocatedBuffer vertexBuffer;
 	VkDeviceAddress vertexBufferAddress;

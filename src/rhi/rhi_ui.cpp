@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
-VkResult Rhi::initUI(SDL_Window* window) {
+VkResult rhi::initUI(SDL_Window* window) {
 	VkDescriptorPoolSize poolSizes[] = { 
 		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
@@ -68,7 +68,7 @@ VkResult Rhi::initUI(SDL_Window* window) {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
+VkResult rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 	VkResult result;
 
 	VkRenderingAttachmentInfo colorAttachment = attachmentInfo(targetImageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -81,7 +81,7 @@ VkResult Rhi::renderUI(VkCommandBuffer cmd, VkImageView targetImageView) {
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::draw_ui() {
+VkResult rhi::draw_ui() {
 	ImGui::SliderFloat("Rotate X", &m_model_rot_x_, 0, glm::pi<float>() * 2.0f);
 	ImGui::SliderFloat("Rotate Y", &m_model_rot_y_, 0, glm::pi<float>() * 2.0f);
 	ImGui::SliderFloat("Rotate Z", &m_model_rot_z_, 0, glm::pi<float>() * 2.0f);
@@ -98,7 +98,7 @@ VkResult Rhi::draw_ui() {
 	return VK_SUCCESS;
 }
 
-void Rhi::deinitUI() {
+void rhi::deinitUI() {
 	if (m_ui_pool_.value()) {
 		ImGui_ImplVulkan_Shutdown();
         ImGui_ImplSDL3_Shutdown();

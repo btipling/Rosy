@@ -10,7 +10,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	return VK_FALSE;
 }
 
-void Rhi::debug() {
+void rhi::debug() {
 	rosy_utils::debug_print_a("RHI Debug Data::");
 	if (!m_instance_.has_value()) {
 		rosy_utils::debug_print_a("No instance!");
@@ -71,7 +71,7 @@ std::vector<char> readFile(const std::string& filename) {
 	return buffer;
 }
 
-SwapChainSupportDetails Rhi::querySwapChainSupport(VkPhysicalDevice device) {
+SwapChainSupportDetails rhi::querySwapChainSupport(VkPhysicalDevice device) {
 	SwapChainSupportDetails details = {};
 	VkSurfaceKHR surface = m_surface_.value();
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -92,7 +92,7 @@ SwapChainSupportDetails Rhi::querySwapChainSupport(VkPhysicalDevice device) {
 	return details;
 }
 
-VkImageCreateInfo Rhi::imgCreateInfo (VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent) {
+VkImageCreateInfo rhi::imgCreateInfo (VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent) {
     VkImageCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     info.pNext = nullptr;
@@ -107,7 +107,7 @@ VkImageCreateInfo Rhi::imgCreateInfo (VkFormat format, VkImageUsageFlags usageFl
     return info;
 }
 
-VkImageViewCreateInfo Rhi::imgViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags) {
+VkImageViewCreateInfo rhi::imgViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags) {
     VkImageViewCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     info.pNext = nullptr;
@@ -122,7 +122,7 @@ VkImageViewCreateInfo Rhi::imgViewCreateInfo(VkFormat format, VkImage image, VkI
     return info;
 }
 
-VkRenderingAttachmentInfo Rhi::attachmentInfo(VkImageView view, VkImageLayout layout) {
+VkRenderingAttachmentInfo rhi::attachmentInfo(VkImageView view, VkImageLayout layout) {
 	VkRenderingAttachmentInfo colorAttachment = {};
 	colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 	colorAttachment.pNext = nullptr;
@@ -134,7 +134,7 @@ VkRenderingAttachmentInfo Rhi::attachmentInfo(VkImageView view, VkImageLayout la
 	return colorAttachment;
 }
 
-VkRenderingAttachmentInfo Rhi::depthAttachmentInfo(VkImageView view, VkImageLayout layout) {
+VkRenderingAttachmentInfo rhi::depthAttachmentInfo(VkImageView view, VkImageLayout layout) {
 	VkRenderingAttachmentInfo depthAttachment = {};
 	depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 	depthAttachment.pNext = nullptr;
@@ -147,7 +147,7 @@ VkRenderingAttachmentInfo Rhi::depthAttachmentInfo(VkImageView view, VkImageLayo
 	return depthAttachment;
 }
 
-VkRenderingInfo Rhi::renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment, std::optional<VkRenderingAttachmentInfo> depthAttachment) {
+VkRenderingInfo rhi::renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment, std::optional<VkRenderingAttachmentInfo> depthAttachment) {
 	VkRect2D renderArea = VkRect2D{ VkOffset2D{ 0, 0 }, renderExtent };
 	VkRenderingInfo renderInfo = {};
 	renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -168,7 +168,7 @@ VkRenderingInfo Rhi::renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmen
 
 
 
-void Rhi::blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize) {
+void rhi::blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize) {
 	VkImageBlit2 blitRegion = {};
 	blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
 	blitRegion.pNext = nullptr;
@@ -202,7 +202,7 @@ void Rhi::blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, V
 	vkCmdBlitImage2(cmd, &blitInfo);
 }
 
-AllocatedBufferResult Rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
+AllocatedBufferResult rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
 	VkResult result;
 
 	VkBufferCreateInfo bufferInfo = {};
@@ -226,11 +226,11 @@ AllocatedBufferResult Rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usa
 	};
 }
 
-void Rhi::destroyBuffer(const AllocatedBuffer& buffer) {
+void rhi::destroyBuffer(const AllocatedBuffer& buffer) {
 	vmaDestroyBuffer(m_allocator_.value(), buffer.buffer, buffer.allocation);
 }
 
-VkDebugUtilsObjectNameInfoEXT Rhi::addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName) {
+VkDebugUtilsObjectNameInfoEXT rhi::addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName) {
 	VkDebugUtilsObjectNameInfoEXT debugName = {};
 	debugName.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 	debugName.pNext = nullptr;

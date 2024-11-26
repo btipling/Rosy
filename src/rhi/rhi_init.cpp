@@ -27,17 +27,17 @@ static const char* deviceExtensions[] = {
 	//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 };
 
-Rhi::Rhi(rosy_config::Config cfg) : m_cfg_{cfg}, m_required_features_{requiredFeatures}
+rhi::rhi(rosy_config::Config cfg) : m_cfg_{cfg}, m_required_features_{requiredFeatures}
 {
 	memset(&m_required_features_, 0, sizeof(VkPhysicalDeviceFeatures));
 }
 
-Rhi::~Rhi()
+rhi::~rhi()
 {
 	deinit();
 }
 
-VkResult Rhi::init(SDL_Window* window)
+VkResult rhi::init(SDL_Window* window)
 {
 	VkResult result;
 	result = volkInitialize();
@@ -170,7 +170,7 @@ VkResult Rhi::init(SDL_Window* window)
 	return VK_SUCCESS;
 }
 
-void Rhi::deinit()
+void rhi::deinit()
 {
 	if (m_deinited_) return;
 	m_deinited_ = true;
@@ -286,7 +286,7 @@ void Rhi::deinit()
 	}
 }
 
-void Rhi::destroySwapchain()
+void rhi::destroySwapchain()
 {
 	vkDeviceWaitIdle(m_device_.value());
 	for (VkImageView imageView : m_swap_chain_image_views_)
@@ -301,14 +301,14 @@ void Rhi::destroySwapchain()
 	}
 }
 
-VkResult Rhi::resize_swapchain(SDL_Window* window)
+VkResult rhi::resize_swapchain(SDL_Window* window)
 {
 	vkDeviceWaitIdle(m_device_.value());
 	destroySwapchain();
 	return create_swapchain(window, VK_NULL_HANDLE);
 }
 
-VkResult Rhi::draw_frame()
+VkResult rhi::draw_frame()
 {
 	VkResult result;
 	result = this->render_frame();
@@ -320,7 +320,7 @@ VkResult Rhi::draw_frame()
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::query_instance_layers()
+VkResult rhi::query_instance_layers()
 {
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateInstanceLayerProperties(&pPropertyCount, nullptr);
@@ -347,7 +347,7 @@ VkResult Rhi::query_instance_layers()
 	return result;
 }
 
-VkResult Rhi::query_device_layers()
+VkResult rhi::query_device_layers()
 {
 	if (!m_physical_device_.has_value()) return VK_NOT_READY;
 	uint32_t pPropertyCount = 0;
@@ -366,7 +366,7 @@ VkResult Rhi::query_device_layers()
 	return result;
 }
 
-VkResult Rhi::query_instance_extensions()
+VkResult rhi::query_instance_extensions()
 {
 	uint32_t pPropertyCount = 0;
 	VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, nullptr);
@@ -422,7 +422,7 @@ VkResult Rhi::query_instance_extensions()
 	return result;
 }
 
-VkResult Rhi::query_device_extensions()
+VkResult rhi::query_device_extensions()
 {
 	uint32_t pPropertyCount = 0;
 	if (!m_physical_device_.has_value()) return VK_NOT_READY;
@@ -467,7 +467,7 @@ VkResult Rhi::query_device_extensions()
 }
 
 
-VkResult Rhi::create_debug_callback()
+VkResult rhi::create_debug_callback()
 {
 	if (!m_cfg_.enable_validation_layers) return VK_SUCCESS;
 
@@ -479,7 +479,7 @@ VkResult Rhi::create_debug_callback()
 	return result;
 }
 
-VkResult Rhi::init_surface(SDL_Window* window)
+VkResult rhi::init_surface(SDL_Window* window)
 {
 	VkSurfaceKHR surface;
 	SDL_Vulkan_CreateSurface(window, m_instance_.value(), nullptr, &surface);
@@ -487,7 +487,7 @@ VkResult Rhi::init_surface(SDL_Window* window)
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::init_instance()
+VkResult rhi::init_instance()
 {
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -516,7 +516,7 @@ VkResult Rhi::init_instance()
 	return result;
 }
 
-VkResult Rhi::init_physical_device()
+VkResult rhi::init_physical_device()
 {
 	if (!m_instance_.has_value()) return VK_NOT_READY;
 	std::vector<VkPhysicalDevice> physicalDevices;
@@ -648,7 +648,7 @@ VkResult Rhi::init_physical_device()
 	return result;
 }
 
-VkResult Rhi::init_device()
+VkResult rhi::init_device()
 {
 	if (!m_physical_device_.has_value()) return VK_NOT_READY;
 
@@ -699,7 +699,7 @@ VkResult Rhi::init_device()
 	return result;
 }
 
-VkResult Rhi::init_presentation_queue()
+VkResult rhi::init_presentation_queue()
 {
 	VkQueue queue;
 	VkDeviceQueueInfo2 getInfo = {};
@@ -764,12 +764,12 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, SDL_Wi
 	}
 }
 
-VkResult Rhi::init_swap_chain(SDL_Window* window)
+VkResult rhi::init_swap_chain(SDL_Window* window)
 {
 	return create_swapchain(window, VK_NULL_HANDLE);
 }
 
-VkResult Rhi::create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain)
+VkResult rhi::create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain)
 {
 	m_swapchain_details_ = querySwapChainSupport(m_physical_device_.value());
 
@@ -850,7 +850,7 @@ VkResult Rhi::create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain)
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::init_draw_image()
+VkResult rhi::init_draw_image()
 {
 	VkResult result;
 
@@ -905,7 +905,7 @@ VkResult Rhi::init_draw_image()
 	return result;
 }
 
-VkResult Rhi::init_descriptors()
+VkResult rhi::init_descriptors()
 {
 	std::vector<descriptor_allocator::pool_size_ratio> sizes = {
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}
@@ -949,7 +949,7 @@ VkResult Rhi::init_descriptors()
 	return VK_SUCCESS;
 }
 
-void Rhi::init_allocator()
+void rhi::init_allocator()
 {
 	VmaVulkanFunctions vulkanFunctions = {};
 	vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
@@ -969,7 +969,7 @@ void Rhi::init_allocator()
 }
 
 
-VkResult Rhi::init_graphics()
+VkResult rhi::init_graphics()
 {
 	std::vector<char> vertShaderCode;
 	std::vector<char> fragShaderCode;
@@ -989,7 +989,7 @@ VkResult Rhi::init_graphics()
 	return result;
 }
 
-VkResult Rhi::create_shader_objects(const std::vector<char>& vert, const std::vector<char>& frag)
+VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::vector<char>& frag)
 {
 	VkPushConstantRange pushContantRange = {};
 	pushContantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1060,7 +1060,7 @@ VkResult Rhi::create_shader_objects(const std::vector<char>& vert, const std::ve
 	return result;
 }
 
-VkResult Rhi::init_command_pool()
+VkResult rhi::init_command_pool()
 {
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1074,7 +1074,7 @@ VkResult Rhi::init_command_pool()
 	return result;
 }
 
-VkResult Rhi::init_command_buffers()
+VkResult rhi::init_command_buffers()
 {
 	m_command_buffers_.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -1088,7 +1088,7 @@ VkResult Rhi::init_command_buffers()
 	return result;
 }
 
-VkResult Rhi::init_sync_objects()
+VkResult rhi::init_sync_objects()
 {
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1122,7 +1122,7 @@ VkResult Rhi::init_sync_objects()
 }
 
 
-VkResult Rhi::init_commands()
+VkResult rhi::init_commands()
 {
 	VkResult result;
 
@@ -1152,7 +1152,7 @@ VkResult Rhi::init_commands()
 	return VK_SUCCESS;
 }
 
-VkResult Rhi::init_default_data()
+VkResult rhi::init_default_data()
 {
 	auto result = load_gltf_meshes(this, "assets\\basicmesh.glb");
 	if (result.has_value())

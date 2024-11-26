@@ -11,7 +11,7 @@
 #include <fastgltf/tools.hpp>
 
 
-std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(Rhi* rhi, std::filesystem::path file_path) {
+std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(rhi* rhi, std::filesystem::path file_path) {
 	fastgltf::Asset gltf;
 	fastgltf::Parser parser{};
     auto data = fastgltf::GltfDataBuffer::FromPath(file_path);

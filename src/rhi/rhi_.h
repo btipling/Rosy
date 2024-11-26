@@ -5,10 +5,10 @@
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
-class Rhi
+class rhi
 {
 public:
-	explicit Rhi(rosy_config::Config cfg);
+	explicit rhi(rosy_config::Config cfg);
 	VkResult init(SDL_Window* window);
 	VkResult resize_swapchain(SDL_Window* window);
 	void deinit();
@@ -17,7 +17,7 @@ public:
 	// Buffer read write
 	GPUMeshBuffersResult upload_mesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 	void debug();
-	~Rhi();
+	~rhi();
 
 private:
 	bool m_deinited_ = false;
