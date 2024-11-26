@@ -22,68 +22,69 @@
 
 struct frame_data
 {
-    VkCommandBuffer command_buffers;
-    VkSemaphore image_available_semaphores;
-    VkSemaphore render_finished_semaphores;
-    VkFence in_flight_fence;
+	VkCommandBuffer command_buffer;
+	VkSemaphore image_available_semaphore;
+	VkSemaphore render_finished_semaphore;
+	VkFence in_flight_fence;
+	std::optional<VkCommandPool> command_pool;
 };
 
 struct swap_chain_support_details {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> present_modes;
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> present_modes;
 };
 
 struct allocated_image {
-    VkImage image;
-    VkImageView image_view;
-    VmaAllocation allocation;
-    VkExtent3D image_extent;
-    VkFormat image_format;
+	VkImage image;
+	VkImageView image_view;
+	VmaAllocation allocation;
+	VkExtent3D image_extent;
+	VkFormat image_format;
 };
 
 struct allocated_buffer {
-    VkBuffer buffer;
-    VmaAllocation allocation;
-    VmaAllocationInfo info;
+	VkBuffer buffer;
+	VmaAllocation allocation;
+	VmaAllocationInfo info;
 };
 
 struct allocated_buffer_result {
-    VkResult result;
-    allocated_buffer buffer;
+	VkResult result;
+	allocated_buffer buffer;
 };
 
 struct vertex {
-    glm::vec4 position;
-    glm::vec4 texture_coordinates;
-    glm::vec4 normal;
-    glm::vec4 color;
+	glm::vec4 position;
+	glm::vec4 texture_coordinates;
+	glm::vec4 normal;
+	glm::vec4 color;
 };
 
 struct gpu_mesh_buffers {
-    allocated_buffer index_buffer;
-    allocated_buffer vertex_buffer;
-    VkDeviceAddress vertex_buffer_address;
+	allocated_buffer index_buffer;
+	allocated_buffer vertex_buffer;
+	VkDeviceAddress vertex_buffer_address;
 };
 
 struct gpu_mesh_buffers_result {
-    VkResult result;
-    gpu_mesh_buffers buffers;
+	VkResult result;
+	gpu_mesh_buffers buffers;
 };
 
 struct gpu_draw_push_constants {
-    glm::mat4 world_matrix;
-    VkDeviceAddress vertex_buffer;
+	glm::mat4 world_matrix;
+	VkDeviceAddress vertex_buffer;
 };
 
 struct geo_surface {
-    uint32_t start_index;
-    uint32_t count;
+	uint32_t start_index;
+	uint32_t count;
 };
 
 struct mesh_asset {
-    std::string name;
+	std::string name;
 
-    std::vector<geo_surface> surfaces;
-    gpu_mesh_buffers mesh_buffers;
+	std::vector<geo_surface> surfaces;
+	gpu_mesh_buffers mesh_buffers;
 };

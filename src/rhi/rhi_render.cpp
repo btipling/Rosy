@@ -34,7 +34,9 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 }
 
 VkResult rhi::render_frame() {
-	auto [command_buffers, image_available_semaphores, render_finished_semaphores, in_flight_fence] = frame_datas_[current_frame_];
+	auto [command_buffers, image_available_semaphores, render_finished_semaphores, in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
+	if (!opt_command_pool.has_value()) return VK_NOT_READY;
+	VkCommandPool command_pool = opt_command_pool.value();
 	VkCommandBuffer cmd = command_buffers;
 	VkSemaphore image_available = image_available_semaphores;
 	VkSemaphore rendered_finished = render_finished_semaphores;

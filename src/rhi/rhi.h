@@ -46,7 +46,6 @@ private:
 	uint32_t swap_chain_image_count_ = 0;
 	swap_chain_support_details swapchain_details_ = {};
 	VkExtent2D swapchain_extent_ = {};
-	std::optional<VkCommandPool> command_pool_ = std::nullopt;
 	std::optional<descriptor_allocator> global_descriptor_allocator_;
 	std::optional<VkDescriptorSet> draw_image_descriptors_;
 	std::optional<VkDescriptorSetLayout> draw_image_descriptor_layout_;

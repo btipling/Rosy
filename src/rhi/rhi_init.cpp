@@ -205,14 +205,11 @@ void rhi::deinit()
 
 	for (const frame_data fd : frame_datas_)
 	{
-		vkDestroyFence(device_.value(), fd.in_flight_fence, nullptr);
-		vkDestroySemaphore(device_.value(), fd.image_available_semaphores, nullptr);
-		vkDestroySemaphore(device_.value(), fd.render_finished_semaphores, nullptr);
-	}
-
-	if (command_pool_.has_value())
-	{
-		vkDestroyCommandPool(device_.value(), command_pool_.value(), nullptr);
+		VkDevice device = device_.value();
+		vkDestroyFence(device, fd.in_flight_fence, nullptr);
+		vkDestroySemaphore(device, fd.image_available_semaphore, nullptr);
+		vkDestroySemaphore(device, fd.render_finished_semaphore, nullptr);
+		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
 	}
 
 	if (shader_pl_.has_value())
@@ -922,7 +919,7 @@ VkResult rhi::init_descriptors()
 		draw_image_descriptors_ = set;
 	}
 
-	VkDescriptorImageInfo img_info{};
+	VkDescriptorImageInfo img_info = {};
 	img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	img_info.imageView = draw_image_.value().image_view;
 
@@ -1053,31 +1050,32 @@ VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::ve
 
 VkResult rhi::init_command_pool()
 {
-	VkCommandPoolCreateInfo poolInfo{};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = queue_index_;
 
-	VkCommandPool commandPool;
-	VkResult result = vkCreateCommandPool(device_.value(), &poolInfo, nullptr, &commandPool);
-	if (result != VK_SUCCESS) return result;
-	command_pool_ = commandPool;
-	return result;
+	VkCommandPoolCreateInfo pool_info{};
+	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	pool_info.queueFamilyIndex = queue_index_;
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		VkCommandPool command_pool;
+		if (const VkResult result = vkCreateCommandPool(device_.value(), &pool_info, nullptr, &command_pool); result != VK_SUCCESS) return result;
+		frame_datas_[i].command_pool = command_pool;
+	}
+	return VK_SUCCESS;
 }
 
 VkResult rhi::init_command_buffers()
 {
-	std::vector<VkCommandBuffer> command_buffers(frame_datas_.size());
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		VkCommandBufferAllocateInfo alloc_info{};
+		alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		alloc_info.commandPool = frame_datas_[i].command_pool.value();
+		alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		alloc_info.commandBufferCount = 1;
 
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = command_pool_.value();
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = static_cast<uint32_t>(frame_datas_.size());
-
-	if (VkResult result = vkAllocateCommandBuffers(device_.value(), &allocInfo, command_buffers.data()); result != VK_SUCCESS) return result;
-	for (size_t i = 0; const auto & buffer : command_buffers) {
-		frame_datas_[i++].command_buffers = buffer;
+		VkCommandBuffer command_buffer;
+		if (const VkResult result = vkAllocateCommandBuffers(device_.value(), &alloc_info, &command_buffer); result != VK_SUCCESS) return result;
+		frame_datas_[i].command_buffer = command_buffer;
 	}
 	return VK_SUCCESS;
 }
@@ -1100,13 +1098,13 @@ VkResult rhi::init_sync_objects()
 			VkSemaphore semaphore;
 			result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
 			if (result != VK_SUCCESS) return result;
-			frame_datas_[i].image_available_semaphores = semaphore;
+			frame_datas_[i].image_available_semaphore = semaphore;
 		}
 		{
 			VkSemaphore semaphore;
 			result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
 			if (result != VK_SUCCESS) return result;
-			frame_datas_[i].render_finished_semaphores = semaphore;
+			frame_datas_[i].render_finished_semaphore = semaphore;
 		}
 		VkFence fence;
 		result = vkCreateFence(device, &fence_info, nullptr, &fence);
