@@ -15,7 +15,7 @@ public:
 	VkResult draw_ui();
 	VkResult draw_frame();
 	// Buffer read write
-	GPUMeshBuffersResult upload_mesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
+	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices);
 	void debug();
 	~rhi();
 
@@ -44,7 +44,7 @@ private:
 	VkSurfaceFormatKHR m_swapchain_image_format_ = {};
 	VkPresentModeKHR m_swapchain_present_mode_ = {};
 	uint32_t m_swap_chain_image_count_ = 0;
-	SwapChainSupportDetails m_swapchain_details_ = {};
+	swap_chain_support_details m_swapchain_details_ = {};
 	VkExtent2D m_swapchain_extent_ = {};
 	std::optional<VkCommandPool> m_command_pool_ = std::nullopt;
 	std::optional<descriptor_allocator> m_global_descriptor_allocator_;
@@ -69,7 +69,7 @@ private:
 	bool m_toggle_wire_frame_ = false;
 	int m_blend_mode_ = 0;
 
-	std::vector<std::shared_ptr<MeshAsset>> m_test_meshes_;
+	std::vector<std::shared_ptr<mesh_asset>> m_test_meshes_;
 
 	// ui
 	std::optional<VkDescriptorPool> m_ui_pool_ = std::nullopt;
@@ -77,8 +77,8 @@ private:
 	size_t m_current_frame_ = 0;
 
 	// main draw image
-	std::optional<AllocatedImage> m_draw_image_;
-	std::optional<AllocatedImage> m_depth_image_;
+	std::optional<allocated_image> m_draw_image_;
+	std::optional<allocated_image> m_depth_image_;
 	VkExtent2D m_draw_extent_ = {};
 	float m_render_scale_ = 1.f;
 
@@ -134,7 +134,7 @@ private:
 	void enable_blending_alpha_blend(VkCommandBuffer cmd);
 
 	// Utils
-	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+	swap_chain_support_details querySwapChainSupport(VkPhysicalDevice device);
 	VkImageCreateInfo imgCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
 	VkImageViewCreateInfo imgViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
 	VkRenderingAttachmentInfo attachmentInfo(VkImageView view, VkImageLayout layout);
@@ -142,7 +142,7 @@ private:
 	VkRenderingInfo renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo colorAttachment,
 	                              std::optional<VkRenderingAttachmentInfo> depthAttachment);
 	void blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D srcSize, VkExtent2D dstSize);
-	AllocatedBufferResult createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+	allocated_buffer_result createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	VkDebugUtilsObjectNameInfoEXT addName(VkObjectType objectType, uint64_t objectHandle, const char* pObjectName);
 
 	// ui
@@ -151,6 +151,6 @@ private:
 
 	// destructors
 	void destroySwapchain();
-	void destroyBuffer(const AllocatedBuffer& buffer);
+	void destroyBuffer(const allocated_buffer& buffer);
 	void deinitUI();
 };

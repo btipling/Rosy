@@ -50,10 +50,10 @@ VkResult rhi::render_frame() {
 	VkImage image = m_swap_chain_images_[imageIndex];
 	VkImageView imageView = m_swap_chain_image_views_[imageIndex];
 
-	AllocatedImage drawImage = m_draw_image_.value();
-	AllocatedImage depthImage = m_depth_image_.value();
-	m_draw_extent_.width = std::min(m_swapchain_extent_.width, drawImage.imageExtent.width) * m_render_scale_;
-	m_draw_extent_.height = std::min(m_swapchain_extent_.height, drawImage.imageExtent.height) * m_render_scale_;
+	allocated_image drawImage = m_draw_image_.value();
+	allocated_image depthImage = m_depth_image_.value();
+	m_draw_extent_.width = std::min(m_swapchain_extent_.width, drawImage.image_extent.width) * m_render_scale_;
+	m_draw_extent_.height = std::min(m_swapchain_extent_.height, drawImage.image_extent.height) * m_render_scale_;
 
 	vkResetFences(device, 1, &fence);
 	{
@@ -113,8 +113,8 @@ VkResult rhi::render_frame() {
 		transition_image(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
-			VkRenderingAttachmentInfo colorAttachment = attachmentInfo(drawImage.imageView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			VkRenderingAttachmentInfo depthAttachment = depthAttachmentInfo(depthImage.imageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+			VkRenderingAttachmentInfo colorAttachment = attachmentInfo(drawImage.image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			VkRenderingAttachmentInfo depthAttachment = depthAttachmentInfo(depthImage.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 			VkRenderingInfo renderInfo = renderingInfo(m_swapchain_extent_, colorAttachment, depthAttachment);
 			vkCmdBeginRendering(cmd, &renderInfo);
 		}
@@ -146,7 +146,7 @@ VkResult rhi::render_frame() {
 			};
 			vkCmdBindShadersEXT(cmd, 3, unusedStages, NULL);
 
-			GPUDrawPushConstants push_constants;
+			gpu_draw_push_constants push_constants;
 			glm::mat4 m = glm::mat4(1.0f);
 
 			glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -10.0f); 
@@ -178,13 +178,13 @@ VkResult rhi::render_frame() {
 			proj[2][2] = a;
 			proj[3][2] = b;
 			proj[2][3] = 1.0f;
-			push_constants.worldMatrix = proj * view * m;
+			push_constants.world_matrix = proj * view * m;
 
 			if (m_test_meshes_.size() > 0) {
-				push_constants.vertexBuffer = m_test_meshes_[2]->meshBuffers.vertexBufferAddress;
+				push_constants.vertex_buffer = m_test_meshes_[2]->mesh_buffers.vertex_buffer_address;
 				vkCmdPushConstants(cmd, m_shader_pl_.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &push_constants);
-				vkCmdBindIndexBuffer(cmd, m_test_meshes_[2]->meshBuffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(cmd, m_test_meshes_[2]->surfaces[0].count, 1, m_test_meshes_[2]->surfaces[0].startIndex, 0, 0);
+				vkCmdBindIndexBuffer(cmd, m_test_meshes_[2]->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(cmd, m_test_meshes_[2]->surfaces[0].count, 1, m_test_meshes_[2]->surfaces[0].start_index, 0, 0);
 			}
 
 			vkCmdEndDebugUtilsLabelEXT(cmd);

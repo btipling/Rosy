@@ -185,11 +185,11 @@ void rhi::deinit()
 	// Deinit begin in the reverse order from how it was created.
 	deinitUI();
 
-	for (std::shared_ptr<MeshAsset> mesh : m_test_meshes_)
+	for (std::shared_ptr<mesh_asset> mesh : m_test_meshes_)
 	{
-		GPUMeshBuffers rectangle = mesh.get()->meshBuffers;
-		destroyBuffer(rectangle.vertexBuffer);
-		destroyBuffer(rectangle.indexBuffer);
+		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
+		destroyBuffer(rectangle.vertex_buffer);
+		destroyBuffer(rectangle.index_buffer);
 		mesh.reset();
 	}
 
@@ -245,15 +245,15 @@ void rhi::deinit()
 
 	if (m_depth_image_.has_value())
 	{
-		const AllocatedImage depth_image = m_depth_image_.value();
-		vkDestroyImageView(m_device_.value(), depth_image.imageView, nullptr);
+		const allocated_image depth_image = m_depth_image_.value();
+		vkDestroyImageView(m_device_.value(), depth_image.image_view, nullptr);
 		vmaDestroyImage(m_allocator_.value(), depth_image.image, depth_image.allocation);
 	}
 
 	if (m_draw_image_.has_value())
 	{
-		const AllocatedImage draw_image = m_draw_image_.value();
-		vkDestroyImageView(m_device_.value(), draw_image.imageView, nullptr);
+		const allocated_image draw_image = m_draw_image_.value();
+		vkDestroyImageView(m_device_.value(), draw_image.image_view, nullptr);
 		vmaDestroyImage(m_allocator_.value(), draw_image.image, draw_image.allocation);
 	}
 
@@ -534,8 +534,8 @@ VkResult rhi::init_physical_device()
 		vkGetPhysicalDeviceProperties(p_device, &deviceProperties);
 
 		bool swapChainAdequate = false;
-		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(p_device);
-		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+		swap_chain_support_details swapChainSupport = querySwapChainSupport(p_device);
+		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.present_modes.empty();
 		if (!swapChainAdequate) continue;
 
 
@@ -774,7 +774,7 @@ VkResult rhi::create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain)
 	m_swapchain_details_ = querySwapChainSupport(m_physical_device_.value());
 
 	m_swapchain_image_format_ = chooseSwapSurfaceFormat(m_swapchain_details_.formats);
-	m_swapchain_present_mode_ = chooseSwapPresentMode(m_swapchain_details_.presentModes);
+	m_swapchain_present_mode_ = chooseSwapPresentMode(m_swapchain_details_.present_modes);
 
 	m_swap_chain_image_count_ = m_swapchain_details_.capabilities.minImageCount;
 	if (m_swapchain_details_.capabilities.maxImageCount > 0 && m_swap_chain_image_count_ > m_swapchain_details_.capabilities.
@@ -859,9 +859,9 @@ VkResult rhi::init_draw_image()
 		.height = static_cast<uint32_t>(m_cfg_.maxWindowHeight),
 		.depth = 1
 	};
-	AllocatedImage draw_image = {};
-	draw_image.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-	draw_image.imageExtent = draw_image_extent;
+	allocated_image draw_image = {};
+	draw_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	draw_image.image_extent = draw_image_extent;
 
 	VkImageUsageFlags draw_image_usages{};
 	draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -869,7 +869,7 @@ VkResult rhi::init_draw_image()
 	draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
 	draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	VkImageCreateInfo draw_info = imgCreateInfo(draw_image.imageFormat, draw_image_usages, draw_image_extent);
+	VkImageCreateInfo draw_info = imgCreateInfo(draw_image.image_format, draw_image_usages, draw_image_extent);
 
 	VmaAllocationCreateInfo r_img_alloc_info = {};
 	r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -877,28 +877,28 @@ VkResult rhi::init_draw_image()
 
 	vmaCreateImage(m_allocator_.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation, nullptr);
 
-	VkImageViewCreateInfo r_view_info = imgViewCreateInfo(draw_image.imageFormat, draw_image.image,
+	VkImageViewCreateInfo r_view_info = imgViewCreateInfo(draw_image.image_format, draw_image.image,
 	                                                     VK_IMAGE_ASPECT_COLOR_BIT);
 
-	result = vkCreateImageView(m_device_.value(), &r_view_info, nullptr, &draw_image.imageView);
+	result = vkCreateImageView(m_device_.value(), &r_view_info, nullptr, &draw_image.image_view);
 	if (result != VK_SUCCESS) return result;
 	m_draw_image_ = draw_image;
 
-	AllocatedImage depth_image = {};
-	depth_image.imageFormat = VK_FORMAT_D32_SFLOAT;
-	depth_image.imageExtent = draw_image_extent;
+	allocated_image depth_image = {};
+	depth_image.image_format = VK_FORMAT_D32_SFLOAT;
+	depth_image.image_extent = draw_image_extent;
 	VkImageUsageFlags depth_image_usages{};
 	depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-	VkImageCreateInfo depth_info = imgCreateInfo(depth_image.imageFormat, depth_image_usages, draw_image_extent);
+	VkImageCreateInfo depth_info = imgCreateInfo(depth_image.image_format, depth_image_usages, draw_image_extent);
 
 	vmaCreateImage(m_allocator_.value(), &depth_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation,
 	               nullptr);
 
-	VkImageViewCreateInfo d_view_info = imgViewCreateInfo(depth_image.imageFormat, depth_image.image,
+	VkImageViewCreateInfo d_view_info = imgViewCreateInfo(depth_image.image_format, depth_image.image,
 	                                                     VK_IMAGE_ASPECT_DEPTH_BIT);
 
-	result = vkCreateImageView(m_device_.value(), &d_view_info, nullptr, &depth_image.imageView);
+	result = vkCreateImageView(m_device_.value(), &d_view_info, nullptr, &depth_image.image_view);
 	if (result != VK_SUCCESS) return result;
 	m_depth_image_ = depth_image;
 
@@ -933,7 +933,7 @@ VkResult rhi::init_descriptors()
 
 	VkDescriptorImageInfo img_info{};
 	img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	img_info.imageView = m_draw_image_.value().imageView;
+	img_info.imageView = m_draw_image_.value().image_view;
 
 	VkWriteDescriptorSet draw_image_write = {};
 	draw_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -994,7 +994,7 @@ VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::ve
 	VkPushConstantRange pushContantRange = {};
 	pushContantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	pushContantRange.offset = 0;
-	pushContantRange.size = sizeof(GPUDrawPushConstants);
+	pushContantRange.size = sizeof(gpu_draw_push_constants);
 
 	VkShaderCreateInfoEXT shaderCreateInfos[2] =
 	{

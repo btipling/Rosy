@@ -88,7 +88,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi_descriptor.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -11,7 +11,7 @@
 #include <fastgltf/tools.hpp>
 
 
-std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(rhi* rhi, std::filesystem::path file_path) {
+std::optional<std::vector<std::shared_ptr<mesh_asset>>> load_gltf_meshes(rhi* rhi, std::filesystem::path file_path) {
 	fastgltf::Asset gltf;
 	fastgltf::Parser parser{};
     auto data = fastgltf::GltfDataBuffer::FromPath(file_path);
@@ -26,14 +26,14 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(rhi* rhi
 		rosy_utils::debug_print_a("failed to load gltf: %d %s\n", err, file_path.string().c_str());
 		return std::nullopt;
 	}
-    std::vector<std::shared_ptr<MeshAsset>> meshes;
+    std::vector<std::shared_ptr<mesh_asset>> meshes;
 
     // use the same vectors for all meshes so that the memory doesn't reallocate as
     // often
     std::vector<uint32_t> indices;
-    std::vector<Vertex> vertices;
+    std::vector<vertex> vertices;
     for (fastgltf::Mesh& mesh : gltf.meshes) {
-        MeshAsset new_mesh;
+        mesh_asset new_mesh;
 
         new_mesh.name = mesh.name;
 
@@ -42,8 +42,8 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(rhi* rhi
         vertices.clear();
 
         for (fastgltf::Primitive p : mesh.primitives) {
-            GeoSurface newSurface;
-            newSurface.startIndex = static_cast<uint32_t>(indices.size());
+            geo_surface newSurface;
+            newSurface.start_index = static_cast<uint32_t>(indices.size());
             newSurface.count = static_cast<uint32_t>(gltf.accessors[p.indicesAccessor.value()].count);
 
             size_t initial_vtx = vertices.size();
@@ -68,11 +68,11 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(rhi* rhi
 
                 fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, posAccessor,
                     [&](glm::vec3 v, size_t index) {
-                        Vertex newvtx;
+                        vertex newvtx;
                         newvtx.position = glm::vec4{ v, 1.0f };
                         newvtx.normal = { 1.0f, 0.0f, 0.0f, 1.0f };
                         newvtx.color = glm::vec4{ 1.f };
-                        newvtx.textureCoordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
+                        newvtx.texture_coordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
                         vertices[initial_vtx + index] = newvtx;
                     });
             }
@@ -93,7 +93,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(rhi* rhi
 
                 fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[(*uv).accessorIndex],
                     [&](glm::vec2 v, size_t index) {
-                        vertices[initial_vtx + index].textureCoordinates = { v.x, v.y, 0.0f, 0.0f };
+                        vertices[initial_vtx + index].texture_coordinates = { v.x, v.y, 0.0f, 0.0f };
                     });
             }
 
@@ -112,7 +112,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(rhi* rhi
         // display the vertex normals
         constexpr bool OverrideColors = true;
         if (OverrideColors) {
-            for (Vertex& vtx : vertices) {
+            for (vertex& vtx : vertices) {
                 vtx.color = vtx.normal;
             }
         }
@@ -121,8 +121,8 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_gltf_meshes(rhi* rhi
             rosy_utils::debug_print_a("failed to upload mesh: %d\n", result.result);
             return std::nullopt;
         }
-        new_mesh.meshBuffers = result.buffers;
-        meshes.emplace_back(std::make_shared<MeshAsset>(std::move(new_mesh)));
+        new_mesh.mesh_buffers = result.buffers;
+        meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
     }
 
     return meshes;

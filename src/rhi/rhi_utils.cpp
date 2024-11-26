@@ -71,8 +71,8 @@ std::vector<char> readFile(const std::string& filename) {
 	return buffer;
 }
 
-SwapChainSupportDetails rhi::querySwapChainSupport(VkPhysicalDevice device) {
-	SwapChainSupportDetails details = {};
+swap_chain_support_details rhi::querySwapChainSupport(VkPhysicalDevice device) {
+	swap_chain_support_details details = {};
 	VkSurfaceKHR surface = m_surface_.value();
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 	uint32_t formatCount;
@@ -86,8 +86,8 @@ SwapChainSupportDetails rhi::querySwapChainSupport(VkPhysicalDevice device) {
 	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
 
 	if (presentModeCount != 0) {
-		details.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+		details.present_modes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.present_modes.data());
 	}
 	return details;
 }
@@ -202,7 +202,7 @@ void rhi::blitImages(VkCommandBuffer cmd, VkImage source, VkImage destination, V
 	vkCmdBlitImage2(cmd, &blitInfo);
 }
 
-AllocatedBufferResult rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
+allocated_buffer_result rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
 	VkResult result;
 
 	VkBufferCreateInfo bufferInfo = {};
@@ -215,7 +215,7 @@ AllocatedBufferResult rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usa
 	vmaallocInfo.usage = memoryUsage;
 	vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-	AllocatedBuffer newBuffer;
+	allocated_buffer newBuffer;
 	result = vmaCreateBuffer(m_allocator_.value(), &bufferInfo, &vmaallocInfo, &newBuffer.buffer, &newBuffer.allocation,
 		&newBuffer.info);
 	if (result != VK_SUCCESS) return { .result = result };
@@ -226,7 +226,7 @@ AllocatedBufferResult rhi::createBuffer(size_t allocSize, VkBufferUsageFlags usa
 	};
 }
 
-void rhi::destroyBuffer(const AllocatedBuffer& buffer) {
+void rhi::destroyBuffer(const allocated_buffer& buffer) {
 	vmaDestroyBuffer(m_allocator_.value(), buffer.buffer, buffer.allocation);
 }
 

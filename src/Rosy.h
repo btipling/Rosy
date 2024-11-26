@@ -20,62 +20,67 @@
 #include <Volk/volk.h>
 #include <vma/vk_mem_alloc.h>
 
-struct SwapChainSupportDetails {
+struct frame_data
+{
+	
+};
+
+struct swap_chain_support_details {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+    std::vector<VkPresentModeKHR> present_modes;
 };
 
-struct AllocatedImage {
+struct allocated_image {
     VkImage image;
-    VkImageView imageView;
+    VkImageView image_view;
     VmaAllocation allocation;
-    VkExtent3D imageExtent;
-    VkFormat imageFormat;
+    VkExtent3D image_extent;
+    VkFormat image_format;
 };
 
-struct AllocatedBuffer {
+struct allocated_buffer {
     VkBuffer buffer;
     VmaAllocation allocation;
     VmaAllocationInfo info;
 };
 
-struct AllocatedBufferResult {
+struct allocated_buffer_result {
     VkResult result;
-    AllocatedBuffer buffer;
+    allocated_buffer buffer;
 };
 
-struct Vertex {
+struct vertex {
     glm::vec4 position;
-    glm::vec4 textureCoordinates;
+    glm::vec4 texture_coordinates;
     glm::vec4 normal;
     glm::vec4 color;
 };
 
-struct GPUMeshBuffers {
-    AllocatedBuffer indexBuffer;
-    AllocatedBuffer vertexBuffer;
-    VkDeviceAddress vertexBufferAddress;
+struct gpu_mesh_buffers {
+    allocated_buffer index_buffer;
+    allocated_buffer vertex_buffer;
+    VkDeviceAddress vertex_buffer_address;
 };
 
-struct GPUMeshBuffersResult {
+struct gpu_mesh_buffers_result {
     VkResult result;
-    GPUMeshBuffers buffers;
+    gpu_mesh_buffers buffers;
 };
 
-struct GPUDrawPushConstants {
-    glm::mat4 worldMatrix;
-    VkDeviceAddress vertexBuffer;
+struct gpu_draw_push_constants {
+    glm::mat4 world_matrix;
+    VkDeviceAddress vertex_buffer;
 };
 
-struct GeoSurface {
-    uint32_t startIndex;
+struct geo_surface {
+    uint32_t start_index;
     uint32_t count;
 };
 
-struct MeshAsset {
+struct mesh_asset {
     std::string name;
 
-    std::vector<GeoSurface> surfaces;
-    GPUMeshBuffers meshBuffers;
+    std::vector<geo_surface> surfaces;
+    gpu_mesh_buffers mesh_buffers;
 };
