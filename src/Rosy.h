@@ -21,14 +21,13 @@
 #include <vma/vk_mem_alloc.h>
 #include "rhi/rhi_descriptor.h"
 
-struct frame_data
-{
-	std::optional<VkCommandBuffer> command_buffer;
-	std::optional<VkSemaphore> image_available_semaphore;
-	std::optional<VkSemaphore> render_finished_semaphore;
-	std::optional<VkFence> in_flight_fence;
-	std::optional<VkCommandPool> command_pool;
-	std::optional<descriptor_allocator_growable> frame_descriptors;
+struct gpu_scene_data {
+	glm::mat4 view;
+	glm::mat4 proj;
+	glm::mat4 view_projection;
+	glm::vec4 ambient_color;
+	glm::vec4 sunlight_direction; // w for light intensity
+	glm::vec4 sunlight_color;
 };
 
 struct swap_chain_support_details {
@@ -89,4 +88,16 @@ struct mesh_asset {
 
 	std::vector<geo_surface> surfaces;
 	gpu_mesh_buffers mesh_buffers;
+};
+
+struct frame_data
+{
+	std::optional<VkCommandBuffer> command_buffer;
+	std::optional<VkSemaphore> image_available_semaphore;
+	std::optional<VkSemaphore> render_finished_semaphore;
+	std::optional<VkFence> in_flight_fence;
+	std::optional<VkCommandPool> command_pool;
+	std::optional<descriptor_allocator_growable> frame_descriptors;
+
+	std::optional<allocated_buffer> gpu_scene_buffer = std::nullopt;
 };

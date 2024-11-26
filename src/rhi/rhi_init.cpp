@@ -208,6 +208,7 @@ void rhi::deinit()
 		if (fd.render_finished_semaphore.has_value()) vkDestroySemaphore(device, fd.render_finished_semaphore.value(), nullptr);
 		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
 		if (fd.frame_descriptors.has_value()) fd.frame_descriptors.value().destroy_pools(device);
+		if (fd.gpu_scene_buffer.has_value()) destroy_buffer(fd.gpu_scene_buffer.value());
 	}
 
 	if (shader_pl_.has_value())
@@ -219,17 +220,18 @@ void rhi::deinit()
 	{
 		vkDestroyShaderEXT(device_.value(), shader, nullptr);
 	}
-
+	if (gpu_scene_data_descriptor_layout_.has_value())
+	{
+		vkDestroyDescriptorSetLayout(device_.value(), gpu_scene_data_descriptor_layout_.value(), nullptr);
+	}
 	if (draw_image_descriptor_layout_.has_value())
 	{
 		vkDestroyDescriptorSetLayout(device_.value(), draw_image_descriptor_layout_.value(), nullptr);
 	}
-
 	if (global_descriptor_allocator_.has_value())
 	{
 		global_descriptor_allocator_.value().destroy_pool(device_.value());
 	}
-
 	if (depth_image_.has_value())
 	{
 		const allocated_image depth_image = depth_image_.value();
@@ -944,6 +946,13 @@ VkResult rhi::init_descriptors()
 		frame_datas_[i].frame_descriptors = descriptor_allocator_growable{};
 		frame_datas_[i].frame_descriptors.value().init(device, 1000, frame_sizes);
 
+	}
+	{
+		descriptor_layout_builder builder;
+		builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		auto builder_result = builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		if (builder_result.result != VK_SUCCESS) return builder_result.result;
+		gpu_scene_data_descriptor_layout_ = builder_result.set;
 	}
 	return VK_SUCCESS;
 }

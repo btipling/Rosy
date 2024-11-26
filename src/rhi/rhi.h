@@ -15,6 +15,7 @@ public:
 	VkResult draw_frame();
 	// Buffer read write
 	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices);
+	gpu_scene_data scene_data;
 	void debug();
 	~rhi();
 
@@ -48,6 +49,7 @@ private:
 	std::optional<descriptor_allocator> global_descriptor_allocator_;
 	std::optional<VkDescriptorSet> draw_image_descriptors_;
 	std::optional<VkDescriptorSetLayout> draw_image_descriptor_layout_;
+	std::optional <VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_;
 
 	// immediate submits
 	std::optional<VkFence> imm_fence_;

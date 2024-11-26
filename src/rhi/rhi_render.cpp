@@ -35,7 +35,7 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 
 VkResult rhi::render_frame() {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_frame_descriptors] = frame_datas_[current_frame_];
+		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
 	{
 		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
@@ -57,12 +57,14 @@ VkResult rhi::render_frame() {
 	result = vkWaitForFences(device, 1, &fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
 	frame_descriptors.clear_pools(device);
+	if (opt_gpu_scene_buffer.has_value()) destroy_buffer(opt_gpu_scene_buffer.value());
+	frame_datas_[current_frame_].gpu_scene_buffer = std::nullopt;
 
 	uint32_t image_index;
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
 	vkAcquireNextImageKHR(device_.value(), swapchain_.value(), UINT64_MAX, image_available, VK_NULL_HANDLE, &image_index);
 	VkImage image = swap_chain_images_[image_index];
-	VkImageView imageView = swap_chain_image_views_[image_index];
+	VkImageView image_view = swap_chain_image_views_[image_index];
 
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depthImage = depth_image_.value();
@@ -137,6 +139,28 @@ VkResult rhi::render_frame() {
 	{
 		// meshes
 		{
+			//allocate a new uniform buffer for the scene data
+			auto create_buffer_result = create_buffer(sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			if (create_buffer_result.result != VK_SUCCESS) return create_buffer_result.result;
+			allocated_buffer gpu_scene_buffer = create_buffer_result.buffer;
+			frame_datas_[current_frame_].gpu_scene_buffer = gpu_scene_buffer;
+
+			//write the buffer
+			void* scene_data;
+			vmaMapMemory(allocator_.value(), gpu_scene_buffer.allocation, &scene_data);
+			// ReSharper disable once CppDeclaratorNeverUsed
+			gpu_scene_data* scene_uniform_data = static_cast<gpu_scene_data*>(scene_data);
+			vmaUnmapMemory(allocator_.value(), gpu_scene_buffer.allocation);
+
+			//create a descriptor set that binds that buffer and update it
+			auto descriptor_result = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
+			if (descriptor_result.result != VK_SUCCESS) return descriptor_result.result;
+			VkDescriptorSet global_descriptor = descriptor_result.set;
+
+			descriptor_writer writer;
+			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			writer.update_set(device, global_descriptor);
+
 			constexpr VkDebugUtilsLabelEXT mesh_draw_label =
 			{
 				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
@@ -216,7 +240,7 @@ VkResult rhi::render_frame() {
 		{
 			// draw ui onto swapchain image
 			transition_image(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			result = render_ui(cmd, imageView);
+			result = render_ui(cmd, image_view);
 			if (result != VK_SUCCESS) return result;
 		}
 		{

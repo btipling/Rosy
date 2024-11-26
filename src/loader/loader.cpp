@@ -109,8 +109,8 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> load_gltf_meshes(rhi* rh
         }
 
         // display the vertex normals
-        constexpr bool OverrideColors = true;
-        if (OverrideColors) {
+        constexpr bool override_colors = true;
+        if (override_colors) {
             for (vertex& vtx : vertices) {
                 vtx.color = vtx.normal;
             }
