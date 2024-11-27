@@ -458,7 +458,7 @@ VkResult rhi::create_debug_callback()
 {
 	if (!cfg_.enable_validation_layers) return VK_SUCCESS;
 
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = createDebugCallbackInfo();
+	VkDebugUtilsMessengerCreateInfoEXT createInfo = create_debug_callback_info();
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkResult result = vkCreateDebugUtilsMessengerEXT(instance_.value(), &createInfo, nullptr, &debugMessenger);
 	if (result != VK_SUCCESS) return result;
@@ -484,7 +484,7 @@ VkResult rhi::init_instance()
 	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.apiVersion = VK_API_VERSION_1_3;
 
-	VkDebugUtilsMessengerCreateInfoEXT createDebugCallackInfo = createDebugCallbackInfo();
+	VkDebugUtilsMessengerCreateInfoEXT createDebugCallackInfo = create_debug_callback_info();
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&createDebugCallackInfo;

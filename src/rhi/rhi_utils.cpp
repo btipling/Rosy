@@ -1,13 +1,31 @@
 #include "RHI.h";
 
+namespace {
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	VkDebugUtilsMessageSeverityFlagsEXT messageType,
-	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	void* pUserData) {
-	rosy_utils::debug_print_a("Validation layer debug callback: %s\n", pCallbackData->pMessage);
-	return VK_FALSE;
+	VkBool32 VKAPI_CALL debug_callback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+		VkDebugUtilsMessageSeverityFlagsEXT message_type,
+		const VkDebugUtilsMessengerCallbackDataEXT* p_callback_data,
+		void* p_user_data)
+	{
+		rosy_utils::debug_print_a("Validation layer debug callback: %s\n", p_callback_data->pMessage);
+		return VK_FALSE;
+	}
+}
+
+std::vector<char> read_file(const std::string& filename) {  // NOLINT(misc-use-internal-linkage)
+	std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+	if (!file.is_open()) {
+		throw std::runtime_error("failed to open file!");
+	}
+
+	const size_t file_size = (size_t)file.tellg();
+	std::vector<char> buffer(file_size);
+	file.seekg(0);
+	file.read(buffer.data(), file_size);
+	file.close();
+	return buffer;
 }
 
 void rhi::debug() const
@@ -46,30 +64,14 @@ void rhi::debug() const
 	rosy_utils::debug_print_a("Selected queue index %d with count: %d\n", queue_index_, queue_count_);
 }
 
-VkDebugUtilsMessengerCreateInfoEXT createDebugCallbackInfo() {
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = debugCallback;
-	createInfo.pUserData = nullptr;
-	return createInfo;
-}
-
-
-std::vector<char> read_file(const std::string& filename) {
-	std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-	if (!file.is_open()) {
-		throw std::runtime_error("failed to open file!");
-	}
-
-	const size_t file_size = (size_t)file.tellg();
-	std::vector<char> buffer(file_size);
-	file.seekg(0);
-	file.read(buffer.data(), file_size);
-	file.close();
-	return buffer;
+VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info() {  // NOLINT(misc-use-internal-linkage)
+	VkDebugUtilsMessengerCreateInfoEXT create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	create_info.pfnUserCallback = debug_callback;
+	create_info.pUserData = nullptr;
+	return create_info;
 }
 
 swap_chain_support_details rhi::query_swap_chain_support(const VkPhysicalDevice device) const
