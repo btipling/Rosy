@@ -149,10 +149,10 @@ VkResult rhi::render_frame()
 		// meshes
 		{
 			//allocate a new uniform buffer for the scene data
-			auto create_buffer_result = create_buffer(sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			                                          VMA_MEMORY_USAGE_CPU_TO_GPU);
-			if (create_buffer_result.result != VK_SUCCESS) return create_buffer_result.result;
-			allocated_buffer gpu_scene_buffer = create_buffer_result.buffer;
+			auto [result, buffer] = create_buffer(sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			                                      VMA_MEMORY_USAGE_AUTO);
+			if (result != VK_SUCCESS) return result;
+			allocated_buffer gpu_scene_buffer = buffer;
 			frame_datas_[current_frame_].gpu_scene_buffer = gpu_scene_buffer;
 
 			//write the buffer

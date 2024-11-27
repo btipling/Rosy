@@ -247,7 +247,7 @@ allocated_buffer_result rhi::create_buffer(const size_t alloc_size, const VkBuff
 
 	VmaAllocationCreateInfo vma_alloc_info = {};
 	vma_alloc_info.usage = memory_usage;
-	vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+	vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
 	allocated_buffer new_buffer;
 	const VkResult result = vmaCreateBuffer(allocator_.value(), &buffer_info, &vma_alloc_info, &new_buffer.buffer,
