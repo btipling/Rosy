@@ -60,9 +60,12 @@ allocated_image_result rhi::create_image(const void* data, const VkExtent3D size
 		rv.result = result;
 		return rv;
 	}
-	const allocated_buffer upload_buffer = buffer;
+	allocated_buffer staging = buffer;
 
-	memcpy(upload_buffer.info.pMappedData, data, data_size);
+	void* staging_data;
+	vmaMapMemory(allocator_.value(), staging.allocation, &staging_data);
+	memcpy(static_cast<char*>(staging_data), data, data_size);
+	vmaUnmapMemory(allocator_.value(), staging.allocation);
 
 	const auto image_result = create_image(size, format,
 	                                       usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
@@ -87,14 +90,14 @@ allocated_image_result rhi::create_image(const void* data, const VkExtent3D size
 		copy_region.imageSubresource.layerCount = 1;
 		copy_region.imageExtent = size;
 
-		vkCmdCopyBufferToImage(cmd, upload_buffer.buffer, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+		vkCmdCopyBufferToImage(cmd, staging.buffer, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
 		                       &copy_region);
 
 		transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	});
 
-	destroy_buffer(upload_buffer);
+	destroy_buffer(staging);
 	{
 		allocated_image_result rv = {};
 		rv.result = VK_SUCCESS;

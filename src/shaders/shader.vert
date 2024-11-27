@@ -25,4 +25,5 @@ void main() {
 	Vertex v = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
     gl_Position = PushConstants.worldMatrix * v.position;
     fragColor = v.color.xyz;
+	tcOut = vec2(v.textureCoordinates.xy);
 }
