@@ -44,6 +44,12 @@ struct allocated_image {
 	VkFormat image_format;
 };
 
+struct allocated_image_result
+{
+	VkResult result;
+	allocated_image image;
+};
+
 struct allocated_buffer {
 	VkBuffer buffer;
 	VmaAllocation allocation;

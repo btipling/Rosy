@@ -815,22 +815,22 @@ VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swap
 
 	for (size_t i = 0; i < swap_chain_images_.size(); i++)
 	{
-		VkImageViewCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = swap_chain_images_[i];
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		createInfo.format = swapchain_image_format_.format;
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
+		VkImageViewCreateInfo create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		create_info.image = swap_chain_images_[i];
+		create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		create_info.format = swapchain_image_format_.format;
+		create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		create_info.subresourceRange.baseMipLevel = 0;
+		create_info.subresourceRange.levelCount = 1;
+		create_info.subresourceRange.baseArrayLayer = 0;
+		create_info.subresourceRange.layerCount = 1;
 		VkImageView imageView;
-		VkResult result = vkCreateImageView(device, &createInfo, nullptr, &imageView);
+		VkResult result = vkCreateImageView(device, &create_info, nullptr, &imageView);
 		if (result != VK_SUCCESS) return result;
 		// don't initially size these so we can clean this up nicely if any fail
 		swap_chain_image_views_.push_back(imageView);
@@ -983,8 +983,8 @@ VkResult rhi::init_graphics()
 	std::vector<char> fragShaderCode;
 	try
 	{
-		vertShaderCode = readFile("out/vert.spv");
-		fragShaderCode = readFile("out/frag.spv");
+		vertShaderCode = read_file("out/vert.spv");
+		fragShaderCode = read_file("out/frag.spv");
 	}
 	catch (const std::exception& e)
 	{

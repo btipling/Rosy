@@ -56,43 +56,44 @@ VkDebugUtilsMessengerCreateInfoEXT createDebugCallbackInfo() {
 }
 
 
-std::vector<char> readFile(const std::string& filename) {
+std::vector<char> read_file(const std::string& filename) {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 	if (!file.is_open()) {
 		throw std::runtime_error("failed to open file!");
 	}
 
-	size_t fileSize = (size_t)file.tellg();
-	std::vector<char> buffer(fileSize);
+	const size_t file_size = (size_t)file.tellg();
+	std::vector<char> buffer(file_size);
 	file.seekg(0);
-	file.read(buffer.data(), fileSize);
+	file.read(buffer.data(), file_size);
 	file.close();
 	return buffer;
 }
 
-swap_chain_support_details rhi::query_swap_chain_support(VkPhysicalDevice device) {
+swap_chain_support_details rhi::query_swap_chain_support(const VkPhysicalDevice device) const
+{
 	swap_chain_support_details details = {};
-	VkSurfaceKHR surface = surface_.value();
+	const VkSurfaceKHR surface = surface_.value();
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-	uint32_t formatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+	uint32_t format_count;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, nullptr);
 
-	if (formatCount != 0) {
-		details.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+	if (format_count != 0) {
+		details.formats.resize(format_count);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, details.formats.data());
 	}
-	uint32_t presentModeCount;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+	uint32_t present_mode_count;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, nullptr);
 
-	if (presentModeCount != 0) {
-		details.present_modes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.present_modes.data());
+	if (present_mode_count != 0) {
+		details.present_modes.resize(present_mode_count);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, details.present_modes.data());
 	}
 	return details;
 }
 
-VkImageCreateInfo rhi::img_create_info (VkFormat format, VkImageUsageFlags usage_flags, VkExtent3D extent) {
+VkImageCreateInfo rhi::img_create_info (const VkFormat format, const VkImageUsageFlags usage_flags, const VkExtent3D extent) {
     VkImageCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     info.pNext = nullptr;
@@ -107,7 +108,7 @@ VkImageCreateInfo rhi::img_create_info (VkFormat format, VkImageUsageFlags usage
     return info;
 }
 
-VkImageViewCreateInfo rhi::img_view_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspect_flags) {
+VkImageViewCreateInfo rhi::img_view_create_info(const VkFormat format, const VkImage image, const VkImageAspectFlags aspect_flags) {
     VkImageViewCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     info.pNext = nullptr;
@@ -122,121 +123,124 @@ VkImageViewCreateInfo rhi::img_view_create_info(VkFormat format, VkImage image, 
     return info;
 }
 
-VkRenderingAttachmentInfo rhi::attachment_info(VkImageView view, VkImageLayout layout) {
-	VkRenderingAttachmentInfo colorAttachment = {};
-	colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-	colorAttachment.pNext = nullptr;
-	colorAttachment.imageView = view;
-	colorAttachment.imageLayout = layout;
-	colorAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	return colorAttachment;
+VkRenderingAttachmentInfo rhi::attachment_info(const VkImageView view, const VkImageLayout layout) {
+	VkRenderingAttachmentInfo color_attachment = {};
+	color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+	color_attachment.pNext = nullptr;
+	color_attachment.imageView = view;
+	color_attachment.imageLayout = layout;
+	color_attachment.resolveMode = VK_RESOLVE_MODE_NONE;
+	color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	return color_attachment;
 }
 
-VkRenderingAttachmentInfo rhi::depth_attachment_info(VkImageView view, VkImageLayout layout) {
-	VkRenderingAttachmentInfo depthAttachment = {};
-	depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-	depthAttachment.pNext = nullptr;
-	depthAttachment.imageView = view;
-	depthAttachment.imageLayout = layout;
-	depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
-	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	depthAttachment.clearValue.depthStencil.depth = 0.0f;
-	return depthAttachment;
+VkRenderingAttachmentInfo rhi::depth_attachment_info(const VkImageView view, const VkImageLayout layout) {
+	VkRenderingAttachmentInfo depth_attachment = {};
+	depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+	depth_attachment.pNext = nullptr;
+	depth_attachment.imageView = view;
+	depth_attachment.imageLayout = layout;
+	depth_attachment.resolveMode = VK_RESOLVE_MODE_NONE;
+	depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	depth_attachment.clearValue.depthStencil.depth = 0.0f;
+	return depth_attachment;
 }
 
-VkRenderingInfo rhi::rendering_info(VkExtent2D render_extent, VkRenderingAttachmentInfo color_attachment, std::optional<VkRenderingAttachmentInfo> depth_attachment) {
-	VkRect2D renderArea = VkRect2D{ VkOffset2D{ 0, 0 }, render_extent };
-	VkRenderingInfo renderInfo = {};
-	renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-	renderInfo.pNext = nullptr;
-	renderInfo.renderArea = renderArea;
-	renderInfo.layerCount = 1;
-	renderInfo.colorAttachmentCount = 1;
-	renderInfo.pColorAttachments = &color_attachment;
+VkRenderingInfo rhi::rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& color_attachment, const std::optional<VkRenderingAttachmentInfo>& depth_attachment) {
+	const auto render_area = VkRect2D{ VkOffset2D{ 0, 0 }, render_extent };
+	VkRenderingInfo render_info = {};
+	render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+	render_info.pNext = nullptr;
+	render_info.renderArea = render_area;
+	render_info.layerCount = 1;
+	render_info.colorAttachmentCount = 1;
+	render_info.pColorAttachments = &color_attachment;
 	if (depth_attachment.has_value()) {
-		renderInfo.pDepthAttachment = &depth_attachment.value();
+		render_info.pDepthAttachment = &depth_attachment.value();
 	}
 	else {
-		renderInfo.pDepthAttachment = nullptr;
+		render_info.pDepthAttachment = nullptr;
 	}
-	renderInfo.pStencilAttachment = nullptr;
-	return renderInfo;
+	render_info.pStencilAttachment = nullptr;
+	return render_info;
 }
 
 
 
-void rhi::blit_images(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D src_size, VkExtent2D dst_size) {
-	VkImageBlit2 blitRegion = {};
-	blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
-	blitRegion.pNext = nullptr;
-	blitRegion.srcOffsets[1].x = src_size.width;
-	blitRegion.srcOffsets[1].y = src_size.height;
-	blitRegion.srcOffsets[1].z = 1;
+void rhi::blit_images(const VkCommandBuffer cmd, const VkImage source, const VkImage destination, const VkExtent2D src_size, const VkExtent2D dst_size) {
+	VkImageBlit2 blit_region = {};
+	blit_region.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
+	blit_region.pNext = nullptr;
+	blit_region.srcOffsets[1].x = static_cast<int32_t>(src_size.width);
+	blit_region.srcOffsets[1].y = static_cast<int32_t>(src_size.height);
+	blit_region.srcOffsets[1].z = 1;
 
-	blitRegion.dstOffsets[1].x = dst_size.width;
-	blitRegion.dstOffsets[1].y = dst_size.height;
-	blitRegion.dstOffsets[1].z = 1;
+	blit_region.dstOffsets[1].x = static_cast<int32_t>(dst_size.width);
+	blit_region.dstOffsets[1].y = static_cast<int32_t>(dst_size.height);
+	blit_region.dstOffsets[1].z = 1;
 
-	blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	blitRegion.srcSubresource.baseArrayLayer = 0;
-	blitRegion.srcSubresource.layerCount = 1;
-	blitRegion.srcSubresource.mipLevel = 0;
+	blit_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	blit_region.srcSubresource.baseArrayLayer = 0;
+	blit_region.srcSubresource.layerCount = 1;
+	blit_region.srcSubresource.mipLevel = 0;
 
-	blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	blitRegion.dstSubresource.baseArrayLayer = 0;
-	blitRegion.dstSubresource.layerCount = 1;
-	blitRegion.dstSubresource.mipLevel = 0;
+	blit_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	blit_region.dstSubresource.baseArrayLayer = 0;
+	blit_region.dstSubresource.layerCount = 1;
+	blit_region.dstSubresource.mipLevel = 0;
 
-	VkBlitImageInfo2 blitInfo{ .sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2, .pNext = nullptr };
-	blitInfo.dstImage = destination;
-	blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	blitInfo.srcImage = source;
-	blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	blitInfo.filter = VK_FILTER_LINEAR;
-	blitInfo.regionCount = 1;
-	blitInfo.pRegions = &blitRegion;
+	VkBlitImageInfo2 blit_info{};
+	blit_info.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2;
+	blit_info.pNext = nullptr;
+	blit_info.dstImage = destination;
+	blit_info.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	blit_info.srcImage = source;
+	blit_info.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	blit_info.filter = VK_FILTER_LINEAR;
+	blit_info.regionCount = 1;
+	blit_info.pRegions = &blit_region;
 
-	vkCmdBlitImage2(cmd, &blitInfo);
+	vkCmdBlitImage2(cmd, &blit_info);
 }
 
-allocated_buffer_result rhi::create_buffer(size_t alloc_size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage) {
-	VkResult result;
+allocated_buffer_result rhi::create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const
+{
+	VkBufferCreateInfo buffer_info = {};
+	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_info.pNext = nullptr;
+	buffer_info.size = alloc_size;
+	buffer_info.usage = usage;
 
-	VkBufferCreateInfo bufferInfo = {};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.pNext = nullptr;
-	bufferInfo.size = alloc_size;
-	bufferInfo.usage = usage;
+	VmaAllocationCreateInfo vma_alloc_info = {};
+	vma_alloc_info.usage = memory_usage;
+	vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-	VmaAllocationCreateInfo vmaallocInfo = {};
-	vmaallocInfo.usage = memory_usage;
-	vmaallocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-	allocated_buffer newBuffer;
-	result = vmaCreateBuffer(allocator_.value(), &bufferInfo, &vmaallocInfo, &newBuffer.buffer, &newBuffer.allocation,
-		&newBuffer.info);
+	allocated_buffer new_buffer;
+	const VkResult result = vmaCreateBuffer(allocator_.value(), &buffer_info, &vma_alloc_info, &new_buffer.buffer,
+	                                  &new_buffer.allocation,
+	                                  &new_buffer.info);
 	if (result != VK_SUCCESS) return { .result = result };
 
 	return {
 		.result = VK_SUCCESS,
-		.buffer = newBuffer,
+		.buffer = new_buffer,
 	};
 }
 
-void rhi::destroy_buffer(const allocated_buffer& buffer) {
+void rhi::destroy_buffer(const allocated_buffer& buffer) const
+{
 	vmaDestroyBuffer(allocator_.value(), buffer.buffer, buffer.allocation);
 }
 
-VkDebugUtilsObjectNameInfoEXT rhi::add_name(VkObjectType object_type, uint64_t object_handle, const char* p_object_name) {
-	VkDebugUtilsObjectNameInfoEXT debugName = {};
-	debugName.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-	debugName.pNext = nullptr;
-	debugName.objectType = object_type;
-	debugName.objectHandle = object_handle;
-	debugName.pObjectName = p_object_name;
-	return debugName;
+VkDebugUtilsObjectNameInfoEXT rhi::add_name(const VkObjectType object_type, const uint64_t object_handle, const char* p_object_name) {
+	VkDebugUtilsObjectNameInfoEXT debug_name = {};
+	debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	debug_name.pNext = nullptr;
+	debug_name.objectType = object_type;
+	debug_name.objectHandle = object_handle;
+	debug_name.pObjectName = p_object_name;
+	return debug_name;
 }
  

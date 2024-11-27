@@ -146,6 +146,9 @@
     <ClCompile Include="rhi\rhi_descriptor.cpp">
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
+    <ClCompile Include="rhi\rhi_textures.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc">
