@@ -16,7 +16,6 @@ allocated_image_result rhi::create_image(VkExtent3D size, VkFormat format, VkIma
 	VmaAllocationCreateInfo alloc_info = {};
 	alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
 	if (VkResult result = vmaCreateImage(allocator_.value(), &img_info, &alloc_info, &new_image.image,
 	                                     &new_image.allocation, nullptr); result != VK_SUCCESS)
@@ -99,6 +98,7 @@ allocated_image_result rhi::create_image(const void* data, const VkExtent3D size
 	{
 		allocated_image_result rv = {};
 		rv.result = VK_SUCCESS;
+		rv.image = new_image;
 		return rv;
 	}
 }

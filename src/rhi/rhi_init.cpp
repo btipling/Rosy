@@ -25,7 +25,7 @@ static const char* deviceExtensions[] = {
 	//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 };
 
-rhi::rhi(rosy_config::Config cfg) : cfg_{cfg}, required_features_{requiredFeatures}
+rhi::rhi(rosy_config::Config cfg) : cfg_{ cfg }, required_features_{ requiredFeatures }
 {
 	memset(&required_features_, 0, sizeof(VkPhysicalDeviceFeatures));
 }
@@ -181,6 +181,17 @@ void rhi::deinit()
 
 	// Deinit begin in the reverse order from how it was created.
 	deinit_ui();
+
+
+	{
+		if (default_sampler_nearest_.has_value()) vkDestroySampler(device_.value(), default_sampler_nearest_.value(), nullptr);
+		if (default_sampler_linear_.has_value()) vkDestroySampler(device_.value(), default_sampler_linear_.value(), nullptr);
+
+		if (white_image_.has_value()) destroy_image(white_image_.value());
+		if (grey_image_.has_value()) destroy_image(grey_image_.value());
+		if (black_image_.has_value()) destroy_image(black_image_.value());
+		if (error_checkerboard_image_.has_value()) destroy_image(error_checkerboard_image_.value());
+	}
 
 	for (std::shared_ptr<mesh_asset> mesh : test_meshes_)
 	{
@@ -381,20 +392,20 @@ VkResult rhi::query_instance_extensions()
 		for (uint32_t i = 0; i < extensionCount; i++)
 		{
 			rosy_utils::debug_print_a("pushing back required SDL instance extension with name: %s\n",
-			                          extensionNames[i]);
+				extensionNames[i]);
 			instance_extensions_.push_back(extensionNames[i]);
 		}
 		for (uint32_t i = 0; i < std::size(instanceExtensions); i++)
 		{
 			rosy_utils::debug_print_a("pushing back required rosy instance extension with name: %s\n",
-			                          instanceExtensions[i]);
+				instanceExtensions[i]);
 			instance_extensions_.push_back(instanceExtensions[i]);
 		}
 	}
 	rosy_utils::debug_print_a("num instanceExtensions: %d\n", instance_extensions_.size());
 
 	std::vector<const char*> requiredInstanceExtensions(std::begin(instance_extensions_),
-	                                                    std::end(instance_extensions_));
+		std::end(instance_extensions_));
 	for (VkExtensionProperties ep : extensions)
 	{
 		rosy_utils::debug_print_a("Instance extension name: %s\n", ep.extensionName);
@@ -429,7 +440,7 @@ VkResult rhi::query_device_extensions()
 	extensions.resize(pPropertyCount);
 
 	result = vkEnumerateDeviceExtensionProperties(physical_device_.value(), nullptr, &pPropertyCount,
-	                                              extensions.data());
+		extensions.data());
 	if (result != VK_SUCCESS) return result;
 
 	// validate required device extensions
@@ -747,9 +758,9 @@ namespace
 		};
 
 		actual_extent.width = std::clamp(actual_extent.width, capabilities.minImageExtent.width,
-		                                 capabilities.maxImageExtent.width);
+			capabilities.maxImageExtent.width);
 		actual_extent.height = std::clamp(actual_extent.height, capabilities.minImageExtent.height,
-		                                  capabilities.maxImageExtent.height);
+			capabilities.maxImageExtent.height);
 
 		return actual_extent;
 	}
@@ -824,7 +835,7 @@ VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swap
 		for (size_t i = 0; i < swap_chain_images_.size(); i++)
 		{
 			VkImageViewCreateInfo create_info = img_view_create_info(swapchain_image_format_.format,
-			                                                         swap_chain_images_[i], VK_IMAGE_ASPECT_COLOR_BIT);
+				swap_chain_images_[i], VK_IMAGE_ASPECT_COLOR_BIT);
 			VkImageView image_view;
 			if (const VkResult result = vkCreateImageView(device, &create_info, nullptr, &image_view); result !=
 				VK_SUCCESS)
@@ -862,10 +873,10 @@ VkResult rhi::init_draw_image()
 	r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	vmaCreateImage(allocator_.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation,
-	               nullptr);
+		nullptr);
 
 	VkImageViewCreateInfo r_view_info = img_view_create_info(draw_image.image_format, draw_image.image,
-	                                                         VK_IMAGE_ASPECT_COLOR_BIT);
+		VK_IMAGE_ASPECT_COLOR_BIT);
 
 	result = vkCreateImageView(device_.value(), &r_view_info, nullptr, &draw_image.image_view);
 	if (result != VK_SUCCESS) return result;
@@ -880,10 +891,10 @@ VkResult rhi::init_draw_image()
 	VkImageCreateInfo depth_info = img_create_info(depth_image.image_format, depth_image_usages, draw_image_extent);
 
 	vmaCreateImage(allocator_.value(), &depth_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation,
-	               nullptr);
+		nullptr);
 
 	VkImageViewCreateInfo d_view_info = img_view_create_info(depth_image.image_format, depth_image.image,
-	                                                         VK_IMAGE_ASPECT_DEPTH_BIT);
+		VK_IMAGE_ASPECT_DEPTH_BIT);
 
 	result = vkCreateImageView(device_.value(), &d_view_info, nullptr, &depth_image.image_view);
 	if (result != VK_SUCCESS) return result;
@@ -1174,10 +1185,70 @@ VkResult rhi::init_commands()
 
 VkResult rhi::init_default_data()
 {
-	auto result = load_gltf_meshes(this, "assets\\basicmesh.glb");
-	if (result.has_value())
+	// ReSharper disable once StringLiteralTypo
+	if (auto load_result = load_gltf_meshes(this, "assets\\basicmesh.glb"); load_result.has_value())
 	{
-		test_meshes_ = result.value();
+		test_meshes_ = load_result.value();
 	}
+
+
+	const uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
+	const uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
+	const uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
+	const uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
+
+	{
+		auto [result, image] = create_image((void*)&white, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_SAMPLED_BIT);
+		if (result != VK_SUCCESS) return result;
+		white_image_ = image;
+	}
+	//{
+	//	auto [result, image] = create_image((void*)&grey, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+	//		VK_IMAGE_USAGE_SAMPLED_BIT);
+	//	if (result != VK_SUCCESS) return result;
+	//	grey_image_ = image;
+	//}
+	//{
+	//	auto [result, image] = create_image((void*)&black, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+	//		VK_IMAGE_USAGE_SAMPLED_BIT);
+	//	if (result != VK_SUCCESS) return result;
+	//	black_image_ = image;
+	//}
+	//{
+	//	//checkerboard image
+	//	constexpr size_t image_dimensions = static_cast<size_t>(16) * 16;
+	//	std::array<uint32_t, image_dimensions > pixels;
+	//	for (int x = 0; x < 16; x++) {
+	//		for (int y = 0; y < 16; y++) {
+	//			pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
+	//		}
+	//	}
+	//	auto [result, image] = create_image(pixels.data(), VkExtent3D{ 16, 16, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+	//		VK_IMAGE_USAGE_SAMPLED_BIT);
+	//	if (result != VK_SUCCESS) return result;
+	//	error_checkerboard_image_ = image;
+
+	//}
+
+	const VkDevice device = device_.value();
+	{
+		VkSamplerCreateInfo sample = {};
+		sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		sample.magFilter = VK_FILTER_NEAREST;
+		sample.minFilter = VK_FILTER_NEAREST;
+		VkSampler sampler;
+		vkCreateSampler(device, &sample, nullptr, &sampler);
+		default_sampler_nearest_ = sampler;
+	}
+	{
+		VkSamplerCreateInfo sample = {};
+		sample.magFilter = VK_FILTER_LINEAR;
+		sample.minFilter = VK_FILTER_LINEAR;
+		VkSampler sampler;
+		vkCreateSampler(device, &sample, nullptr, &sampler);
+		default_sampler_linear_ = sampler;
+	}
+
 	return VK_SUCCESS;
 }

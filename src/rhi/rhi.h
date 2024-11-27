@@ -56,7 +56,7 @@ private:
 	                                    bool mip_mapped = false) const;
 	allocated_image_result create_image(const void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
 	                                    bool mip_mapped = false);
-	void destroy_image(const allocated_image& img);
+	void destroy_image(const allocated_image& img) const;
 
 	// immediate submits
 	std::optional<VkFence> imm_fence_;
@@ -77,6 +77,15 @@ private:
 	int blend_mode_ = 0;
 
 	std::vector<std::shared_ptr<mesh_asset>> test_meshes_;
+
+	// test textures
+	std::optional<allocated_image> white_image_ = std::nullopt;
+	std::optional<allocated_image> black_image_ = std::nullopt;
+	std::optional<allocated_image> grey_image_ = std::nullopt;
+	std::optional<allocated_image> error_checkerboard_image_ = std::nullopt;
+
+	std::optional<VkSampler> default_sampler_linear_ = std::nullopt;
+	std::optional<VkSampler> default_sampler_nearest_ = std::nullopt;
 
 	// ui
 	std::optional<VkDescriptorPool> ui_pool_ = std::nullopt;
