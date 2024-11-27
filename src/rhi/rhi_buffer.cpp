@@ -11,7 +11,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	allocated_buffer_result vertex_buffer_result = create_buffer(
 		vertex_buffer_size, 
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-		VMA_MEMORY_USAGE_GPU_ONLY);
+		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
 	if (vertex_buffer_result.result != VK_SUCCESS) {
 		gpu_mesh_buffers_result fail = {};
 		fail.result = vertex_buffer_result.result;
@@ -34,7 +34,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	allocated_buffer_result index_buffer_result = create_buffer(
 		index_buffer_size, 
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-		VMA_MEMORY_USAGE_GPU_ONLY);
+		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
 	if (index_buffer_result.result != VK_SUCCESS) {
 		gpu_mesh_buffers_result fail = {};
 		fail.result = index_buffer_result.result;
