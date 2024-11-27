@@ -103,6 +103,8 @@ allocated_image_result rhi::create_image(const void* data, const VkExtent3D size
 	}
 }
 
-void rhi::destroy_image(const allocated_image& img)
+void rhi::destroy_image(const allocated_image& img) const
 {
+	vkDestroyImageView(device_.value(), img.image_view, nullptr);
+	vmaDestroyImage(allocator_.value(), img.image, img.allocation);
 }
