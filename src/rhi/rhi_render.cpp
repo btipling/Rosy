@@ -102,6 +102,7 @@ VkResult rhi::render_frame()
 		toggle_wire_frame(cmd, toggle_wire_frame_);
 		set_view_port(cmd, swapchain_extent_);
 		toggle_depth(cmd, VK_TRUE);
+		// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
 		switch (blend_mode_)
 		{
 		case 0:
@@ -336,7 +337,7 @@ VkResult rhi::render_frame()
 	return VK_SUCCESS;
 }
 
-VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func)
+VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const
 {
 	const VkDevice device = device_.value();
 	VkResult result = vkResetFences(device, 1, &imm_fence_.value());
@@ -345,7 +346,7 @@ VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record
 	result = vkResetCommandBuffer(imm_command_buffer_.value(), 0);
 	if (result != VK_SUCCESS) return result;
 
-	VkCommandBuffer cmd = imm_command_buffer_.value();
+	const VkCommandBuffer cmd = imm_command_buffer_.value();
 
 	VkCommandBufferBeginInfo begin_info = {};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

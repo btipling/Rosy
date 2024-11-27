@@ -135,7 +135,7 @@ private:
 	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
 	                             VkImageLayout new_layout);
 	VkResult render_frame();
-	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func);
+	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
 
 	// Cmd
 	void set_rendering_defaults(VkCommandBuffer cmd);
