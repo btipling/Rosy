@@ -222,7 +222,10 @@ void rhi::deinit()
 			vkDestroySemaphore(
 				device, fd.render_finished_semaphore.value(), nullptr);
 		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
-		if (fd.frame_descriptors.has_value()) fd.frame_descriptors.value().destroy_pools(device);
+		if (fd.frame_descriptors.has_value()) {
+			rosy_utils::debug_print_a("destroying pools?\n");
+			fd.frame_descriptors.value().destroy_pools(device);
+		}
 		if (fd.gpu_scene_buffer.has_value()) destroy_buffer(fd.gpu_scene_buffer.value());
 	}
 
@@ -234,6 +237,10 @@ void rhi::deinit()
 	for (const VkShaderEXT shader : shaders_)
 	{
 		vkDestroyShaderEXT(device_.value(), shader, nullptr);
+	}
+	if (single_image_descriptor_layout_.has_value())
+	{
+		vkDestroyDescriptorSetLayout(device_.value(), single_image_descriptor_layout_.value(), nullptr);
 	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{

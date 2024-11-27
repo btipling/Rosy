@@ -74,7 +74,7 @@ VkResult rhi::render_frame()
 	VkImageView image_view = swap_chain_image_views_[image_index];
 
 	allocated_image draw_image = draw_image_.value();
-	allocated_image depthImage = depth_image_.value();
+	allocated_image depth_image = depth_image_.value();
 	draw_extent_.width = std::min(swapchain_extent_.width, draw_image.image_extent.width) * render_scale_;
 	draw_extent_.height = std::min(swapchain_extent_.height, draw_image.image_extent.height) * render_scale_;
 
@@ -82,15 +82,15 @@ VkResult rhi::render_frame()
 	{
 		// Start recording commands. This records commands that aren't actually submitted to a queue to do anything with until 
 		// 1. The submit queue call has been made but also
-		// 2. The wait semaphore given to the submit queue has been signeled, which
+		// 2. The wait semaphore given to the submit queue has been signaled, which
 		// 3. Doesn't happen until the image we requested with vkAcquireNextImageKHR has been made available
 		result = vkResetCommandBuffer(cmd, 0);
 		if (result != VK_SUCCESS) return result;
 
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		result = vkBeginCommandBuffer(cmd, &beginInfo);
+		VkCommandBufferBeginInfo begin_info = {};
+		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		result = vkBeginCommandBuffer(cmd, &begin_info);
 		if (result != VK_SUCCESS) return result;
 	}
 
@@ -134,13 +134,13 @@ VkResult rhi::render_frame()
 	{
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
 		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		transition_image(cmd, depthImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		transition_image(cmd, depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
 			VkRenderingAttachmentInfo color_attachment = attachment_info(
 				draw_image.image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 			VkRenderingAttachmentInfo depth_attachment = depth_attachment_info(
-				depthImage.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+				depth_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 			VkRenderingInfo render_info = rendering_info(swapchain_extent_, color_attachment, depth_attachment);
 			vkCmdBeginRendering(cmd, &render_info);
 		}
@@ -272,62 +272,62 @@ VkResult rhi::render_frame()
 
 		{
 			// submit recorded commands to the queue
-			VkCommandBufferSubmitInfo cmdBufferSubmitInfo = {};
-			cmdBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-			cmdBufferSubmitInfo.pNext = nullptr;
-			cmdBufferSubmitInfo.commandBuffer = cmd;
-			cmdBufferSubmitInfo.deviceMask = 0;
+			VkCommandBufferSubmitInfo cmd_buffer_submit_info = {};
+			cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+			cmd_buffer_submit_info.pNext = nullptr;
+			cmd_buffer_submit_info.commandBuffer = cmd;
+			cmd_buffer_submit_info.deviceMask = 0;
 
-			VkSemaphoreSubmitInfo waitInfo = {};
-			waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-			waitInfo.pNext = nullptr;
-			waitInfo.semaphore = image_available;
-			waitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
-			waitInfo.deviceIndex = 0;
-			waitInfo.value = 1;
+			VkSemaphoreSubmitInfo wait_info = {};
+			wait_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+			wait_info.pNext = nullptr;
+			wait_info.semaphore = image_available;
+			wait_info.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+			wait_info.deviceIndex = 0;
+			wait_info.value = 1;
 
-			VkSemaphoreSubmitInfo signalInfo = {};
-			signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-			signalInfo.pNext = nullptr;
-			signalInfo.semaphore = rendered_finished;
-			signalInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
-			signalInfo.deviceIndex = 0;
-			signalInfo.value = 1;
+			VkSemaphoreSubmitInfo signal_info = {};
+			signal_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+			signal_info.pNext = nullptr;
+			signal_info.semaphore = rendered_finished;
+			signal_info.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+			signal_info.deviceIndex = 0;
+			signal_info.value = 1;
 
-			VkSubmitInfo2 submitInfo = {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-			submitInfo.pNext = nullptr;
-			// This should be obvious but it wasn't for me. Wait blocks this submit until the semaphore assigned to it is signaled.
+			VkSubmitInfo2 submit_info = {};
+			submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+			submit_info.pNext = nullptr;
+			// This should be obvious, but it wasn't for me. Wait blocks this submit until the semaphore assigned to it is signaled.
 			// To state again, wait semaphores means the submit waits for the semaphore in wait info to be signaled before it begins
 			// in this case we're waiting for the image we requested at the beginning of render frame to be available.
 			// What we have to remember is that up until this point we've only *recorded* the commands we want to execute
 			// on to the command buffer. This submit will actually start the process of telling the GPU to do the commands.
 			// None of that has happened yet. We're declaring future work there. Up until this point the only actual work we've done
 			// is request an image and record commands we want to perform unto the command buffer.
-			// vkAcquireNextImageKHR will signal `imageAvailable` when done, `imageAvailable` is the semaphore in waitinfo
-			submitInfo.waitSemaphoreInfoCount = 1;
-			submitInfo.pWaitSemaphoreInfos = &waitInfo;
-			submitInfo.signalSemaphoreInfoCount = 1;
-			// When submit is done it signals this `signalInfo` semaphore and unbocks anything which is waiting for it.
-			submitInfo.pSignalSemaphoreInfos = &signalInfo;
-			submitInfo.commandBufferInfoCount = 1;
-			submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
-			result = vkQueueSubmit2(present_queue_.value(), 1, &submitInfo, fence);
+			// vkAcquireNextImageKHR will signal `imageAvailable` when done, `imageAvailable` is the semaphore in wait_info
+			submit_info.waitSemaphoreInfoCount = 1;
+			submit_info.pWaitSemaphoreInfos = &wait_info;
+			submit_info.signalSemaphoreInfoCount = 1;
+			// When submit is done it signals this `signalInfo` semaphore and unblocks anything which is waiting for it.
+			submit_info.pSignalSemaphoreInfos = &signal_info;
+			submit_info.commandBufferInfoCount = 1;
+			submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
+			result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, fence);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
 			// Queue image for presentation
-			VkSwapchainKHR swapChains[] = {swapchain_.value()};
-			VkPresentInfoKHR presentInfo = {};
-			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-			presentInfo.waitSemaphoreCount = 1;
-			// Present is waiting for the submit queue above to signal `renderedFinisished`
-			presentInfo.pWaitSemaphores = &rendered_finished;
-			presentInfo.swapchainCount = 1;
-			presentInfo.pSwapchains = swapChains;
-			presentInfo.pImageIndices = &image_index;
+			VkSwapchainKHR swap_chains[] = {swapchain_.value()};
+			VkPresentInfoKHR present_info = {};
+			present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+			present_info.waitSemaphoreCount = 1;
+			// Present is waiting for the submit queue above to signal `rendered_finished`
+			present_info.pWaitSemaphores = &rendered_finished;
+			present_info.swapchainCount = 1;
+			present_info.pSwapchains = swap_chains;
+			present_info.pImageIndices = &image_index;
 
-			result = vkQueuePresentKHR(present_queue_.value(), &presentInfo);
+			result = vkQueuePresentKHR(present_queue_.value(), &present_info);
 			if (result != VK_SUCCESS) return result;
 		}
 	}
@@ -336,12 +336,10 @@ VkResult rhi::render_frame()
 	return VK_SUCCESS;
 }
 
-VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& recordFunc)
+VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func)
 {
-	VkResult result;
-
-	VkDevice device = device_.value();
-	result = vkResetFences(device, 1, &imm_fence_.value());
+	const VkDevice device = device_.value();
+	VkResult result = vkResetFences(device, 1, &imm_fence_.value());
 	if (result != VK_SUCCESS) return result;
 
 	result = vkResetCommandBuffer(imm_command_buffer_.value(), 0);
@@ -349,35 +347,35 @@ VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record
 
 	VkCommandBuffer cmd = imm_command_buffer_.value();
 
-	VkCommandBufferBeginInfo beginInfo = {};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	VkCommandBufferBeginInfo begin_info = {};
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-	result = vkBeginCommandBuffer(cmd, &beginInfo);
+	result = vkBeginCommandBuffer(cmd, &begin_info);
 	if (result != VK_SUCCESS) return result;
 
-	recordFunc(cmd);
+	record_func(cmd);
 
 	result = vkEndCommandBuffer(cmd);
 	if (result != VK_SUCCESS) return result;
 
-	VkCommandBufferSubmitInfo cmdBufferSubmitInfo = {};
-	cmdBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-	cmdBufferSubmitInfo.pNext = nullptr;
-	cmdBufferSubmitInfo.commandBuffer = cmd;
-	cmdBufferSubmitInfo.deviceMask = 0;
-	VkSubmitInfo2 submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-	submitInfo.pNext = nullptr;
+	VkCommandBufferSubmitInfo cmd_buffer_submit_info = {};
+	cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+	cmd_buffer_submit_info.pNext = nullptr;
+	cmd_buffer_submit_info.commandBuffer = cmd;
+	cmd_buffer_submit_info.deviceMask = 0;
+	VkSubmitInfo2 submit_info = {};
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+	submit_info.pNext = nullptr;
 
-	submitInfo.waitSemaphoreInfoCount = 0;
-	submitInfo.pWaitSemaphoreInfos = nullptr;
-	submitInfo.signalSemaphoreInfoCount = 0;
-	submitInfo.pSignalSemaphoreInfos = nullptr;
-	submitInfo.commandBufferInfoCount = 1;
-	submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
+	submit_info.waitSemaphoreInfoCount = 0;
+	submit_info.pWaitSemaphoreInfos = nullptr;
+	submit_info.signalSemaphoreInfoCount = 0;
+	submit_info.pSignalSemaphoreInfos = nullptr;
+	submit_info.commandBufferInfoCount = 1;
+	submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
 
-	result = vkQueueSubmit2(present_queue_.value(), 1, &submitInfo, imm_fence_.value());
+	result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, imm_fence_.value());
 	if (result != VK_SUCCESS) return result;
 
 	result = vkWaitForFences(device, 1, &imm_fence_.value(), true, 9999999999);
