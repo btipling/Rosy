@@ -38,9 +38,10 @@ void rhi::toggle_culling(VkCommandBuffer cmd, bool enable) {
 	vkCmdSetCullModeEXT(cmd, enable);
 }
 
-void rhi::toggle_wire_frame(VkCommandBuffer cmd, bool enable) {
+void rhi::toggle_wire_frame(VkCommandBuffer cmd, bool enable, float line_width) {
 	if (enable) {
 		vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_LINE);
+		vkCmdSetLineWidth(cmd, line_width);
 		return;
 	}
 	vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
