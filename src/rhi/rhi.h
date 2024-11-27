@@ -98,6 +98,8 @@ private:
 	VkExtent2D draw_extent_ = {};
 	float render_scale_ = 1.f;
 
+	std::optional <VkDescriptorSetLayout> single_image_descriptor_layout_;
+
 	// swapchain images
 	std::vector<VkImage> swap_chain_images_;
 	std::vector<VkImageView> swap_chain_image_views_;

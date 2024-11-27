@@ -189,6 +189,7 @@
     <None Include="shaders\imgui.frag" />
     <None Include="shaders\shader.frag" />
     <None Include="shaders\shader.vert" />
+    <None Include="shaders\tex_image.frag" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\SDL3.lib" />

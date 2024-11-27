@@ -960,9 +960,15 @@ VkResult rhi::init_descriptors()
 	{
 		descriptor_layout_builder builder;
 		builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		auto builder_result = builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (builder_result.result != VK_SUCCESS) return builder_result.result;
-		gpu_scene_data_descriptor_layout_ = builder_result.set;
+		auto [result, set] = builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		if (result != VK_SUCCESS) return result;
+		gpu_scene_data_descriptor_layout_ = set;
+	} {
+		descriptor_layout_builder builder;
+		builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+		auto [result, set] = builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
+		if (result != VK_SUCCESS) return result;
+		single_image_descriptor_layout_ = set;
 	}
 	return VK_SUCCESS;
 }
@@ -989,12 +995,12 @@ void rhi::init_allocator()
 
 VkResult rhi::init_graphics()
 {
-	std::vector<char> vertShaderCode;
-	std::vector<char> fragShaderCode;
+	std::vector<char> vert_shader_code;
+	std::vector<char> frag_shader_code;
 	try
 	{
-		vertShaderCode = read_file("out/vert.spv");
-		fragShaderCode = read_file("out/frag.spv");
+		vert_shader_code = read_file("out/vert.spv");
+		frag_shader_code = read_file("out/tex_image.frag.spv");
 	}
 	catch (const std::exception& e)
 	{
@@ -1002,19 +1008,18 @@ VkResult rhi::init_graphics()
 		return VK_ERROR_FEATURE_NOT_PRESENT;
 	}
 
-	VkResult result;
-	result = create_shader_objects(vertShaderCode, fragShaderCode);
+	VkResult result = create_shader_objects(vert_shader_code, frag_shader_code);
 	return result;
 }
 
 VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::vector<char>& frag)
 {
-	VkPushConstantRange pushContantRange = {};
-	pushContantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	pushContantRange.offset = 0;
-	pushContantRange.size = sizeof(gpu_draw_push_constants);
+	VkPushConstantRange push_constant_range = {};
+	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	push_constant_range.offset = 0;
+	push_constant_range.size = sizeof(gpu_draw_push_constants);
 
-	VkShaderCreateInfoEXT shaderCreateInfos[2] =
+	const VkShaderCreateInfoEXT shader_create_infos[2] =
 	{
 		{
 			.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
@@ -1026,10 +1031,10 @@ VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::ve
 			.codeSize = vert.size(),
 			.pCode = vert.data(),
 			.pName = "main",
-			.setLayoutCount = 0,
-			.pSetLayouts = nullptr,
+			.setLayoutCount = 1,
+			.pSetLayouts = &single_image_descriptor_layout_.value(),
 			.pushConstantRangeCount = 1,
-			.pPushConstantRanges = &pushContantRange,
+			.pPushConstantRanges = &push_constant_range,
 			.pSpecializationInfo = nullptr
 		},
 		{
@@ -1042,37 +1047,38 @@ VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::ve
 			.codeSize = frag.size(),
 			.pCode = frag.data(),
 			.pName = "main",
-			.setLayoutCount = 0,
-			.pSetLayouts = nullptr,
+			.setLayoutCount = 1,
+			.pSetLayouts = &single_image_descriptor_layout_.value(),
 			.pushConstantRangeCount = 1,
-			.pPushConstantRanges = &pushContantRange,
+			.pPushConstantRanges = &push_constant_range,
 			.pSpecializationInfo = nullptr
 		}
 	};
-	VkResult result;
 	shaders_.resize(2);
-	result = vkCreateShadersEXT(device_.value(), 2, shaderCreateInfos, nullptr, shaders_.data());
-	VkDebugUtilsObjectNameInfoEXT vertexName = {};
-	vertexName.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-	vertexName.pNext = nullptr;
-	vertexName.objectType = VK_OBJECT_TYPE_SHADER_EXT;
-	vertexName.objectHandle = (uint64_t)shaders_[0];
-	vertexName.pObjectName = "vertex";
+	VkResult result = vkCreateShadersEXT(device_.value(), 2, shader_create_infos, nullptr, shaders_.data());
+	VkDebugUtilsObjectNameInfoEXT vertex_name = {};
+	vertex_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	vertex_name.pNext = nullptr;
+	vertex_name.objectType = VK_OBJECT_TYPE_SHADER_EXT;
+	vertex_name.objectHandle = reinterpret_cast<uint64_t>(shaders_[0]);
+	vertex_name.pObjectName = "vertex";
 
-	VkDebugUtilsObjectNameInfoEXT fragName = {};
-	fragName.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-	fragName.pNext = nullptr;
-	fragName.objectType = VK_OBJECT_TYPE_SHADER_EXT;
-	fragName.objectHandle = (uint64_t)shaders_[0];
-	fragName.pObjectName = "frag";
+	VkDebugUtilsObjectNameInfoEXT frag_name = {};
+	frag_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	frag_name.pNext = nullptr;
+	frag_name.objectType = VK_OBJECT_TYPE_SHADER_EXT;
+	frag_name.objectHandle = reinterpret_cast<uint64_t>(shaders_[0]);
+	frag_name.pObjectName = "frag";
 
-	VkPipelineLayoutCreateInfo plInfo = {};
-	plInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	plInfo.pNext = nullptr;
-	plInfo.pushConstantRangeCount = 1;
-	plInfo.pPushConstantRanges = &pushContantRange;
+	VkPipelineLayoutCreateInfo pl_info = {};
+	pl_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pl_info.pNext = nullptr;
+	pl_info.pushConstantRangeCount = 1;
+	pl_info.pPushConstantRanges = &push_constant_range;
+	pl_info.setLayoutCount = 1;
+	pl_info.pSetLayouts = &single_image_descriptor_layout_.value();
 	VkPipelineLayout layout;
-	result = vkCreatePipelineLayout(device_.value(), &plInfo, nullptr, &layout);
+	result = vkCreatePipelineLayout(device_.value(), &pl_info, nullptr, &layout);
 	shader_pl_ = layout;
 
 	return result;
@@ -1203,33 +1209,33 @@ VkResult rhi::init_default_data()
 		if (result != VK_SUCCESS) return result;
 		white_image_ = image;
 	}
-	//{
-	//	auto [result, image] = create_image((void*)&grey, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-	//		VK_IMAGE_USAGE_SAMPLED_BIT);
-	//	if (result != VK_SUCCESS) return result;
-	//	grey_image_ = image;
-	//}
-	//{
-	//	auto [result, image] = create_image((void*)&black, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-	//		VK_IMAGE_USAGE_SAMPLED_BIT);
-	//	if (result != VK_SUCCESS) return result;
-	//	black_image_ = image;
-	//}
-	//{
-	//	//checkerboard image
-	//	constexpr size_t image_dimensions = static_cast<size_t>(16) * 16;
-	//	std::array<uint32_t, image_dimensions > pixels;
-	//	for (int x = 0; x < 16; x++) {
-	//		for (int y = 0; y < 16; y++) {
-	//			pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
-	//		}
-	//	}
-	//	auto [result, image] = create_image(pixels.data(), VkExtent3D{ 16, 16, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-	//		VK_IMAGE_USAGE_SAMPLED_BIT);
-	//	if (result != VK_SUCCESS) return result;
-	//	error_checkerboard_image_ = image;
+	{
+		auto [result, image] = create_image((void*)&grey, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_SAMPLED_BIT);
+		if (result != VK_SUCCESS) return result;
+		grey_image_ = image;
+	}
+	{
+		auto [result, image] = create_image((void*)&black, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_SAMPLED_BIT);
+		if (result != VK_SUCCESS) return result;
+		black_image_ = image;
+	}
+	{
+		//checkerboard image
+		constexpr size_t image_dimensions = static_cast<size_t>(16) * 16;
+		std::array<uint32_t, image_dimensions > pixels;
+		for (int x = 0; x < 16; x++) {
+			for (int y = 0; y < 16; y++) {
+				pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
+			}
+		}
+		auto [result, image] = create_image(pixels.data(), VkExtent3D{ 16, 16, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_SAMPLED_BIT);
+		if (result != VK_SUCCESS) return result;
+		error_checkerboard_image_ = image;
 
-	//}
+	}
 
 	const VkDevice device = device_.value();
 	{
@@ -1243,6 +1249,7 @@ VkResult rhi::init_default_data()
 	}
 	{
 		VkSamplerCreateInfo sample = {};
+		sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		sample.magFilter = VK_FILTER_LINEAR;
 		sample.minFilter = VK_FILTER_LINEAR;
 		VkSampler sampler;

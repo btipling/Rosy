@@ -155,12 +155,16 @@ VkResult rhi::render_frame()
 			allocated_buffer gpu_scene_buffer = buffer;
 			frame_datas_[current_frame_].gpu_scene_buffer = gpu_scene_buffer;
 
-			//write the buffer
-			void* scene_data;
-			vmaMapMemory(allocator_.value(), gpu_scene_buffer.allocation, &scene_data);
-			// ReSharper disable once CppDeclaratorNeverUsed
-			auto scene_uniform_data = static_cast<gpu_scene_data*>(scene_data);
-			vmaUnmapMemory(allocator_.value(), gpu_scene_buffer.allocation);
+			// bind a texture
+			auto [image_set_result, image_set] = frame_descriptors.allocate(device, single_image_descriptor_layout_.value());
+			if (image_set_result != VK_SUCCESS) return result;
+			{
+				descriptor_writer writer;
+				writer.write_image(0, error_checkerboard_image_->image_view, default_sampler_nearest_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+				writer.update_set(device, image_set);
+			}
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pl_.value(), 0, 1, &image_set, 0, nullptr);
 
 			//create a descriptor set that binds that buffer and update it
 			auto descriptor_result = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
