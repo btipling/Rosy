@@ -8,7 +8,7 @@
 #include <glm/gtc/constants.hpp>
 
 VkResult rhi::init_ui(SDL_Window* window) {
-	VkDescriptorPoolSize poolSizes[] = { 
+	const VkDescriptorPoolSize pool_sizes[] = { 
 		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
 		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
@@ -21,18 +21,16 @@ VkResult rhi::init_ui(SDL_Window* window) {
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
 		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 } };
 
-	VkDescriptorPoolCreateInfo poolInfo = {};
-	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	poolInfo.maxSets = 1000;
-	poolInfo.poolSizeCount = (uint32_t)std::size(poolSizes);
-	poolInfo.pPoolSizes = poolSizes;
+	VkDescriptorPoolCreateInfo pool_info = {};
+	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	pool_info.maxSets = 1000;
+	pool_info.poolSizeCount = static_cast<uint32_t>(std::size(pool_sizes));
+	pool_info.pPoolSizes = pool_sizes;
 
-	VkDescriptorPool imguiPool;
-	VkDevice device = device_.value();
-	VkResult result;
-	result = vkCreateDescriptorPool(device, &poolInfo, nullptr, &imguiPool);
-	if (result != VK_SUCCESS) return result;
+	VkDescriptorPool imgui_pool;
+	const VkDevice device = device_.value();
+	if (const VkResult result = vkCreateDescriptorPool(device, &pool_info, nullptr, &imgui_pool); result != VK_SUCCESS) return result;
 
 	ImGui::CreateContext();
 	ImGui_ImplSDL3_InitForVulkan(window);
@@ -42,7 +40,7 @@ VkResult rhi::init_ui(SDL_Window* window) {
 	init_info.PhysicalDevice = physical_device_.value();
 	init_info.Device = device_.value();
 	init_info.Queue = present_queue_.value();
-	init_info.DescriptorPool = imguiPool;
+	init_info.DescriptorPool = imgui_pool;
 	init_info.MinImageCount = 2;
 	init_info.ImageCount = 2;
 	init_info.UseDynamicRendering = true;
@@ -57,23 +55,24 @@ VkResult rhi::init_ui(SDL_Window* window) {
 	ImGui_ImplVulkan_Init(&init_info);
 	ImGui_ImplVulkan_CreateFontsTexture();
 
-	int displaysCount = 0; // TODO: don't always get the first display
-	auto displayIds = SDL_GetDisplays(&displaysCount);
-	float contentScale = SDL_GetDisplayContentScale(*displayIds);
+	int displays_count = 0; // TODO: don't always get the first display
+	const auto display_ids = SDL_GetDisplays(&displays_count);
+	const float content_scale = SDL_GetDisplayContentScale(*display_ids);
 
 	ImGuiIO& io = ImGui::GetIO();
-	io.FontGlobalScale = contentScale;
+	io.FontGlobalScale = content_scale;
 
-	ui_pool_ = imguiPool;
+	ui_pool_ = imgui_pool;
 	return VK_SUCCESS;
 }
 
-VkResult rhi::render_ui(VkCommandBuffer cmd, VkImageView target_image_view) {
+VkResult rhi::render_ui(const VkCommandBuffer cmd, const VkImageView target_image_view) const
+{
 	VkResult result;
 
-	VkRenderingAttachmentInfo colorAttachment = attachment_info(target_image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-	VkRenderingInfo renderInfo = rendering_info(swapchain_extent_, colorAttachment, std::nullopt);
-	vkCmdBeginRendering(cmd, &renderInfo);
+	const VkRenderingAttachmentInfo colorAttachment = attachment_info(target_image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	const VkRenderingInfo render_info = rendering_info(swapchain_extent_, colorAttachment, std::nullopt);
+	vkCmdBeginRendering(cmd, &render_info);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 
@@ -98,7 +97,8 @@ VkResult rhi::draw_ui() {
 	return VK_SUCCESS;
 }
 
-void rhi::deinit_ui() {
+void rhi::deinit_ui() const
+{
 	if (ui_pool_.value()) {
 		ImGui_ImplVulkan_Shutdown();
         ImGui_ImplSDL3_Shutdown();

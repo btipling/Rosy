@@ -164,10 +164,10 @@ private:
 
 	// ui
 	VkResult init_ui(SDL_Window* window);
-	VkResult render_ui(VkCommandBuffer cmd, VkImageView target_image_view);
+	VkResult render_ui(VkCommandBuffer cmd, VkImageView target_image_view) const;
 
 	// destructors
 	void destroy_swapchain();
 	void destroy_buffer(const allocated_buffer& buffer) const;
-	void deinit_ui();
+	void deinit_ui() const;
 };
