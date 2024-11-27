@@ -49,11 +49,13 @@ private:
 	std::optional<descriptor_allocator> global_descriptor_allocator_;
 	std::optional<VkDescriptorSet> draw_image_descriptors_;
 	std::optional<VkDescriptorSetLayout> draw_image_descriptor_layout_;
-	std::optional <VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_;
+	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_;
 
 	// textures
-	allocated_image_result create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mip_mapped = false);
-	allocated_image_result create_image(void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mip_mapped = false);
+	allocated_image_result create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
+	                                    bool mip_mapped = false) const;
+	allocated_image_result create_image(const void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
+	                                    bool mip_mapped = false);
 	void destroy_image(const allocated_image& img);
 
 	// immediate submits
@@ -119,8 +121,8 @@ private:
 	VkResult init_default_data();
 
 	// Rendering
-	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout, VkImageLayout new_layout,
-	                             VkImageAspectFlags aspect_mask);
+	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
+	                             VkImageLayout new_layout);
 	VkResult render_frame();
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 
@@ -142,9 +144,12 @@ private:
 	static VkRenderingAttachmentInfo depth_attachment_info(VkImageView view, VkImageLayout layout);
 	static VkRenderingInfo rendering_info(VkExtent2D render_extent, const VkRenderingAttachmentInfo& color_attachment,
 	                                      const std::optional<VkRenderingAttachmentInfo>& depth_attachment);
-	static void blit_images(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D src_size, VkExtent2D dst_size);
-	allocated_buffer_result create_buffer(size_t alloc_size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage) const;
-	static VkDebugUtilsObjectNameInfoEXT add_name(VkObjectType object_type, uint64_t object_handle, const char* p_object_name);
+	static void blit_images(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D src_size,
+	                        VkExtent2D dst_size);
+	allocated_buffer_result create_buffer(size_t alloc_size, VkBufferUsageFlags usage,
+	                                      VmaMemoryUsage memory_usage) const;
+	static VkDebugUtilsObjectNameInfoEXT add_name(VkObjectType object_type, uint64_t object_handle,
+	                                              const char* p_object_name);
 
 	// ui
 	VkResult init_ui(SDL_Window* window);
