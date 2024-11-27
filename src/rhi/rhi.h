@@ -16,7 +16,7 @@ public:
 	// Buffer read write
 	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices);
 	gpu_scene_data scene_data;
-	void debug();
+	void debug() const;
 	~rhi();
 
 private:

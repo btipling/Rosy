@@ -10,7 +10,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	return VK_FALSE;
 }
 
-void rhi::debug() {
+void rhi::debug() const
+{
 	rosy_utils::debug_print_a("RHI Debug Data::");
 	if (!instance_.has_value()) {
 		rosy_utils::debug_print_a("No instance!");
@@ -21,21 +22,21 @@ void rhi::debug() {
 		rosy_utils::debug_print_a("No physical device!");
 		return;
 	}
-	VkPhysicalDeviceProperties deviceProperties = physical_device_properties_.value();
-	VkPhysicalDeviceFeatures deviceFeatures = supported_features_.value();
-	VkPhysicalDeviceMemoryProperties deviceMemProps = physical_device_memory_properties_.value();
-	std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = queue_family_properties_.value();
-	rosy_utils::debug_print_a("result device property vendor %s \n", deviceProperties.deviceName);
-	rosy_utils::debug_print_a("result: vendor: %u \n", deviceProperties.vendorID);
+	VkPhysicalDeviceProperties device_properties = physical_device_properties_.value();
+	const VkPhysicalDeviceFeatures device_features = supported_features_.value();
+	const VkPhysicalDeviceMemoryProperties device_mem_props = physical_device_memory_properties_.value();
+	const std::vector<VkQueueFamilyProperties> queue_family_properties_data = queue_family_properties_.value();
+	rosy_utils::debug_print_a("result device property vendor %s \n", device_properties.deviceName);
+	rosy_utils::debug_print_a("result: vendor: %u \n", device_properties.vendorID);
 
-	rosy_utils::debug_print_a("has multiDrawIndirect? %d \n", deviceFeatures.multiDrawIndirect);
-	for (uint32_t i = 0; i < deviceMemProps.memoryHeapCount; i++) {
-		rosy_utils::debug_print_a("memory size: %d\n", deviceMemProps.memoryHeaps[i].size);
-		rosy_utils::debug_print_a("memory flags: %d\n", deviceMemProps.memoryHeaps[i].flags);
+	rosy_utils::debug_print_a("has multiDrawIndirect? %d \n", device_features.multiDrawIndirect);
+	for (uint32_t i = 0; i < device_mem_props.memoryHeapCount; i++) {
+		rosy_utils::debug_print_a("memory size: %d\n", device_mem_props.memoryHeaps[i].size);
+		rosy_utils::debug_print_a("memory flags: %d\n", device_mem_props.memoryHeaps[i].flags);
 	}
-	for (const VkQueueFamilyProperties& qfmp : queueFamilyPropertiesData) {
-		rosy_utils::debug_print_a("queue count: %d and time bits: %d\n", qfmp.queueCount, qfmp.timestampValidBits);
-		if (qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT)) {
+	for (const VkQueueFamilyProperties& queue_family_props : queue_family_properties_data) {
+		rosy_utils::debug_print_a("queue count: %d and time bits: %d\n", queue_family_props.queueCount, queue_family_props.timestampValidBits);
+		if (queue_family_props.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT)) {
 			rosy_utils::debug_print_a("VkQueueFamilyProperties got all the things\n");
 		}
 		else {
