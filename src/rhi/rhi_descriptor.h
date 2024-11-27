@@ -19,7 +19,7 @@ struct descriptor_layout_builder {
 
 	void add_binding(uint32_t binding, VkDescriptorType type);
 	void clear();
-	descriptor_set_layout_result build(VkDevice device, VkShaderStageFlags shader_stages, void* p_next = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0);
+	descriptor_set_layout_result build(VkDevice device, VkShaderStageFlags shader_stages, const void* p_next = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0);
 };
 
 struct descriptor_allocator {
