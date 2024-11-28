@@ -279,8 +279,8 @@ VkDebugUtilsObjectNameInfoEXT rhi::add_name(const VkObjectType object_type, cons
 }
 
 
-auto rhi::create_shader_info(const std::vector<char>& shader_src, const VkShaderStageFlagBits stage,
-	const VkShaderStageFlags next_stage) -> VkShaderCreateInfoEXT
+VkShaderCreateInfoEXT rhi::create_shader_info(const std::vector<char>& shader_src, const VkShaderStageFlagBits stage,
+	const VkShaderStageFlags next_stage)
 {
 	VkShaderCreateInfoEXT info = {};
 	info.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;

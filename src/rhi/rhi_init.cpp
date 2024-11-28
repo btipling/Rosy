@@ -974,20 +974,20 @@ VkResult rhi::init_descriptors()
 
 void rhi::init_allocator()
 {
-	VmaVulkanFunctions vulkanFunctions = {};
-	vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
-	vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+	VmaVulkanFunctions vulkan_functions = {};
+	vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+	vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
-	VmaAllocatorCreateInfo allocatorCreateInfo = {};
-	allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
-	allocatorCreateInfo.physicalDevice = physical_device_.value();
-	allocatorCreateInfo.device = device_.value();
-	allocatorCreateInfo.instance = instance_.value();
-	allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
-	allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+	VmaAllocatorCreateInfo allocator_create_info = {};
+	allocator_create_info.vulkanApiVersion = VK_API_VERSION_1_3;
+	allocator_create_info.physicalDevice = physical_device_.value();
+	allocator_create_info.device = device_.value();
+	allocator_create_info.instance = instance_.value();
+	allocator_create_info.pVulkanFunctions = &vulkan_functions;
+	allocator_create_info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
 	VmaAllocator allocator;
-	vmaCreateAllocator(&allocatorCreateInfo, &allocator);
+	vmaCreateAllocator(&allocator_create_info, &allocator);
 	allocator_ = allocator;
 }
 
@@ -1018,41 +1018,18 @@ VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::ve
 	push_constant_range.offset = 0;
 	push_constant_range.size = sizeof(gpu_draw_push_constants);
 
-	const VkShaderCreateInfoEXT shader_create_infos[2] =
-	{
-		{
-			.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
-			.pNext = nullptr,
-			.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
-			.stage = VK_SHADER_STAGE_VERTEX_BIT,
-			.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-			.codeSize = vert.size(),
-			.pCode = vert.data(),
-			.pName = "main",
-			.setLayoutCount = 1,
-			.pSetLayouts = &single_image_descriptor_layout_.value(),
-			.pushConstantRangeCount = 1,
-			.pPushConstantRanges = &push_constant_range,
-			.pSpecializationInfo = nullptr
-		},
-		{
-			.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
-			.pNext = nullptr,
-			.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
-			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.nextStage = 0,
-			.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-			.codeSize = frag.size(),
-			.pCode = frag.data(),
-			.pName = "main",
-			.setLayoutCount = 1,
-			.pSetLayouts = &single_image_descriptor_layout_.value(),
-			.pushConstantRangeCount = 1,
-			.pPushConstantRanges = &push_constant_range,
-			.pSpecializationInfo = nullptr
-		}
-	};
+	VkShaderCreateInfoEXT vert_object = create_shader_info(vert, VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT);
+	vert_object.setLayoutCount = 1;
+	vert_object.pSetLayouts = &single_image_descriptor_layout_.value();
+	vert_object.pushConstantRangeCount = 1;
+	vert_object.pPushConstantRanges = &push_constant_range;
+	VkShaderCreateInfoEXT frag_object = create_shader_info(frag, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+	frag_object.setLayoutCount = 1;
+	frag_object.pSetLayouts = &single_image_descriptor_layout_.value();
+	frag_object.pushConstantRangeCount = 1;
+	frag_object.pPushConstantRanges = &push_constant_range;
+	const VkShaderCreateInfoEXT shader_create_infos[2] = {vert_object, frag_object};
+
 	shaders_.resize(2);
 	VkResult result = vkCreateShadersEXT(device_.value(), 2, shader_create_infos, nullptr, shaders_.data());
 	VkDebugUtilsObjectNameInfoEXT vertex_name = {};
