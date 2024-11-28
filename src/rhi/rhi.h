@@ -167,7 +167,7 @@ private:
 
 	static VkShaderCreateInfoEXT create_shader_info(const std::vector<char>& shader_src, VkShaderStageFlagBits stage, VkShaderStageFlags next_stage);
 	static VkPushConstantRange create_push_constant(VkShaderStageFlags stage, uint32_t size);
-	static VkWriteDescriptorSet create_img_write_descriptor_set(VkDescriptorSet des_set, uint32_t des_binding, VkDescriptorImageInfo info);
+	static VkWriteDescriptorSet create_img_write_descriptor_set(VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorImageInfo& img_info);
 	static VkWriteDescriptorSet create_buffer_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorBufferInfo& buf_info);
 	static VkDescriptorImageInfo create_img_descriptor_info(const allocated_image& image);
 	static VkDebugUtilsLabelEXT create_debug_label(const char* label_name, float color[4]);

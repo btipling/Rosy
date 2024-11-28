@@ -940,15 +940,8 @@ VkResult rhi::init_descriptors()
 
 	const VkDescriptorImageInfo img_info = create_img_descriptor_info(draw_image_.value());
 
-	VkWriteDescriptorSet draw_image_write = {};
-	draw_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	draw_image_write.pNext = nullptr;
-	draw_image_write.dstBinding = 0;
-	draw_image_write.dstSet = draw_image_descriptors_.value();
-	draw_image_write.descriptorCount = 1;
-	draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	draw_image_write.pImageInfo = &img_info;
-
+	VkWriteDescriptorSet draw_image_write;
+	draw_image_write = create_img_write_descriptor_set(draw_image_descriptors_.value(), 0, img_info);
 	vkUpdateDescriptorSets(device, 1, &draw_image_write, 0, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)

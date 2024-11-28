@@ -309,7 +309,7 @@ VkPushConstantRange rhi::create_push_constant(const VkShaderStageFlags stage, co
 	return push_constant_range;
 }
 
-VkWriteDescriptorSet rhi::create_img_write_descriptor_set(VkDescriptorSet des_set, uint32_t des_binding, VkDescriptorImageInfo img_info)
+VkWriteDescriptorSet rhi::create_img_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorImageInfo& img_info)
 {
 	VkWriteDescriptorSet desc_set = {};
 	desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
