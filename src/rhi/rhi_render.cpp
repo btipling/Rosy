@@ -9,11 +9,7 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 	VkImageAspectFlags aspect_mask = (new_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
 		                                 ? VK_IMAGE_ASPECT_DEPTH_BIT
 		                                 : VK_IMAGE_ASPECT_COLOR_BIT;
-	VkImageSubresourceRange subresource_range = {};
-	subresource_range.aspectMask = aspect_mask;
-	subresource_range.baseMipLevel = 0;
-	subresource_range.levelCount = VK_REMAINING_MIP_LEVELS;
-	subresource_range.baseArrayLayer = 0;
+	VkImageSubresourceRange subresource_range = create_img_subresource_range(aspect_mask);
 	subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
 	VkImageMemoryBarrier2 image_barrier = {};
@@ -124,12 +120,7 @@ VkResult rhi::render_frame()
 		// vkCmdClearColorImage is guaranteed to happen after previous calls.
 		VkClearColorValue clear_value;
 		clear_value = {{0.0f, 0.05f, 0.1f, 1.0f}};
-		VkImageSubresourceRange subresource_range = {};
-		subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		subresource_range.baseMipLevel = 0;
-		subresource_range.levelCount = VK_REMAINING_MIP_LEVELS;
-		subresource_range.baseArrayLayer = 0;
-		subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
+		VkImageSubresourceRange subresource_range = create_img_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
 		vkCmdClearColorImage(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
 	}
 	{

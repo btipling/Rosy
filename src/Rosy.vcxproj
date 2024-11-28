@@ -175,6 +175,7 @@
     <ClCompile Include="rhi\rhi_render.cpp" />
     <ClCompile Include="rhi\rhi_buffer.cpp" />
     <ClCompile Include="rhi\rhi_init.cpp" />
+    <ClCompile Include="rhi\rhi_shader.cpp" />
     <ClCompile Include="rhi\rhi_textures.cpp" />
     <ClCompile Include="rhi\rhi_ui.cpp" />
     <ClCompile Include="rhi\rhi_utils.cpp" />

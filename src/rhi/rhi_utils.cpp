@@ -61,7 +61,7 @@ void rhi::debug() const
 	for (const VkQueueFamilyProperties& queue_family_props : queue_family_properties_data)
 	{
 		rosy_utils::debug_print_a("queue count: %d and time bits: %d\n", queue_family_props.queueCount,
-		                          queue_family_props.timestampValidBits);
+			queue_family_props.timestampValidBits);
 		if (queue_family_props.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT |
 			VK_QUEUE_SPARSE_BINDING_BIT))
 		{
@@ -114,7 +114,7 @@ swap_chain_support_details rhi::query_swap_chain_support(const VkPhysicalDevice 
 }
 
 VkImageCreateInfo rhi::img_create_info(const VkFormat format, const VkImageUsageFlags usage_flags,
-                                       const VkExtent3D extent)
+	const VkExtent3D extent)
 {
 	VkImageCreateInfo info = {};
 	info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -131,7 +131,7 @@ VkImageCreateInfo rhi::img_create_info(const VkFormat format, const VkImageUsage
 }
 
 VkImageViewCreateInfo rhi::img_view_create_info(const VkFormat format, const VkImage image,
-                                                const VkImageAspectFlags aspect_flags)
+	const VkImageAspectFlags aspect_flags)
 {
 	VkImageViewCreateInfo info = {};
 	info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -175,9 +175,9 @@ VkRenderingAttachmentInfo rhi::depth_attachment_info(const VkImageView view, con
 }
 
 VkRenderingInfo rhi::rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& color_attachment,
-                                    const std::optional<VkRenderingAttachmentInfo>& depth_attachment)
+	const std::optional<VkRenderingAttachmentInfo>& depth_attachment)
 {
-	const auto render_area = VkRect2D{VkOffset2D{0, 0}, render_extent};
+	const auto render_area = VkRect2D{ VkOffset2D{0, 0}, render_extent };
 	VkRenderingInfo render_info = {};
 	render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 	render_info.pNext = nullptr;
@@ -199,7 +199,7 @@ VkRenderingInfo rhi::rendering_info(const VkExtent2D render_extent, const VkRend
 
 
 void rhi::blit_images(const VkCommandBuffer cmd, const VkImage source, const VkImage destination,
-                      const VkExtent2D src_size, const VkExtent2D dst_size)
+	const VkExtent2D src_size, const VkExtent2D dst_size)
 {
 	VkImageBlit2 blit_region = {};
 	blit_region.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
@@ -237,7 +237,7 @@ void rhi::blit_images(const VkCommandBuffer cmd, const VkImage source, const VkI
 }
 
 allocated_buffer_result rhi::create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage,
-                                           const VmaMemoryUsage memory_usage) const
+	const VmaMemoryUsage memory_usage) const
 {
 	VkBufferCreateInfo buffer_info = {};
 	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -251,9 +251,9 @@ allocated_buffer_result rhi::create_buffer(const size_t alloc_size, const VkBuff
 
 	allocated_buffer new_buffer;
 	const VkResult result = vmaCreateBuffer(allocator_.value(), &buffer_info, &vma_alloc_info, &new_buffer.buffer,
-	                                        &new_buffer.allocation,
-	                                        &new_buffer.info);
-	if (result != VK_SUCCESS) return {.result = result};
+		&new_buffer.allocation,
+		&new_buffer.info);
+	if (result != VK_SUCCESS) return { .result = result };
 
 	return {
 		.result = VK_SUCCESS,
@@ -267,7 +267,7 @@ void rhi::destroy_buffer(const allocated_buffer& buffer) const
 }
 
 VkDebugUtilsObjectNameInfoEXT rhi::add_name(const VkObjectType object_type, const uint64_t object_handle,
-                                            const char* p_object_name)
+	const char* p_object_name)
 {
 	VkDebugUtilsObjectNameInfoEXT debug_name = {};
 	debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -276,4 +276,90 @@ VkDebugUtilsObjectNameInfoEXT rhi::add_name(const VkObjectType object_type, cons
 	debug_name.objectHandle = object_handle;
 	debug_name.pObjectName = p_object_name;
 	return debug_name;
+}
+
+
+auto rhi::create_shader_info(const std::vector<char>& shader_src, const VkShaderStageFlagBits stage,
+	const VkShaderStageFlags next_stage) -> VkShaderCreateInfoEXT
+{
+	VkShaderCreateInfoEXT info = {};
+	info.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+	info.pNext = nullptr;
+	info.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT;
+	info.stage = stage;
+	info.nextStage = next_stage;
+	info.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+	info.codeSize = shader_src.size();
+	info.pCode = shader_src.data();
+	info.pName = "main";
+	info.setLayoutCount = 0;
+	info.pSetLayouts = nullptr;
+	info.pushConstantRangeCount = 0;
+	info.pPushConstantRanges = nullptr;
+	info.pSpecializationInfo = nullptr;
+	return info;
+}
+
+VkPushConstantRange rhi::create_push_constant(const VkShaderStageFlags stage, const uint32_t size)
+{
+	VkPushConstantRange push_constant_range = {};
+	push_constant_range.stageFlags = stage;
+	push_constant_range.offset = 0;
+	push_constant_range.size = size;
+	return push_constant_range;
+}
+
+VkWriteDescriptorSet rhi::create_img_write_descriptor_set(VkDescriptorSet des_set, uint32_t des_binding, VkDescriptorImageInfo img_info)
+{
+	VkWriteDescriptorSet desc_set = {};
+	desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	desc_set.pNext = nullptr;
+	desc_set.dstBinding = 0;
+	desc_set.dstSet = des_set;
+	desc_set.descriptorCount = 1;
+	desc_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	desc_set.pImageInfo = &img_info;
+	return desc_set;
+}
+
+VkWriteDescriptorSet rhi::create_buffer_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorBufferInfo& buf_info)
+{
+	VkWriteDescriptorSet desc_set = {};
+	desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	desc_set.pNext = nullptr;
+	desc_set.dstBinding = 0;
+	desc_set.dstSet = des_set;
+	desc_set.descriptorCount = 1;
+	desc_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	desc_set.pBufferInfo = &buf_info;
+	return desc_set;
+}
+
+VkDescriptorImageInfo rhi::create_img_descriptor_info(const allocated_image& image)
+{
+	VkDescriptorImageInfo img_info = {};
+	img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	img_info.imageView = image.image_view;
+	return img_info;
+}
+
+VkDebugUtilsLabelEXT rhi::create_debug_label(const char* label_name, float color[4])
+{
+	VkDebugUtilsLabelEXT debug_label = {};
+	debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+	debug_label.pNext = nullptr;
+	debug_label.pLabelName = "meshes";
+	std::copy_n(color, 4, debug_label.color);
+	return debug_label;
+}
+
+VkImageSubresourceRange rhi::create_img_subresource_range(const VkImageAspectFlags aspect_mask)
+{
+	VkImageSubresourceRange subresource_range = {};
+	subresource_range.aspectMask = aspect_mask;
+	subresource_range.baseMipLevel = 0;
+	subresource_range.levelCount = VK_REMAINING_MIP_LEVELS;
+	subresource_range.baseArrayLayer = 0;
+	subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
+	return subresource_range;
 }

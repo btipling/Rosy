@@ -50,7 +50,7 @@ void rhi::toggle_wire_frame(const VkCommandBuffer cmd, const bool enable, const 
 
 void rhi::set_view_port(const VkCommandBuffer cmd, const VkExtent2D extent) {
 	{
-		VkViewport viewport{};
+		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
 		viewport.width = static_cast<float>(extent.width);
@@ -61,7 +61,7 @@ void rhi::set_view_port(const VkCommandBuffer cmd, const VkExtent2D extent) {
 		vkCmdSetViewportWithCountEXT(cmd, 1, &viewport);
 	}
 	{
-		VkRect2D scissor{};
+		VkRect2D scissor = {};
 		scissor.offset = { 0, 0 };
 		scissor.extent = extent;
 		vkCmdSetScissor(cmd, 0, 1, &scissor);
