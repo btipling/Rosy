@@ -1038,13 +1038,7 @@ VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::ve
 	result = vkSetDebugUtilsObjectNameEXT(device_.value(), &frag_name);
 	if (result != VK_SUCCESS) return result;
 
-	VkPipelineLayoutCreateInfo pl_info = {};
-	pl_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pl_info.pNext = nullptr;
-	pl_info.pushConstantRangeCount = 1;
-	pl_info.pPushConstantRanges = &push_constant_range;
-	pl_info.setLayoutCount = 1;
-	pl_info.pSetLayouts = &single_image_descriptor_layout_.value();
+	const VkPipelineLayoutCreateInfo pl_info = create_pipeline_layout_create_info(push_constant_range, 1, single_image_descriptor_layout_.value(), 1);
 	VkPipelineLayout layout;
 	result = vkCreatePipelineLayout(device_.value(), &pl_info, nullptr, &layout);
 	if (result != VK_SUCCESS) return result;

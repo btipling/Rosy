@@ -363,3 +363,15 @@ VkImageSubresourceRange rhi::create_img_subresource_range(const VkImageAspectFla
 	subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 	return subresource_range;
 }
+
+VkPipelineLayoutCreateInfo rhi::create_pipeline_layout_create_info(const VkPushConstantRange& pc_range, uint32_t pc_count, const VkDescriptorSetLayout& set_layouts, uint32_t sl_count)
+{
+	VkPipelineLayoutCreateInfo pl_info = {};
+	pl_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pl_info.pNext = nullptr;
+	pl_info.pushConstantRangeCount = 1;
+	pl_info.pPushConstantRanges = &pc_range;
+	pl_info.setLayoutCount = 1;
+	pl_info.pSetLayouts = &set_layouts;
+	return pl_info;
+}

@@ -172,6 +172,7 @@ private:
 	static VkDescriptorImageInfo create_img_descriptor_info(const allocated_image& image);
 	static VkDebugUtilsLabelEXT create_debug_label(const char* label_name, float color[4]);
 	static VkImageSubresourceRange create_img_subresource_range(VkImageAspectFlags aspect_mask);
+	static VkPipelineLayoutCreateInfo create_pipeline_layout_create_info(const VkPushConstantRange& pc_range, uint32_t pc_count, const VkDescriptorSetLayout& set_layouts, uint32_t sl_count);
 
 	// ui
 	VkResult init_ui(SDL_Window* window);
