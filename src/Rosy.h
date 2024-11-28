@@ -118,3 +118,19 @@ struct frame_data
 
 	std::optional<allocated_buffer> gpu_scene_buffer = std::nullopt;
 };
+
+enum class material_pass :uint8_t {
+	main_color,
+	transparent,
+	other
+};
+struct material_pipeline {
+	VkPipeline pipeline;
+	VkPipelineLayout layout;
+};
+
+struct material_instance {
+	material_pipeline* pipeline;
+	VkDescriptorSet material_set;
+	material_pass pass_type;
+};
