@@ -93,6 +93,12 @@
     <ClInclude Include="rhi\rhi_material.h">
       <Filter>Header Files\rhi</Filter>
     </ClInclude>
+    <ClInclude Include="rhi\rhi_shader.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="rhi\rhi_types.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">
