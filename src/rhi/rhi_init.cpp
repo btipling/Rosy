@@ -938,9 +938,7 @@ VkResult rhi::init_descriptors()
 		draw_image_descriptors_ = set;
 	}
 
-	VkDescriptorImageInfo img_info = {};
-	img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	img_info.imageView = draw_image_.value().image_view;
+	const VkDescriptorImageInfo img_info = create_img_descriptor_info(draw_image_.value());
 
 	VkWriteDescriptorSet draw_image_write = {};
 	draw_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

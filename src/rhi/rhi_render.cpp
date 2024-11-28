@@ -159,9 +159,9 @@ VkResult rhi::render_frame()
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pl_.value(), 0, 1, &image_set, 0, nullptr);
 
 			//create a descriptor set that binds that buffer and update it
-			auto descriptor_result = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
-			if (descriptor_result.result != VK_SUCCESS) return descriptor_result.result;
-			VkDescriptorSet global_descriptor = descriptor_result.set;
+			auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
+			if (desc_result != VK_SUCCESS) return desc_result;
+			VkDescriptorSet global_descriptor = desc_set;
 
 			descriptor_writer writer;
 			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
