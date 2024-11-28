@@ -141,14 +141,14 @@ private:
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
 
 	// Cmd
-	void set_rendering_defaults(VkCommandBuffer cmd);
-	void toggle_depth(VkCommandBuffer cmd, bool enable);
-	void toggle_culling(VkCommandBuffer cmd, bool enable);
-	void toggle_wire_frame(VkCommandBuffer cmd, bool enable, float line_width = 1.0);
-	void set_view_port(VkCommandBuffer cmd, VkExtent2D extent);
-	void disable_blending(VkCommandBuffer cmd);
-	void enable_blending_additive(VkCommandBuffer cmd);
-	void enable_blending_alpha_blend(VkCommandBuffer cmd);
+	static void set_rendering_defaults(VkCommandBuffer cmd);
+	static void toggle_depth(VkCommandBuffer cmd, bool enable);
+	static void toggle_culling(VkCommandBuffer cmd, bool enable);
+	static void toggle_wire_frame(VkCommandBuffer cmd, bool enable, float line_width = 1.0);
+	static void set_view_port(VkCommandBuffer cmd, VkExtent2D extent);
+	static void disable_blending(VkCommandBuffer cmd);
+	static void enable_blending_additive(VkCommandBuffer cmd);
+	static void enable_blending_alpha_blend(VkCommandBuffer cmd);
 
 	// Utils
 	swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device) const;
