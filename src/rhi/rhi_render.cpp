@@ -4,11 +4,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
-                           const VkImageLayout new_layout)
+	const VkImageLayout new_layout)
 {
 	VkImageAspectFlags aspect_mask = (new_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
-		                                 ? VK_IMAGE_ASPECT_DEPTH_BIT
-		                                 : VK_IMAGE_ASPECT_COLOR_BIT;
+		? VK_IMAGE_ASPECT_DEPTH_BIT
+		: VK_IMAGE_ASPECT_COLOR_BIT;
 	VkImageSubresourceRange subresource_range = create_img_subresource_range(aspect_mask);
 	subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
@@ -65,7 +65,7 @@ VkResult rhi::render_frame()
 	uint32_t image_index;
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
 	vkAcquireNextImageKHR(device_.value(), swapchain_.value(), UINT64_MAX, image_available, VK_NULL_HANDLE,
-	                      &image_index);
+		&image_index);
 	VkImage image = swap_chain_images_[image_index];
 	VkImageView image_view = swap_chain_image_views_[image_index];
 
@@ -119,7 +119,7 @@ VkResult rhi::render_frame()
 		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 		// vkCmdClearColorImage is guaranteed to happen after previous calls.
 		VkClearColorValue clear_value;
-		clear_value = {{0.0f, 0.05f, 0.1f, 1.0f}};
+		clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
 		VkImageSubresourceRange subresource_range = create_img_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
 		vkCmdClearColorImage(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
 	}
@@ -142,7 +142,7 @@ VkResult rhi::render_frame()
 		{
 			//allocate a new uniform buffer for the scene data
 			auto [result, buffer] = create_buffer(sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			                                      VMA_MEMORY_USAGE_AUTO);
+				VMA_MEMORY_USAGE_AUTO);
 			if (result != VK_SUCCESS) return result;
 			allocated_buffer gpu_scene_buffer = buffer;
 			frame_datas_[current_frame_].gpu_scene_buffer = gpu_scene_buffer;
@@ -165,16 +165,11 @@ VkResult rhi::render_frame()
 
 			descriptor_writer writer;
 			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
-			                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 			writer.update_set(device, global_descriptor);
 
-			constexpr VkDebugUtilsLabelEXT mesh_draw_label =
-			{
-				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-				.pNext = nullptr,
-				.pLabelName = "meshes",
-				.color = {1.0f, 0.0f, 0.0f, 1.0f},
-			};
+			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
+			VkDebugUtilsLabelEXT mesh_draw_label = create_debug_label("meshes", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 			constexpr VkShaderStageFlagBits stages[2] =
 			{
@@ -199,7 +194,7 @@ VkResult rhi::render_frame()
 
 			glm::mat4 view = lookAt(camera_pos, camera_target, camera_up);
 
-			m = translate(m, glm::vec3{model_x_, model_y_, model_z_});
+			m = translate(m, glm::vec3{ model_x_, model_y_, model_z_ });
 			m = rotate(m, model_rot_x_, glm::vec3(1, 0, 0));
 			m = rotate(m, model_rot_y_, glm::vec3(0, 1, 0));
 			m = rotate(m, model_rot_z_, glm::vec3(0, 0, 1));
@@ -228,10 +223,10 @@ VkResult rhi::render_frame()
 			{
 				push_constants.vertex_buffer = test_meshes_[2]->mesh_buffers.vertex_buffer_address;
 				vkCmdPushConstants(cmd, shader_pl_.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants),
-				                   &push_constants);
+					&push_constants);
 				vkCmdBindIndexBuffer(cmd, test_meshes_[2]->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(cmd, test_meshes_[2]->surfaces[0].count, 1, test_meshes_[2]->surfaces[0].start_index,
-				                 0, 0);
+					0, 0);
 			}
 
 			vkCmdEndDebugUtilsLabelEXT(cmd);
@@ -244,14 +239,14 @@ VkResult rhi::render_frame()
 		{
 			// blit the draw image to the swapchain image
 			transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 			transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 			blit_images(cmd, draw_image.image, image, draw_extent_, swapchain_extent_);
 		}
 		{
 			// draw ui onto swapchain image
 			transition_image(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 			result = render_ui(cmd, image_view);
 			if (result != VK_SUCCESS) return result;
 		}
@@ -309,7 +304,7 @@ VkResult rhi::render_frame()
 		}
 		{
 			// Queue image for presentation
-			VkSwapchainKHR swap_chains[] = {swapchain_.value()};
+			VkSwapchainKHR swap_chains[] = { swapchain_.value() };
 			VkPresentInfoKHR present_info = {};
 			present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 			present_info.waitSemaphoreCount = 1;
