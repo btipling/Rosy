@@ -9,7 +9,7 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 	VkImageAspectFlags aspect_mask = (new_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
 		? VK_IMAGE_ASPECT_DEPTH_BIT
 		: VK_IMAGE_ASPECT_COLOR_BIT;
-	VkImageSubresourceRange subresource_range = create_img_subresource_range(aspect_mask);
+	VkImageSubresourceRange subresource_range = rhi_helpers::create_img_subresource_range(aspect_mask);
 	subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
 	VkImageMemoryBarrier2 image_barrier = {};
@@ -52,6 +52,7 @@ VkResult rhi::render_frame()
 	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
 	VkFence fence = opt_in_flight_fence.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
+	shader_pipeline shaders = test_mesh_pipeline_.value();
 
 	VkResult result;
 	VkDevice device = device_.value();
@@ -92,35 +93,13 @@ VkResult rhi::render_frame()
 
 
 	{
-		// Configure the dynamic shader pipeline
-		set_rendering_defaults(cmd);
-		toggle_culling(cmd, VK_TRUE);
-		toggle_wire_frame(cmd, toggle_wire_frame_);
-		set_view_port(cmd, swapchain_extent_);
-		toggle_depth(cmd, VK_TRUE);
-		// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
-		switch (blend_mode_)
-		{
-		case 0:
-			disable_blending(cmd);
-			break;
-		case 1:
-			enable_blending_additive(cmd);
-			break;
-		case 2:
-			enable_blending_alpha_blend(cmd);
-			break;
-		}
-	}
-
-	{
 		// Clear image. This transition means that all the commands recorded before now happen before
 		// any calls after. The calls themselves before this may have executed in any order up until this point.
 		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 		// vkCmdClearColorImage is guaranteed to happen after previous calls.
 		VkClearColorValue clear_value;
 		clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
-		VkImageSubresourceRange subresource_range = create_img_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
+		VkImageSubresourceRange subresource_range = rhi_helpers::create_img_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
 		vkCmdClearColorImage(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
 	}
 	{
@@ -129,11 +108,11 @@ VkResult rhi::render_frame()
 		transition_image(cmd, depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
-			VkRenderingAttachmentInfo color_attachment = attachment_info(
+			VkRenderingAttachmentInfo color_attachment = rhi_helpers::attachment_info(
 				draw_image.image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			VkRenderingAttachmentInfo depth_attachment = depth_attachment_info(
+			VkRenderingAttachmentInfo depth_attachment = rhi_helpers::depth_attachment_info(
 				depth_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-			VkRenderingInfo render_info = rendering_info(swapchain_extent_, color_attachment, depth_attachment);
+			VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent_, color_attachment, depth_attachment);
 			vkCmdBeginRendering(cmd, &render_info);
 		}
 	}
@@ -156,7 +135,7 @@ VkResult rhi::render_frame()
 
 				writer.update_set(device, image_set);
 			}
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pl_.value(), 0, 1, &image_set, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shaders.pipeline_layout.value(), 0, 1, &image_set, 0, nullptr);
 
 			//create a descriptor set that binds that buffer and update it
 			auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
@@ -169,22 +148,9 @@ VkResult rhi::render_frame()
 			writer.update_set(device, global_descriptor);
 
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-			VkDebugUtilsLabelEXT mesh_draw_label = create_debug_label("meshes", color);
+			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("meshes", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
-			constexpr VkShaderStageFlagBits stages[2] =
-			{
-				VK_SHADER_STAGE_VERTEX_BIT,
-				VK_SHADER_STAGE_FRAGMENT_BIT
-			};
-			vkCmdBindShadersEXT(cmd, 2, stages, shaders_.data());
-	
-			constexpr VkShaderStageFlagBits unused_stages[3] =
-			{
-				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-				VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-				VK_SHADER_STAGE_GEOMETRY_BIT
-			};
-			vkCmdBindShadersEXT(cmd, 3, unused_stages, nullptr);
+			
 
 			gpu_draw_push_constants push_constants;
 			auto m = glm::mat4(1.0f);
@@ -223,8 +189,13 @@ VkResult rhi::render_frame()
 			if (test_meshes_.size() > 0)
 			{
 				push_constants.vertex_buffer = test_meshes_[2]->mesh_buffers.vertex_buffer_address;
-				vkCmdPushConstants(cmd, shader_pl_.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants),
-					&push_constants);
+				shaders.viewport_extent = swapchain_extent_;
+				shaders.constants = push_constants;
+				shaders.wire_frames_enabled = toggle_wire_frame_;
+				shaders.depth_enabled = true;
+				shaders.blending = static_cast<shader_blending>(blend_mode_);
+				result = shaders.shade(cmd);
+				if (result != VK_SUCCESS) return result;
 				vkCmdBindIndexBuffer(cmd, test_meshes_[2]->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(cmd, test_meshes_[2]->surfaces[0].count, 1, test_meshes_[2]->surfaces[0].start_index,
 					0, 0);
@@ -242,7 +213,7 @@ VkResult rhi::render_frame()
 			transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 			transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			blit_images(cmd, draw_image.image, image, draw_extent_, swapchain_extent_);
+			rhi_helpers::blit_images(cmd, draw_image.image, image, draw_extent_, swapchain_extent_);
 		}
 		{
 			// draw ui onto swapchain image

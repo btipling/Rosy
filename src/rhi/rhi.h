@@ -3,6 +3,7 @@
 #include "../loader/loader.h"
 #include "rhi_types.h"
 #include "rhi_shader.h"
+#include "rhi_helpers.h"
 #include "rhi_material.h"
 
 #define MAX_FRAMES_IN_FLIGHT 2
@@ -49,10 +50,10 @@ private:
 	uint32_t swap_chain_image_count_ = 0;
 	swap_chain_support_details swapchain_details_ = {};
 	VkExtent2D swapchain_extent_ = {};
-	std::optional<descriptor_allocator> global_descriptor_allocator_;
-	std::optional<VkDescriptorSet> draw_image_descriptors_;
-	std::optional<VkDescriptorSetLayout> draw_image_descriptor_layout_;
-	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_;
+	std::optional<descriptor_allocator> global_descriptor_allocator_ = std::nullopt;
+	std::optional<VkDescriptorSet> draw_image_descriptors_ = std::nullopt;
+	std::optional<VkDescriptorSetLayout> draw_image_descriptor_layout_ = std::nullopt;
+	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 
 	// textures
 	allocated_image_result create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
@@ -67,8 +68,7 @@ private:
 	std::optional<VkCommandPool> imm_command_pool_;
 
 	// test meshes
-	std::vector<VkShaderEXT> shaders_;
-	std::optional<VkPipelineLayout> shader_pl_;
+	std::optional<shader_pipeline> test_mesh_pipeline_ = std::nullopt;
 	float model_rot_x_ = 0.0f;
 	float model_rot_y_ = 0.0f;
 	float model_rot_z_ = 0.0f;
@@ -127,7 +127,6 @@ private:
 	VkResult init_draw_image();
 	VkResult init_descriptors();
 	VkResult init_graphics();
-	VkResult create_shader_objects(const std::vector<char>& vert, const std::vector<char>& frag);
 	VkResult init_command_pool();
 	VkResult init_command_buffers();
 	VkResult init_sync_objects();
@@ -140,39 +139,10 @@ private:
 	VkResult render_frame();
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
 
-	// Cmd
-	static void set_rendering_defaults(VkCommandBuffer cmd);
-	static void toggle_depth(VkCommandBuffer cmd, bool enable);
-	static void toggle_culling(VkCommandBuffer cmd, bool enable);
-	static void toggle_wire_frame(VkCommandBuffer cmd, bool enable, float line_width = 1.0);
-	static void set_view_port(VkCommandBuffer cmd, VkExtent2D extent);
-	static void disable_blending(VkCommandBuffer cmd);
-	static void enable_blending_additive(VkCommandBuffer cmd);
-	static void enable_blending_alpha_blend(VkCommandBuffer cmd);
-
 	// Utils
-	swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device) const;
-	static VkImageCreateInfo img_create_info(VkFormat format, VkImageUsageFlags usage_flags, VkExtent3D extent);
-	static VkImageViewCreateInfo img_view_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspect_flags);
-	static VkRenderingAttachmentInfo attachment_info(VkImageView view, VkImageLayout layout);
-	static VkRenderingAttachmentInfo depth_attachment_info(VkImageView view, VkImageLayout layout);
-	static VkRenderingInfo rendering_info(VkExtent2D render_extent, const VkRenderingAttachmentInfo& color_attachment,
-	                                      const std::optional<VkRenderingAttachmentInfo>& depth_attachment);
-	static void blit_images(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D src_size,
-	                        VkExtent2D dst_size);
 	allocated_buffer_result create_buffer(size_t alloc_size, VkBufferUsageFlags usage,
-	                                      VmaMemoryUsage memory_usage) const;
-	static VkDebugUtilsObjectNameInfoEXT add_name(VkObjectType object_type, uint64_t object_handle,
-	                                              const char* p_object_name);
-
-	static VkShaderCreateInfoEXT create_shader_info(const std::vector<char>& shader_src, const VkShaderStageFlagBits stage, const VkShaderStageFlags next_stage);
-	static VkPushConstantRange create_push_constant(VkShaderStageFlags stage, uint32_t size);
-	static VkWriteDescriptorSet create_img_write_descriptor_set(VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorImageInfo& img_info);
-	static VkWriteDescriptorSet create_buffer_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorBufferInfo& buf_info);
-	static VkDescriptorImageInfo create_img_descriptor_info(const allocated_image& image);
-	static VkDebugUtilsLabelEXT create_debug_label(const char* label_name, float color[4]);
-	static VkImageSubresourceRange create_img_subresource_range(VkImageAspectFlags aspect_mask);
-	static VkPipelineLayoutCreateInfo create_pipeline_layout_create_info(const VkPushConstantRange& pc_range, uint32_t pc_count, const VkDescriptorSetLayout& set_layouts, uint32_t sl_count);
+		VmaMemoryUsage memory_usage) const;
+	swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device) const;
 
 	// ui
 	VkResult init_ui(SDL_Window* window);

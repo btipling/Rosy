@@ -70,8 +70,8 @@ VkResult rhi::render_ui(const VkCommandBuffer cmd, const VkImageView target_imag
 {
 	VkResult result;
 
-	const VkRenderingAttachmentInfo colorAttachment = attachment_info(target_image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-	const VkRenderingInfo render_info = rendering_info(swapchain_extent_, colorAttachment, std::nullopt);
+	const VkRenderingAttachmentInfo colorAttachment = rhi_helpers::attachment_info(target_image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	const VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent_, colorAttachment, std::nullopt);
 	vkCmdBeginRendering(cmd, &render_info);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
@@ -99,7 +99,7 @@ VkResult rhi::draw_ui() {
 
 void rhi::deinit_ui() const
 {
-	if (ui_pool_.value()) {
+	if (ui_pool_.has_value() && ui_pool_.value()) {
 		ImGui_ImplVulkan_Shutdown();
         ImGui_ImplSDL3_Shutdown();
         ImGui::DestroyContext();

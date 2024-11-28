@@ -1,6 +1,10 @@
 #pragma once
 #include "../Rosy.h"
+#include "rhi_types.h"
+#include "rhi_helpers.h"
+#include "rhi_cmd.h"
 
+class rhi;
 
 enum class shader_blending :uint8_t {
     blending_disabled,
@@ -10,16 +14,23 @@ enum class shader_blending :uint8_t {
 
 class shader_pipeline {
 public:
-    shader_pipeline() {}
+    shader_pipeline() = default;
+    const char* name = "geometry";
+    float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
     std::vector<VkShaderEXT> shaders = {};
 	std::optional<VkPipelineLayout> pipeline_layout = {};
+    gpu_draw_push_constants constants = {};
+    VkDescriptorSetLayout image_layout = {};
 
     VkExtent2D viewport_extent = {};
-    VkColorBlendEquationEXT color_blend_equation_ext = {};
-    bool depth_enabled = false;
+    bool depth_enabled = true;
+    bool wire_frames_enabled = false;
+    bool culling_enabled = true;
     shader_blending blending = shader_blending::blending_disabled;
 
-    VkResult build_shaders(VkDevice device);
+    void with_shaders(const std::vector<char>& vert, const std::vector<char>&frag);
+    VkResult build(VkDevice device);
+    VkResult shade(VkCommandBuffer cmd) const;
 private:
     std::vector<VkShaderCreateInfoEXT> shaders_create_info_;
 };

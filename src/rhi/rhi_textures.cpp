@@ -7,7 +7,7 @@ allocated_image_result rhi::create_image(VkExtent3D size, VkFormat format, VkIma
 	new_image.image_format = format;
 	new_image.image_extent = size;
 
-	VkImageCreateInfo img_info = img_create_info(format, usage, size);
+	VkImageCreateInfo img_info = rhi_helpers::img_create_info(format, usage, size);
 	if (mip_mapped)
 	{
 		img_info.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(size.width, size.height)))) + 1;
@@ -31,7 +31,7 @@ allocated_image_result rhi::create_image(VkExtent3D size, VkFormat format, VkIma
 		aspect_flag = VK_IMAGE_ASPECT_DEPTH_BIT;
 	}
 
-	VkImageViewCreateInfo view_info = img_view_create_info(format, new_image.image, aspect_flag);
+	VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(format, new_image.image, aspect_flag);
 	view_info.subresourceRange.levelCount = img_info.mipLevels;
 
 	if (VkResult result = vkCreateImageView(device_.value(), &view_info, nullptr, &new_image.image_view); result !=

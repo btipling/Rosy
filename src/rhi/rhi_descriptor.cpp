@@ -2,14 +2,14 @@
 
 #include "RHI.h"
 
-void descriptor_layout_builder::add_binding(uint32_t binding, VkDescriptorType type)
+void descriptor_layout_builder::add_binding(const uint32_t binding, const VkDescriptorType type)
 {
-	VkDescriptorSetLayoutBinding newbind = {};
-	newbind.binding = binding;
-	newbind.descriptorCount = 1;
-	newbind.descriptorType = type;
+	VkDescriptorSetLayoutBinding new_bind = {};
+	new_bind.binding = binding;
+	new_bind.descriptorCount = 1;
+	new_bind.descriptorType = type;
 
-	bindings.push_back(newbind);
+	bindings.push_back(new_bind);
 }
 
 void descriptor_layout_builder::clear()
@@ -69,12 +69,12 @@ void descriptor_allocator::init_pool(const VkDevice device, const uint32_t max_s
 	vkCreateDescriptorPool(device, &pool_info, nullptr, &pool);
 }
 
-void descriptor_allocator::clear_descriptors(const VkDevice device)
+void descriptor_allocator::clear_descriptors(const VkDevice device) const
 {
 	vkResetDescriptorPool(device, pool, 0);
 }
 
-void descriptor_allocator::destroy_pool(const VkDevice device)
+void descriptor_allocator::destroy_pool(const VkDevice device) const
 {
 	vkDestroyDescriptorPool(device, pool, nullptr);
 }

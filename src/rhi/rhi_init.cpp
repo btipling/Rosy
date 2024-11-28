@@ -228,15 +228,17 @@ void rhi::deinit()
 		}
 		if (fd.gpu_scene_buffer.has_value()) destroy_buffer(fd.gpu_scene_buffer.value());
 	}
+	if (test_mesh_pipeline_.has_value()) {
+		shader_pipeline shaders = test_mesh_pipeline_.value();
+		if (shaders.pipeline_layout.has_value())
+		{
+			vkDestroyPipelineLayout(device_.value(), shaders.pipeline_layout.value(), nullptr);
+		}
 
-	if (shader_pl_.has_value())
-	{
-		vkDestroyPipelineLayout(device_.value(), shader_pl_.value(), nullptr);
-	}
-
-	for (const VkShaderEXT shader : shaders_)
-	{
-		vkDestroyShaderEXT(device_.value(), shader, nullptr);
+		for (const VkShaderEXT shader : shaders.shaders)
+		{
+			vkDestroyShaderEXT(device_.value(), shader, nullptr);
+		}
 	}
 	if (single_image_descriptor_layout_.has_value())
 	{
@@ -842,7 +844,7 @@ VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swap
 
 		for (size_t i = 0; i < swap_chain_images_.size(); i++)
 		{
-			VkImageViewCreateInfo create_info = img_view_create_info(swapchain_image_format_.format,
+			VkImageViewCreateInfo create_info = rhi_helpers::img_view_create_info(swapchain_image_format_.format,
 				swap_chain_images_[i], VK_IMAGE_ASPECT_COLOR_BIT);
 			VkImageView image_view;
 			if (const VkResult result = vkCreateImageView(device, &create_info, nullptr, &image_view); result !=
@@ -874,7 +876,7 @@ VkResult rhi::init_draw_image()
 	draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
 	draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	VkImageCreateInfo draw_info = img_create_info(draw_image.image_format, draw_image_usages, draw_image_extent);
+	VkImageCreateInfo draw_info = rhi_helpers::img_create_info(draw_image.image_format, draw_image_usages, draw_image_extent);
 
 	VmaAllocationCreateInfo r_img_alloc_info = {};
 	r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -883,7 +885,7 @@ VkResult rhi::init_draw_image()
 	vmaCreateImage(allocator_.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation,
 		nullptr);
 
-	VkImageViewCreateInfo r_view_info = img_view_create_info(draw_image.image_format, draw_image.image,
+	VkImageViewCreateInfo r_view_info = rhi_helpers::img_view_create_info(draw_image.image_format, draw_image.image,
 		VK_IMAGE_ASPECT_COLOR_BIT);
 
 	result = vkCreateImageView(device_.value(), &r_view_info, nullptr, &draw_image.image_view);
@@ -896,12 +898,12 @@ VkResult rhi::init_draw_image()
 	VkImageUsageFlags depth_image_usages{};
 	depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-	VkImageCreateInfo depth_info = img_create_info(depth_image.image_format, depth_image_usages, draw_image_extent);
+	VkImageCreateInfo depth_info = rhi_helpers::img_create_info(depth_image.image_format, depth_image_usages, draw_image_extent);
 
 	vmaCreateImage(allocator_.value(), &depth_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation,
 		nullptr);
 
-	VkImageViewCreateInfo d_view_info = img_view_create_info(depth_image.image_format, depth_image.image,
+	VkImageViewCreateInfo d_view_info = rhi_helpers::img_view_create_info(depth_image.image_format, depth_image.image,
 		VK_IMAGE_ASPECT_DEPTH_BIT);
 
 	result = vkCreateImageView(device_.value(), &d_view_info, nullptr, &depth_image.image_view);
@@ -938,10 +940,10 @@ VkResult rhi::init_descriptors()
 		draw_image_descriptors_ = set;
 	}
 
-	const VkDescriptorImageInfo img_info = create_img_descriptor_info(draw_image_.value());
+	const VkDescriptorImageInfo img_info = rhi_helpers::create_img_descriptor_info(draw_image_.value());
 
 	VkWriteDescriptorSet draw_image_write;
-	draw_image_write = create_img_write_descriptor_set(draw_image_descriptors_.value(), 0, img_info);
+	draw_image_write = rhi_helpers::create_img_write_descriptor_set(draw_image_descriptors_.value(), 0, img_info);
 	vkUpdateDescriptorSets(device, 1, &draw_image_write, 0, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -1007,44 +1009,13 @@ VkResult rhi::init_graphics()
 		return VK_ERROR_FEATURE_NOT_PRESENT;
 	}
 
-	VkResult result = create_shader_objects(vert_shader_code, frag_shader_code);
-	return result;
-}
-
-VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::vector<char>& frag)
-{
-	VkPushConstantRange push_constant_range = create_push_constant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(gpu_draw_push_constants));
-	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkShaderCreateInfoEXT vert_object = create_shader_info(vert, VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT);
-	vert_object.setLayoutCount = 1;
-	vert_object.pSetLayouts = &single_image_descriptor_layout_.value();
-	vert_object.pushConstantRangeCount = 1;
-	vert_object.pPushConstantRanges = &push_constant_range;
-	VkShaderCreateInfoEXT frag_object = create_shader_info(frag, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
-	frag_object.setLayoutCount = 1;
-	frag_object.pSetLayouts = &single_image_descriptor_layout_.value();
-	frag_object.pushConstantRangeCount = 1;
-	frag_object.pPushConstantRanges = &push_constant_range;
-	const VkShaderCreateInfoEXT shader_create_infos[2] = {vert_object, frag_object};
-
-	shaders_.resize(2);
-	VkResult result = vkCreateShadersEXT(device_.value(), 2, shader_create_infos, nullptr, shaders_.data());
-	if (result != VK_SUCCESS) return result;
-	const VkDebugUtilsObjectNameInfoEXT vert_name = add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders_.data()[0]), "vertex");
-	result = vkSetDebugUtilsObjectNameEXT(device_.value(), &vert_name);
-	if (result != VK_SUCCESS) return result;
-	const VkDebugUtilsObjectNameInfoEXT frag_name = add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders_.data()[1]), "frag");
-	result = vkSetDebugUtilsObjectNameEXT(device_.value(), &frag_name);
-	if (result != VK_SUCCESS) return result;
-
-	const VkPipelineLayoutCreateInfo pl_info = create_pipeline_layout_create_info(push_constant_range, 1, single_image_descriptor_layout_.value(), 1);
-	VkPipelineLayout layout;
-	result = vkCreatePipelineLayout(device_.value(), &pl_info, nullptr, &layout);
-	if (result != VK_SUCCESS) return result;
-	shader_pl_ = layout;
-
-	return result;
+	shader_pipeline sp = {};
+	sp.image_layout = single_image_descriptor_layout_.value();
+	sp.name = "test";
+	sp.with_shaders(vert_shader_code, frag_shader_code);
+	if (const VkResult result = sp.build(device_.value()); result != VK_SUCCESS) return result;
+	test_mesh_pipeline_ = sp;
+	return VK_SUCCESS;
 }
 
 VkResult rhi::init_command_pool()
