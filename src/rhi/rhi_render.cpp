@@ -177,12 +177,7 @@ VkResult rhi::render_frame()
 				VK_SHADER_STAGE_FRAGMENT_BIT
 			};
 			vkCmdBindShadersEXT(cmd, 2, stages, shaders_.data());
-			const VkDebugUtilsObjectNameInfoEXT vert_name = add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders_.data()[0]), "vertex");
-			result = vkSetDebugUtilsObjectNameEXT(device_.value(), &vert_name);
-			if (result != VK_SUCCESS) return result;
-			const VkDebugUtilsObjectNameInfoEXT frag_name = add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders_.data()[1]), "frag");
-			result = vkSetDebugUtilsObjectNameEXT(device_.value(), &frag_name);
-			if (result != VK_SUCCESS) return result;
+	
 			constexpr VkShaderStageFlagBits unused_stages[3] =
 			{
 				VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,

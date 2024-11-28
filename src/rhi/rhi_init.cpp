@@ -1033,6 +1033,12 @@ VkResult rhi::create_shader_objects(const std::vector<char>& vert, const std::ve
 	shaders_.resize(2);
 	VkResult result = vkCreateShadersEXT(device_.value(), 2, shader_create_infos, nullptr, shaders_.data());
 	if (result != VK_SUCCESS) return result;
+	const VkDebugUtilsObjectNameInfoEXT vert_name = add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders_.data()[0]), "vertex");
+	result = vkSetDebugUtilsObjectNameEXT(device_.value(), &vert_name);
+	if (result != VK_SUCCESS) return result;
+	const VkDebugUtilsObjectNameInfoEXT frag_name = add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders_.data()[1]), "frag");
+	result = vkSetDebugUtilsObjectNameEXT(device_.value(), &frag_name);
+	if (result != VK_SUCCESS) return result;
 
 	VkPipelineLayoutCreateInfo pl_info = {};
 	pl_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
