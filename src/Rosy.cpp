@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 	int max_width = 640;
 	int max_height = 480;
 	int displays_count = 0;
-	const auto displayIds = SDL_GetDisplays(&displays_count);
+	const auto display_ids = SDL_GetDisplays(&displays_count);
 	if (displays_count == 0) {
 		const auto err = SDL_GetError();
 		rosy_utils::debug_print_a("SDL error: %s\n", err);
@@ -65,11 +65,11 @@ int main(int argc, char* argv[])
 	}
 	// TODO: don't always get the first display
 	SDL_Rect display_bounds = {};
-	if (SDL_GetDisplayBounds(*displayIds, &display_bounds)) {
+	if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
 		max_width = display_bounds.w;
 		max_height = display_bounds.h;
-		width = display_bounds.w * 0.75;
-		height = display_bounds.h * 0.75;
+		width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
+		height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
 	}
 
 	constexpr SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
