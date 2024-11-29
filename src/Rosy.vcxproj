@@ -193,9 +193,6 @@
   <ItemGroup>
     <None Include="compile.ps1" />
     <None Include="shaders\imgui.frag" />
-    <None Include="shaders\input_structures.glsl" />
-    <None Include="shaders\mesh.frag" />
-    <None Include="shaders\mesh.vert" />
     <None Include="shaders\shader.frag" />
     <None Include="shaders\shader.vert" />
     <None Include="shaders\tex_image.frag" />
