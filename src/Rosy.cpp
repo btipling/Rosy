@@ -125,7 +125,16 @@ int main(int argc, char* argv[])
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				continue;
 			}
-			if (resize_requested) continue;
+			if (resize_requested) {
+				rosy_utils::debug_print_a("resizing swapchain\n");
+				result = renderer->resize_swapchain(window);
+				if (result != VK_SUCCESS) {
+					rosy_utils::debug_print_a("rhi failed to resize swapchain %d\n", result);
+					should_run = false;
+					break;
+				}
+				resize_requested = false;
+			}
 
 			{
 				ImGui_ImplVulkan_NewFrame();
