@@ -1,11 +1,8 @@
 
-#include <array>
-#include "RHI.h"
+#include "rhi.h"
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/constants.hpp>
 
 VkResult rhi::init_ui(SDL_Window* window) {
 	const VkDescriptorPoolSize pool_sizes[] = { 
