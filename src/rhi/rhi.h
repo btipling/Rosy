@@ -93,6 +93,7 @@ private:
 	// default material
 	material_instance default_data_;
 	std::optional<gltf_metallic_roughness> metal_rough_material_ = std::nullopt;
+	std::optional<allocated_buffer> material_constants_ = std::nullopt;
 
 	std::vector<std::shared_ptr<mesh_asset>> test_meshes_;
 

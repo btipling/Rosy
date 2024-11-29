@@ -180,7 +180,10 @@ void rhi::deinit()
 
 	// Deinit begin in the reverse order from how it was created.
 	deinit_ui();
-
+	if (material_constants_.has_value())
+	{
+		destroy_buffer(material_constants_.value());
+	}
 	if (metal_rough_material_.has_value())
 	{
 		metal_rough_material_.value().deinit(device_.value());
@@ -1186,6 +1189,34 @@ VkResult rhi::init_default_data()
 		VkSampler sampler;
 		vkCreateSampler(device, &sample, nullptr, &sampler);
 		default_sampler_linear_ = sampler;
+	}
+
+	{
+		gltf_metallic_roughness::material_resources material_resources;
+		material_resources.color_image = white_image_.value();
+		material_resources.color_sampler = default_sampler_linear_.value();
+		material_resources.metal_rough_image = white_image_.value();
+		material_resources.metal_rough_sampler = default_sampler_linear_.value();
+
+		size_t mat_size = sizeof(gltf_metallic_roughness::material_constants);
+		auto [result, material_constants] = create_buffer(mat_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		if (result != VK_SUCCESS) return result;
+		material_constants_ = material_constants;
+
+		void* data;
+		vmaMapMemory(allocator_.value(), material_constants.allocation, &data);
+		static_cast<gltf_metallic_roughness::material_constants*>(data)->color_factors = glm::vec4{ 1,1,1,1 };
+		static_cast<gltf_metallic_roughness::material_constants*>(data)->metal_rough_factors = glm::vec4{ 1,0.5,0,0 };
+		vmaUnmapMemory(allocator_.value(), material_constants.allocation);
+
+		material_resources.data_buffer = material_constants.buffer;
+		material_resources.data_buffer_offset = 0;
+
+		{
+			auto [result, material] = metal_rough_material_.value().write_material(device_.value(), material_pass::main_color, material_resources, global_descriptor_allocator_.value());
+			if (result != VK_SUCCESS) return result;
+			default_data_ = material;
+		}
 	}
 
 	return VK_SUCCESS;

@@ -57,7 +57,7 @@ VkResult gltf_metallic_roughness::build_pipelines(const VkDevice device, const V
 	return VK_SUCCESS;
 }
 
-material_instance_result gltf_metallic_roughness::write_material(const VkDevice device, const material_pass pass, const material_resources& resources, descriptor_allocator_growable& descriptor_allocator)
+material_instance_result gltf_metallic_roughness::write_material(const VkDevice device, const material_pass pass, const material_resources& resources, descriptor_allocator descriptor_alloc)
 {
 	material_instance mat_data;
 	mat_data.pass_type = pass;
@@ -68,7 +68,7 @@ material_instance_result gltf_metallic_roughness::write_material(const VkDevice 
 		mat_data.shaders = &opaque_shaders;
 	}
 	{
-		auto [result, set] = descriptor_allocator.allocate(device, material_layout);
+		auto [result, set] = descriptor_alloc.allocate(device, material_layout);
 		if (result != VK_SUCCESS) {
 			material_instance_result rv;
 			rv.result = result;
