@@ -1,6 +1,5 @@
 #pragma once
 #include "../Rosy.h"
-#include "rhi_types.h"
 
 namespace rhi_cmd
 {
