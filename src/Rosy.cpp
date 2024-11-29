@@ -26,6 +26,7 @@
 static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-use-anonymous-namespace)
 	const auto renderer = static_cast<rhi*>(userdata);
 	VkResult result;
+	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
 	switch (event->type) {
 	case SDL_EVENT_WINDOW_RESIZED:
 		SDL_Window* window = SDL_GetWindowFromID(event->window.windowID);
@@ -81,12 +82,11 @@ int main(int argc, char* argv[])
 	};
 	rosy_config::debug();
 
-	rhi* renderer = new rhi{ cfg };
+	std::unique_ptr<rhi> renderer(new rhi{ cfg });
 
 	VkResult result = renderer->init(window);
 	if (result != VK_SUCCESS) {
 		rosy_utils::debug_print_a("rhi init failed %d\n", result);
-		delete renderer;
 		{
 			SDL_DestroyRenderer(sdl_renderer);
 			SDL_DestroyWindow(window);
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
 	renderer->debug();
 
 
-	SDL_AddEventWatch(event_handler, renderer);
+	SDL_AddEventWatch(event_handler, renderer.get());
 
 	bool shouldRun = true;
 	bool shouldRender = true;
@@ -165,7 +165,6 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
-	delete renderer;
 	{
 		SDL_DestroyRenderer(sdl_renderer);
 		SDL_DestroyWindow(window);
