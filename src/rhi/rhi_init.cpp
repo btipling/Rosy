@@ -652,46 +652,68 @@ VkResult rhi::init_device()
 {
 	if (!physical_device_.has_value()) return VK_NOT_READY;
 
-	VkDeviceQueueCreateInfo deviceQueueCreateInfo = {};
-	deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	deviceQueueCreateInfo.pNext = nullptr;
-	deviceQueueCreateInfo.flags = 0;
-	deviceQueueCreateInfo.queueFamilyIndex = queue_index_;
+	VkDeviceQueueCreateInfo device_queue_create_info = {};
+	device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	device_queue_create_info.pNext = nullptr;
+	device_queue_create_info.flags = 0;
+	device_queue_create_info.queueFamilyIndex = queue_index_;
 	queue_priorities_.resize(queue_count_, 0.5f);
-	deviceQueueCreateInfo.pQueuePriorities = queue_priorities_.data();
-	deviceQueueCreateInfo.queueCount = queue_count_;
-	VkDeviceCreateInfo deviceCreateInfo = {};
+	device_queue_create_info.pQueuePriorities = queue_priorities_.data();
+	device_queue_create_info.queueCount = queue_count_;
+	VkDeviceCreateInfo device_create_info = {};
 
-	VkPhysicalDeviceVulkan13Features vulkan13Features = {};
-	vulkan13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-	vulkan13Features.pNext = nullptr;
-	vulkan13Features.dynamicRendering = true;
-	vulkan13Features.synchronization2 = true;
+	VkPhysicalDeviceVulkan13Features vulkan13_features = {};
+	vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+	vulkan13_features.pNext = nullptr;
+	vulkan13_features.dynamicRendering = true;
+	vulkan13_features.synchronization2 = true;
 
-	VkPhysicalDeviceVulkan12Features vulkan12Features = {};
-	vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-	vulkan12Features.pNext = &vulkan13Features;
-	vulkan12Features.bufferDeviceAddress = true;
-	vulkan12Features.descriptorIndexing = true;
+	VkPhysicalDeviceVulkan12Features vulkan12_features = {};
+	vulkan12_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	vulkan12_features.pNext = &vulkan13_features;
+	vulkan12_features.bufferDeviceAddress = true;
+	vulkan12_features.descriptorIndexing = true;
+	vulkan12_features.shaderInputAttachmentArrayDynamicIndexing = true;
+	vulkan12_features.shaderUniformTexelBufferArrayDynamicIndexing = true;
+	vulkan12_features.shaderStorageTexelBufferArrayDynamicIndexing = true;
+	vulkan12_features.shaderUniformBufferArrayNonUniformIndexing = true;
+	vulkan12_features.shaderSampledImageArrayNonUniformIndexing = true;
+	vulkan12_features.shaderStorageBufferArrayNonUniformIndexing = true;
+	vulkan12_features.shaderStorageImageArrayNonUniformIndexing = true;
+	vulkan12_features.shaderUniformTexelBufferArrayNonUniformIndexing = true;
+	vulkan12_features.shaderStorageTexelBufferArrayNonUniformIndexing = true;
+	vulkan12_features.descriptorBindingSampledImageUpdateAfterBind = true;
+	vulkan12_features.descriptorBindingStorageImageUpdateAfterBind = true;
+	vulkan12_features.descriptorBindingStorageBufferUpdateAfterBind = true;
+	vulkan12_features.descriptorBindingUniformTexelBufferUpdateAfterBind = true;
+	vulkan12_features.descriptorBindingUpdateUnusedWhilePending = true;
+	vulkan12_features.descriptorBindingPartiallyBound = true;
+	vulkan12_features.descriptorBindingVariableDescriptorCount = true;
+	vulkan12_features.runtimeDescriptorArray = true;
+	vulkan12_features.samplerFilterMinmax = true;
+	vulkan12_features.scalarBlockLayout = true;
+	vulkan12_features.imagelessFramebuffer = true;
+	vulkan12_features.uniformBufferStandardLayout = true;
+	vulkan12_features.shaderSubgroupExtendedTypes = true;
 
-	VkPhysicalDeviceShaderObjectFeaturesEXT enableShaderObject = {
+	VkPhysicalDeviceShaderObjectFeaturesEXT enable_shader_object = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
-		.pNext = &vulkan12Features,
+		.pNext = &vulkan12_features,
 		.shaderObject = VK_TRUE
 	};
 
-	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.pNext = &enableShaderObject;
-	deviceCreateInfo.flags = 0;
-	deviceCreateInfo.queueCreateInfoCount = 1;
-	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
-	deviceCreateInfo.enabledLayerCount = 0;
-	deviceCreateInfo.ppEnabledLayerNames = nullptr;
-	deviceCreateInfo.enabledExtensionCount = device_device_extensions_.size();
-	deviceCreateInfo.ppEnabledExtensionNames = device_device_extensions_.data();
-	deviceCreateInfo.pEnabledFeatures = &required_features_;
+	device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	device_create_info.pNext = &enable_shader_object;
+	device_create_info.flags = 0;
+	device_create_info.queueCreateInfoCount = 1;
+	device_create_info.pQueueCreateInfos = &device_queue_create_info;
+	device_create_info.enabledLayerCount = 0;
+	device_create_info.ppEnabledLayerNames = nullptr;
+	device_create_info.enabledExtensionCount = device_device_extensions_.size();
+	device_create_info.ppEnabledExtensionNames = device_device_extensions_.data();
+	device_create_info.pEnabledFeatures = &required_features_;
 	VkDevice device;
-	VkResult result = vkCreateDevice(physical_device_.value(), &deviceCreateInfo, nullptr, &device);
+	VkResult result = vkCreateDevice(physical_device_.value(), &device_create_info, nullptr, &device);
 	if (result != VK_SUCCESS) return result;
 
 	rosy_utils::debug_print_w(L"Vulkan device created successfully!\n");
@@ -702,21 +724,21 @@ VkResult rhi::init_device()
 VkResult rhi::init_presentation_queue()
 {
 	VkQueue queue;
-	VkDeviceQueueInfo2 getInfo = {};
-	getInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
-	getInfo.flags = 0;
-	getInfo.queueFamilyIndex = queue_index_;
-	getInfo.queueIndex = 0;
-	vkGetDeviceQueue2(device_.value(), &getInfo, &queue);
+	VkDeviceQueueInfo2 get_info = {};
+	get_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
+	get_info.flags = 0;
+	get_info.queueFamilyIndex = queue_index_;
+	get_info.queueIndex = 0;
+	vkGetDeviceQueue2(device_.value(), &get_info, &queue);
 	present_queue_ = queue;
 	return VK_SUCCESS;
 }
 
 namespace
 {
-	VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+	VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats)
 	{
-		for (const auto& available_format : availableFormats)
+		for (const auto& available_format : available_formats)
 		{
 			if (available_format.format == VK_FORMAT_B8G8R8A8_SRGB && available_format.colorSpace ==
 				VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
@@ -724,12 +746,12 @@ namespace
 				return available_format;
 			}
 		}
-		return availableFormats[0];
+		return available_formats[0];
 	}
 
-	VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+	VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes)
 	{
-		for (const auto& available_present_mode : availablePresentModes)
+		for (const auto& available_present_mode : available_present_modes)
 		{
 			if (available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
 			{
