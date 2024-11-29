@@ -194,11 +194,11 @@ namespace rhi_helpers {
 		return desc_set;
 	}
 
-	VkDescriptorImageInfo create_img_descriptor_info(const allocated_image& image)
+	VkDescriptorImageInfo create_img_descriptor_info(const VkImageView& image_view)
 	{
 		VkDescriptorImageInfo img_info = {};
 		img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		img_info.imageView = image.image_view;
+		img_info.imageView = image_view;
 		return img_info;
 	}
 

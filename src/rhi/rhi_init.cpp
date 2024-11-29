@@ -940,7 +940,7 @@ VkResult rhi::init_descriptors()
 		draw_image_descriptors_ = set;
 	}
 
-	const VkDescriptorImageInfo img_info = rhi_helpers::create_img_descriptor_info(draw_image_.value());
+	const VkDescriptorImageInfo img_info = rhi_helpers::create_img_descriptor_info(draw_image_.value().image_view);
 
 	VkWriteDescriptorSet draw_image_write;
 	draw_image_write = rhi_helpers::create_img_write_descriptor_set(draw_image_descriptors_.value(), 0, img_info);
