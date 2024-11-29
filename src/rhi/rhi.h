@@ -1,6 +1,7 @@
 #pragma once
 #include "../Rosy.h"
 #include "rhi_types.h"
+#include "rhi_descriptor.h"
 #include "rhi_shader.h"
 
 #define MAX_FRAMES_IN_FLIGHT 2

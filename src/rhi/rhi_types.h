@@ -1,6 +1,5 @@
 #pragma once
 
-#include "rhi_descriptor.h"
 
 struct gpu_scene_data
 {
