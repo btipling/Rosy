@@ -1,8 +1,7 @@
-#include "volk/volk.h"
-#include "vma/vk_mem_alloc.h"
-#include "RHI.h"
+
+#include "rhi.h"
+#include "../loader/loader.h"
 #include "rhi_utils.h"
-#include <array>
 
 static const char* instanceLayers[] = {
 	"VK_LAYER_LUNARG_api_dump",

@@ -1,7 +1,4 @@
 #include "rhi.h"
-#include <algorithm>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
 	const VkImageLayout new_layout)
