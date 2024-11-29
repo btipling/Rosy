@@ -90,9 +90,6 @@
     <ClInclude Include="rhi\rhi_descriptor.h">
       <Filter>Header Files\rhi</Filter>
     </ClInclude>
-    <ClInclude Include="rhi\rhi_material.h">
-      <Filter>Header Files\rhi</Filter>
-    </ClInclude>
     <ClInclude Include="rhi\rhi_shader.h">
       <Filter>Header Files\rhi</Filter>
     </ClInclude>
@@ -162,9 +159,6 @@
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
     <ClCompile Include="rhi\rhi_textures.cpp">
-      <Filter>Source Files\rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_material.cpp">
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
     <ClCompile Include="rhi\rhi_shader.cpp">

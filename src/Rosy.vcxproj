@@ -153,7 +153,6 @@
     <ClInclude Include="rhi\rhi_cmd.h" />
     <ClInclude Include="rhi\rhi_descriptor.h" />
     <ClInclude Include="rhi\rhi_helpers.h" />
-    <ClInclude Include="rhi\rhi_material.h" />
     <ClInclude Include="rhi\rhi_shader.h" />
     <ClInclude Include="rhi\rhi_types.h" />
     <ClInclude Include="rhi\rhi_utils.h" />
@@ -174,7 +173,6 @@
     <ClCompile Include="rhi\rhi_cmd.cpp" />
     <ClCompile Include="rhi\rhi_descriptor.cpp" />
     <ClCompile Include="rhi\rhi_helpers.cpp" />
-    <ClCompile Include="rhi\rhi_material.cpp" />
     <ClCompile Include="rhi\rhi_render.cpp" />
     <ClCompile Include="rhi\rhi_buffer.cpp" />
     <ClCompile Include="rhi\rhi_init.cpp" />
