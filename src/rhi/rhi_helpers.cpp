@@ -223,7 +223,7 @@ namespace rhi_helpers {
 		return subresource_range;
 	}
 
-	VkPipelineLayoutCreateInfo create_pipeline_layout_create_info(const VkPushConstantRange& pc_range, uint32_t pc_count, const VkDescriptorSetLayout& set_layouts, uint32_t sl_count)
+	VkPipelineLayoutCreateInfo create_pipeline_layout_create_info(const VkPushConstantRange& pc_range, uint32_t pc_count, const VkDescriptorSetLayout* set_layouts, uint32_t sl_count)
 	{
 		VkPipelineLayoutCreateInfo pl_info = {};
 		pl_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -231,7 +231,7 @@ namespace rhi_helpers {
 		pl_info.pushConstantRangeCount = 1;
 		pl_info.pPushConstantRanges = &pc_range;
 		pl_info.setLayoutCount = 1;
-		pl_info.pSetLayouts = &set_layouts;
+		pl_info.pSetLayouts = set_layouts;
 		return pl_info;
 	}
 }

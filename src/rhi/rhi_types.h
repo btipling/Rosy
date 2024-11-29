@@ -1,4 +1,5 @@
 #pragma once
+#include "rhi_shader.h"
 
 struct gpu_scene_data
 {
@@ -92,13 +93,8 @@ enum class material_pass :uint8_t {
 	other
 };
 
-struct material_pipeline {
-	VkPipeline pipeline;
-	VkPipelineLayout layout;
-};
-
 struct material_instance {
-	material_pipeline* pipeline;
+	//shader_pipeline shaders;
 	VkDescriptorSet material_set;
 	material_pass pass_type;
 };

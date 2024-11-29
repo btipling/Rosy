@@ -1,11 +1,14 @@
 #pragma once
 #include "../Rosy.h"
+#include "rhi_shader.h"
+#include "rhi_descriptor.h"
+#include "rhi_types.h"
 
 class rhi;
 
 struct gltf_metallic_roughness {
-	material_pipeline opaque_pipeline;
-	material_pipeline transparent_pipeline;
+	shader_pipeline opaque_shaders;
+	shader_pipeline transparent_shaders;
 
 	VkDescriptorSetLayout material_layout;
 
@@ -26,7 +29,7 @@ struct gltf_metallic_roughness {
 
 	descriptor_writer writer;
 
-	void build_pipelines(rhi* engine);
+	VkResult build_pipelines(VkDevice device, VkDescriptorSetLayout gpu_scene_descriptor_layout, allocated_image draw_image);
 	void clear_resources(VkDevice device);
 
 	material_instance write_material(VkDevice device, material_pass pass, const material_resources& resources, descriptor_allocator_growable& descriptor_allocator);

@@ -20,5 +20,5 @@ namespace rhi_helpers {
 	VkWriteDescriptorSet create_buffer_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorBufferInfo& buf_info);
 	VkDescriptorImageInfo create_img_descriptor_info(const VkImageView& image_view);
 	VkImageSubresourceRange create_img_subresource_range(VkImageAspectFlags aspect_mask);
-	VkPipelineLayoutCreateInfo create_pipeline_layout_create_info(const VkPushConstantRange& pc_range, uint32_t pc_count, const VkDescriptorSetLayout& set_layouts, uint32_t sl_count);
+	VkPipelineLayoutCreateInfo create_pipeline_layout_create_info(const VkPushConstantRange& pc_range, uint32_t pc_count, const VkDescriptorSetLayout* set_layouts, uint32_t sl_count);
 }
