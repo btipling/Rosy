@@ -181,7 +181,10 @@ void rhi::deinit()
 	// Deinit begin in the reverse order from how it was created.
 	deinit_ui();
 
-
+	if (metal_rough_material_.has_value())
+	{
+		metal_rough_material_.value().deinit(device_.value());
+	}
 	{
 		if (default_sampler_nearest_.has_value()) vkDestroySampler(device_.value(), default_sampler_nearest_.value(), nullptr);
 		if (default_sampler_linear_.has_value()) vkDestroySampler(device_.value(), default_sampler_linear_.value(), nullptr);
@@ -228,16 +231,7 @@ void rhi::deinit()
 		if (fd.gpu_scene_buffer.has_value()) destroy_buffer(fd.gpu_scene_buffer.value());
 	}
 	if (test_mesh_pipeline_.has_value()) {
-		shader_pipeline shaders = test_mesh_pipeline_.value();
-		if (shaders.pipeline_layout.has_value())
-		{
-			vkDestroyPipelineLayout(device_.value(), shaders.pipeline_layout.value(), nullptr);
-		}
-
-		for (const VkShaderEXT shader : shaders.shaders)
-		{
-			vkDestroyShaderEXT(device_.value(), shader, nullptr);
-		}
+		test_mesh_pipeline_.value().deinit(device_.value());
 	}
 	if (single_image_descriptor_layout_.has_value())
 	{
@@ -528,71 +522,71 @@ VkResult rhi::init_instance()
 VkResult rhi::init_physical_device()
 {
 	if (!instance_.has_value()) return VK_NOT_READY;
-	std::vector<VkPhysicalDevice> physicalDevices;
+	std::vector<VkPhysicalDevice> physical_devices;
 
-	uint32_t physicalDeviceCount = 0;
-	VkResult result = vkEnumeratePhysicalDevices(instance_.value(), &physicalDeviceCount, nullptr);
+	uint32_t physical_device_count = 0;
+	VkResult result = vkEnumeratePhysicalDevices(instance_.value(), &physical_device_count, nullptr);
 
-	physicalDevices.resize(physicalDeviceCount);
-	vkEnumeratePhysicalDevices(instance_.value(), &physicalDeviceCount, &physicalDevices[0]);
-	bool foundDevice = false;
-	for (const VkPhysicalDevice& p_device : physicalDevices)
+	physical_devices.resize(physical_device_count);
+	vkEnumeratePhysicalDevices(instance_.value(), &physical_device_count, &physical_devices[0]);
+	bool found_device = false;
+	for (const VkPhysicalDevice& p_device : physical_devices)
 	{
 		// get device properties
-		VkPhysicalDeviceProperties deviceProperties;
-		vkGetPhysicalDeviceProperties(p_device, &deviceProperties);
+		VkPhysicalDeviceProperties device_properties;
+		vkGetPhysicalDeviceProperties(p_device, &device_properties);
 
-		bool swapChainAdequate = false;
-		swap_chain_support_details swapChainSupport = query_swap_chain_support(p_device);
-		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.present_modes.empty();
-		if (!swapChainAdequate) continue;
+		bool swap_chain_adequate = false;
+		swap_chain_support_details swap_chain_support = query_swap_chain_support(p_device);
+		swap_chain_adequate = !swap_chain_support.formats.empty() && !swap_chain_support.present_modes.empty();
+		if (!swap_chain_adequate) continue;
 
 
 		// shader objects required
-		VkPhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures = {};
-		shaderObjectFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
-		shaderObjectFeatures.pNext = nullptr;
+		VkPhysicalDeviceShaderObjectFeaturesEXT shader_object_features = {};
+		shader_object_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+		shader_object_features.pNext = nullptr;
 
-		VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
-		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		deviceFeatures2.pNext = &shaderObjectFeatures;
-		vkGetPhysicalDeviceFeatures2(p_device, &deviceFeatures2);
+		VkPhysicalDeviceFeatures2 device_features2 = {};
+		device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		device_features2.pNext = &shader_object_features;
+		vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
 
-		if (!shaderObjectFeatures.shaderObject) continue;
+		if (!shader_object_features.shaderObject) continue;
 
 
 		// dynamic rendering required
-		VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
-		bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
-		bufferDeviceAddressFeatures.pNext = nullptr;
+		VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features = {};
+		buffer_device_address_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+		buffer_device_address_features.pNext = nullptr;
 
-		deviceFeatures2 = {};
-		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		deviceFeatures2.pNext = &bufferDeviceAddressFeatures;
-		vkGetPhysicalDeviceFeatures2(p_device, &deviceFeatures2);
+		device_features2 = {};
+		device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		device_features2.pNext = &buffer_device_address_features;
+		vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
 
-		if (!bufferDeviceAddressFeatures.bufferDeviceAddress) continue;
+		if (!buffer_device_address_features.bufferDeviceAddress) continue;
 
 
 		// buffer device address required
-		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {};
-		dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
-		dynamicRenderingFeatures.pNext = nullptr;
+		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_features = {};
+		dynamic_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+		dynamic_rendering_features.pNext = nullptr;
 
-		deviceFeatures2 = {};
-		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		deviceFeatures2.pNext = &dynamicRenderingFeatures;
-		vkGetPhysicalDeviceFeatures2(p_device, &deviceFeatures2);
+		device_features2 = {};
+		device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		device_features2.pNext = &dynamic_rendering_features;
+		vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
 
-		if (!dynamicRenderingFeatures.dynamicRendering) continue;
+		if (!dynamic_rendering_features.dynamicRendering) continue;
 
 
-		if (deviceProperties.vendorID == cfg_.device_vendor)
+		if (device_properties.vendorID == cfg_.device_vendor)
 		{
 			{
-				foundDevice = true;
+				found_device = true;
 				physical_device_ = p_device;
-				physical_device_properties_ = deviceProperties;
+				physical_device_properties_ = device_properties;
 			}
 			{
 				// features
@@ -602,25 +596,25 @@ VkResult rhi::init_physical_device()
 			}
 			{
 				// memory
-				VkPhysicalDeviceMemoryProperties memProps;
-				vkGetPhysicalDeviceMemoryProperties(p_device, &memProps);
-				physical_device_memory_properties_ = memProps;
+				VkPhysicalDeviceMemoryProperties mem_props;
+				vkGetPhysicalDeviceMemoryProperties(p_device, &mem_props);
+				physical_device_memory_properties_ = mem_props;
 			}
 			{
 				// queues
-				uint32_t queueCount = 0;
-				vkGetPhysicalDeviceQueueFamilyProperties(p_device, &queueCount, nullptr);
+				uint32_t queue_count = 0;
+				vkGetPhysicalDeviceQueueFamilyProperties(p_device, &queue_count, nullptr);
 				std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData;
-				queueFamilyPropertiesData.resize(queueCount);
-				vkGetPhysicalDeviceQueueFamilyProperties(p_device, &queueCount, &queueFamilyPropertiesData[0]);
+				queueFamilyPropertiesData.resize(queue_count);
+				vkGetPhysicalDeviceQueueFamilyProperties(p_device, &queue_count, &queueFamilyPropertiesData[0]);
 				queue_family_properties_ = queueFamilyPropertiesData;
 			}
 		}
 	}
-	if (!foundDevice) return VK_ERROR_FEATURE_NOT_PRESENT;
-	uint32_t queueCount = 0;
-	uint32_t queueIndex = 0;
-	VkPhysicalDeviceFeatures supportedFeaturesData = supported_features_.value_or(requiredFeatures);
+	if (!found_device) return VK_ERROR_FEATURE_NOT_PRESENT;
+	uint32_t queue_count = 0;
+	uint32_t queue_index = 0;
+	supported_features_.value_or(requiredFeatures);
 	requiredFeatures.multiDrawIndirect = VK_TRUE;
 	requiredFeatures.tessellationShader = VK_TRUE;
 	requiredFeatures.geometryShader = VK_TRUE;
@@ -629,32 +623,32 @@ VkResult rhi::init_physical_device()
 	if (!physical_device_.has_value()) return VK_NOT_READY;
 
 	VkPhysicalDevice p_device = physical_device_.value();
-	std::vector<VkQueueFamilyProperties> queueFamilyPropertiesData = queue_family_properties_.value();
-	bool foundQueue = false;
-	for (std::uint32_t i = 0; i < queueFamilyPropertiesData.size(); ++i)
+	std::vector<VkQueueFamilyProperties> queue_family_properties_data = queue_family_properties_.value();
+	bool found_queue = false;
+	for (std::uint32_t i = 0; i < queue_family_properties_data.size(); ++i)
 	{
-		VkQueueFamilyProperties qfmp = queueFamilyPropertiesData[i];
-		if (qfmp.timestampValidBits < 64) continue;
-		if (!(qfmp.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT |
+		VkQueueFamilyProperties q_props = queue_family_properties_data[i];
+		if (q_props.timestampValidBits < 64) continue;
+		if (!(q_props.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT |
 			VK_QUEUE_SPARSE_BINDING_BIT)))
 			continue;
-		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(p_device, i, surface_.value(), &presentSupport);
-		if (!presentSupport) continue;
-		if (qfmp.queueCount > queueCount)
+		VkBool32 present_support = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(p_device, i, surface_.value(), &present_support);
+		if (!present_support) continue;
+		if (q_props.queueCount > queue_count)
 		{
-			foundQueue = true;
-			queueIndex = i;
-			queueCount = qfmp.queueCount;
+			found_queue = true;
+			queue_index = i;
+			queue_count = q_props.queueCount;
 		}
 	}
-	if (!foundQueue)
+	if (!found_queue)
 	{
 		rosy_utils::debug_print_a("No suitable queue found!");
 		return VK_ERROR_FEATURE_NOT_PRESENT;
 	}
-	queue_index_ = queueIndex;
-	queue_count_ = queueCount;
+	queue_index_ = queue_index;
+	queue_count_ = queue_count;
 	OutputDebugStringW(L"Vulkan physical device created successfully!\n");
 	return result;
 }
@@ -1009,11 +1003,15 @@ VkResult rhi::init_graphics()
 	}
 
 	shader_pipeline sp = {};
-	sp.image_layout = single_image_descriptor_layout_.value();
+	sp.layouts = &single_image_descriptor_layout_.value();
+	sp.num_layouts = 1;
 	sp.name = "test";
 	sp.with_shaders(vert_shader_code, frag_shader_code);
 	if (const VkResult result = sp.build(device_.value()); result != VK_SUCCESS) return result;
 	test_mesh_pipeline_ = sp;
+	gltf_metallic_roughness material = {};
+	if (VkResult result = material.build_pipelines(device_.value(), gpu_scene_data_descriptor_layout_.value(), draw_image_.value()); result != VK_SUCCESS) return result;
+	metal_rough_material_ = material;
 	return VK_SUCCESS;
 }
 

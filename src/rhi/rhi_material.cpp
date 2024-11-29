@@ -2,7 +2,7 @@
 #include "rhi_utils.h"
 #include "rhi_helpers.h"
 
-VkResult gltf_metallic_roughness::build_pipelines(VkDevice device, VkDescriptorSetLayout gpu_scene_descriptor_layout, allocated_image draw_image)
+VkResult gltf_metallic_roughness::build_pipelines(const VkDevice device, const VkDescriptorSetLayout gpu_scene_descriptor_layout, allocated_image draw_image)
 {
 	std::vector<char> vert_shader_code;
 	std::vector<char> frag_shader_code;
@@ -32,23 +32,21 @@ VkResult gltf_metallic_roughness::build_pipelines(VkDevice device, VkDescriptorS
 		if (result != VK_SUCCESS) return result;
 		material_layout = set;
 	}
-	const VkDescriptorSetLayout layouts[] = { gpu_scene_descriptor_layout, material_layout };
-
-	const VkPipelineLayoutCreateInfo mesh_layout_info = rhi_helpers::create_pipeline_layout_create_info(matrix_range, 1, layouts, 2);
-
-	VkPipelineLayout new_layout;
-	{
-		if (const VkResult result = vkCreatePipelineLayout(device, &mesh_layout_info, nullptr, &new_layout); result != VK_SUCCESS) return result;
-	}
-
-	opaque_shaders.pipeline_layout = new_layout;
-	transparent_shaders.pipeline_layout = new_layout;
+	VkDescriptorSetLayout layouts[] = { gpu_scene_descriptor_layout, material_layout };
 
 	shader_pipeline pipeline_builder;
 	opaque_shaders.with_shaders(vert_shader_code, frag_shader_code);
+	opaque_shaders.layouts = layouts;
+	opaque_shaders.num_layouts = 2;
+	opaque_shaders.shader_constants = &material_layout;
+	opaque_shaders.shader_constants_size = sizeof(material_layout);
 	transparent_shaders.with_shaders(vert_shader_code, frag_shader_code);
 	transparent_shaders.blending = shader_blending::blending_additive;
 	transparent_shaders.depth_enabled = false;
+	transparent_shaders.layouts = layouts;
+	transparent_shaders.num_layouts = 2;
+	transparent_shaders.shader_constants = &matrix_range;
+	transparent_shaders.shader_constants_size = sizeof(matrix_range);
 
 	{
 		if (const VkResult result = opaque_shaders.build(device); result != VK_SUCCESS) return result;
@@ -56,6 +54,7 @@ VkResult gltf_metallic_roughness::build_pipelines(VkDevice device, VkDescriptorS
 	{
 		if (const VkResult result = transparent_shaders.build(device); result != VK_SUCCESS) return result;
 	}
+	return VK_SUCCESS;
 }
 
 material_instance_result gltf_metallic_roughness::write_material(const VkDevice device, const material_pass pass, const material_resources& resources, descriptor_allocator_growable& descriptor_allocator)
@@ -92,4 +91,12 @@ material_instance_result gltf_metallic_roughness::write_material(const VkDevice 
 		rv.material = mat_data;
 		return rv;
 	}
+}
+
+void gltf_metallic_roughness::deinit(const VkDevice device) const
+{
+	opaque_shaders.deinit(device);
+	transparent_shaders.deinit(device);
+	vkDestroyDescriptorSetLayout(device, material_layout, nullptr);
+
 }

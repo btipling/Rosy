@@ -15,23 +15,26 @@ enum class shader_blending :uint8_t {
 class shader_pipeline {
 public:
     shader_pipeline() = default;
+    void deinit(const VkDevice device) const;
+
+    void with_shaders(const std::vector<char>& vert, const std::vector<char>& frag);
+    VkResult build(VkDevice device);
+    VkResult shade(VkCommandBuffer cmd) const;
+
     const char* name = "geometry";
     float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
     std::vector<VkShaderEXT> shaders = {};
 	std::optional<VkPipelineLayout> pipeline_layout = {};
     void* shader_constants;
     uint32_t shader_constants_size = 0;
-    VkDescriptorSetLayout image_layout = {};
+    VkDescriptorSetLayout* layouts = nullptr;
+    uint32_t num_layouts = 0;
 
     VkExtent2D viewport_extent = {};
     bool depth_enabled = true;
     bool wire_frames_enabled = false;
     bool culling_enabled = true;
     shader_blending blending = shader_blending::blending_disabled;
-
-    void with_shaders(const std::vector<char>& vert, const std::vector<char>&frag);
-    VkResult build(VkDevice device);
-    VkResult shade(VkCommandBuffer cmd) const;
 private:
     std::vector<VkShaderCreateInfoEXT> shaders_create_info_;
 };

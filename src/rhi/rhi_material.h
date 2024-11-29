@@ -36,7 +36,7 @@ struct gltf_metallic_roughness {
 	descriptor_writer writer;
 
 	VkResult build_pipelines(VkDevice device, VkDescriptorSetLayout gpu_scene_descriptor_layout, allocated_image draw_image);
-	void clear_resources(VkDevice device);
+	void deinit(VkDevice device) const;
 
 	material_instance_result write_material(VkDevice device, material_pass pass, const material_resources& resources, descriptor_allocator_growable& descriptor_allocator);
 };

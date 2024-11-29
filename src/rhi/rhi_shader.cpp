@@ -15,8 +15,8 @@ VkResult shader_pipeline::build(const VkDevice device)
 	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	for (VkShaderCreateInfoEXT& create_info : shaders_create_info_)
 	{
-		create_info.setLayoutCount = 1;
-		create_info.pSetLayouts = &image_layout;
+		create_info.setLayoutCount = num_layouts;
+		create_info.pSetLayouts = layouts;
 		create_info.pushConstantRangeCount = 1;
 		create_info.pPushConstantRanges = &push_constant_range;
 	}
@@ -33,7 +33,7 @@ VkResult shader_pipeline::build(const VkDevice device)
 		if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 	}
 	{
-		const VkPipelineLayoutCreateInfo pl_info = rhi_helpers::create_pipeline_layout_create_info(push_constant_range, 1, &image_layout, 1);
+		const VkPipelineLayoutCreateInfo pl_info = rhi_helpers::create_pipeline_layout_create_info(push_constant_range, 1, layouts, num_layouts);
 		VkPipelineLayout layout;
 		if (const VkResult result = vkCreatePipelineLayout(device, &pl_info, nullptr, &layout); result != VK_SUCCESS) return result;
 		pipeline_layout = layout;
@@ -77,4 +77,17 @@ VkResult shader_pipeline::shade(const VkCommandBuffer cmd) const
 	vkCmdBindShadersEXT(cmd, 3, unused_stages, nullptr);
 	vkCmdPushConstants(cmd, pipeline_layout.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, shader_constants_size, shader_constants);
 	return VK_SUCCESS;
+}
+
+void shader_pipeline::deinit(const VkDevice device) const
+{
+	if (pipeline_layout.has_value())
+	{
+		vkDestroyPipelineLayout(device, pipeline_layout.value(), nullptr);
+	}
+
+	for (const VkShaderEXT shader : shaders)
+	{
+		vkDestroyShaderEXT(device, shader, nullptr);
+	}
 }

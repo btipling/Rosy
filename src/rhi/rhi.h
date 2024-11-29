@@ -2,6 +2,7 @@
 #include "../Rosy.h"
 #include "rhi_types.h"
 #include "rhi_descriptor.h"
+#include "rhi_material.h"
 #include "rhi_shader.h"
 
 #define MAX_FRAMES_IN_FLIGHT 2
@@ -88,6 +89,10 @@ private:
 	float model_scale_ = 1.0f;
 	bool toggle_wire_frame_ = false;
 	int blend_mode_ = 0;
+
+	// default material
+	material_instance default_data_;
+	std::optional<gltf_metallic_roughness> metal_rough_material_ = std::nullopt;
 
 	std::vector<std::shared_ptr<mesh_asset>> test_meshes_;
 
