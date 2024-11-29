@@ -1,6 +1,5 @@
 #pragma once
 
-
 struct gpu_scene_data
 {
 	glm::mat4 view;

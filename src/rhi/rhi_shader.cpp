@@ -1,6 +1,5 @@
 #include "rhi_shader.h"
 
-
 void shader_pipeline::with_shaders(const std::vector<char>& vert, const std::vector<char>& frag)
 {
 	const VkShaderCreateInfoEXT vert_object = rhi_helpers::create_shader_info(vert, VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT);

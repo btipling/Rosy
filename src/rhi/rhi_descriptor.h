@@ -1,6 +1,5 @@
 #pragma once
 
-#include <deque>
 #include "../Rosy.h"
 
 struct descriptor_set_layout_result {

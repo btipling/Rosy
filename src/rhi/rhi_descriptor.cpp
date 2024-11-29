@@ -1,6 +1,4 @@
-#include <algorithm>
-
-#include "RHI.h"
+#include "rhi.h"
 
 void descriptor_layout_builder::add_binding(const uint32_t binding, const VkDescriptorType type)
 {

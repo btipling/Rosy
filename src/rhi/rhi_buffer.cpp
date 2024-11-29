@@ -1,4 +1,4 @@
-#include "RHI.h"
+#include "rhi.h"
 
 gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) {
 	allocated_buffer index_buffer;
