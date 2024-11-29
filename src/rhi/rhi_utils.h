@@ -1,7 +1,5 @@
+#pragma once
 #include <vector>
-#include <fstream>
-#include <glm/glm.hpp>
-#include "../Rosy.h"
 
 VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info();
 
