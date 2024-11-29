@@ -57,3 +57,39 @@ VkResult gltf_metallic_roughness::build_pipelines(VkDevice device, VkDescriptorS
 		if (const VkResult result = transparent_shaders.build(device); result != VK_SUCCESS) return result;
 	}
 }
+
+material_instance_result gltf_metallic_roughness::write_material(const VkDevice device, const material_pass pass, const material_resources& resources, descriptor_allocator_growable& descriptor_allocator)
+{
+	material_instance mat_data;
+	mat_data.pass_type = pass;
+	if (pass == material_pass::transparent) {
+		mat_data.shaders = &transparent_shaders;
+	}
+	else {
+		mat_data.shaders = &opaque_shaders;
+	}
+	{
+		auto [result, set] = descriptor_allocator.allocate(device, material_layout);
+		if (result != VK_SUCCESS) {
+			material_instance_result rv;
+			rv.result = result;
+			return rv;
+		}
+
+		mat_data.material_set = set;
+	}
+
+
+	writer.clear();
+	writer.write_buffer(0, resources.data_buffer, sizeof(material_constants), resources.data_buffer_offset, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	writer.write_image(1, resources.color_image.image_view, resources.color_sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	writer.write_image(2, resources.metal_rough_image.image_view, resources.metal_rough_sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+	writer.update_set(device, mat_data.material_set);
+	{
+		material_instance_result rv;
+		rv.result = VK_SUCCESS;
+		rv.material = mat_data;
+		return rv;
+	}
+}

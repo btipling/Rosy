@@ -201,6 +201,15 @@
     <None Include="shaders\tex_image.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
+    <None Include="shaders\input_structures.glsl">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="shaders\mesh.vert">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="shaders\mesh.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\SDL3.lib">

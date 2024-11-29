@@ -1,7 +1,7 @@
 #version 450 core
 #extension GL_EXT_buffer_reference : require
 
-layout(location = 0) out vec3 fragColor;
+layout (location = 0) out vec3 fragColor;
 layout (location = 1) out vec2 tcOut;
 
 struct Vertex {

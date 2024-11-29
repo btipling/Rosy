@@ -6,6 +6,12 @@
 
 class rhi;
 
+struct material_instance_result
+{
+	VkResult result;
+	[[maybe_unused]] material_instance material;
+};
+
 struct gltf_metallic_roughness {
 	shader_pipeline opaque_shaders;
 	shader_pipeline transparent_shaders;
@@ -32,5 +38,5 @@ struct gltf_metallic_roughness {
 	VkResult build_pipelines(VkDevice device, VkDescriptorSetLayout gpu_scene_descriptor_layout, allocated_image draw_image);
 	void clear_resources(VkDevice device);
 
-	material_instance write_material(VkDevice device, material_pass pass, const material_resources& resources, descriptor_allocator_growable& descriptor_allocator);
+	material_instance_result write_material(VkDevice device, material_pass pass, const material_resources& resources, descriptor_allocator_growable& descriptor_allocator);
 };
