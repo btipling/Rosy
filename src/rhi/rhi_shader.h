@@ -19,7 +19,8 @@ public:
     float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
     std::vector<VkShaderEXT> shaders = {};
 	std::optional<VkPipelineLayout> pipeline_layout = {};
-    gpu_draw_push_constants constants = {};
+    void* shader_constants;
+    uint32_t shader_constants_size = 0;
     VkDescriptorSetLayout image_layout = {};
 
     VkExtent2D viewport_extent = {};

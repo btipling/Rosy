@@ -1,4 +1,4 @@
-#include "RHI.h"
+#include "rhi.h"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -190,7 +190,8 @@ VkResult rhi::render_frame()
 			{
 				push_constants.vertex_buffer = test_meshes_[2]->mesh_buffers.vertex_buffer_address;
 				shaders.viewport_extent = swapchain_extent_;
-				shaders.constants = push_constants;
+				shaders.shader_constants = &push_constants;
+				shaders.shader_constants_size = sizeof(push_constants);
 				shaders.wire_frames_enabled = toggle_wire_frame_;
 				shaders.depth_enabled = true;
 				shaders.blending = static_cast<shader_blending>(blend_mode_);
