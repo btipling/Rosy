@@ -47,7 +47,6 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 
 int main(int argc, char* argv[])
 {
-
 	SDL_Window* window = nullptr;
 	SDL_Renderer* sdl_renderer = nullptr;
 
@@ -58,12 +57,14 @@ int main(int argc, char* argv[])
 	int max_width = 640;
 	int max_height = 480;
 	int displays_count = 0;
+
 	const auto display_ids = SDL_GetDisplays(&displays_count);
 	if (displays_count == 0) {
 		const auto err = SDL_GetError();
 		rosy_utils::debug_print_a("SDL error: %s\n", err);
 		abort();
 	}
+
 	// TODO: don't always get the first display
 	SDL_Rect display_bounds = {};
 	if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
@@ -82,7 +83,7 @@ int main(int argc, char* argv[])
 	};
 	rosy_config::debug();
 
-	std::unique_ptr<rhi> renderer(new rhi{ cfg });
+	const std::unique_ptr<rhi> renderer(new rhi{ cfg });
 
 	VkResult result = renderer->init(window);
 	if (result != VK_SUCCESS) {
@@ -99,41 +100,32 @@ int main(int argc, char* argv[])
 
 	SDL_AddEventWatch(event_handler, renderer.get());
 
-	bool shouldRun = true;
-	bool shouldRender = true;
-	bool resizeRequested = false;
-	while (shouldRun) {
+	bool should_run = true;
+	bool should_render = true;
+	bool resize_requested = false;
+	while (should_run) {
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			if (event.type == SDL_EVENT_QUIT) {
-				shouldRun = false;
+				should_run = false;
 				break;
 			}
 			if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
-				shouldRender = false;
+				should_render = false;
 			}
 			if (event.type == SDL_EVENT_WINDOW_RESTORED) {
-				shouldRender = true;
+				should_render = true;
 			}
 			if (event.type == SDL_EVENT_WINDOW_RESIZED) {
 				rosy_utils::debug_print_a("SDL_EVENT_WINDOW_RESIZED\n");
-				resizeRequested = true;
+				resize_requested = true;
 			}
-			if (!shouldRender) {
+			if (!should_render) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				continue;
 			}
-			if (resizeRequested) {
-				rosy_utils::debug_print_a("resizing swapchain\n");
-				result = renderer->resize_swapchain(window);
-				if (result != VK_SUCCESS) {
-					rosy_utils::debug_print_a("rhi failed to resize swapchain %d\n", result);
-					shouldRun = false;
-					break;
-				}
-				resizeRequested = false;
-			}
+			if (resize_requested) continue;
 
 			{
 				ImGui_ImplVulkan_NewFrame();
@@ -142,11 +134,11 @@ int main(int argc, char* argv[])
 				result = renderer->draw_ui();
 				if (result != VK_SUCCESS) {
 					if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-						resizeRequested = true;
+						resize_requested = true;
 						break;
 					}
 					rosy_utils::debug_print_a("rhi draw ui failed %d\n", result);
-					shouldRun = false;
+					should_run = false;
 					break;
 				}
 				ImGui::Render();
@@ -156,11 +148,11 @@ int main(int argc, char* argv[])
 			if (result != VK_SUCCESS) {
 				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 					rosy_utils::debug_print_a("swapchain out of date\n");
-					resizeRequested = true;
+					resize_requested = true;
 					break;
 				}
 				rosy_utils::debug_print_a("rhi draw failed %d\n", result);
-				shouldRun = false;
+				should_run = false;
 				break;
 			}
 		}
