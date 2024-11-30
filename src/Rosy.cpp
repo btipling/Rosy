@@ -189,6 +189,7 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
+	renderer->deinit();
 	{
 		SDL_DestroyRenderer(sdl_renderer);
 		SDL_DestroyWindow(window);
