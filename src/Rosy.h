@@ -24,12 +24,12 @@ namespace rh
 
 	struct rhi
 	{
-		std::shared_ptr <VkDevice> device;
-		std::optional<std::shared_ptr<VkCommandBuffer>> cmd;
+		VkDevice device;
+		std::optional<VkCommandBuffer> cmd = std::nullopt;
 	};
 
 	struct ctx
 	{
-		std::shared_ptr<rhi> rhi;
+		rhi rhi;
 	};
 }

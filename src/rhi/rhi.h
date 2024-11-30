@@ -30,6 +30,7 @@ public:
 	// Buffer read write
 	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices);
 	gpu_scene_data scene_data;
+	std::optional<VkDevice> device_ = std::nullopt;
 	void debug() const;
 	~rhi();
 
@@ -50,7 +51,6 @@ private:
 	std::uint32_t queue_count_ = 0;
 	std::vector<float> queue_priorities_;
 	VkPhysicalDeviceFeatures required_features_;
-	std::optional<VkDevice> device_ = std::nullopt;
 	std::optional<VmaAllocator> allocator_ = std::nullopt;
 	std::optional<VkSurfaceKHR> surface_ = std::nullopt;
 	std::optional<VkQueue> present_queue_ = std::nullopt;

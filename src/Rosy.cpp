@@ -3,9 +3,7 @@
 
 #include "framework.h"
 #include "Rosy.h"
-#include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <SDL3/SDL_vulkan.h>
 #include <thread>
 #include <vector>
 #define STB_IMAGE_IMPLEMENTATION
@@ -18,9 +16,10 @@
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
-#include "rhi/RHI.h"
+#include "rhi/rhi.h"
 #include "config/Config.h"
 #include "utils/utils.h"
+#include "scene/scene_one/scene_one.h"
 
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
 static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-use-anonymous-namespace)
@@ -103,6 +102,8 @@ int main(int argc, char* argv[])
 	bool should_run = true;
 	bool should_render = true;
 	bool resize_requested = false;
+	bool scene_loaded = false;
+	scene_one scene = {};
 	while (should_run) {
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
@@ -149,6 +150,28 @@ int main(int argc, char* argv[])
 					rosy_utils::debug_print_a("rhi draw ui failed %d\n", result);
 					should_run = false;
 					break;
+				}
+
+				const rh::rhi rhi_ctx = {
+					.device = renderer->device_.value(),
+				};
+				const rh::ctx ctx = {
+					.rhi = rhi_ctx,
+				};
+				if (!scene_loaded)
+				{
+					if (const auto scene_result = scene.build(ctx); scene_result != rh::result::ok)
+					{
+				
+						rosy_utils::debug_print_a("scene build failed %d\n", result);
+						should_run = false;
+					}
+					scene_loaded = true;
+				}
+				if (const auto scene_result = scene.draw(ctx); scene_result != rh::result::ok)
+				{
+					rosy_utils::debug_print_a("scene draw failed %d\n", result);
+					should_run = false;
 				}
 				ImGui::Render();
 			}
