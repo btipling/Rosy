@@ -17,3 +17,19 @@
 #include <fstream>
 #include <array>
 #include <deque>
+
+namespace rh
+{
+	enum class result : std::uint8_t { ok, error };
+
+	struct rhi
+	{
+		std::shared_ptr <VkDevice> device;
+		std::optional<std::shared_ptr<VkCommandBuffer>> cmd;
+	};
+
+	struct ctx
+	{
+		std::shared_ptr<rhi> rhi;
+	};
+}
