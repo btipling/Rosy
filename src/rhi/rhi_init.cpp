@@ -1003,32 +1003,6 @@ void rhi::init_allocator()
 	allocator_ = allocator;
 }
 
-
-VkResult rhi::init_graphics()
-{
-	std::vector<char> vert_shader_code;
-	std::vector<char> frag_shader_code;
-	try
-	{
-		vert_shader_code = read_file("out/vert.spv");
-		frag_shader_code = read_file("out/tex_image.frag.spv");
-	}
-	catch (const std::exception& e)
-	{
-		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
-		return VK_ERROR_FEATURE_NOT_PRESENT;
-	}
-
-	shader_pipeline sp = {};
-	sp.layouts = &single_image_descriptor_layout_.value();
-	sp.num_layouts = 1;
-	sp.name = "test";
-	sp.with_shaders(vert_shader_code, frag_shader_code);
-	if (const VkResult result = sp.build(device_.value()); result != VK_SUCCESS) return result;
-	test_mesh_pipeline_ = sp;
-	return VK_SUCCESS;
-}
-
 VkResult rhi::init_command_pool()
 {
 	VkCommandPoolCreateInfo pool_info{};
@@ -1131,6 +1105,31 @@ VkResult rhi::init_commands()
 	if (result != VK_SUCCESS) return result;
 	imm_command_buffer_ = buffer;
 
+	return VK_SUCCESS;
+}
+
+VkResult rhi::init_graphics()
+{
+	std::vector<char> vert_shader_code;
+	std::vector<char> frag_shader_code;
+	try
+	{
+		vert_shader_code = read_file("out/vert.spv");
+		frag_shader_code = read_file("out/tex_image.frag.spv");
+	}
+	catch (const std::exception& e)
+	{
+		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
+		return VK_ERROR_FEATURE_NOT_PRESENT;
+	}
+
+	shader_pipeline sp = {};
+	sp.layouts = &single_image_descriptor_layout_.value();
+	sp.num_layouts = 1;
+	sp.name = "test";
+	sp.with_shaders(vert_shader_code, frag_shader_code);
+	if (const VkResult result = sp.build(device_.value()); result != VK_SUCCESS) return result;
+	test_mesh_pipeline_ = sp;
 	return VK_SUCCESS;
 }
 

@@ -185,7 +185,9 @@ VkResult rhi::render_frame()
 
 			if (test_meshes_.size() > 0)
 			{
-				push_constants.vertex_buffer = test_meshes_[2]->mesh_buffers.vertex_buffer_address;
+				size_t mesh_index = 1;
+				auto mesh = test_meshes_[mesh_index];
+				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 				shaders.viewport_extent = swapchain_extent_;
 				shaders.shader_constants = &push_constants;
 				shaders.shader_constants_size = sizeof(push_constants);
@@ -194,8 +196,8 @@ VkResult rhi::render_frame()
 				shaders.blending = static_cast<shader_blending>(blend_mode_);
 				result = shaders.shade(cmd);
 				if (result != VK_SUCCESS) return result;
-				vkCmdBindIndexBuffer(cmd, test_meshes_[2]->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(cmd, test_meshes_[2]->surfaces[0].count, 1, test_meshes_[2]->surfaces[0].start_index,
+				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
 					0, 0);
 			}
 
