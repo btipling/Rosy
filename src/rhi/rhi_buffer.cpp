@@ -8,11 +8,10 @@
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
 
-
-
 rhi_buffer::rhi_buffer(rhi* renderer) : renderer_{ renderer } {}
 
-std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_buffer::load_gltf_meshes(std::filesystem::path file_path) {
+std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_buffer::load_gltf_meshes(std::filesystem::path file_path) const
+{
 	fastgltf::Asset gltf;
 	fastgltf::Parser parser{};
 	auto data = fastgltf::GltfDataBuffer::FromPath(file_path);
@@ -121,7 +120,8 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_buffer::load_gltf_me
 }
 
 
-gpu_mesh_buffers_result rhi_buffer::upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) {
+gpu_mesh_buffers_result rhi_buffer::upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const
+{
 	allocated_buffer index_buffer;
 	allocated_buffer vertex_buffer;
 	VkDeviceAddress vertex_buffer_address;
@@ -221,7 +221,7 @@ gpu_mesh_buffers_result rhi_buffer::upload_mesh(std::span<uint32_t> indices, std
 	return rv;
 }
 
-allocated_buffer_result rhi_buffer::create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage)
+allocated_buffer_result rhi_buffer::create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const
 {
 		VkBufferCreateInfo buffer_info = {};
 		buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
