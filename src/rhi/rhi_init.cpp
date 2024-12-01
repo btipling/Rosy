@@ -1203,3 +1203,9 @@ VkResult rhi::init_default_data()
 
 	return VK_SUCCESS;
 }
+
+VkResult rhi::init_buffer()
+{
+	auto buffer = std::unique_ptr<rhi_buffer>(new rhi_buffer{this});
+	return VK_SUCCESS;
+}

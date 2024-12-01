@@ -17,6 +17,7 @@ public:
 	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices);
 	gpu_scene_data scene_data;
 	std::optional<VkDevice> device_ = std::nullopt;
+	std::optional<std::unique_ptr<rhi_buffer>> buffer;
 	void debug() const;
 	~rhi();
 
@@ -128,6 +129,7 @@ private:
 	VkResult init_sync_objects();
 	VkResult init_commands();
 	VkResult init_default_data();
+	VkResult init_buffer();
 
 	// Rendering
 	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,

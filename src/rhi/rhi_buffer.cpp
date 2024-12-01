@@ -1,5 +1,26 @@
 #include "rhi.h"
 
+
+rhi_buffer::rhi_buffer(rhi* renderer) : renderer_{ renderer }
+{
+	// Create an rhi buffer
+}
+
+gpu_mesh_buffers_result rhi_buffer::upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) {
+	gpu_mesh_buffers_result rv = {};
+	return rv;
+}
+
+allocated_buffer_result rhi_buffer::create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage)
+{
+	allocated_buffer_result rv = {};
+	return rv;
+}
+void rhi_buffer::destroy_buffer(const allocated_buffer& buffer)
+{
+	// todo
+}
+
 gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) {
 	allocated_buffer index_buffer;
 	allocated_buffer vertex_buffer;
