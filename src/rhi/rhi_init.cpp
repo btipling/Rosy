@@ -157,6 +157,12 @@ VkResult rhi::init(SDL_Window* window)
 		rosy_utils::debug_print_w(L"Failed to init commands! %d\n", result);
 		return result;
 	}
+	result = this->init_buffer();
+	if (result != VK_SUCCESS)
+	{
+		rosy_utils::debug_print_w(L"Failed to init buffer! %d\n", result);
+		return result;
+	}
 	result = this->init_default_data();
 	if (result != VK_SUCCESS)
 	{
@@ -1206,6 +1212,6 @@ VkResult rhi::init_default_data()
 
 VkResult rhi::init_buffer()
 {
-	auto buffer = std::unique_ptr<rhi_buffer>(new rhi_buffer{this});
+	buffer = std::unique_ptr<rhi_buffer>(new rhi_buffer{this});
 	return VK_SUCCESS;
 }

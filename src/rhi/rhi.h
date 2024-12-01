@@ -15,8 +15,10 @@ public:
 	VkResult draw_frame();
 	// Buffer read write
 	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices);
+	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
 	gpu_scene_data scene_data;
 	std::optional<VkDevice> device_ = std::nullopt;
+	std::optional<VmaAllocator> allocator_ = std::nullopt;
 	std::optional<std::unique_ptr<rhi_buffer>> buffer;
 	void debug() const;
 	~rhi();
@@ -38,7 +40,6 @@ private:
 	std::uint32_t queue_count_ = 0;
 	std::vector<float> queue_priorities_;
 	VkPhysicalDeviceFeatures required_features_;
-	std::optional<VmaAllocator> allocator_ = std::nullopt;
 	std::optional<VkSurfaceKHR> surface_ = std::nullopt;
 	std::optional<VkQueue> present_queue_ = std::nullopt;
 	std::optional<VkSwapchainKHR> swapchain_ = std::nullopt;
@@ -135,7 +136,6 @@ private:
 	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
 	                             VkImageLayout new_layout);
 	VkResult render_frame();
-	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
 
 	// Utils
 	allocated_buffer_result create_buffer(size_t alloc_size, VkBufferUsageFlags usage,
