@@ -52,7 +52,7 @@ VkResult rhi::render_frame()
 	shader_pipeline shaders = test_mesh_pipeline_.value();
 
 	VkResult result;
-	VkDevice device = device_.value();
+	VkDevice device = opt_device.value();
 
 	result = vkWaitForFences(device, 1, &fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
@@ -62,7 +62,7 @@ VkResult rhi::render_frame()
 
 	uint32_t image_index;
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
-	vkAcquireNextImageKHR(device_.value(), swapchain_.value(), UINT64_MAX, image_available, VK_NULL_HANDLE,
+	vkAcquireNextImageKHR(opt_device.value(), swapchain_.value(), UINT64_MAX, image_available, VK_NULL_HANDLE,
 		&image_index);
 	VkImage image = swap_chain_images_[image_index];
 	VkImageView image_view = swap_chain_image_views_[image_index];
@@ -297,7 +297,7 @@ VkResult rhi::render_frame()
 
 VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const
 {
-	const VkDevice device = device_.value();
+	const VkDevice device = opt_device.value();
 	VkResult result = vkResetFences(device, 1, &imm_fence_.value());
 	if (result != VK_SUCCESS) return result;
 

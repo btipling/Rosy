@@ -178,17 +178,17 @@ void rhi::deinit()
 	deinited_ = true;
 	{
 		// Wait for everything to be done.
-		if (device_.has_value())
+		if (opt_device.has_value())
 		{
-			vkDeviceWaitIdle(device_.value());
+			vkDeviceWaitIdle(opt_device.value());
 		}
 	}
 
 	// Deinit begin in the reverse order from how it was created.
 	deinit_ui();
 	{
-		if (default_sampler_nearest_.has_value()) vkDestroySampler(device_.value(), default_sampler_nearest_.value(), nullptr);
-		if (default_sampler_linear_.has_value()) vkDestroySampler(device_.value(), default_sampler_linear_.value(), nullptr);
+		if (default_sampler_nearest_.has_value()) vkDestroySampler(opt_device.value(), default_sampler_nearest_.value(), nullptr);
+		if (default_sampler_linear_.has_value()) vkDestroySampler(opt_device.value(), default_sampler_linear_.value(), nullptr);
 
 		if (white_image_.has_value()) destroy_image(white_image_.value());
 		if (grey_image_.has_value()) destroy_image(grey_image_.value());
@@ -206,17 +206,17 @@ void rhi::deinit()
 
 	if (imm_fence_.has_value())
 	{
-		vkDestroyFence(device_.value(), imm_fence_.value(), nullptr);
+		vkDestroyFence(opt_device.value(), imm_fence_.value(), nullptr);
 	}
 
 	if (imm_command_pool_.has_value())
 	{
-		vkDestroyCommandPool(device_.value(), imm_command_pool_.value(), nullptr);
+		vkDestroyCommandPool(opt_device.value(), imm_command_pool_.value(), nullptr);
 	}
 
 	for (frame_data fd : frame_datas_)
 	{
-		VkDevice device = device_.value();
+		VkDevice device = opt_device.value();
 		if (fd.in_flight_fence.has_value()) vkDestroyFence(device, fd.in_flight_fence.value(), nullptr);
 		if (fd.image_available_semaphore.has_value())
 			vkDestroySemaphore(
@@ -232,36 +232,36 @@ void rhi::deinit()
 		if (fd.gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(fd.gpu_scene_buffer.value());
 	}
 	if (test_mesh_pipeline_.has_value()) {
-		test_mesh_pipeline_.value().deinit(device_.value());
+		test_mesh_pipeline_.value().deinit(opt_device.value());
 	}
 	if (single_image_descriptor_layout_.has_value())
 	{
-		vkDestroyDescriptorSetLayout(device_.value(), single_image_descriptor_layout_.value(), nullptr);
+		vkDestroyDescriptorSetLayout(opt_device.value(), single_image_descriptor_layout_.value(), nullptr);
 	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
-		vkDestroyDescriptorSetLayout(device_.value(), gpu_scene_data_descriptor_layout_.value(), nullptr);
+		vkDestroyDescriptorSetLayout(opt_device.value(), gpu_scene_data_descriptor_layout_.value(), nullptr);
 	}
 	if (draw_image_descriptor_layout_.has_value())
 	{
-		vkDestroyDescriptorSetLayout(device_.value(), draw_image_descriptor_layout_.value(), nullptr);
+		vkDestroyDescriptorSetLayout(opt_device.value(), draw_image_descriptor_layout_.value(), nullptr);
 	}
 	if (global_descriptor_allocator_.has_value())
 	{
-		global_descriptor_allocator_.value().destroy_pool(device_.value());
+		global_descriptor_allocator_.value().destroy_pool(opt_device.value());
 	}
 	if (depth_image_.has_value())
 	{
 		const allocated_image depth_image = depth_image_.value();
-		vkDestroyImageView(device_.value(), depth_image.image_view, nullptr);
-		vmaDestroyImage(allocator_.value(), depth_image.image, depth_image.allocation);
+		vkDestroyImageView(opt_device.value(), depth_image.image_view, nullptr);
+		vmaDestroyImage(opt_allocator.value(), depth_image.image, depth_image.allocation);
 	}
 
 	if (draw_image_.has_value())
 	{
 		const allocated_image draw_image = draw_image_.value();
-		vkDestroyImageView(device_.value(), draw_image.image_view, nullptr);
-		vmaDestroyImage(allocator_.value(), draw_image.image, draw_image.allocation);
+		vkDestroyImageView(opt_device.value(), draw_image.image_view, nullptr);
+		vmaDestroyImage(opt_allocator.value(), draw_image.image, draw_image.allocation);
 	}
 
 	destroy_swapchain();
@@ -271,16 +271,16 @@ void rhi::deinit()
 		vkDestroyDebugUtilsMessengerEXT(instance_.value(), debug_messenger_.value(), nullptr);
 	}
 
-	if (allocator_.has_value())
+	if (opt_allocator.has_value())
 	{
-		vmaDestroyAllocator(allocator_.value());
+		vmaDestroyAllocator(opt_allocator.value());
 	}
 
-	if (device_.has_value())
+	if (opt_device.has_value())
 	{
-		if (const VkResult result = vkDeviceWaitIdle(device_.value()); result == VK_SUCCESS)
+		if (const VkResult result = vkDeviceWaitIdle(opt_device.value()); result == VK_SUCCESS)
 			vkDestroyDevice(
-				device_.value(), nullptr);
+				opt_device.value(), nullptr);
 	}
 
 	if (surface_.has_value())
@@ -296,22 +296,22 @@ void rhi::deinit()
 
 void rhi::destroy_swapchain()
 {
-	vkDeviceWaitIdle(device_.value());
-	for (VkImageView imageView : swap_chain_image_views_)
+	vkDeviceWaitIdle(opt_device.value());
+	for (const VkImageView image_view : swap_chain_image_views_)
 	{
-		vkDestroyImageView(device_.value(), imageView, nullptr);
+		vkDestroyImageView(opt_device.value(), image_view, nullptr);
 	}
 	swap_chain_image_views_.clear();
 	if (swapchain_.has_value())
 	{
-		vkDestroySwapchainKHR(device_.value(), swapchain_.value(), nullptr);
+		vkDestroySwapchainKHR(opt_device.value(), swapchain_.value(), nullptr);
 		swapchain_ = std::nullopt;
 	}
 }
 
 VkResult rhi::resize_swapchain(SDL_Window* window)
 {
-	vkDeviceWaitIdle(device_.value());
+	vkDeviceWaitIdle(opt_device.value());
 	destroy_swapchain();
 	return create_swapchain(window, VK_NULL_HANDLE);
 }
@@ -723,7 +723,7 @@ VkResult rhi::init_device()
 	if (result != VK_SUCCESS) return result;
 
 	rosy_utils::debug_print_w(L"Vulkan device created successfully!\n");
-	device_ = device;
+	opt_device = device;
 	return result;
 }
 
@@ -735,7 +735,7 @@ VkResult rhi::init_presentation_queue()
 	get_info.flags = 0;
 	get_info.queueFamilyIndex = queue_index_;
 	get_info.queueIndex = 0;
-	vkGetDeviceQueue2(device_.value(), &get_info, &queue);
+	vkGetDeviceQueue2(opt_device.value(), &get_info, &queue);
 	present_queue_ = queue;
 	return VK_SUCCESS;
 }
@@ -812,7 +812,7 @@ VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swap
 	}
 	frame_datas_.resize(std::min(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT), swap_chain_image_count_));
 
-	const VkDevice device = device_.value();
+	const VkDevice device = opt_device.value();
 	VkSwapchainKHR swapchain;
 	const VkExtent2D extent = choose_swap_extent(swapchain_details_.capabilities, window);
 	{
@@ -898,13 +898,13 @@ VkResult rhi::init_draw_image()
 	r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	vmaCreateImage(allocator_.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation,
+	vmaCreateImage(opt_allocator.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation,
 		nullptr);
 
 	VkImageViewCreateInfo r_view_info = rhi_helpers::img_view_create_info(draw_image.image_format, draw_image.image,
 		VK_IMAGE_ASPECT_COLOR_BIT);
 
-	result = vkCreateImageView(device_.value(), &r_view_info, nullptr, &draw_image.image_view);
+	result = vkCreateImageView(opt_device.value(), &r_view_info, nullptr, &draw_image.image_view);
 	if (result != VK_SUCCESS) return result;
 	draw_image_ = draw_image;
 
@@ -916,13 +916,13 @@ VkResult rhi::init_draw_image()
 
 	VkImageCreateInfo depth_info = rhi_helpers::img_create_info(depth_image.image_format, depth_image_usages, draw_image_extent);
 
-	vmaCreateImage(allocator_.value(), &depth_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation,
+	vmaCreateImage(opt_allocator.value(), &depth_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation,
 		nullptr);
 
 	VkImageViewCreateInfo d_view_info = rhi_helpers::img_view_create_info(depth_image.image_format, depth_image.image,
 		VK_IMAGE_ASPECT_DEPTH_BIT);
 
-	result = vkCreateImageView(device_.value(), &d_view_info, nullptr, &depth_image.image_view);
+	result = vkCreateImageView(opt_device.value(), &d_view_info, nullptr, &depth_image.image_view);
 	if (result != VK_SUCCESS) return result;
 	depth_image_ = depth_image;
 
@@ -935,7 +935,7 @@ VkResult rhi::init_descriptors()
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}
 	};
 
-	const VkDevice device = device_.value();
+	const VkDevice device = opt_device.value();
 
 	{
 		descriptor_allocator allocator = {};
@@ -999,14 +999,14 @@ void rhi::init_allocator()
 	VmaAllocatorCreateInfo allocator_create_info = {};
 	allocator_create_info.vulkanApiVersion = VK_API_VERSION_1_3;
 	allocator_create_info.physicalDevice = physical_device_.value();
-	allocator_create_info.device = device_.value();
+	allocator_create_info.device = opt_device.value();
 	allocator_create_info.instance = instance_.value();
 	allocator_create_info.pVulkanFunctions = &vulkan_functions;
 	allocator_create_info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
 	VmaAllocator allocator;
 	vmaCreateAllocator(&allocator_create_info, &allocator);
-	allocator_ = allocator;
+	opt_allocator = allocator;
 }
 
 VkResult rhi::init_command_pool()
@@ -1019,7 +1019,7 @@ VkResult rhi::init_command_pool()
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkCommandPool command_pool;
-		if (const VkResult result = vkCreateCommandPool(device_.value(), &pool_info, nullptr, &command_pool); result !=
+		if (const VkResult result = vkCreateCommandPool(opt_device.value(), &pool_info, nullptr, &command_pool); result !=
 			VK_SUCCESS)
 			return result;
 		frame_datas_[i].command_pool = command_pool;
@@ -1038,7 +1038,7 @@ VkResult rhi::init_command_buffers()
 		alloc_info.commandBufferCount = 1;
 
 		VkCommandBuffer command_buffer;
-		if (const VkResult result = vkAllocateCommandBuffers(device_.value(), &alloc_info, &command_buffer); result !=
+		if (const VkResult result = vkAllocateCommandBuffers(opt_device.value(), &alloc_info, &command_buffer); result !=
 			VK_SUCCESS)
 			return result;
 		frame_datas_[i].command_buffer = command_buffer;
@@ -1056,7 +1056,7 @@ VkResult rhi::init_sync_objects()
 	fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	VkResult result;
-	const VkDevice device = device_.value();
+	const VkDevice device = opt_device.value();
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		{
@@ -1093,7 +1093,7 @@ VkResult rhi::init_commands()
 	pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	pool_info.queueFamilyIndex = queue_index_;
 
-	const VkDevice device = device_.value();
+	const VkDevice device = opt_device.value();
 	VkCommandPool command_pool;
 	VkResult result = vkCreateCommandPool(device, &pool_info, nullptr, &command_pool);
 	if (result != VK_SUCCESS) return result;
@@ -1134,7 +1134,7 @@ VkResult rhi::init_graphics()
 	sp.num_layouts = 1;
 	sp.name = "test";
 	sp.with_shaders(vert_shader_code, frag_shader_code);
-	if (const VkResult result = sp.build(device_.value()); result != VK_SUCCESS) return result;
+	if (const VkResult result = sp.build(opt_device.value()); result != VK_SUCCESS) return result;
 	test_mesh_pipeline_ = sp;
 	return VK_SUCCESS;
 }
@@ -1142,9 +1142,12 @@ VkResult rhi::init_graphics()
 VkResult rhi::init_default_data()
 {
 	// ReSharper disable once StringLiteralTypo
-	if (auto load_result = load_gltf_meshes(this, "assets\\basicmesh.glb"); load_result.has_value())
+	if (auto load_result = buffer.value()->load_gltf_meshes("assets\\basicmesh.glb"); load_result.has_value())
 	{
 		test_meshes_ = load_result.value();
+	} else
+	{
+		return VK_ERROR_UNKNOWN;
 	}
 
 
@@ -1187,7 +1190,7 @@ VkResult rhi::init_default_data()
 
 	}
 
-	const VkDevice device = device_.value();
+	const VkDevice device = opt_device.value();
 	{
 		VkSamplerCreateInfo sample = {};
 		sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

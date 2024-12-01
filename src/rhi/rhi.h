@@ -14,11 +14,10 @@ public:
 	VkResult draw_ui();
 	VkResult draw_frame();
 	// Buffer read write
-	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices);
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
 	gpu_scene_data scene_data;
-	std::optional<VkDevice> device_ = std::nullopt;
-	std::optional<VmaAllocator> allocator_ = std::nullopt;
+	std::optional<VkDevice> opt_device = std::nullopt;
+	std::optional<VmaAllocator> opt_allocator = std::nullopt;
 	std::optional<std::unique_ptr<rhi_buffer>> buffer;
 	void debug() const;
 	~rhi();

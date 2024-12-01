@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
 				}
 
 				const rh::rhi rhi_ctx = {
-					.device = renderer->device_.value(),
+					.device = renderer->opt_device.value(),
 				};
 				const rh::ctx ctx = {
 					.rhi = rhi_ctx,

@@ -17,7 +17,7 @@ allocated_image_result rhi::create_image(VkExtent3D size, VkFormat format, VkIma
 	alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	if (VkResult result = vmaCreateImage(allocator_.value(), &img_info, &alloc_info, &new_image.image,
+	if (VkResult result = vmaCreateImage(opt_allocator.value(), &img_info, &alloc_info, &new_image.image,
 	                                     &new_image.allocation, nullptr); result != VK_SUCCESS)
 	{
 		allocated_image_result rv = {};
@@ -34,7 +34,7 @@ allocated_image_result rhi::create_image(VkExtent3D size, VkFormat format, VkIma
 	VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(format, new_image.image, aspect_flag);
 	view_info.subresourceRange.levelCount = img_info.mipLevels;
 
-	if (VkResult result = vkCreateImageView(device_.value(), &view_info, nullptr, &new_image.image_view); result !=
+	if (VkResult result = vkCreateImageView(opt_device.value(), &view_info, nullptr, &new_image.image_view); result !=
 		VK_SUCCESS)
 	{
 		allocated_image_result rv = {};
@@ -63,9 +63,9 @@ allocated_image_result rhi::create_image(const void* data, const VkExtent3D size
 	allocated_buffer staging = created_buffer;
 
 	void* staging_data;
-	vmaMapMemory(allocator_.value(), staging.allocation, &staging_data);
+	vmaMapMemory(opt_allocator.value(), staging.allocation, &staging_data);
 	memcpy(static_cast<char*>(staging_data), data, data_size);
-	vmaUnmapMemory(allocator_.value(), staging.allocation);
+	vmaUnmapMemory(opt_allocator.value(), staging.allocation);
 
 	const auto image_result = create_image(size, format,
 	                                       usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
@@ -108,6 +108,6 @@ allocated_image_result rhi::create_image(const void* data, const VkExtent3D size
 
 void rhi::destroy_image(const allocated_image& img) const
 {
-	vkDestroyImageView(device_.value(), img.image_view, nullptr);
-	vmaDestroyImage(allocator_.value(), img.image, img.allocation);
+	vkDestroyImageView(opt_device.value(), img.image_view, nullptr);
+	vmaDestroyImage(opt_allocator.value(), img.image, img.allocation);
 }

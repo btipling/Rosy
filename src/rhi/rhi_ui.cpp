@@ -26,7 +26,7 @@ VkResult rhi::init_ui(SDL_Window* window) {
 	pool_info.pPoolSizes = pool_sizes;
 
 	VkDescriptorPool imgui_pool;
-	const VkDevice device = device_.value();
+	const VkDevice device = opt_device.value();
 	if (const VkResult result = vkCreateDescriptorPool(device, &pool_info, nullptr, &imgui_pool); result != VK_SUCCESS) return result;
 
 	ImGui::CreateContext();
@@ -35,7 +35,7 @@ VkResult rhi::init_ui(SDL_Window* window) {
 	ImGui_ImplVulkan_InitInfo init_info = {};
 	init_info.Instance = instance_.value();
 	init_info.PhysicalDevice = physical_device_.value();
-	init_info.Device = device_.value();
+	init_info.Device = opt_device.value();
 	init_info.Queue = present_queue_.value();
 	init_info.DescriptorPool = imgui_pool;
 	init_info.MinImageCount = 2;
@@ -100,6 +100,6 @@ void rhi::deinit_ui() const
 		ImGui_ImplVulkan_Shutdown();
         ImGui_ImplSDL3_Shutdown();
         ImGui::DestroyContext();
-		vkDestroyDescriptorPool(device_.value(), ui_pool_.value(), nullptr);
+		vkDestroyDescriptorPool(opt_device.value(), ui_pool_.value(), nullptr);
 	}
 }
