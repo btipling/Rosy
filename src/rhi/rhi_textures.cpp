@@ -53,7 +53,7 @@ allocated_image_result rhi::create_image(const void* data, const VkExtent3D size
                                          const VkImageUsageFlags usage, const bool mip_mapped)
 {
 	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
-	auto [result, created_buffer] = create_buffer(data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST  );
+	auto [result, created_buffer] = buffer.value()->create_buffer(data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST  );
 	if (result != VK_SUCCESS)
 	{
 		allocated_image_result rv = {};

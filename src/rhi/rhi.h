@@ -138,8 +138,6 @@ private:
 	VkResult render_frame();
 
 	// Utils
-	allocated_buffer_result create_buffer(size_t alloc_size, VkBufferUsageFlags usage,
-		VmaMemoryUsage memory_usage) const;
 	swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device) const;
 
 	// ui

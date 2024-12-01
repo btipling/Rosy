@@ -142,7 +142,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	const size_t vertex_buffer_size = vertices.size() * sizeof(vertex);
 	const size_t index_buffer_size = indices.size() * sizeof(uint32_t);
 
-	allocated_buffer_result vertex_buffer_result = create_buffer(
+	allocated_buffer_result vertex_buffer_result = buffer.value()->create_buffer(
 		vertex_buffer_size, 
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
@@ -165,7 +165,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	vertex_buffer_address = vkGetBufferDeviceAddress(device_.value(), &device_address_info);
 	rosy_utils::debug_print_a("vertex buffer address set!\n");
 
-	allocated_buffer_result index_buffer_result = create_buffer(
+	allocated_buffer_result index_buffer_result = buffer.value()->create_buffer(
 		index_buffer_size, 
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
@@ -180,7 +180,7 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 	rosy_utils::debug_print_a("index buffer address set!\n");
 	rhi_helpers::add_name(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(index_buffer.buffer), "indexBuffer");
 
-	allocated_buffer_result staging_buffer_result = create_buffer(vertex_buffer_size + index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+	allocated_buffer_result staging_buffer_result = buffer.value()->create_buffer(vertex_buffer_size + index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 	if (staging_buffer_result.result != VK_SUCCESS) {
 		gpu_mesh_buffers_result fail = {};
 		fail.result = staging_buffer_result.result;
@@ -232,29 +232,4 @@ gpu_mesh_buffers_result rhi::upload_mesh(std::span<uint32_t> indices, std::span<
 
 	rosy_utils::debug_print_a("done uploading mesh!\n");
 	return rv;
-}
-
-allocated_buffer_result rhi::create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage,
-	const VmaMemoryUsage memory_usage) const
-{
-	VkBufferCreateInfo buffer_info = {};
-	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	buffer_info.pNext = nullptr;
-	buffer_info.size = alloc_size;
-	buffer_info.usage = usage;
-
-	VmaAllocationCreateInfo vma_alloc_info = {};
-	vma_alloc_info.usage = memory_usage;
-	vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-
-	allocated_buffer new_buffer;
-	const VkResult result = vmaCreateBuffer(allocator_.value(), &buffer_info, &vma_alloc_info, &new_buffer.buffer,
-		&new_buffer.allocation,
-		&new_buffer.info);
-	if (result != VK_SUCCESS) return { .result = result };
-
-	return {
-		.result = VK_SUCCESS,
-		.buffer = new_buffer,
-	};
 }
