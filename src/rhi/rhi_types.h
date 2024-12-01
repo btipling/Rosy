@@ -99,3 +99,11 @@ struct material_instance {
 	VkDescriptorSet material_set;
 	material_pass pass_type;
 };
+
+class rhi;
+
+class rhi_buffer
+{
+private:
+	rhi* renderer_;
+};
