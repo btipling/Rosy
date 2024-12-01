@@ -2,7 +2,7 @@
 #include <iostream>
 #include "loader.h"
 #define GLM_ENABLE_EXPERIMENTAL
-#include "../rhi/RHI.h"
+#include "../rhi/rhi.h"
 #include <glm/gtx/quaternion.hpp>
 
 #include <fastgltf/glm_element_traits.hpp>

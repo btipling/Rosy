@@ -104,6 +104,8 @@ class rhi;
 
 class rhi_buffer
 {
+public:
+	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices);
 private:
 	rhi* renderer_;
 };

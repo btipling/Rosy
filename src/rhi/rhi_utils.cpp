@@ -97,32 +97,3 @@ swap_chain_support_details rhi::query_swap_chain_support(const VkPhysicalDevice 
 }
 
 
-allocated_buffer_result rhi::create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage,
-	const VmaMemoryUsage memory_usage) const
-{
-	VkBufferCreateInfo buffer_info = {};
-	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	buffer_info.pNext = nullptr;
-	buffer_info.size = alloc_size;
-	buffer_info.usage = usage;
-
-	VmaAllocationCreateInfo vma_alloc_info = {};
-	vma_alloc_info.usage = memory_usage;
-	vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-
-	allocated_buffer new_buffer;
-	const VkResult result = vmaCreateBuffer(allocator_.value(), &buffer_info, &vma_alloc_info, &new_buffer.buffer,
-		&new_buffer.allocation,
-		&new_buffer.info);
-	if (result != VK_SUCCESS) return { .result = result };
-
-	return {
-		.result = VK_SUCCESS,
-		.buffer = new_buffer,
-	};
-}
-
-void rhi::destroy_buffer(const allocated_buffer& buffer) const
-{
-	vmaDestroyBuffer(allocator_.value(), buffer.buffer, buffer.allocation);
-}
