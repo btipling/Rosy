@@ -53,14 +53,14 @@ allocated_image_result rhi::create_image(const void* data, const VkExtent3D size
                                          const VkImageUsageFlags usage, const bool mip_mapped)
 {
 	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
-	auto [result, buffer] = create_buffer(data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST  );
+	auto [result, created_buffer] = create_buffer(data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST  );
 	if (result != VK_SUCCESS)
 	{
 		allocated_image_result rv = {};
 		rv.result = result;
 		return rv;
 	}
-	allocated_buffer staging = buffer;
+	allocated_buffer staging = created_buffer;
 
 	void* staging_data;
 	vmaMapMemory(allocator_.value(), staging.allocation, &staging_data);
@@ -97,7 +97,7 @@ allocated_image_result rhi::create_image(const void* data, const VkExtent3D size
 		                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	});
 
-	destroy_buffer(staging);
+	buffer.value()->destroy_buffer(staging);
 	{
 		allocated_image_result rv = {};
 		rv.result = VK_SUCCESS;

@@ -199,8 +199,8 @@ void rhi::deinit()
 	for (std::shared_ptr<mesh_asset> mesh : test_meshes_)
 	{
 		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
-		destroy_buffer(rectangle.vertex_buffer);
-		destroy_buffer(rectangle.index_buffer);
+		buffer.value()->destroy_buffer(rectangle.vertex_buffer);
+		buffer.value()->destroy_buffer(rectangle.index_buffer);
 		mesh.reset();
 	}
 
@@ -229,7 +229,7 @@ void rhi::deinit()
 			rosy_utils::debug_print_a("destroying pools?\n");
 			fd.frame_descriptors.value().destroy_pools(device);
 		}
-		if (fd.gpu_scene_buffer.has_value()) destroy_buffer(fd.gpu_scene_buffer.value());
+		if (fd.gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(fd.gpu_scene_buffer.value());
 	}
 	if (test_mesh_pipeline_.has_value()) {
 		test_mesh_pipeline_.value().deinit(device_.value());

@@ -258,8 +258,3 @@ allocated_buffer_result rhi::create_buffer(const size_t alloc_size, const VkBuff
 		.buffer = new_buffer,
 	};
 }
-
-void rhi::destroy_buffer(const allocated_buffer& buffer) const
-{
-	vmaDestroyBuffer(allocator_.value(), buffer.buffer, buffer.allocation);
-}

@@ -148,6 +148,5 @@ private:
 
 	// destructors
 	void destroy_swapchain();
-	void destroy_buffer(const allocated_buffer& buffer) const;
 	void deinit_ui() const;
 };

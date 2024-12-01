@@ -57,7 +57,7 @@ VkResult rhi::render_frame()
 	result = vkWaitForFences(device, 1, &fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
 	frame_descriptors.clear_pools(device);
-	if (opt_gpu_scene_buffer.has_value()) destroy_buffer(opt_gpu_scene_buffer.value());
+	if (opt_gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(opt_gpu_scene_buffer.value());
 	frame_datas_[current_frame_].gpu_scene_buffer = std::nullopt;
 
 	uint32_t image_index;
