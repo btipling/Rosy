@@ -106,6 +106,8 @@ class rhi_buffer
 {
 public:
 	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices);
+	allocated_buffer_result create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage);
+	void destroy_buffer(const allocated_buffer& buffer);
 private:
 	rhi* renderer_;
 };
