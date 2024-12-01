@@ -10,11 +10,7 @@
 
 
 
-rhi_buffer::rhi_buffer(rhi* renderer) : renderer_{ renderer }
-{
-	// Create an rhi buffer
-}
-
+rhi_buffer::rhi_buffer(rhi* renderer) : renderer_{ renderer } {}
 
 std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_buffer::load_gltf_meshes(std::filesystem::path file_path) {
 	fastgltf::Asset gltf;
@@ -34,8 +30,7 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_buffer::load_gltf_me
 	}
 	std::vector<std::shared_ptr<mesh_asset>> meshes;
 
-	// use the same vectors for all meshes so that the memory doesn't reallocate as
-	// often
+	// use the same vectors for all meshes so that the memory doesn't reallocate as often
 	std::vector<uint32_t> indices;
 	std::vector<vertex> vertices;
 	for (fastgltf::Mesh& mesh : gltf.meshes) {
@@ -43,14 +38,14 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_buffer::load_gltf_me
 
 		new_mesh.name = mesh.name;
 
-		// clear the mesh arrays each mesh, we dont want to merge them by error
+		// clear the mesh arrays each mesh, we don't want to merge them by error
 		indices.clear();
 		vertices.clear();
 
 		for (fastgltf::Primitive p : mesh.primitives) {
-			geo_surface newSurface;
-			newSurface.start_index = static_cast<uint32_t>(indices.size());
-			newSurface.count = static_cast<uint32_t>(gltf.accessors[p.indicesAccessor.value()].count);
+			geo_surface new_surface;
+			new_surface.start_index = static_cast<uint32_t>(indices.size());
+			new_surface.count = static_cast<uint32_t>(gltf.accessors[p.indicesAccessor.value()].count);
 
 			size_t initial_vtx = vertices.size();
 
@@ -60,74 +55,65 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_buffer::load_gltf_me
 				indices.reserve(indices.size() + index_accessor.count);
 
 				fastgltf::iterateAccessor<std::uint32_t>(gltf, index_accessor,
-					[&](std::uint32_t idx) {
+					[&](const std::uint32_t idx) {
 						indices.push_back(idx + initial_vtx);
 					});
 
 			}
 
-			// load vertex positions
 			{
-				auto positionIt = p.findAttribute("POSITION");
-				auto& posAccessor = gltf.accessors[positionIt->accessorIndex];
-				vertices.resize(vertices.size() + posAccessor.count);
+				auto position_it = p.findAttribute("POSITION");
+				auto& pos_accessor = gltf.accessors[position_it->accessorIndex];
+				vertices.resize(vertices.size() + pos_accessor.count);
 
-				fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, posAccessor,
+				fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, pos_accessor,
 					[&](glm::vec3 v, size_t index) {
-						vertex newvtx;
-						newvtx.position = glm::vec4{ v, 1.0f };
-						newvtx.normal = { 1.0f, 0.0f, 0.0f, 1.0f };
-						newvtx.color = glm::vec4{ 1.f };
-						newvtx.texture_coordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
-						vertices[initial_vtx + index] = newvtx;
+						vertex new_vtx;
+						new_vtx.position = glm::vec4{ v, 1.0f };
+						new_vtx.normal = { 1.0f, 0.0f, 0.0f, 1.0f };
+						new_vtx.color = glm::vec4{ 1.f };
+						new_vtx.texture_coordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
+						vertices[initial_vtx + index] = new_vtx;
 					});
 			}
 
-			// load vertex normals
-			auto normals = p.findAttribute("NORMAL");
-			if (normals != p.attributes.end()) {
-
-				fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, gltf.accessors[(*normals).accessorIndex],
-					[&](glm::vec3 v, size_t index) {
+			if (auto normals = p.findAttribute("NORMAL"); normals != p.attributes.end()) {
+				fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, gltf.accessors[normals->accessorIndex],
+					[&](const glm::vec3 v, const size_t index) {
 						vertices[initial_vtx + index].normal = glm::vec4{ v, 0.0f };
 					});
 			}
 
-			// load UVs
-			auto uv = p.findAttribute("TEXCOORD_0");
-			if (uv != p.attributes.end()) {
+			// ReSharper disable once StringLiteralTypo
+			if (auto uv = p.findAttribute("TEXCOORD_0"); uv != p.attributes.end()) {
 
-				fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[(*uv).accessorIndex],
-					[&](glm::vec2 v, size_t index) {
+				fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[uv->accessorIndex],
+					[&](glm::vec2 v, const size_t index) {
 						vertices[initial_vtx + index].texture_coordinates = { v.x, v.y, 0.0f, 0.0f };
 					});
 			}
 
-			// load vertex colors
-			auto colors = p.findAttribute("COLOR_0");
-			if (colors != p.attributes.end()) {
+			if (auto colors = p.findAttribute("COLOR_0"); colors != p.attributes.end()) {
 
-				fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*colors).accessorIndex],
-					[&](glm::vec4 v, size_t index) {
+				fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[colors->accessorIndex],
+					[&](const glm::vec4 v, const size_t index) {
 						vertices[initial_vtx + index].color = v;
 					});
 			}
-			new_mesh.surfaces.push_back(newSurface);
+			new_mesh.surfaces.push_back(new_surface);
 		}
 
-		// display the vertex normals
-		constexpr bool override_colors = true;
-		if (override_colors) {
+		if (constexpr bool override_colors = true) {
 			for (vertex& vtx : vertices) {
 				vtx.color = vtx.normal;
 			}
 		}
-		auto result = upload_mesh(indices, vertices);
-		if (result.result != VK_SUCCESS) {
-			rosy_utils::debug_print_a("failed to upload mesh: %d\n", result.result);
+		auto [result, uploaded_mesh] = upload_mesh(indices, vertices);
+		if (result != VK_SUCCESS) {
+			rosy_utils::debug_print_a("failed to upload mesh: %d\n", result);
 			return std::nullopt;
 		}
-		new_mesh.mesh_buffers = result.buffers;
+		new_mesh.mesh_buffers = uploaded_mesh;
 		meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
 	}
 
