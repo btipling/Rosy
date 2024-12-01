@@ -114,6 +114,9 @@
     <ClInclude Include="scene\scene_one\scene_one.h">
       <Filter>scene\scene_one</Filter>
     </ClInclude>
+    <ClInclude Include="rhi\rhi_frame.h">
+      <Filter>rhi</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">

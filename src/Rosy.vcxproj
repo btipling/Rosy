@@ -152,6 +152,7 @@
     <ClInclude Include="rhi\rhi.h" />
     <ClInclude Include="rhi\rhi_cmd.h" />
     <ClInclude Include="rhi\rhi_descriptor.h" />
+    <ClInclude Include="rhi\rhi_frame.h" />
     <ClInclude Include="rhi\rhi_helpers.h" />
     <ClInclude Include="rhi\rhi_shader.h" />
     <ClInclude Include="rhi\rhi_types.h" />
