@@ -2,7 +2,6 @@
 #include <unordered_map>
 #include <filesystem>
 #include "../Rosy.h"
-#include "../rhi/rhi_types.h"
 
 class rhi;
 
