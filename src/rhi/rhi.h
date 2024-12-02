@@ -11,7 +11,8 @@ public:
 	VkResult init(SDL_Window* window);
 	VkResult resize_swapchain(SDL_Window* window);
 	void deinit();
-	VkResult draw_frame();
+	VkResult begin_frame();
+	VkResult end_frame();
 	VkResult draw_ui();
 	// Buffer read write
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
@@ -65,6 +66,7 @@ private:
 	std::optional<VkDescriptorPool> ui_pool_ = std::nullopt;
 
 	size_t current_frame_ = 0;
+	uint32_t current_swapchain_image_index_ = 0;
 
 	// main draw image
 	std::optional<allocated_image> draw_image_;

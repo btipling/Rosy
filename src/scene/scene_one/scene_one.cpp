@@ -93,6 +93,24 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		if (result != VK_SUCCESS) return rh::result::error;
 		error_checkerboard_image_ = image;
 	}
+	{
+		VkSamplerCreateInfo sample = {};
+		sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		sample.magFilter = VK_FILTER_NEAREST;
+		sample.minFilter = VK_FILTER_NEAREST;
+		VkSampler sampler;
+		vkCreateSampler(device, &sample, nullptr, &sampler);
+		default_sampler_nearest_ = sampler;
+	}
+	{
+		VkSamplerCreateInfo sample = {};
+		sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		sample.magFilter = VK_FILTER_LINEAR;
+		sample.minFilter = VK_FILTER_LINEAR;
+		VkSampler sampler;
+		vkCreateSampler(device, &sample, nullptr, &sampler);
+		default_sampler_linear_ = sampler;
+	}
 
 	return rh::result::ok;
 }
@@ -223,6 +241,9 @@ rh::result scene_one::deinit(const rh::ctx& ctx) const
 	const VkDevice device = ctx.rhi.device;
 	auto buffer = ctx.rhi.data.value();
 	{
+		vkDeviceWaitIdle(device);
+	}
+	{
 		if (default_sampler_nearest_.has_value()) vkDestroySampler(device, default_sampler_nearest_.value(), nullptr);
 		if (default_sampler_linear_.has_value()) vkDestroySampler(device, default_sampler_linear_.value(), nullptr);
 
@@ -239,20 +260,18 @@ rh::result scene_one::deinit(const rh::ctx& ctx) const
 		buffer->destroy_buffer(rectangle.index_buffer);
 		mesh.reset();
 	}
-	{
-		vkDeviceWaitIdle(device);
-	}
-	if (single_image_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(device, single_image_descriptor_layout_.value(), nullptr);
-	}
 	if (test_mesh_pipeline_.has_value()) {
 		test_mesh_pipeline_.value().deinit(device);
 	}
+	if (gpu_scene_data_descriptor_layout_.has_value())
+	{
+		vkDestroyDescriptorSetLayout(device, gpu_scene_data_descriptor_layout_.value(), nullptr);
+	}
 	if (single_image_descriptor_layout_.has_value())
 	{
 		vkDestroyDescriptorSetLayout(device, single_image_descriptor_layout_.value(), nullptr);
 	}
+	
 	return rh::result::ok;
 }
 

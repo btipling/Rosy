@@ -58,7 +58,7 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data()
 	return ctx;
 }
 
-VkResult rhi::render_frame()
+VkResult rhi::begin_frame()
 {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
 		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
@@ -92,6 +92,7 @@ VkResult rhi::render_frame()
 		&image_index);
 	VkImage image = swap_chain_images_[image_index];
 	VkImageView image_view = swap_chain_image_views_[image_index];
+	current_swapchain_image_index_ = image_index;
 
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depth_image = depth_image_.value();
@@ -149,7 +150,35 @@ VkResult rhi::render_frame()
 
 	}
 
+	return VK_SUCCESS;
+}
+
+
+VkResult rhi::end_frame()
+{
+	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
+		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
 	{
+		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
+		if (!opt_command_pool.has_value()) return VK_NOT_READY;
+	}
+
+	VkCommandBuffer cmd = opt_command_buffers.value();
+	VkSemaphore image_available = opt_image_available_semaphores.value();
+	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
+	VkFence fence = opt_in_flight_fence.value();
+	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
+	uint32_t image_index = current_swapchain_image_index_;
+	VkImage image = swap_chain_images_[image_index];
+	VkImageView image_view = swap_chain_image_views_[image_index];
+	current_swapchain_image_index_ = image_index;
+
+	allocated_image draw_image = draw_image_.value();
+	{
+		VkResult result;
 		// end app rendering
 		vkCmdEndRendering(cmd);
 		{

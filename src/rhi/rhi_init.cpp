@@ -280,17 +280,6 @@ VkResult rhi::resize_swapchain(SDL_Window* window)
 	return create_swapchain(window, VK_NULL_HANDLE);
 }
 
-VkResult rhi::draw_frame()
-{
-	VkResult result = this->render_frame();
-	if (result != VK_SUCCESS)
-	{
-		rosy_utils::debug_print_w(L"Failed to record command data! %d\n", result);
-		return result;
-	}
-	return VK_SUCCESS;
-}
-
 VkResult rhi::query_instance_layers()
 {
 	uint32_t p_property_count = 0;
