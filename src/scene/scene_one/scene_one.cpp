@@ -99,7 +99,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		sample.magFilter = VK_FILTER_NEAREST;
 		sample.minFilter = VK_FILTER_NEAREST;
 		VkSampler sampler;
-		vkCreateSampler(device, &sample, nullptr, &sampler);
+		if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
 		default_sampler_nearest_ = sampler;
 	}
 	{
@@ -108,7 +108,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		sample.magFilter = VK_FILTER_LINEAR;
 		sample.minFilter = VK_FILTER_LINEAR;
 		VkSampler sampler;
-		vkCreateSampler(device, &sample, nullptr, &sampler);
+		if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
 		default_sampler_linear_ = sampler;
 	}
 
