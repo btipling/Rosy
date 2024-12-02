@@ -1,4 +1,6 @@
 #include "scene_one.h"
+
+#include "imgui.h"
 #include "../../utils/utils.h"
 #include "../../loader/loader.h"
 
@@ -6,13 +8,15 @@
 rh::result scene_one::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
+	auto data = ctx.rhi.data.value();
 	{
 		descriptor_layout_builder builder;
 		builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		auto [result, set] = builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return rh::result::error;
 		gpu_scene_data_descriptor_layout_ = set;
-	} {
+	}
+	{
 		descriptor_layout_builder builder;
 		builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 		auto [result, set] = builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -39,15 +43,66 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	sp.with_shaders(vert_shader_code, frag_shader_code);
 	if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
 	test_mesh_pipeline_ = sp;
+
+
+	// ReSharper disable once StringLiteralTypo
+	if (auto load_result = data->load_gltf_meshes("assets\\basicmesh.glb"); load_result.has_value())
+	{
+		test_meshes_ = load_result.value();
+	}
+	else
+	{
+		return rh::result::error;
+	}
+
+
+	const uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
+	const uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
+	const uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
+	const uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
+
+	{
+		auto [result, image] = data->create_image((void*)&white, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_SAMPLED_BIT, false);
+		if (result != VK_SUCCESS) return rh::result::error;
+		white_image_ = image;
+	}
+	{
+		auto [result, image] = data->create_image((void*)&grey, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_SAMPLED_BIT, false);
+		if (result != VK_SUCCESS) return rh::result::error;
+		grey_image_ = image;
+	}
+	{
+		auto [result, image] = data->create_image((void*)&black, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_SAMPLED_BIT, false);
+		if (result != VK_SUCCESS) return rh::result::error;
+		black_image_ = image;
+	}
+	{
+		//checkerboard image
+		constexpr size_t image_dimensions = static_cast<size_t>(16) * 16;
+		std::array<uint32_t, image_dimensions > pixels;
+		for (int x = 0; x < 16; x++) {
+			for (int y = 0; y < 16; y++) {
+				pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
+			}
+		}
+		auto [result, image] = data->create_image(pixels.data(), VkExtent3D{ 16, 16, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_SAMPLED_BIT, false);
+		if (result != VK_SUCCESS) return rh::result::error;
+		error_checkerboard_image_ = image;
+	}
+
 	return rh::result::ok;
 }
 
 rh::result scene_one::draw(rh::ctx ctx)
 {
 	VkDevice device = ctx.rhi.device;
-	if (!ctx.rhi.buffer.has_value()) return rh::result::error;
+	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
-	auto buffer = ctx.rhi.buffer.value();
+	auto data = ctx.rhi.data.value();
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
 		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
 	{
@@ -74,7 +129,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 			}
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shaders.pipeline_layout.value(), 0, 1, &image_set, 0, nullptr);
 	
-			//create a descriptor set that binds that buffer and update it
+			//create a descriptor set that binds that data and update it
 			auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
 			if (desc_result != VK_SUCCESS) return rh::result::error;
 			VkDescriptorSet global_descriptor = desc_set;
@@ -147,9 +202,43 @@ rh::result scene_one::draw(rh::ctx ctx)
 	return rh::result::ok;
 }
 
+rh::result scene_one::draw_ui(const rh::ctx& ctx) {
+	ImGui::SliderFloat("Rotate X", &model_rot_x_, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Rotate Y", &model_rot_y_, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Rotate Z", &model_rot_z_, 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Translate X", &model_x_, -100.0f, 100.0f);
+	ImGui::SliderFloat("Translate Y", &model_y_, -100.0f, 100.0f);
+	ImGui::SliderFloat("Translate Z", &model_z_, -1000.0f, 10.0f);
+	ImGui::SliderFloat("Scale", &model_scale_, 0.1f, 10.0f);
+	ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
+	ImGui::Text("Blending");
+	ImGui::RadioButton("disabled", &blend_mode_, 0); ImGui::SameLine();
+	ImGui::RadioButton("additive", &blend_mode_, 1); ImGui::SameLine();
+	ImGui::RadioButton("alpha blend", &blend_mode_, 2);
+	return rh::result::ok;
+}
+
 rh::result scene_one::deinit(const rh::ctx& ctx) const
 {
 	const VkDevice device = ctx.rhi.device;
+	auto buffer = ctx.rhi.data.value();
+	{
+		if (default_sampler_nearest_.has_value()) vkDestroySampler(device, default_sampler_nearest_.value(), nullptr);
+		if (default_sampler_linear_.has_value()) vkDestroySampler(device, default_sampler_linear_.value(), nullptr);
+
+		if (white_image_.has_value()) buffer->destroy_image(white_image_.value());
+		if (grey_image_.has_value())  buffer->destroy_image(grey_image_.value());
+		if (black_image_.has_value())  buffer->destroy_image(black_image_.value());
+		if (error_checkerboard_image_.has_value())  buffer->destroy_image(error_checkerboard_image_.value());
+	}
+
+	for (std::shared_ptr<mesh_asset> mesh : test_meshes_)
+	{
+		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
+		buffer->destroy_buffer(rectangle.vertex_buffer);
+		buffer->destroy_buffer(rectangle.index_buffer);
+		mesh.reset();
+	}
 	{
 		vkDeviceWaitIdle(device);
 	}

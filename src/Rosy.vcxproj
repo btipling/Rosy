@@ -176,10 +176,9 @@
     <ClCompile Include="rhi\rhi_descriptor.cpp" />
     <ClCompile Include="rhi\rhi_helpers.cpp" />
     <ClCompile Include="rhi\rhi_render.cpp" />
-    <ClCompile Include="rhi\rhi_buffer.cpp" />
+    <ClCompile Include="rhi\rhi_data.cpp" />
     <ClCompile Include="rhi\rhi_init.cpp" />
     <ClCompile Include="rhi\rhi_shader.cpp" />
-    <ClCompile Include="rhi\rhi_textures.cpp" />
     <ClCompile Include="rhi\rhi_ui.cpp" />
     <ClCompile Include="rhi\rhi_utils.cpp" />
     <ClCompile Include="Rosy.cpp" />

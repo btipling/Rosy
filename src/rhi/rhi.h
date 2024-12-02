@@ -11,15 +11,18 @@ public:
 	VkResult init(SDL_Window* window);
 	VkResult resize_swapchain(SDL_Window* window);
 	void deinit();
-	VkResult draw_ui();
 	VkResult draw_frame();
+	VkResult draw_ui();
 	// Buffer read write
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
+	// Rendering
+	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
+		VkImageLayout new_layout);
 	std::expected<rh::ctx, VkResult> current_frame_data();
 	gpu_scene_data scene_data;
 	std::optional<VkDevice> opt_device = std::nullopt;
 	std::optional<VmaAllocator> opt_allocator = std::nullopt;
-	std::optional<std::unique_ptr<rhi_buffer>> buffer;
+	std::optional<std::unique_ptr<rhi_data>> buffer;
 	VkExtent2D swapchain_extent_ = {};
 	void debug() const;
 	~rhi();
@@ -53,40 +56,10 @@ private:
 	std::optional<VkDescriptorSetLayout> draw_image_descriptor_layout_ = std::nullopt;
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 
-	// textures
-	allocated_image_result create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-	                                    bool mip_mapped = false) const;
-	allocated_image_result create_image(const void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-	                                    bool mip_mapped = false);
-	void destroy_image(const allocated_image& img) const;
-
 	// immediate submits
 	std::optional<VkFence> imm_fence_;
 	std::optional<VkCommandBuffer> imm_command_buffer_;
 	std::optional<VkCommandPool> imm_command_pool_;
-
-	// test meshes
-	std::optional<shader_pipeline> test_mesh_pipeline_ = std::nullopt;
-	float model_rot_x_ = 0.0f;
-	float model_rot_y_ = 0.0f;
-	float model_rot_z_ = 0.0f;
-	float model_x_ = 0.0f;
-	float model_y_ = 0.0f;
-	float model_z_ = -15.0f;
-	float model_scale_ = 1.0f;
-	bool toggle_wire_frame_ = false;
-	int blend_mode_ = 0;
-
-	std::vector<std::shared_ptr<mesh_asset>> test_meshes_;
-
-	// test textures
-	std::optional<allocated_image> white_image_ = std::nullopt;
-	std::optional<allocated_image> black_image_ = std::nullopt;
-	std::optional<allocated_image> grey_image_ = std::nullopt;
-	std::optional<allocated_image> error_checkerboard_image_ = std::nullopt;
-
-	std::optional<VkSampler> default_sampler_linear_ = std::nullopt;
-	std::optional<VkSampler> default_sampler_nearest_ = std::nullopt;
 
 	// ui
 	std::optional<VkDescriptorPool> ui_pool_ = std::nullopt;
@@ -122,17 +95,12 @@ private:
 	VkResult create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain);
 	VkResult init_draw_image();
 	VkResult init_descriptors();
-	VkResult init_graphics();
 	VkResult init_command_pool();
 	VkResult init_command_buffers();
 	VkResult init_sync_objects();
 	VkResult init_commands();
-	VkResult init_default_data();
 	VkResult init_buffer();
 
-	// Rendering
-	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
-	                             VkImageLayout new_layout);
 	VkResult render_frame();
 
 	// Utils

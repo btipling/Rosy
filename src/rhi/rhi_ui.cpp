@@ -77,23 +77,6 @@ VkResult rhi::render_ui(const VkCommandBuffer cmd, const VkImageView target_imag
 	return VK_SUCCESS;
 }
 
-VkResult rhi::draw_ui() {
-	ImGui::SliderFloat("Rotate X", &model_rot_x_, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Rotate Y", &model_rot_y_, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Rotate Z", &model_rot_z_, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Translate X", &model_x_, -100.0f, 100.0f);
-	ImGui::SliderFloat("Translate Y", &model_y_, -100.0f, 100.0f);
-	ImGui::SliderFloat("Translate Z", &model_z_, -1000.0f, 10.0f);
-	ImGui::SliderFloat("Scale", &model_scale_, 0.1f, 10.0f);
-	ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
-	ImGui::Text("Blending");
-	ImGui::RadioButton("disabled", &blend_mode_, 0); ImGui::SameLine();
-	ImGui::RadioButton("additive", &blend_mode_, 1); ImGui::SameLine();
-	ImGui::RadioButton("alpha blend", &blend_mode_, 2);
-	ImGui::SliderFloat("Render Scale", &render_scale_, 0.3f, 1.f);
-	return VK_SUCCESS;
-}
-
 void rhi::deinit_ui() const
 {
 	if (ui_pool_.has_value() && ui_pool_.value()) {

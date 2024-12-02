@@ -178,6 +178,11 @@ int main(int argc, char* argv[])
 						rosy_utils::debug_print_a("scene draw failed %d\n", result);
 						should_run = false;
 					}
+					if (const auto scene_result = scene.draw_ui(ctx); scene_result != rh::result::ok)
+					{
+						rosy_utils::debug_print_a("scene ui draw failed %d\n", result);
+						should_run = false;
+					}
 				}
 				ImGui::Render();
 			}

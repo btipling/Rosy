@@ -23,8 +23,9 @@ namespace rh
 	struct rhi
 	{
 		VkDevice device;
+		VmaAllocator allocator;
 		std::optional<frame_data> frame_data = std::nullopt;
-		std::optional<rhi_buffer*> buffer = std::nullopt;
+		std::optional<rhi_data*> data = std::nullopt;
 		VkExtent2D frame_extent;
 	};
 

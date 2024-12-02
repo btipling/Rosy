@@ -1,5 +1,6 @@
 #include "rhi.h"
 
+
 void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
 	const VkImageLayout new_layout)
 {
@@ -31,11 +32,17 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 	vkCmdPipelineBarrier2(cmd, &dependency_info);
 }
 
+VkResult rhi::draw_ui()
+{
+	return VK_SUCCESS;
+}
+
 std::expected<rh::ctx, VkResult> rhi::current_frame_data()
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
 	rh::rhi rhi_ctx = {
 		.device = opt_device.value(),
+		.allocator = opt_allocator.value(),
 		.frame_extent = swapchain_extent_,
 	};
 	if (frame_datas_.size() > 0) {
@@ -43,7 +50,7 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data()
 	}
 	if (buffer.has_value())
 	{
-		rhi_ctx.buffer = buffer.value().get();
+		rhi_ctx.data = buffer.value().get();
 	}
 	const rh::ctx ctx = {
 		.rhi = rhi_ctx,
@@ -69,7 +76,6 @@ VkResult rhi::render_frame()
 	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
 	VkFence fence = opt_in_flight_fence.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
-	shader_pipeline shaders = test_mesh_pipeline_.value();
 
 	VkResult result;
 	VkDevice device = opt_device.value();
@@ -134,7 +140,7 @@ VkResult rhi::render_frame()
 		}
 	}
 	{
-		//allocate a new uniform buffer for the scene data
+		//allocate a new uniform data for the scene data
 		auto [result, created_buffer] = buffer.value()->create_buffer(sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VMA_MEMORY_USAGE_AUTO);
 		if (result != VK_SUCCESS) return result;
@@ -198,9 +204,9 @@ VkResult rhi::render_frame()
 			// To state again, wait semaphores means the submit waits for the semaphore in wait info to be signaled before it begins
 			// in this case we're waiting for the image we requested at the beginning of render frame to be available.
 			// What we have to remember is that up until this point we've only *recorded* the commands we want to execute
-			// on to the command buffer. This submit will actually start the process of telling the GPU to do the commands.
+			// on to the command data. This submit will actually start the process of telling the GPU to do the commands.
 			// None of that has happened yet. We're declaring future work there. Up until this point the only actual work we've done
-			// is request an image and record commands we want to perform unto the command buffer.
+			// is request an image and record commands we want to perform unto the command data.
 			// vkAcquireNextImageKHR will signal `imageAvailable` when done, `imageAvailable` is the semaphore in wait_info
 			submit_info.waitSemaphoreInfoCount = 1;
 			submit_info.pWaitSemaphoreInfos = &wait_info;
