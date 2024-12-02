@@ -15,10 +15,12 @@ public:
 	VkResult draw_frame();
 	// Buffer read write
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
+	std::expected<rh::ctx, VkResult> current_frame_data();
 	gpu_scene_data scene_data;
 	std::optional<VkDevice> opt_device = std::nullopt;
 	std::optional<VmaAllocator> opt_allocator = std::nullopt;
 	std::optional<std::unique_ptr<rhi_buffer>> buffer;
+	VkExtent2D swapchain_extent_ = {};
 	void debug() const;
 	~rhi();
 
@@ -46,7 +48,6 @@ private:
 	VkPresentModeKHR swapchain_present_mode_ = {};
 	uint32_t swap_chain_image_count_ = 0;
 	swap_chain_support_details swapchain_details_ = {};
-	VkExtent2D swapchain_extent_ = {};
 	std::optional<descriptor_allocator> global_descriptor_allocator_ = std::nullopt;
 	std::optional<VkDescriptorSet> draw_image_descriptors_ = std::nullopt;
 	std::optional<VkDescriptorSetLayout> draw_image_descriptor_layout_ = std::nullopt;
@@ -97,8 +98,6 @@ private:
 	std::optional<allocated_image> depth_image_;
 	VkExtent2D draw_extent_ = {};
 	float render_scale_ = 1.f;
-
-	std::optional <VkDescriptorSetLayout> single_image_descriptor_layout_;
 
 	// swapchain images
 	std::vector<VkImage> swap_chain_images_;

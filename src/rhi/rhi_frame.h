@@ -15,3 +15,21 @@ struct frame_data
 
 	std::optional<allocated_buffer> gpu_scene_buffer = std::nullopt;
 };
+
+namespace rh
+{
+	enum class result : std::uint8_t { ok, error };
+
+	struct rhi
+	{
+		VkDevice device;
+		std::optional<frame_data> frame_data = std::nullopt;
+		std::optional<rhi_buffer*> buffer = std::nullopt;
+		VkExtent2D frame_extent;
+	};
+
+	struct ctx
+	{
+		rhi rhi;
+	};
+}

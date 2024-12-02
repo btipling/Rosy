@@ -234,10 +234,6 @@ void rhi::deinit()
 	if (test_mesh_pipeline_.has_value()) {
 		test_mesh_pipeline_.value().deinit(opt_device.value());
 	}
-	if (single_image_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(opt_device.value(), single_image_descriptor_layout_.value(), nullptr);
-	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
 		vkDestroyDescriptorSetLayout(opt_device.value(), gpu_scene_data_descriptor_layout_.value(), nullptr);
@@ -974,19 +970,6 @@ VkResult rhi::init_descriptors()
 		frame_datas_[i].frame_descriptors = descriptor_allocator_growable{};
 		frame_datas_[i].frame_descriptors.value().init(device, 1000, frame_sizes);
 	}
-	{
-		descriptor_layout_builder builder;
-		builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		auto [result, set] = builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return result;
-		gpu_scene_data_descriptor_layout_ = set;
-	} {
-		descriptor_layout_builder builder;
-		builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		auto [result, set] = builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return result;
-		single_image_descriptor_layout_ = set;
-	}
 	return VK_SUCCESS;
 }
 
@@ -1116,26 +1099,6 @@ VkResult rhi::init_commands()
 
 VkResult rhi::init_graphics()
 {
-	std::vector<char> vert_shader_code;
-	std::vector<char> frag_shader_code;
-	try
-	{
-		vert_shader_code = read_file("out/vert.spv");
-		frag_shader_code = read_file("out/tex_image.frag.spv");
-	}
-	catch (const std::exception& e)
-	{
-		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
-		return VK_ERROR_FEATURE_NOT_PRESENT;
-	}
-
-	shader_pipeline sp = {};
-	sp.layouts = &single_image_descriptor_layout_.value();
-	sp.num_layouts = 1;
-	sp.name = "test";
-	sp.with_shaders(vert_shader_code, frag_shader_code);
-	if (const VkResult result = sp.build(opt_device.value()); result != VK_SUCCESS) return result;
-	test_mesh_pipeline_ = sp;
 	return VK_SUCCESS;
 }
 

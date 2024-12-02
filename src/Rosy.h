@@ -7,6 +7,7 @@
 #include "volk/volk.h"
 #include "vma/vk_mem_alloc.h"
 #include <optional>
+#include <expected>
 #include <vector>
 #include <span>
 #include <functional>
@@ -20,16 +21,5 @@
 
 namespace rh
 {
-	enum class result : std::uint8_t { ok, error };
-
-	struct rhi
-	{
-		VkDevice device;
-		std::optional<VkCommandBuffer> cmd = std::nullopt;
-	};
-
-	struct ctx
-	{
-		rhi rhi;
-	};
+	struct ctx;
 }

@@ -152,26 +152,32 @@ int main(int argc, char* argv[])
 					break;
 				}
 
-				const rh::rhi rhi_ctx = {
-					.device = renderer->opt_device.value(),
-				};
-				const rh::ctx ctx = {
-					.rhi = rhi_ctx,
-				};
-				if (!scene_loaded)
 				{
-					if (const auto scene_result = scene.build(ctx); scene_result != rh::result::ok)
+					rh::ctx ctx;
+					if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(); opt_ctx.has_value())
 					{
-				
-						rosy_utils::debug_print_a("scene build failed %d\n", result);
+						ctx = opt_ctx.value();
+					}
+					else
+					{
+						rosy_utils::debug_print_a("no available frame data\n");
+						should_run = false;
+						break;
+					}
+					if (!scene_loaded)
+					{
+						if (const auto scene_result = scene.build(ctx); scene_result != rh::result::ok)
+						{
+							rosy_utils::debug_print_a("scene build failed %d\n", result);
+							should_run = false;
+						}
+						scene_loaded = true;
+					}
+					if (const auto scene_result = scene.draw(ctx); scene_result != rh::result::ok)
+					{
+						rosy_utils::debug_print_a("scene draw failed %d\n", result);
 						should_run = false;
 					}
-					scene_loaded = true;
-				}
-				if (const auto scene_result = scene.draw(ctx); scene_result != rh::result::ok)
-				{
-					rosy_utils::debug_print_a("scene draw failed %d\n", result);
-					should_run = false;
 				}
 				ImGui::Render();
 			}
@@ -188,6 +194,16 @@ int main(int argc, char* argv[])
 				break;
 			}
 		}
+	}
+	rh::rhi rhi_ctx = {
+		.device = renderer->opt_device.value(),
+	};
+	const rh::ctx ctx = {
+		.rhi = rhi_ctx,
+	};
+	if (scene.deinit(ctx) == rh::result::error)
+	{
+		rosy_utils::debug_print_a("scene deinit failed\n");
 	}
 	renderer->deinit();
 	{
