@@ -34,7 +34,7 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 			rosy_utils::debug_print_a("resizing-event: rhi failed to resize swapchain %d\n", result);
 			return false;
 		}
-		result = renderer->draw_frame();
+		result = renderer->begin_frame();
 		if (result != VK_SUCCESS) {
 			rosy_utils::debug_print_a("resizing-event: rhi draw failed %d\n", result);
 			return false;
@@ -151,42 +151,93 @@ int main(int argc, char* argv[])
 					should_run = false;
 					break;
 				}
-
-				const rh::rhi rhi_ctx = {
-					.device = renderer->opt_device.value(),
-				};
-				const rh::ctx ctx = {
-					.rhi = rhi_ctx,
-				};
-				if (!scene_loaded)
 				{
-					if (const auto scene_result = scene.build(ctx); scene_result != rh::result::ok)
+					rh::ctx ctx;
+					if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(); opt_ctx.has_value())
 					{
-				
-						rosy_utils::debug_print_a("scene build failed %d\n", result);
+						ctx = opt_ctx.value();
+					}
+					else
+					{
+						rosy_utils::debug_print_a("no available frame data\n");
+						should_run = false;
+						break;
+					}
+					if (const auto scene_result = scene.draw_ui(ctx); scene_result != rh::result::ok)
+					{
+						rosy_utils::debug_print_a("scene ui draw failed %d\n", result);
 						should_run = false;
 					}
-					scene_loaded = true;
-				}
-				if (const auto scene_result = scene.draw(ctx); scene_result != rh::result::ok)
-				{
-					rosy_utils::debug_print_a("scene draw failed %d\n", result);
-					should_run = false;
 				}
 				ImGui::Render();
-			}
 
-			result = renderer->draw_frame();
-			if (result != VK_SUCCESS) {
-				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-					rosy_utils::debug_print_a("swapchain out of date\n");
-					resize_requested = true;
+
+				result = renderer->begin_frame();
+				if (result != VK_SUCCESS) {
+					if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+						rosy_utils::debug_print_a("swapchain out of date\n");
+						resize_requested = true;
+						break;
+					}
+					rosy_utils::debug_print_a("rhi draw failed %d\n", result);
+					should_run = false;
 					break;
 				}
-				rosy_utils::debug_print_a("rhi draw failed %d\n", result);
-				should_run = false;
-				break;
+				{
+					rh::ctx ctx;
+					if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(); opt_ctx.has_value())
+					{
+						ctx = opt_ctx.value();
+					}
+					else
+					{
+						rosy_utils::debug_print_a("no available frame data\n");
+						should_run = false;
+						break;
+					}
+					if (!scene_loaded)
+					{
+						if (const auto scene_result = scene.build(ctx); scene_result != rh::result::ok)
+						{
+							rosy_utils::debug_print_a("scene build failed %d\n", result);
+							should_run = false;
+						}
+						scene_loaded = true;
+					}
+					if (const auto scene_result = scene.draw(ctx); scene_result != rh::result::ok)
+					{
+						rosy_utils::debug_print_a("scene draw failed %d\n", result);
+						should_run = false;
+					}
+				}
+
+				result = renderer->end_frame();
+				if (result != VK_SUCCESS) {
+					if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+						rosy_utils::debug_print_a("swapchain out of date\n");
+						resize_requested = true;
+						break;
+					}
+					rosy_utils::debug_print_a("rhi draw failed %d\n", result);
+					should_run = false;
+					break;
+				}
 			}
+		}
+	}
+	{
+		rh::ctx ctx;
+		if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(); opt_ctx.has_value())
+		{
+			ctx = opt_ctx.value();
+		}
+		else
+		{
+			rosy_utils::debug_print_a("no available frame data\n");
+		}
+		if (scene.deinit(ctx) == rh::result::error)
+		{
+			rosy_utils::debug_print_a("scene deinit failed\n");
 		}
 	}
 	renderer->deinit();

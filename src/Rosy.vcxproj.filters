@@ -134,9 +134,6 @@
     <ClCompile Include="scene\scene_one\scene_one.cpp">
       <Filter>scene\scene_one</Filter>
     </ClCompile>
-    <ClCompile Include="rhi\rhi_buffer.cpp">
-      <Filter>rhi</Filter>
-    </ClCompile>
     <ClCompile Include="rhi\rhi_cmd.cpp">
       <Filter>rhi</Filter>
     </ClCompile>
@@ -153,9 +150,6 @@
       <Filter>rhi</Filter>
     </ClCompile>
     <ClCompile Include="rhi\rhi_shader.cpp">
-      <Filter>rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_textures.cpp">
       <Filter>rhi</Filter>
     </ClCompile>
     <ClCompile Include="rhi\rhi_ui.cpp">
@@ -184,6 +178,9 @@
     </ClCompile>
     <ClCompile Include="lib\imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="rhi\rhi_data.cpp">
+      <Filter>rhi</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

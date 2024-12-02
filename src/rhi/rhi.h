@@ -11,14 +11,20 @@ public:
 	VkResult init(SDL_Window* window);
 	VkResult resize_swapchain(SDL_Window* window);
 	void deinit();
+	VkResult begin_frame();
+	VkResult end_frame();
 	VkResult draw_ui();
-	VkResult draw_frame();
 	// Buffer read write
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
+	// Rendering
+	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
+		VkImageLayout new_layout);
+	std::expected<rh::ctx, VkResult> current_frame_data();
 	gpu_scene_data scene_data;
 	std::optional<VkDevice> opt_device = std::nullopt;
 	std::optional<VmaAllocator> opt_allocator = std::nullopt;
-	std::optional<std::unique_ptr<rhi_buffer>> buffer;
+	std::optional<std::unique_ptr<rhi_data>> buffer;
+	VkExtent2D swapchain_extent_ = {};
 	void debug() const;
 	~rhi();
 
@@ -46,59 +52,27 @@ private:
 	VkPresentModeKHR swapchain_present_mode_ = {};
 	uint32_t swap_chain_image_count_ = 0;
 	swap_chain_support_details swapchain_details_ = {};
-	VkExtent2D swapchain_extent_ = {};
 	std::optional<descriptor_allocator> global_descriptor_allocator_ = std::nullopt;
 	std::optional<VkDescriptorSet> draw_image_descriptors_ = std::nullopt;
 	std::optional<VkDescriptorSetLayout> draw_image_descriptor_layout_ = std::nullopt;
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
-
-	// textures
-	allocated_image_result create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-	                                    bool mip_mapped = false) const;
-	allocated_image_result create_image(const void* data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-	                                    bool mip_mapped = false);
-	void destroy_image(const allocated_image& img) const;
 
 	// immediate submits
 	std::optional<VkFence> imm_fence_;
 	std::optional<VkCommandBuffer> imm_command_buffer_;
 	std::optional<VkCommandPool> imm_command_pool_;
 
-	// test meshes
-	std::optional<shader_pipeline> test_mesh_pipeline_ = std::nullopt;
-	float model_rot_x_ = 0.0f;
-	float model_rot_y_ = 0.0f;
-	float model_rot_z_ = 0.0f;
-	float model_x_ = 0.0f;
-	float model_y_ = 0.0f;
-	float model_z_ = -15.0f;
-	float model_scale_ = 1.0f;
-	bool toggle_wire_frame_ = false;
-	int blend_mode_ = 0;
-
-	std::vector<std::shared_ptr<mesh_asset>> test_meshes_;
-
-	// test textures
-	std::optional<allocated_image> white_image_ = std::nullopt;
-	std::optional<allocated_image> black_image_ = std::nullopt;
-	std::optional<allocated_image> grey_image_ = std::nullopt;
-	std::optional<allocated_image> error_checkerboard_image_ = std::nullopt;
-
-	std::optional<VkSampler> default_sampler_linear_ = std::nullopt;
-	std::optional<VkSampler> default_sampler_nearest_ = std::nullopt;
-
 	// ui
 	std::optional<VkDescriptorPool> ui_pool_ = std::nullopt;
 
 	size_t current_frame_ = 0;
+	uint32_t current_swapchain_image_index_ = 0;
 
 	// main draw image
 	std::optional<allocated_image> draw_image_;
 	std::optional<allocated_image> depth_image_;
 	VkExtent2D draw_extent_ = {};
 	float render_scale_ = 1.f;
-
-	std::optional <VkDescriptorSetLayout> single_image_descriptor_layout_;
 
 	// swapchain images
 	std::vector<VkImage> swap_chain_images_;
@@ -123,17 +97,12 @@ private:
 	VkResult create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain);
 	VkResult init_draw_image();
 	VkResult init_descriptors();
-	VkResult init_graphics();
 	VkResult init_command_pool();
 	VkResult init_command_buffers();
 	VkResult init_sync_objects();
 	VkResult init_commands();
-	VkResult init_default_data();
 	VkResult init_buffer();
 
-	// Rendering
-	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
-	                             VkImageLayout new_layout);
 	VkResult render_frame();
 
 	// Utils

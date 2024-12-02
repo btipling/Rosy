@@ -1,5 +1,6 @@
 #include "rhi.h"
 
+
 void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
 	const VkImageLayout new_layout)
 {
@@ -31,7 +32,33 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 	vkCmdPipelineBarrier2(cmd, &dependency_info);
 }
 
-VkResult rhi::render_frame()
+VkResult rhi::draw_ui()
+{
+	return VK_SUCCESS;
+}
+
+std::expected<rh::ctx, VkResult> rhi::current_frame_data()
+{
+	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
+	rh::rhi rhi_ctx = {
+		.device = opt_device.value(),
+		.allocator = opt_allocator.value(),
+		.frame_extent = swapchain_extent_,
+	};
+	if (frame_datas_.size() > 0) {
+		rhi_ctx.frame_data = frame_datas_[current_frame_];
+	}
+	if (buffer.has_value())
+	{
+		rhi_ctx.data = buffer.value().get();
+	}
+	const rh::ctx ctx = {
+		.rhi = rhi_ctx,
+	};
+	return ctx;
+}
+
+VkResult rhi::begin_frame()
 {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
 		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
@@ -49,7 +76,6 @@ VkResult rhi::render_frame()
 	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
 	VkFence fence = opt_in_flight_fence.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
-	shader_pipeline shaders = test_mesh_pipeline_.value();
 
 	VkResult result;
 	VkDevice device = opt_device.value();
@@ -66,6 +92,7 @@ VkResult rhi::render_frame()
 		&image_index);
 	VkImage image = swap_chain_images_[image_index];
 	VkImageView image_view = swap_chain_image_views_[image_index];
+	current_swapchain_image_index_ = image_index;
 
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depth_image = depth_image_.value();
@@ -114,98 +141,44 @@ VkResult rhi::render_frame()
 		}
 	}
 	{
-		// meshes
-		{
-			//allocate a new uniform buffer for the scene data
-			auto [result, created_buffer] = buffer.value()->create_buffer(sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VMA_MEMORY_USAGE_AUTO);
-			if (result != VK_SUCCESS) return result;
-			allocated_buffer gpu_scene_buffer = created_buffer;
-			frame_datas_[current_frame_].gpu_scene_buffer = gpu_scene_buffer;
+		//allocate a new uniform data for the scene data
+		auto [result, created_buffer] = buffer.value()->create_buffer(sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VMA_MEMORY_USAGE_AUTO);
+		if (result != VK_SUCCESS) return result;
+		allocated_buffer gpu_scene_buffer = created_buffer;
+		frame_datas_[current_frame_].gpu_scene_buffer = gpu_scene_buffer;
 
-			// bind a texture
-			auto [image_set_result, image_set] = frame_descriptors.allocate(device, single_image_descriptor_layout_.value());
-			if (image_set_result != VK_SUCCESS) return result;
-			{
-				descriptor_writer writer;
-				writer.write_image(0, error_checkerboard_image_->image_view, default_sampler_nearest_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-
-				writer.update_set(device, image_set);
-			}
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shaders.pipeline_layout.value(), 0, 1, &image_set, 0, nullptr);
-
-			//create a descriptor set that binds that buffer and update it
-			auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
-			if (desc_result != VK_SUCCESS) return desc_result;
-			VkDescriptorSet global_descriptor = desc_set;
-
-			descriptor_writer writer;
-			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, global_descriptor);
-
-			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("meshes", color);
-			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
-			
-
-			gpu_draw_push_constants push_constants;
-			auto m = glm::mat4(1.0f);
-
-			auto camera_pos = glm::vec3(0.0f, 0.0f, -10.0f);
-			auto camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
-			auto camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
-
-			glm::mat4 view = lookAt(camera_pos, camera_target, camera_up);
-
-			m = translate(m, glm::vec3{ model_x_, model_y_, model_z_ });
-			m = rotate(m, model_rot_x_, glm::vec3(1, 0, 0));
-			m = rotate(m, model_rot_y_, glm::vec3(0, 1, 0));
-			m = rotate(m, model_rot_z_, glm::vec3(0, 0, 1));
-			m = scale(m, glm::vec3(model_scale_, model_scale_, model_scale_));
-
-			float z_near = 0.1f;
-			float z_far = 1000.0f;
-			float aspect = static_cast<float>(draw_extent_.width) / static_cast<float>(draw_extent_.height);
-			constexpr float fov = glm::radians(70.0f);
-			float h = 1.0 / tan(fov * 0.5);
-			float w = h / aspect;
-			float a = -z_near / (z_far - z_near);
-			float b = (z_near * z_far) / (z_far - z_near);
-
-			glm::mat4 proj(0.0f);
-
-			proj[0][0] = w;
-			proj[1][1] = -h;
-
-			proj[2][2] = a;
-			proj[3][2] = b;
-			proj[2][3] = 1.0f;
-			push_constants.world_matrix = proj * view * m;
-
-			if (test_meshes_.size() > 0)
-			{
-				size_t mesh_index = 1;
-				auto mesh = test_meshes_[mesh_index];
-				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
-				shaders.viewport_extent = swapchain_extent_;
-				shaders.shader_constants = &push_constants;
-				shaders.shader_constants_size = sizeof(push_constants);
-				shaders.wire_frames_enabled = toggle_wire_frame_;
-				shaders.depth_enabled = true;
-				shaders.blending = static_cast<shader_blending>(blend_mode_);
-				result = shaders.shade(cmd);
-				if (result != VK_SUCCESS) return result;
-				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
-					0, 0);
-			}
-
-			vkCmdEndDebugUtilsLabelEXT(cmd);
-		}
 	}
 
+	return VK_SUCCESS;
+}
+
+
+VkResult rhi::end_frame()
+{
+	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
+		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
 	{
+		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
+		if (!opt_command_pool.has_value()) return VK_NOT_READY;
+	}
+
+	VkCommandBuffer cmd = opt_command_buffers.value();
+	VkSemaphore image_available = opt_image_available_semaphores.value();
+	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
+	VkFence fence = opt_in_flight_fence.value();
+	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
+	uint32_t image_index = current_swapchain_image_index_;
+	VkImage image = swap_chain_images_[image_index];
+	VkImageView image_view = swap_chain_image_views_[image_index];
+	current_swapchain_image_index_ = image_index;
+
+	allocated_image draw_image = draw_image_.value();
+	{
+		VkResult result;
 		// end app rendering
 		vkCmdEndRendering(cmd);
 		{
@@ -260,9 +233,9 @@ VkResult rhi::render_frame()
 			// To state again, wait semaphores means the submit waits for the semaphore in wait info to be signaled before it begins
 			// in this case we're waiting for the image we requested at the beginning of render frame to be available.
 			// What we have to remember is that up until this point we've only *recorded* the commands we want to execute
-			// on to the command buffer. This submit will actually start the process of telling the GPU to do the commands.
+			// on to the command data. This submit will actually start the process of telling the GPU to do the commands.
 			// None of that has happened yet. We're declaring future work there. Up until this point the only actual work we've done
-			// is request an image and record commands we want to perform unto the command buffer.
+			// is request an image and record commands we want to perform unto the command data.
 			// vkAcquireNextImageKHR will signal `imageAvailable` when done, `imageAvailable` is the semaphore in wait_info
 			submit_info.waitSemaphoreInfoCount = 1;
 			submit_info.pWaitSemaphoreInfos = &wait_info;

@@ -121,12 +121,6 @@ VkResult rhi::init(SDL_Window* window)
 		rosy_utils::debug_print_w(L"Failed to init draw descriptors! %d\n", result);
 		return result;
 	}
-	result = this->init_graphics();
-	if (result != VK_SUCCESS)
-	{
-		rosy_utils::debug_print_w(L"Failed to init graphics! %d\n", result);
-		return result;
-	}
 	result = this->init_command_pool();
 	if (result != VK_SUCCESS)
 	{
@@ -160,13 +154,7 @@ VkResult rhi::init(SDL_Window* window)
 	result = this->init_buffer();
 	if (result != VK_SUCCESS)
 	{
-		rosy_utils::debug_print_w(L"Failed to init buffer! %d\n", result);
-		return result;
-	}
-	result = this->init_default_data();
-	if (result != VK_SUCCESS)
-	{
-		rosy_utils::debug_print_w(L"Failed to init default data! %d\n", result);
+		rosy_utils::debug_print_w(L"Failed to init data! %d\n", result);
 		return result;
 	}
 	return VK_SUCCESS;
@@ -186,23 +174,6 @@ void rhi::deinit()
 
 	// Deinit begin in the reverse order from how it was created.
 	deinit_ui();
-	{
-		if (default_sampler_nearest_.has_value()) vkDestroySampler(opt_device.value(), default_sampler_nearest_.value(), nullptr);
-		if (default_sampler_linear_.has_value()) vkDestroySampler(opt_device.value(), default_sampler_linear_.value(), nullptr);
-
-		if (white_image_.has_value()) destroy_image(white_image_.value());
-		if (grey_image_.has_value()) destroy_image(grey_image_.value());
-		if (black_image_.has_value()) destroy_image(black_image_.value());
-		if (error_checkerboard_image_.has_value()) destroy_image(error_checkerboard_image_.value());
-	}
-
-	for (std::shared_ptr<mesh_asset> mesh : test_meshes_)
-	{
-		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
-		buffer.value()->destroy_buffer(rectangle.vertex_buffer);
-		buffer.value()->destroy_buffer(rectangle.index_buffer);
-		mesh.reset();
-	}
 
 	if (imm_fence_.has_value())
 	{
@@ -230,13 +201,6 @@ void rhi::deinit()
 			fd.frame_descriptors.value().destroy_pools(device);
 		}
 		if (fd.gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(fd.gpu_scene_buffer.value());
-	}
-	if (test_mesh_pipeline_.has_value()) {
-		test_mesh_pipeline_.value().deinit(opt_device.value());
-	}
-	if (single_image_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(opt_device.value(), single_image_descriptor_layout_.value(), nullptr);
 	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
@@ -314,17 +278,6 @@ VkResult rhi::resize_swapchain(SDL_Window* window)
 	vkDeviceWaitIdle(opt_device.value());
 	destroy_swapchain();
 	return create_swapchain(window, VK_NULL_HANDLE);
-}
-
-VkResult rhi::draw_frame()
-{
-	VkResult result = this->render_frame();
-	if (result != VK_SUCCESS)
-	{
-		rosy_utils::debug_print_w(L"Failed to record command buffer! %d\n", result);
-		return result;
-	}
-	return VK_SUCCESS;
 }
 
 VkResult rhi::query_instance_layers()
@@ -569,7 +522,7 @@ VkResult rhi::init_physical_device()
 		if (!buffer_device_address_features.bufferDeviceAddress) continue;
 
 
-		// buffer device address required
+		// data device address required
 		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_features = {};
 		dynamic_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
 		dynamic_rendering_features.pNext = nullptr;
@@ -974,19 +927,6 @@ VkResult rhi::init_descriptors()
 		frame_datas_[i].frame_descriptors = descriptor_allocator_growable{};
 		frame_datas_[i].frame_descriptors.value().init(device, 1000, frame_sizes);
 	}
-	{
-		descriptor_layout_builder builder;
-		builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		auto [result, set] = builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return result;
-		gpu_scene_data_descriptor_layout_ = set;
-	} {
-		descriptor_layout_builder builder;
-		builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		auto [result, set] = builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return result;
-		single_image_descriptor_layout_ = set;
-	}
 	return VK_SUCCESS;
 }
 
@@ -1099,7 +1039,7 @@ VkResult rhi::init_commands()
 	if (result != VK_SUCCESS) return result;
 	imm_command_pool_ = command_pool;
 
-	// allocate the command buffer for immediate submits
+	// allocate the command data for immediate submits
 	VkCommandBufferAllocateInfo alloc_info{};
 	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	alloc_info.commandPool = imm_command_pool_.value();
@@ -1114,107 +1054,8 @@ VkResult rhi::init_commands()
 	return VK_SUCCESS;
 }
 
-VkResult rhi::init_graphics()
-{
-	std::vector<char> vert_shader_code;
-	std::vector<char> frag_shader_code;
-	try
-	{
-		vert_shader_code = read_file("out/vert.spv");
-		frag_shader_code = read_file("out/tex_image.frag.spv");
-	}
-	catch (const std::exception& e)
-	{
-		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
-		return VK_ERROR_FEATURE_NOT_PRESENT;
-	}
-
-	shader_pipeline sp = {};
-	sp.layouts = &single_image_descriptor_layout_.value();
-	sp.num_layouts = 1;
-	sp.name = "test";
-	sp.with_shaders(vert_shader_code, frag_shader_code);
-	if (const VkResult result = sp.build(opt_device.value()); result != VK_SUCCESS) return result;
-	test_mesh_pipeline_ = sp;
-	return VK_SUCCESS;
-}
-
-VkResult rhi::init_default_data()
-{
-	// ReSharper disable once StringLiteralTypo
-	if (auto load_result = buffer.value()->load_gltf_meshes("assets\\basicmesh.glb"); load_result.has_value())
-	{
-		test_meshes_ = load_result.value();
-	} else
-	{
-		return VK_ERROR_UNKNOWN;
-	}
-
-
-	const uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
-	const uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
-	const uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
-	const uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
-
-	{
-		auto [result, image] = create_image((void*)&white, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_SAMPLED_BIT);
-		if (result != VK_SUCCESS) return result;
-		white_image_ = image;
-	}
-	{
-		auto [result, image] = create_image((void*)&grey, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_SAMPLED_BIT);
-		if (result != VK_SUCCESS) return result;
-		grey_image_ = image;
-	}
-	{
-		auto [result, image] = create_image((void*)&black, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_SAMPLED_BIT);
-		if (result != VK_SUCCESS) return result;
-		black_image_ = image;
-	}
-	{
-		//checkerboard image
-		constexpr size_t image_dimensions = static_cast<size_t>(16) * 16;
-		std::array<uint32_t, image_dimensions > pixels;
-		for (int x = 0; x < 16; x++) {
-			for (int y = 0; y < 16; y++) {
-				pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
-			}
-		}
-		auto [result, image] = create_image(pixels.data(), VkExtent3D{ 16, 16, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_SAMPLED_BIT);
-		if (result != VK_SUCCESS) return result;
-		error_checkerboard_image_ = image;
-
-	}
-
-	const VkDevice device = opt_device.value();
-	{
-		VkSamplerCreateInfo sample = {};
-		sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		sample.magFilter = VK_FILTER_NEAREST;
-		sample.minFilter = VK_FILTER_NEAREST;
-		VkSampler sampler;
-		vkCreateSampler(device, &sample, nullptr, &sampler);
-		default_sampler_nearest_ = sampler;
-	}
-	{
-		VkSamplerCreateInfo sample = {};
-		sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		sample.magFilter = VK_FILTER_LINEAR;
-		sample.minFilter = VK_FILTER_LINEAR;
-		VkSampler sampler;
-		vkCreateSampler(device, &sample, nullptr, &sampler);
-		default_sampler_linear_ = sampler;
-	}
-
-	return VK_SUCCESS;
-}
-
 VkResult rhi::init_buffer()
 {
-	buffer = std::unique_ptr<rhi_buffer>(new rhi_buffer{this});
+	buffer = std::unique_ptr<rhi_data>(new rhi_data{this});
 	return VK_SUCCESS;
 }
