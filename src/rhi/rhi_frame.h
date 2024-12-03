@@ -27,6 +27,7 @@ namespace rh
 		std::optional<frame_data> frame_data = std::nullopt;
 		std::optional<rhi_data*> data = std::nullopt;
 		VkExtent2D frame_extent;
+		std::optional <descriptor_allocator> global_descriptor_allocator;
 	};
 
 	struct ctx

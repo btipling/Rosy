@@ -9,17 +9,18 @@ rh::result scene_one::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
 	auto data = ctx.rhi.data.value();
+	descriptor_allocator global_descriptor_allocator = ctx.rhi.global_descriptor_allocator.value();
 	{
-		descriptor_layout_builder builder;
-		builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		auto [result, set] = builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		descriptor_layout_builder layout_builder;
+		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return rh::result::error;
 		gpu_scene_data_descriptor_layout_ = set;
 	}
 	{
-		descriptor_layout_builder builder;
-		builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		auto [result, set] = builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
+		descriptor_layout_builder layout_builder;
+		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return rh::result::error;
 		single_image_descriptor_layout_ = set;
 	}
@@ -55,30 +56,9 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		return rh::result::error;
 	}
 
-
-	const uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
-	const uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
 	const uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
 	const uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
 
-	{
-		auto [result, image] = data->create_image((void*)&white, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_SAMPLED_BIT, false);
-		if (result != VK_SUCCESS) return rh::result::error;
-		white_image_ = image;
-	}
-	{
-		auto [result, image] = data->create_image((void*)&grey, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_SAMPLED_BIT, false);
-		if (result != VK_SUCCESS) return rh::result::error;
-		grey_image_ = image;
-	}
-	{
-		auto [result, image] = data->create_image((void*)&black, VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_SAMPLED_BIT, false);
-		if (result != VK_SUCCESS) return rh::result::error;
-		black_image_ = image;
-	}
 	{
 		//checkerboard image
 		constexpr size_t image_dimensions = static_cast<size_t>(16) * 16;
@@ -103,13 +83,14 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		default_sampler_nearest_ = sampler;
 	}
 	{
-		VkSamplerCreateInfo sample = {};
-		sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		sample.magFilter = VK_FILTER_LINEAR;
-		sample.minFilter = VK_FILTER_LINEAR;
-		VkSampler sampler;
-		if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
-		default_sampler_linear_ = sampler;
+		auto [image_set_result, image_set] = global_descriptor_allocator.allocate(device, single_image_descriptor_layout_.value());
+		if (image_set_result != VK_SUCCESS) return  rh::result::error;
+		{
+			descriptor_writer writer;
+			writer.write_image(0, error_checkerboard_image_->image_view, default_sampler_nearest_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+			writer.update_set(device, image_set);
+			sphere_image_descriptor_set_ = image_set;
+		}
 	}
 
 	return rh::result::ok;
@@ -131,21 +112,14 @@ rh::result scene_one::draw(rh::ctx ctx)
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
 	shader_pipeline shaders = test_mesh_pipeline_.value();
-	auto frame_extent = ctx.rhi.frame_extent;
+	VkExtent2D frame_extent = ctx.rhi.frame_extent;
+	VkDescriptorSet sphere_image_set = sphere_image_descriptor_set_.value();
 	{
 		// meshes
 		{
 	
 			// bind a texture
-			auto [image_set_result, image_set] = frame_descriptors.allocate(device, single_image_descriptor_layout_.value());
-			if (image_set_result != VK_SUCCESS) return  rh::result::error;
-			{
-				descriptor_writer writer;
-				writer.write_image(0, error_checkerboard_image_->image_view, default_sampler_nearest_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	
-				writer.update_set(device, image_set);
-			}
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shaders.pipeline_layout.value(), 0, 1, &image_set, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shaders.pipeline_layout.value(), 0, 1, &sphere_image_set, 0, nullptr);
 	
 			//create a descriptor set that binds that data and update it
 			auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
@@ -244,11 +218,11 @@ rh::result scene_one::deinit(const rh::ctx& ctx) const
 		vkDeviceWaitIdle(device);
 	}
 	{
+		if (ctx.rhi.global_descriptor_allocator.has_value())
+		{
+			ctx.rhi.global_descriptor_allocator.value().clear_descriptors(device);
+		}
 		if (default_sampler_nearest_.has_value()) vkDestroySampler(device, default_sampler_nearest_.value(), nullptr);
-		if (default_sampler_linear_.has_value()) vkDestroySampler(device, default_sampler_linear_.value(), nullptr);
-
-		if (white_image_.has_value()) buffer->destroy_image(white_image_.value());
-		if (grey_image_.has_value())  buffer->destroy_image(grey_image_.value());
 		if (black_image_.has_value())  buffer->destroy_image(black_image_.value());
 		if (error_checkerboard_image_.has_value())  buffer->destroy_image(error_checkerboard_image_.value());
 	}

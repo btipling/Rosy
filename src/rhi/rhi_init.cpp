@@ -206,10 +206,6 @@ void rhi::deinit()
 	{
 		vkDestroyDescriptorSetLayout(opt_device.value(), gpu_scene_data_descriptor_layout_.value(), nullptr);
 	}
-	if (draw_image_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(opt_device.value(), draw_image_descriptor_layout_.value(), nullptr);
-	}
 	if (global_descriptor_allocator_.has_value())
 	{
 		global_descriptor_allocator_.value().destroy_pool(opt_device.value());
@@ -894,26 +890,7 @@ VkResult rhi::init_descriptors()
 		descriptor_allocator allocator = {};
 		allocator.init_pool(device, 10, sizes);
 		global_descriptor_allocator_ = allocator;
-		descriptor_layout_builder builder;
-		builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-		const auto [result, set] = builder.build(device, VK_SHADER_STAGE_COMPUTE_BIT);
-		if (result != VK_SUCCESS)
-		{
-			return result;
-		}
-		draw_image_descriptor_layout_ = set;
 	}
-	{
-		const auto [result, set] = global_descriptor_allocator_.value().allocate(
-			device, draw_image_descriptor_layout_.value());
-		draw_image_descriptors_ = set;
-	}
-
-	const VkDescriptorImageInfo img_info = rhi_helpers::create_img_descriptor_info(draw_image_.value().image_view);
-
-	VkWriteDescriptorSet draw_image_write;
-	draw_image_write = rhi_helpers::create_img_write_descriptor_set(draw_image_descriptors_.value(), 0, img_info);
-	vkUpdateDescriptorSets(device, 1, &draw_image_write, 0, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{

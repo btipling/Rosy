@@ -15,12 +15,10 @@ private:
 	std::optional<shader_pipeline> test_mesh_pipeline_ = std::nullopt;
 	std::vector<std::shared_ptr<mesh_asset>> test_meshes_;
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
-	std::optional<allocated_image> white_image_ = std::nullopt;
 	std::optional<allocated_image> black_image_ = std::nullopt;
-	std::optional<allocated_image> grey_image_ = std::nullopt;
 	std::optional<allocated_image> error_checkerboard_image_ = std::nullopt;
-	std::optional<VkSampler> default_sampler_linear_ = std::nullopt;
 	std::optional<VkSampler> default_sampler_nearest_ = std::nullopt;
+	std::optional <VkDescriptorSet> sphere_image_descriptor_set_ = std::nullopt;
 	float model_rot_x_ = 0.0f;
 	float model_rot_y_ = 0.0f;
 	float model_rot_z_ = 0.0f;
