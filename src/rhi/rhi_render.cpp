@@ -54,7 +54,7 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data()
 	}
 	if (global_descriptor_allocator_.has_value())
 	{
-		rhi_ctx.global_descriptor_allocator = global_descriptor_allocator_;
+		rhi_ctx.descriptor_allocator = scene_descriptor_allocator;
 	}
 	const rh::ctx ctx = {
 		.rhi = rhi_ctx,

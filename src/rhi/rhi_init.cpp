@@ -187,7 +187,7 @@ void rhi::deinit()
 
 	for (frame_data fd : frame_datas_)
 	{
-		VkDevice device = opt_device.value();
+		const VkDevice device = opt_device.value();
 		if (fd.in_flight_fence.has_value()) vkDestroyFence(device, fd.in_flight_fence.value(), nullptr);
 		if (fd.image_available_semaphore.has_value())
 			vkDestroySemaphore(
@@ -197,7 +197,6 @@ void rhi::deinit()
 				device, fd.render_finished_semaphore.value(), nullptr);
 		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
 		if (fd.frame_descriptors.has_value()) {
-			rosy_utils::debug_print_a("destroying pools?\n");
 			fd.frame_descriptors.value().destroy_pools(device);
 		}
 		if (fd.gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(fd.gpu_scene_buffer.value());
@@ -205,6 +204,10 @@ void rhi::deinit()
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
 		vkDestroyDescriptorSetLayout(opt_device.value(), gpu_scene_data_descriptor_layout_.value(), nullptr);
+	}
+	if (scene_descriptor_allocator.has_value())
+	{
+		scene_descriptor_allocator.value().destroy_pools(opt_device.value());
 	}
 	if (global_descriptor_allocator_.has_value())
 	{
@@ -881,7 +884,9 @@ VkResult rhi::init_draw_image()
 VkResult rhi::init_descriptors()
 {
 	std::vector<descriptor_allocator::pool_size_ratio> sizes = {
-		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3 },
 	};
 
 	const VkDevice device = opt_device.value();
@@ -903,6 +908,16 @@ VkResult rhi::init_descriptors()
 
 		frame_datas_[i].frame_descriptors = descriptor_allocator_growable{};
 		frame_datas_[i].frame_descriptors.value().init(device, 1000, frame_sizes);
+	}
+	{
+		std::vector<descriptor_allocator_growable::pool_size_ratio> scene_sizes = {
+			{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
+			{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
+			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
+			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
+		};
+		scene_descriptor_allocator = descriptor_allocator_growable{};
+		scene_descriptor_allocator.value().init(device, 1000, scene_sizes);
 	}
 	return VK_SUCCESS;
 }

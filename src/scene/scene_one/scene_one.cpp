@@ -9,7 +9,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
 	auto data = ctx.rhi.data.value();
-	descriptor_allocator global_descriptor_allocator = ctx.rhi.global_descriptor_allocator.value();
+	descriptor_allocator_growable descriptor_allocator = ctx.rhi.descriptor_allocator.value();
 	{
 		descriptor_layout_builder layout_builder;
 		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
@@ -83,7 +83,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		default_sampler_nearest_ = sampler;
 	}
 	{
-		auto [image_set_result, image_set] = global_descriptor_allocator.allocate(device, single_image_descriptor_layout_.value());
+		auto [image_set_result, image_set] = descriptor_allocator.allocate(device, single_image_descriptor_layout_.value());
 		if (image_set_result != VK_SUCCESS) return  rh::result::error;
 		{
 			descriptor_writer writer;
@@ -210,17 +210,17 @@ rh::result scene_one::draw_ui(const rh::ctx& ctx) {
 	return rh::result::ok;
 }
 
-rh::result scene_one::deinit(const rh::ctx& ctx) const
+rh::result scene_one::deinit(rh::ctx& ctx) const
 {
 	const VkDevice device = ctx.rhi.device;
-	auto buffer = ctx.rhi.data.value();
+	const auto buffer = ctx.rhi.data.value();
 	{
 		vkDeviceWaitIdle(device);
 	}
 	{
-		if (ctx.rhi.global_descriptor_allocator.has_value())
+		if (ctx.rhi.descriptor_allocator.has_value())
 		{
-			ctx.rhi.global_descriptor_allocator.value().clear_descriptors(device);
+			ctx.rhi.descriptor_allocator.value().clear_pools(device);
 		}
 		if (default_sampler_nearest_.has_value()) vkDestroySampler(device, default_sampler_nearest_.value(), nullptr);
 		if (black_image_.has_value())  buffer->destroy_image(black_image_.value());

@@ -25,7 +25,7 @@ public:
 	std::optional<VmaAllocator> opt_allocator = std::nullopt;
 	std::optional<std::unique_ptr<rhi_data>> buffer;
 	VkExtent2D swapchain_extent_ = {};
-	std::optional<descriptor_allocator> global_descriptor_allocator_ = std::nullopt;
+	std::optional<descriptor_allocator_growable> scene_descriptor_allocator = std::nullopt;
 	void debug() const;
 	~rhi();
 
@@ -53,6 +53,7 @@ private:
 	VkPresentModeKHR swapchain_present_mode_ = {};
 	uint32_t swap_chain_image_count_ = 0;
 	swap_chain_support_details swapchain_details_ = {};
+	std::optional<descriptor_allocator> global_descriptor_allocator_ = std::nullopt;
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 
 	// immediate submits

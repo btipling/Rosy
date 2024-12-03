@@ -9,7 +9,7 @@ public:
 	rh::result build(const rh::ctx& ctx);
 	rh::result draw(rh::ctx ctx);
 	rh::result draw_ui(const rh::ctx& ctx);
-	rh::result deinit(const rh::ctx& ctx) const;
+	rh::result deinit(rh::ctx& ctx) const;
 private:
 	std::optional <VkDescriptorSetLayout> single_image_descriptor_layout_;
 	std::optional<shader_pipeline> test_mesh_pipeline_ = std::nullopt;
