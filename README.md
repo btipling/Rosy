@@ -1,5 +1,16 @@
 # Rosy
 
+## Building
+This hobby project won't build for anyone else but me and my PC and laptop.
+
+[SDL3](https://github.com/libsdl-org/SDL) dll and lib needed
+[KTX](https://github.com/KhronosGroup/KTX-Software/tree/main) dll and lib needed
+[vcpkg](https://vcpkg.io/en/) and vcpkg install needed
+
+Assets are not included in the repository and the application will immediately halt without them.
+
+This application is hard coded to run on an Nvidia GPU and Windows 11.
+
 ## TODO
 * [ ] config for physical device to use
 * [ ] bindless resources https://henriquegois.dev/posts/bindless-resources-in-vulkan/
