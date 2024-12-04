@@ -110,12 +110,6 @@ struct vulkan_ctx
 
 class rhi;
 
-namespace dds
-{
-	// ReSharper disable once CppInconsistentNaming
-	struct Image;
-}
-
 class rhi_data
 {
 public:
@@ -131,7 +125,6 @@ public:
 		bool mip_mapped) const;
 	allocated_image_result create_image(const void* data, const VkExtent3D size, const VkFormat format,
 		const VkImageUsageFlags usage, const bool mip_mapped) const;
-	allocated_image_result create_image(const dds::Image image, const VkImageUsageFlags usage) const;
 	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const;
 
 	void destroy_image(const allocated_image& img) const;

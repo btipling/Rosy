@@ -1,11 +1,6 @@
 #include "scene_one.h"
 
 #include "imgui.h"
-#include <dds.hpp>
-#include <fastgltf/glm_element_traits.hpp>
-#include <fastgltf/core.hpp>
-#include <fastgltf/types.hpp>
-#include <fastgltf/tools.hpp>
 #include "../../utils/utils.h"
 #include "../../loader/loader.h"
 
@@ -98,17 +93,6 @@ rh::result scene_one::build(const rh::ctx& ctx)
 			return rh::result::error;
 		}
 		earth_view_ = img_view;
-
-		//dds::Image dds_image;
-		//dds::ReadResult read_result = dds::readFile("assets/earth_4k.dds", &dds_image);
-		//if (read_result != dds::Success)
-		//{
-		//	rosy_utils::debug_print_a("dds read failure: %d\n", read_result);
-		//	return rh::result::error;
-		//}
-		//auto [result, image] = data->create_image(dds_image, VK_IMAGE_USAGE_SAMPLED_BIT);
-		//if (result != VK_SUCCESS) return rh::result::error;
-		//error_checkerboard_image_ = image;
 	}
 	{
 		VkSamplerCreateInfo sample = {};

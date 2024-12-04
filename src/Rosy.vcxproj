@@ -138,8 +138,6 @@
   <ItemGroup>
     <ClInclude Include="config\Config.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="lib\dds_image\dds.hpp" />
-    <ClInclude Include="lib\dds_image\dds_formats.hpp" />
     <ClInclude Include="lib\imgui\backends\imgui_impl_sdl3.h" />
     <ClInclude Include="lib\imgui\backends\imgui_impl_vulkan.h" />
     <ClInclude Include="lib\imgui\imconfig.h" />

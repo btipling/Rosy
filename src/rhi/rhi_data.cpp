@@ -7,7 +7,6 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
-#include <dds.hpp>
 
 rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer } {}
 
@@ -293,96 +292,6 @@ allocated_image_result rhi_data::create_image(VkExtent3D size, VkFormat format, 
 		rv.result = result;
 		return rv;
 	}
-	{
-		allocated_image_result rv = {};
-		rv.result = VK_SUCCESS;
-		rv.image = new_image;
-		return rv;
-	}
-}
-
-
-allocated_image_result rhi_data::create_image(dds::Image image, const VkImageUsageFlags usage) const
-{
-	VkFormat format = dds::getVulkanFormat(image.format, image.supportsAlpha);
-	VkImageCreateInfo img_info = dds::getVulkanImageCreateInfo(&image);
-	img_info.samples = VK_SAMPLE_COUNT_1_BIT;
-	img_info.usage = usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	VkExtent3D size = img_info.extent;
-	VkImageViewCreateInfo view_info = dds::getVulkanImageViewCreateInfo(&image);
-	const size_t data_size = image.data.size() * sizeof(uint8_t);
-	auto [result, created_buffer] = create_buffer(data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST);
-	if (result != VK_SUCCESS)
-	{
-		allocated_image_result rv = {};
-		rv.result = result;
-		return rv;
-	}
-	allocated_buffer staging = created_buffer;
-
-
-	void* staging_data;
-	vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &staging_data);
-	memcpy(static_cast<char*>(staging_data), image.data.data(), data_size);
-	vmaUnmapMemory(renderer_->opt_allocator.value(), staging.allocation);
-
-
-	allocated_image new_image;
-	new_image.image_format = format;
-	new_image.image_extent = size;
-
-	VmaAllocationCreateInfo alloc_info = {};
-	alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	if (VkResult result = vmaCreateImage(renderer_->opt_allocator.value(), &img_info, &alloc_info, &new_image.image,
-		&new_image.allocation, nullptr); result != VK_SUCCESS)
-	{
-		allocated_image_result rv = {};
-		rv.result = result;
-		return rv;
-	}
-
-	view_info.image = new_image.image;
-	if (VkResult result = vkCreateImageView(renderer_->opt_device.value(), &view_info, nullptr, &new_image.image_view); result !=
-		VK_SUCCESS)
-	{
-		allocated_image_result rv = {};
-		rv.result = result;
-		return rv;
-	}
-
-	renderer_->immediate_submit([&](const VkCommandBuffer cmd)
-		{
-			renderer_->transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			std::vector<VkBufferImageCopy> regions;
-			for (size_t i = 0; i < image.numMips; i++)
-			{
-				VkExtent3D dims = {
-					image.width >> i,
-					image.height >> i,
-					1,
-				};
-				VkBufferImageCopy copy_region = {};
-				copy_region.bufferOffset = 0;
-				copy_region.bufferRowLength = 0;
-				copy_region.bufferImageHeight = 0;
-				copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				copy_region.imageSubresource.mipLevel = i;
-				copy_region.imageSubresource.baseArrayLayer = 0;
-				copy_region.imageSubresource.layerCount = 1;
-				copy_region.imageExtent = dims;
-				regions.emplace_back(copy_region);
-			}
-
-			vkCmdCopyBufferToImage(cmd, staging.buffer, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions.size(),
-				regions.data());
-
-			renderer_->transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		});
-
-	destroy_buffer(staging);
 	{
 		allocated_image_result rv = {};
 		rv.result = VK_SUCCESS;
