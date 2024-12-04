@@ -303,13 +303,13 @@ allocated_image_result rhi_data::create_image(VkExtent3D size, VkFormat format, 
 std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const
 {
 	ktxVulkanTexture texture;
-	ktx_error_code_e ktxresult = ktxTexture_VkUploadEx(ktx_texture, &renderer_->vdi.value(), &texture,
+	ktx_error_code_e ktx_result = ktxTexture_VkUploadEx(ktx_texture, &renderer_->vdi.value(), &texture,
 		VK_IMAGE_TILING_OPTIMAL,
 		usage,
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	if (ktxresult != KTX_SUCCESS)
+	if (ktx_result != KTX_SUCCESS)
 	{
-		return std::unexpected<ktx_error_code_e>(ktxresult);
+		return std::unexpected<ktx_error_code_e>(ktx_result);
 	}
 	return texture;
 }
@@ -326,7 +326,7 @@ allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D
 		rv.result = result;
 		return rv;
 	}
-	allocated_buffer staging = created_buffer;
+	const allocated_buffer staging = created_buffer;
 
 	void* staging_data;
 	vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &staging_data);

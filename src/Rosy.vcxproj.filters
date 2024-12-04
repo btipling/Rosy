@@ -215,6 +215,8 @@
     <Library Include="lib\SDL3.lib">
       <Filter>Resource Files</Filter>
     </Library>
-    <Library Include="lib\ktx.lib" />
+    <Library Include="lib\ktx.lib">
+      <Filter>Resource Files</Filter>
+    </Library>
   </ItemGroup>
 </Project>

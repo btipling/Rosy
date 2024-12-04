@@ -1,5 +1,4 @@
 #include "scene_one.h"
-
 #include "imgui.h"
 #include "../../utils/utils.h"
 #include "../../loader/loader.h"
@@ -61,16 +60,16 @@ rh::result scene_one::build(const rh::ctx& ctx)
 
 	{
 
-		ktxTexture* kTexture;
-		ktx_error_code_e ktxresult = ktxTexture_CreateFromNamedFile("assets/earth_4k.ktx2",
+		ktxTexture* k_texture;
+		ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/earth_4k.ktx2",
 			KTX_TEXTURE_CREATE_NO_FLAGS,
-			&kTexture);
-		if (ktxresult != KTX_SUCCESS) {
-			rosy_utils::debug_print_a("ktx read failure: %d\n", ktxresult);
+			&k_texture);
+		if (ktx_result != KTX_SUCCESS) {
+			rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
 			return rh::result::error;
 		}
-		earth_texture_ = kTexture;
-		std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(kTexture, VK_IMAGE_USAGE_SAMPLED_BIT);
+		earth_texture_ = k_texture;
+		std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT);
 		if (res.has_value())
 		{
 			earth_vk_texture_ = res.value();
