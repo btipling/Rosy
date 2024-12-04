@@ -21,3 +21,4 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
 * [x] Do resize and draw in SDL resize callback for maximum responsiveness
 ![image](https://github.com/user-attachments/assets/258f0c51-2988-4b21-98f6-46773aacacd0)
 
+![image](https://github.com/user-attachments/assets/a1b25224-a83d-4c76-ae80-d58c86cdf140)
