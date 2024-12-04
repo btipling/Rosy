@@ -151,10 +151,16 @@ VkResult rhi::init(SDL_Window* window)
 		rosy_utils::debug_print_w(L"Failed to init commands! %d\n", result);
 		return result;
 	}
-	result = this->init_buffer();
+	result = this->init_data();
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::debug_print_w(L"Failed to init data! %d\n", result);
+		return result;
+	}
+	result = this->init_ktx();
+	if (result != VK_SUCCESS)
+	{
+		rosy_utils::debug_print_w(L"Failed to init ktx! %d\n", result);
 		return result;
 	}
 	return VK_SUCCESS;
@@ -175,6 +181,10 @@ void rhi::deinit()
 	// Deinit begin in the reverse order from how it was created.
 	deinit_ui();
 
+	if (vdi.has_value())
+	{
+		ktxVulkanDeviceInfo_Destruct(&vdi.value());
+	}
 	if (imm_fence_.has_value())
 	{
 		vkDestroyFence(opt_device.value(), imm_fence_.value(), nullptr);
@@ -1046,8 +1056,23 @@ VkResult rhi::init_commands()
 	return VK_SUCCESS;
 }
 
-VkResult rhi::init_buffer()
+VkResult rhi::init_data()
 {
 	buffer = std::unique_ptr<rhi_data>(new rhi_data{this});
+	return VK_SUCCESS;
+}
+
+VkResult rhi::init_ktx()
+{
+	vulkan_ctx vkctx = {
+		.gpu = physical_device_.value(),
+		.device = opt_device.value(),
+		.queue = present_queue_.value(),
+		.cmd_pool = imm_command_pool_.value(),
+	};
+	ktxVulkanDeviceInfo new_vdi;
+	ktxVulkanDeviceInfo_Construct(&new_vdi, vkctx.gpu, vkctx.device,
+		vkctx.queue, vkctx.cmd_pool, nullptr);
+	vdi = new_vdi;
 	return VK_SUCCESS;
 }

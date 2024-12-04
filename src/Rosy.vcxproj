@@ -107,7 +107,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\vcpkg_installed\x64-windows\include;$(ProjectDir)\lib\imgui;$(VULKAN_SDK)\Include;$(SDL_PATH)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\lib\dds_image;$(ProjectDir)\vcpkg_installed\x64-windows\include;$(ProjectDir)\lib\imgui;$(VULKAN_SDK)\Include;$(SDL_PATH)\include;$(KTX_PATH)\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/showIncludes %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -115,7 +115,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SDL_PATH)\build\Debug;$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(KTX_PATH)\build\Debug;$(SDL_PATH)\build\Debug;$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -138,6 +138,8 @@
   <ItemGroup>
     <ClInclude Include="config\Config.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="lib\dds_image\dds.hpp" />
+    <ClInclude Include="lib\dds_image\dds_formats.hpp" />
     <ClInclude Include="lib\imgui\backends\imgui_impl_sdl3.h" />
     <ClInclude Include="lib\imgui\backends\imgui_impl_vulkan.h" />
     <ClInclude Include="lib\imgui\imconfig.h" />
@@ -200,6 +202,7 @@
     <None Include="shaders\tex_image.frag" />
   </ItemGroup>
   <ItemGroup>
+    <Library Include="lib\ktx.lib" />
     <Library Include="lib\SDL3.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

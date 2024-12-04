@@ -100,7 +100,21 @@ struct material_instance {
 	material_pass pass_type;
 };
 
+struct vulkan_ctx
+{
+	VkPhysicalDevice gpu;
+	VkDevice device;
+	VkQueue queue;
+	VkCommandPool cmd_pool;
+};
+
 class rhi;
+
+namespace dds
+{
+	// ReSharper disable once CppInconsistentNaming
+	struct Image;
+}
 
 class rhi_data
 {
@@ -110,12 +124,15 @@ public:
 	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const;
 	allocated_buffer_result create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 
+
 	void destroy_buffer(const allocated_buffer& buffer) const;
 
 	allocated_image_result create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
 		bool mip_mapped) const;
 	allocated_image_result create_image(const void* data, const VkExtent3D size, const VkFormat format,
 		const VkImageUsageFlags usage, const bool mip_mapped) const;
+	allocated_image_result create_image(const dds::Image image, const VkImageUsageFlags usage) const;
+	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const;
 
 	void destroy_image(const allocated_image& img) const;
 

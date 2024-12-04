@@ -201,6 +201,7 @@ int main(int argc, char* argv[])
 						{
 							rosy_utils::debug_print_a("scene build failed %d\n", result);
 							should_run = false;
+							break;
 						}
 						scene_loaded = true;
 					}
@@ -208,6 +209,7 @@ int main(int argc, char* argv[])
 					{
 						rosy_utils::debug_print_a("scene draw failed %d\n", result);
 						should_run = false;
+						break;
 					}
 				}
 

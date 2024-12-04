@@ -367,3 +367,11 @@ vcpkg_installed/
 !vcpkg_installed/x64-windows/include/
 !vcpkg_installed/x64-windows/lib/
 imgui.ini
+*.png
+*.jpg
+*.ktx
+*.ktx2
+*.dds
+*.glb
+*.lib
+*.dll

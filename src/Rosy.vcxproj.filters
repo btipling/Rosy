@@ -40,6 +40,9 @@
     <Filter Include="imgui">
       <UniqueIdentifier>{3fd1bec5-2abd-4815-991f-bf22492740a5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="dds_image">
+      <UniqueIdentifier>{c4acdc17-4f64-44cb-9f00-300bbe09d0ef}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rosy.h">
@@ -116,6 +119,12 @@
     </ClInclude>
     <ClInclude Include="rhi\rhi_frame.h">
       <Filter>rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\dds_image\dds.hpp">
+      <Filter>dds_image</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\dds_image\dds_formats.hpp">
+      <Filter>dds_image</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -215,5 +224,6 @@
     <Library Include="lib\SDL3.lib">
       <Filter>Resource Files</Filter>
     </Library>
+    <Library Include="lib\ktx.lib" />
   </ItemGroup>
 </Project>

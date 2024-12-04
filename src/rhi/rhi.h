@@ -26,6 +26,7 @@ public:
 	std::optional<std::unique_ptr<rhi_data>> buffer;
 	VkExtent2D swapchain_extent_ = {};
 	std::optional<descriptor_allocator_growable> scene_descriptor_allocator = std::nullopt;
+	std::optional<ktxVulkanDeviceInfo> vdi = std::nullopt;
 	void debug() const;
 	~rhi();
 
@@ -100,7 +101,9 @@ private:
 	VkResult init_command_buffers();
 	VkResult init_sync_objects();
 	VkResult init_commands();
-	VkResult init_buffer();
+	VkResult init_data();
+	VkResult init_ktx();
+
 
 	VkResult render_frame();
 
