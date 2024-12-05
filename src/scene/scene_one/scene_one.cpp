@@ -148,6 +148,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 	shader_pipeline shaders = test_mesh_pipeline_.value();
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 	VkDescriptorSet sphere_image_set = sphere_image_descriptor_set_.value();
+	VmaAllocator allocator = ctx.rhi.allocator;
 	{
 		// meshes
 		{
@@ -158,12 +159,19 @@ rh::result scene_one::draw(rh::ctx ctx)
 			//create a descriptor set that binds that data and update it
 			auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
 			if (desc_result != VK_SUCCESS) return rh::result::error;
-			VkDescriptorSet global_descriptor = desc_set;
-	
-			descriptor_writer writer;
-			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, global_descriptor);
+
+			{
+				VkDescriptorSet global_descriptor = desc_set;
+				void* data_pointer;
+				vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
+				memcpy(data_pointer, &scene_data, sizeof(scene_data));
+				vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
+
+				descriptor_writer writer;
+				writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+				writer.update_set(device, global_descriptor);
+			}
 	
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("meshes", color);
