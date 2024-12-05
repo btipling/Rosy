@@ -34,10 +34,10 @@
     <Filter Include="scene\scene_one">
       <UniqueIdentifier>{42b0fabf-0d31-4b06-b012-5d47a6eb0ef3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="rhi">
+    <Filter Include="Header Files\rhi">
       <UniqueIdentifier>{300099fd-89af-447e-97f0-6734f218f435}</UniqueIdentifier>
     </Filter>
-    <Filter Include="imgui">
+    <Filter Include="Header Files\imgui">
       <UniqueIdentifier>{3fd1bec5-2abd-4815-991f-bf22492740a5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -52,28 +52,28 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="lib\imgui\imgui.h">
-      <Filter>imgui</Filter>
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="lib\imgui\imgui_internal.h">
-      <Filter>imgui</Filter>
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="lib\imgui\imstb_rectpack.h">
-      <Filter>imgui</Filter>
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="lib\imgui\imstb_textedit.h">
-      <Filter>imgui</Filter>
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="lib\imgui\imstb_truetype.h">
-      <Filter>imgui</Filter>
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="lib\imgui\imconfig.h">
-      <Filter>imgui</Filter>
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi.h">
-      <Filter>rhi</Filter>
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi_utils.h">
-      <Filter>rhi</Filter>
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">
       <Filter>Header Files\windows</Filter>
@@ -85,10 +85,10 @@
       <Filter>Header Files\windows</Filter>
     </ClInclude>
     <ClInclude Include="lib\imgui\backends\imgui_impl_sdl3.h">
-      <Filter>imgui</Filter>
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="lib\imgui\backends\imgui_impl_vulkan.h">
-      <Filter>imgui</Filter>
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="lib\stb_image.h">
       <Filter>Header Files</Filter>
@@ -97,25 +97,28 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi_descriptor.h">
-      <Filter>rhi</Filter>
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi_shader.h">
-      <Filter>rhi</Filter>
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi_types.h">
-      <Filter>rhi</Filter>
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi_helpers.h">
-      <Filter>rhi</Filter>
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi_cmd.h">
-      <Filter>rhi</Filter>
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
     <ClInclude Include="scene\scene_one\scene_one.h">
       <Filter>scene\scene_one</Filter>
     </ClInclude>
     <ClInclude Include="rhi\rhi_frame.h">
-      <Filter>rhi</Filter>
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="physics\physics.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -134,53 +137,56 @@
     <ClCompile Include="scene\scene_one\scene_one.cpp">
       <Filter>scene\scene_one</Filter>
     </ClCompile>
-    <ClCompile Include="rhi\rhi_cmd.cpp">
-      <Filter>rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_descriptor.cpp">
-      <Filter>rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_helpers.cpp">
-      <Filter>rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_init.cpp">
-      <Filter>rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_render.cpp">
-      <Filter>rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_shader.cpp">
-      <Filter>rhi</Filter>
+    <ClCompile Include="rhi\rhi_utils.cpp">
+      <Filter>Source Files\rhi</Filter>
     </ClCompile>
     <ClCompile Include="rhi\rhi_ui.cpp">
-      <Filter>rhi</Filter>
+      <Filter>Source Files\rhi</Filter>
     </ClCompile>
-    <ClCompile Include="rhi\rhi_utils.cpp">
-      <Filter>rhi</Filter>
+    <ClCompile Include="rhi\rhi_shader.cpp">
+      <Filter>Source Files\rhi</Filter>
     </ClCompile>
-    <ClCompile Include="lib\imgui\imgui.cpp">
-      <Filter>imgui</Filter>
+    <ClCompile Include="rhi\rhi_render.cpp">
+      <Filter>Source Files\rhi</Filter>
     </ClCompile>
-    <ClCompile Include="lib\imgui\imgui_demo.cpp">
-      <Filter>imgui</Filter>
+    <ClCompile Include="rhi\rhi_init.cpp">
+      <Filter>Source Files\rhi</Filter>
     </ClCompile>
-    <ClCompile Include="lib\imgui\imgui_draw.cpp">
-      <Filter>imgui</Filter>
+    <ClCompile Include="rhi\rhi_descriptor.cpp">
+      <Filter>Source Files\rhi</Filter>
     </ClCompile>
-    <ClCompile Include="lib\imgui\backends\imgui_impl_sdl3.cpp">
-      <Filter>imgui</Filter>
+    <ClCompile Include="rhi\rhi_cmd.cpp">
+      <Filter>Source Files\rhi</Filter>
     </ClCompile>
-    <ClCompile Include="lib\imgui\backends\imgui_impl_vulkan.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="lib\imgui\imgui_tables.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="lib\imgui\imgui_widgets.cpp">
-      <Filter>imgui</Filter>
+    <ClCompile Include="rhi\rhi_helpers.cpp">
+      <Filter>Source Files\rhi</Filter>
     </ClCompile>
     <ClCompile Include="rhi\rhi_data.cpp">
-      <Filter>rhi</Filter>
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\imgui.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\imgui_draw.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\backends\imgui_impl_sdl3.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\imgui_demo.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\backends\imgui_impl_vulkan.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\imgui_tables.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\imgui\imgui_widgets.cpp">
+      <Filter>Source Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="physics\physics.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
