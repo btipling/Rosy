@@ -2,17 +2,6 @@
 
 namespace physics
 {
-    derivative evaluate(const state& initial, const double t, const double dt, const derivative& d) {
-        state state;
-        state.position = initial.position + d.dx_velocity * dt;
-        state.velocity = initial.velocity + d.dv_acceleration * dt;
-
-        derivative output;
-        output.dx_velocity = state.velocity;
-        output.dv_acceleration = acceleration(state, t + dt);
-        return output;
-    }
-
     derivative derivative::operator*(const double  value) const
     {
         derivative rv;
@@ -78,6 +67,16 @@ namespace physics
         return rv;
     }
 
+    derivative evaluate(const state& initial, const double t, const double dt, const derivative& d) {
+        state state;
+        state.position = initial.position + d.dx_velocity * dt;
+        state.velocity = initial.velocity + d.dv_acceleration * dt;
+
+        derivative output;
+        output.dx_velocity = state.velocity;
+        output.dv_acceleration = acceleration(state, t + dt);
+        return output;
+    }
 
     double acceleration(const state& state, double t) {
 	    constexpr double k = 15.0f;
@@ -91,13 +90,11 @@ namespace physics
         const auto [dx_velocity, dv_acceleration] = evaluate(state, t, frame_time, c);
 
         const double dx_dt = 1.0f / 6.0f * (a.dx_velocity + 2.0f * (b.dx_velocity + c.dx_velocity) + dx_velocity);
-
         const double dv_dt = 1.0f / 6.0f * (a.dv_acceleration + 2.0f * (b.dv_acceleration + c.dv_acceleration) + dv_acceleration);
 
         state.position = state.position + dx_dt * frame_time;
         state.velocity = state.velocity + dv_dt * frame_time;
     }
-
 
     time_ctx time_step(const time_ctx& ctx, double frame_time)
     {
