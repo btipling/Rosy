@@ -132,6 +132,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 
 rh::result scene_one::draw(rh::ctx ctx)
 {
+	update_scene(ctx);
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
