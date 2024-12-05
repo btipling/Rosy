@@ -5,9 +5,10 @@ layout (location = 0) out vec3 fragColor;
 layout (location = 1) out vec2 tcOut;
 
 struct Vertex {
-	vec4 position;
-	vec4 textureCoordinates;
-	vec4 normal;
+	vec3 position;
+	float textureCoordinates_s;
+	vec3 normal;
+	float textureCoordinates_t;
 	vec4 color;
 }; 
 
@@ -23,7 +24,7 @@ layout( push_constant ) uniform constants
 
 void main() {
 	Vertex v = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
-    gl_Position = PushConstants.worldMatrix * v.position;
+    gl_Position = PushConstants.worldMatrix * vec4(v.position, 1.0);
     fragColor = v.color.xyz;
-	tcOut = vec2(1.0 - v.textureCoordinates.x,  v.textureCoordinates.y);
+	tcOut = vec2(1.0 - v.textureCoordinates_s, v.textureCoordinates_t);
 }

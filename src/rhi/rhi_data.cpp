@@ -68,10 +68,11 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 				fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, pos_accessor,
 					[&](glm::vec3 v, size_t index) {
 						vertex new_vtx;
-						new_vtx.position = glm::vec4{ v, 1.0f };
-						new_vtx.normal = { 1.0f, 0.0f, 0.0f, 1.0f };
+						new_vtx.position = v;
+						new_vtx.normal = { 1.0f, 0.0f, 0.0f };
 						new_vtx.color = glm::vec4{ 1.f };
-						new_vtx.texture_coordinates = { 0.0f, 0.0f, 0.0f, 0.0f };
+						new_vtx.texture_coordinates_s = 0.0f;
+						new_vtx.texture_coordinates_t = 0.0f;
 						vertices[initial_vtx + index] = new_vtx;
 					});
 			}
@@ -87,8 +88,9 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 			if (auto uv = p.findAttribute("TEXCOORD_0"); uv != p.attributes.end()) {
 
 				fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[uv->accessorIndex],
-					[&](glm::vec2 v, const size_t index) {
-						vertices[initial_vtx + index].texture_coordinates = { v.x, v.y, 0.0f, 0.0f };
+					[&](const glm::vec2 tc, const size_t index) {
+						vertices[initial_vtx + index].texture_coordinates_s = tc.x;
+						vertices[initial_vtx + index].texture_coordinates_t = tc.y;
 					});
 			}
 
@@ -104,7 +106,7 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 
 		if (constexpr bool override_colors = true) {
 			for (vertex& vtx : vertices) {
-				vtx.color = vtx.normal;
+				vtx.color = glm::vec4(vtx.normal, 1.0);
 			}
 		}
 		auto [result, uploaded_mesh] = upload_mesh(indices, vertices);
