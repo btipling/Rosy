@@ -296,3 +296,46 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 	return rh::result::ok;
 }
 
+void scene_one::update_scene(const rh::ctx& ctx)
+{
+	const auto [width, height] = ctx.rhi.frame_extent;
+	auto m = glm::mat4(1.0f);
+
+	constexpr auto camera_pos = glm::vec3(0.0f, 0.0f, -10.0f);
+	constexpr auto camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
+	constexpr auto camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
+
+	const glm::mat4 view = lookAt(camera_pos, camera_target, camera_up);
+
+	m = translate(m, glm::vec3{ model_x_, model_y_, model_z_ });
+	m = rotate(m, model_rot_x_, glm::vec3(1, 0, 0));
+	m = rotate(m, model_rot_y_, glm::vec3(0, 1, 0));
+	m = rotate(m, model_rot_z_, glm::vec3(0, 0, 1));
+	m = scale(m, glm::vec3(model_scale_, model_scale_, model_scale_));
+
+	constexpr float z_near = 0.1f;
+	constexpr float z_far = 1000.0f;
+	const float aspect = static_cast<float>(width) / static_cast<float>(height);
+	constexpr float fov = glm::radians(70.0f);
+	const float h = 1.0 / tan(fov * 0.5);
+	const float w = h / aspect;
+	const float a = -z_near / (z_far - z_near);
+	const float b = (z_near * z_far) / (z_far - z_near);
+
+	glm::mat4 proj(0.0f);
+
+	proj[0][0] = w;
+	proj[1][1] = -h;
+
+	proj[2][2] = a;
+	proj[3][2] = b;
+	proj[2][3] = 1.0f;
+
+	scene_data.view = view;
+	scene_data.proj = proj;
+	scene_data.view_projection = proj * view;
+	scene_data.ambient_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+	scene_data.sunlight_direction = glm::vec4(0.0, 0.0, 0.0, 0.0);
+	scene_data.sunlight_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+}
+

@@ -11,6 +11,8 @@ public:
 	rh::result draw_ui(const rh::ctx& ctx);
 	rh::result deinit(rh::ctx& ctx);
 private:
+	void update_scene(const rh::ctx& ctx);
+	gpu_scene_data scene_data;
 	std::optional <VkDescriptorSetLayout> single_image_descriptor_layout_;
 	std::optional<shader_pipeline> test_mesh_pipeline_ = std::nullopt;
 	std::vector<std::shared_ptr<mesh_asset>> test_meshes_;
