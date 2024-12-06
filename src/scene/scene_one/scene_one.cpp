@@ -8,6 +8,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
 	auto data = ctx.rhi.data.value();
+	std::vector<VkDescriptorSetLayout> layouts;
 	descriptor_allocator_growable descriptor_allocator = ctx.rhi.descriptor_allocator.value();
 	{
 		descriptor_layout_builder layout_builder;
@@ -22,6 +23,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return rh::result::error;
 		single_image_descriptor_layout_ = set;
+		layouts.push_back(set);
 	}
 	std::vector<char> vert_shader_code;
 	std::vector<char> frag_shader_code;
@@ -37,8 +39,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	}
 	
 	shader_pipeline sp = {};
-	sp.layouts = &single_image_descriptor_layout_.value();
-	sp.num_layouts = 1;
+	sp.layouts = layouts;
 	sp.name = "test";
 	sp.with_shaders(vert_shader_code, frag_shader_code);
 	if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
@@ -165,7 +166,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 				VkDescriptorSet global_descriptor = desc_set;
 				void* data_pointer;
 				vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
-				memcpy(data_pointer, &scene_data, sizeof(scene_data));
+				memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
 				vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
 
 				descriptor_writer writer;
@@ -340,11 +341,11 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	proj[3][2] = b;
 	proj[2][3] = 1.0f;
 
-	scene_data.view = view;
-	scene_data.proj = proj;
-	scene_data.view_projection = proj * view;
-	scene_data.ambient_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
-	scene_data.sunlight_direction = glm::vec4(0.0, 0.0, 0.0, 0.0);
-	scene_data.sunlight_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+	scene_data_.view = view;
+	scene_data_.proj = proj;
+	scene_data_.view_projection = proj * view;
+	scene_data_.ambient_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+	scene_data_.sunlight_direction = glm::vec4(0.0, 0.0, 0.0, 0.0);
+	scene_data_.sunlight_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
 }
 

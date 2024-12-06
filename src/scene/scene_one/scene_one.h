@@ -12,11 +12,11 @@ public:
 	rh::result deinit(rh::ctx& ctx);
 private:
 	void update_scene(const rh::ctx& ctx);
-	gpu_scene_data scene_data;
-	std::optional <VkDescriptorSetLayout> single_image_descriptor_layout_;
+	gpu_scene_data scene_data_ = {};
+	std::optional <VkDescriptorSetLayout> single_image_descriptor_layout_ = std::nullopt;
+	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 	std::optional<shader_pipeline> test_mesh_pipeline_ = std::nullopt;
 	std::vector<std::shared_ptr<mesh_asset>> test_meshes_;
-	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 	std::optional<allocated_image> black_image_ = std::nullopt;
 	std::optional<allocated_image> error_checkerboard_image_ = std::nullopt;
 	std::optional<VkSampler> default_sampler_nearest_ = std::nullopt;

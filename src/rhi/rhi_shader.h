@@ -27,8 +27,7 @@ public:
 	std::optional<VkPipelineLayout> pipeline_layout = {};
     void* shader_constants;
     uint32_t shader_constants_size = 0;
-    VkDescriptorSetLayout* layouts = nullptr;
-    uint32_t num_layouts = 0;
+    std::vector<VkDescriptorSetLayout> layouts;
 
     VkExtent2D viewport_extent = {};
     bool depth_enabled = true;
