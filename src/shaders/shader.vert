@@ -33,7 +33,7 @@ layout( push_constant ) uniform constants
 
 void main() {
 	Vertex v = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
-    gl_Position = PushConstants.worldMatrix * vec4(v.position, 1.0);
+    gl_Position = sceneData.viewproj * PushConstants.worldMatrix * vec4(v.position, 1.0);
     fragColor = v.color.xyz;
 	tcOut = vec2(1.0 - v.textureCoordinates_s, v.textureCoordinates_t);
 }

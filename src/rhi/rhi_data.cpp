@@ -132,6 +132,7 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	const size_t index_buffer_size = indices.size() * sizeof(uint32_t);
 
 	auto [vertex_result, new_vertex_buffer] = create_buffer(
+		"vertexBuffer",
 		vertex_buffer_size,
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
@@ -144,7 +145,6 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	// *** SETTING VERTEX BUFFER *** //
 	vertex_buffer = new_vertex_buffer;
 	rosy_utils::debug_print_a("vertex buffer set!\n");
-	rhi_helpers::add_name(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(vertex_buffer.buffer), "vertexBuffer");
 
 	VkBufferDeviceAddressInfo device_address_info = {};
 	device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
@@ -155,6 +155,7 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	rosy_utils::debug_print_a("vertex buffer address set!\n");
 
 	auto [index_result, new_index_buffer] = create_buffer(
+		"indexBuffer",
 		index_buffer_size,
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
@@ -167,9 +168,8 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	// *** SETTING INDEX BUFFER *** //
 	index_buffer = new_index_buffer;
 	rosy_utils::debug_print_a("index buffer address set!\n");
-	rhi_helpers::add_name(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(index_buffer.buffer), "indexBuffer");
 
-	auto [result, new_staging_buffer] = create_buffer(vertex_buffer_size + index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+	auto [result, new_staging_buffer] = create_buffer("staging", vertex_buffer_size + index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 	if (result != VK_SUCCESS) {
 		gpu_mesh_buffers_result fail = {};
 		fail.result = result;
@@ -223,7 +223,7 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	return rv;
 }
 
-allocated_buffer_result rhi_data::create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const
+allocated_buffer_result rhi_data::create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const
 {
 		VkBufferCreateInfo buffer_info = {};
 		buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -240,7 +240,10 @@ allocated_buffer_result rhi_data::create_buffer(const size_t alloc_size, const V
 			&new_buffer.allocation,
 			&new_buffer.info);
 		if (result != VK_SUCCESS) return { .result = result };
-
+		{
+			const VkDebugUtilsObjectNameInfoEXT buffer_name =  rhi_helpers::add_name(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(new_buffer.buffer), name);
+			if (const VkResult debug_name_result = vkSetDebugUtilsObjectNameEXT(renderer_->opt_device.value(), &buffer_name); debug_name_result != VK_SUCCESS) return  { .result = result };
+		}
 		return {
 			.result = VK_SUCCESS,
 			.buffer = new_buffer,
@@ -321,7 +324,7 @@ allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D
                                               const VkImageUsageFlags usage, const bool mip_mapped) const
 {
 	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
-	auto [result, created_buffer] = create_buffer(data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST);
+	auto [result, created_buffer] = create_buffer("image staging", data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST);
 	if (result != VK_SUCCESS)
 	{
 		allocated_image_result rv = {};

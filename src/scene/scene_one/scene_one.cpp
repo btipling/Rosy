@@ -152,8 +152,6 @@ rh::result scene_one::draw(rh::ctx ctx)
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 	VmaAllocator allocator = ctx.rhi.allocator;
 
-
-
 	{
 		// Set descriptor sets
 		std::vector<VkDescriptorSet> sets;
@@ -180,51 +178,20 @@ rh::result scene_one::draw(rh::ctx ctx)
 		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shaders.pipeline_layout.value(), 0, sets.size(), sets.data(), 0, nullptr);
 	}
 	{
-		// meshes
+		// Earth
 		{
-	
-			// bind a texture
-	
-			
-	
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("meshes", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 	
-	
 			gpu_draw_push_constants push_constants;
 			auto m = glm::mat4(1.0f);
-	
-			auto camera_pos = glm::vec3(0.0f, 0.0f, -10.0f);
-			auto camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
-			auto camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
-	
-			glm::mat4 view = lookAt(camera_pos, camera_target, camera_up);
-	
 			m = translate(m, glm::vec3{ model_x_, model_y_, model_z_ });
 			m = rotate(m, model_rot_x_, glm::vec3(1, 0, 0));
 			m = rotate(m, model_rot_y_, glm::vec3(0, 1, 0));
 			m = rotate(m, model_rot_z_, glm::vec3(0, 0, 1));
 			m = scale(m, glm::vec3(model_scale_, model_scale_, model_scale_));
-	
-			float z_near = 0.1f;
-			float z_far = 1000.0f;
-			float aspect = static_cast<float>(frame_extent.width) / static_cast<float>(frame_extent.height);
-			constexpr float fov = glm::radians(70.0f);
-			float h = 1.0 / tan(fov * 0.5);
-			float w = h / aspect;
-			float a = -z_near / (z_far - z_near);
-			float b = (z_near * z_far) / (z_far - z_near);
-	
-			glm::mat4 proj(0.0f);
-	
-			proj[0][0] = w;
-			proj[1][1] = -h;
-	
-			proj[2][2] = a;
-			proj[3][2] = b;
-			proj[2][3] = 1.0f;
-			push_constants.world_matrix = proj * view * m;
+			push_constants.world_matrix = m;
 	
 			if (test_meshes_.size() > 0)
 			{
@@ -242,7 +209,6 @@ rh::result scene_one::draw(rh::ctx ctx)
 				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
 					0, 0);
 			}
-	
 			vkCmdEndDebugUtilsLabelEXT(cmd);
 		}
 	}

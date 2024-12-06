@@ -146,7 +146,7 @@ VkResult rhi::begin_frame()
 	}
 	{
 		//allocate a new uniform data for the scene data
-		auto [result, created_buffer] = buffer.value()->create_buffer(sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		auto [result, created_buffer] = buffer.value()->create_buffer("gpu_scene_data", sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VMA_MEMORY_USAGE_AUTO);
 		if (result != VK_SUCCESS) return result;
 		allocated_buffer gpu_scene_buffer = created_buffer;

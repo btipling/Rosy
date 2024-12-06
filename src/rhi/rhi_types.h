@@ -117,7 +117,7 @@ public:
 	explicit rhi_data(rhi* renderer);
 	std::optional<std::vector<std::shared_ptr<mesh_asset>>> load_gltf_meshes(std::filesystem::path file_path) const;
 	gpu_mesh_buffers_result upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const;
-	allocated_buffer_result create_buffer(const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
+	allocated_buffer_result create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 
 
 	void destroy_buffer(const allocated_buffer& buffer) const;
