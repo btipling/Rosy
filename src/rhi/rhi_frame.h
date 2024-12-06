@@ -35,5 +35,6 @@ namespace rh
 	{
 		rhi rhi;
 		const SDL_Event* sdl_event;
+		bool mouse_enabled = true;
 	};
 }

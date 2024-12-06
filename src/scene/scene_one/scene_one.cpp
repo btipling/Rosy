@@ -286,14 +286,11 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 
 void scene_one::update_scene(const rh::ctx& ctx)
 {
+	camera_.process_sdl_event(ctx);
+	camera_.update();
 	const auto [width, height] = ctx.rhi.frame_extent;
 	auto m = glm::mat4(1.0f);
 
-	constexpr auto camera_pos = glm::vec3(0.0f, 0.0f, -10.0f);
-	constexpr auto camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
-	constexpr auto camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
-
-	const glm::mat4 view = lookAt(camera_pos, camera_target, camera_up);
 
 	m = translate(m, glm::vec3{ model_x_, model_y_, model_z_ });
 	m = rotate(m, model_rot_x_, glm::vec3(1, 0, 0));
@@ -319,6 +316,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	proj[3][2] = b;
 	proj[2][3] = 1.0f;
 
+	const glm::mat4 view = camera_.get_view_matrix();
 	scene_data_.view = view;
 	scene_data_.proj = proj;
 	scene_data_.view_projection = proj * view;

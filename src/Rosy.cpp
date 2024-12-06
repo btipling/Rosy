@@ -21,11 +21,21 @@
 #include "utils/utils.h"
 #include "scene/scene_one/scene_one.h"
 
-void render(const SDL_Event* event, rhi* renderer, bool* resize_requested, bool* should_run, bool* scene_loaded, scene_one* scene);
+struct render_loop
+{
+	bool should_run = true;
+	bool should_render = true;
+	bool resize_requested = false;
+	bool scene_loaded = false;
+	bool show_cursor = true;
+};
+
+void render(const SDL_Event* event, rhi* renderer, render_loop* loop_ctx, scene_one* scene);  // NOLINT(misc-use-internal-linkage)
 
 struct handler_data {
 	rhi* renderer;
 	scene_one* scene;
+	render_loop* loop_ctx;
 };
 
 
@@ -45,7 +55,7 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 		bool resize_requested;
 		bool should_run;
 		bool scene_loaded;
-		render(event, data->renderer, &resize_requested, &should_run, &scene_loaded, data->scene);
+		render(event, data->renderer, data->loop_ctx, data->scene);
 		break;
 	}
 	return true;
@@ -103,52 +113,72 @@ int main(int argc, char* argv[])
 	renderer->debug();
 
 	scene_one scene = {};
+	render_loop loop_ctx{};
 
 	handler_data h_data = {
 		.renderer = renderer.get(),
 		.scene = &scene,
+		.loop_ctx = &loop_ctx,
 	};
 
-	SDL_AddEventWatch(event_handler, static_cast<void *>(&h_data));
-
-	bool should_run = true;
-	bool should_render = true;
-	bool resize_requested = false;
-	bool scene_loaded = false;
+	SDL_AddEventWatch(event_handler, static_cast<void*>(&h_data));
 	SDL_Event event{};
-	while (should_run) {
+	SDL_HideCursor();
+	while (loop_ctx.should_run) {
 		while (SDL_PollEvent(&event)) {
+
+			if (event.type == SDL_EVENT_KEY_UP) {
+				if (event.key.key == SDLK_C)
+				{
+					if (loop_ctx.show_cursor)
+					{
+						loop_ctx.show_cursor = false;
+						SDL_HideCursor();
+
+					}
+					else
+					{
+						loop_ctx.show_cursor = true;
+						SDL_ShowCursor();
+					}
+				}
+			}
+			ImGuiIO& io = ImGui::GetIO();
+			if (!loop_ctx.show_cursor)
+			{
+				ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+			}
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			if (event.type == SDL_EVENT_QUIT) {
-				should_run = false;
+				loop_ctx.should_run = false;
 				break;
 			}
 			if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
-				should_render = false;
+				loop_ctx.should_render = false;
 			}
 			if (event.type == SDL_EVENT_WINDOW_RESTORED) {
-				should_render = true;
+				loop_ctx.should_render = true;
 			}
 			if (event.type == SDL_EVENT_WINDOW_RESIZED) {
 				rosy_utils::debug_print_a("SDL_EVENT_WINDOW_RESIZED\n");
-				resize_requested = true;
+				loop_ctx.resize_requested = true;
 			}
-			if (!should_render) {
+			if (!loop_ctx.should_render) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				continue;
 			}
-			if (resize_requested) {
+			if (loop_ctx.resize_requested) {
 				rosy_utils::debug_print_a("resizing swapchain\n");
 				result = renderer->resize_swapchain(window);
 				if (result != VK_SUCCESS) {
 					rosy_utils::debug_print_a("rhi failed to resize swapchain %d\n", result);
-					should_run = false;
+					loop_ctx.should_run = false;
 					break;
 				}
-				resize_requested = false;
+				loop_ctx.resize_requested = false;
 			}
 
-			render(&event, renderer.get(), &resize_requested, &should_run, &scene_loaded, &scene);
+			render(&event, renderer.get(), &loop_ctx, &scene);
 		}
 	}
 	{
@@ -175,7 +205,7 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-void render(const SDL_Event* event, rhi* renderer, bool* resize_requested, bool* should_run, bool* scene_loaded, scene_one* scene)
+void render(const SDL_Event* event, rhi* renderer, render_loop* loop_ctx, scene_one* scene)
 {
 	{
 		ImGui_ImplVulkan_NewFrame();
@@ -184,11 +214,11 @@ void render(const SDL_Event* event, rhi* renderer, bool* resize_requested, bool*
 		VkResult result = renderer->draw_ui();
 		if (result != VK_SUCCESS) {
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-				*resize_requested = true;
+				loop_ctx->resize_requested = true;
 				return;
 			}
 			rosy_utils::debug_print_a("rhi draw ui failed %d\n", result);
-			*should_run = false;
+			loop_ctx->should_run = false;
 			return;
 		}
 		{
@@ -200,13 +230,13 @@ void render(const SDL_Event* event, rhi* renderer, bool* resize_requested, bool*
 			else
 			{
 				rosy_utils::debug_print_a("no available frame data\n");
-				*should_run = false;
+				loop_ctx->should_run = false;
 				return;
 			}
 			if (const auto scene_result = scene->draw_ui(ctx); scene_result != rh::result::ok)
 			{
 				rosy_utils::debug_print_a("scene ui draw failed %d\n", result);
-				*should_run = false;
+				loop_ctx->should_run = false;
 			}
 		}
 		ImGui::Render();
@@ -216,11 +246,11 @@ void render(const SDL_Event* event, rhi* renderer, bool* resize_requested, bool*
 		if (result != VK_SUCCESS) {
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 				rosy_utils::debug_print_a("swapchain out of date\n");
-				*resize_requested = true;
+				loop_ctx->resize_requested = true;
 				return;
 			}
 			rosy_utils::debug_print_a("rhi draw failed %d\n", result);
-			*should_run = false;
+			loop_ctx->should_run = false;
 			return;
 		}
 		{
@@ -232,23 +262,24 @@ void render(const SDL_Event* event, rhi* renderer, bool* resize_requested, bool*
 			else
 			{
 				rosy_utils::debug_print_a("no available frame data\n");
-				*should_run = false;
+				loop_ctx->should_run = false;
 				return;
 			}
-			if (!*scene_loaded)
+			if (!loop_ctx->scene_loaded)
 			{
 				if (const auto scene_result = scene->build(ctx); scene_result != rh::result::ok)
 				{
 					rosy_utils::debug_print_a("scene build failed %d\n", result);
-					*should_run = false;
+					loop_ctx->should_run = false;
 					return;
 				}
-				*scene_loaded = true;
+				loop_ctx->scene_loaded = true;
 			}
+			ctx.mouse_enabled = !loop_ctx->show_cursor;
 			if (const auto scene_result = scene->draw(ctx); scene_result != rh::result::ok)
 			{
 				rosy_utils::debug_print_a("scene draw failed %d\n", result);
-				*should_run = false;
+				loop_ctx->should_run = false;
 				return;
 			}
 		}
@@ -257,11 +288,11 @@ void render(const SDL_Event* event, rhi* renderer, bool* resize_requested, bool*
 		if (result != VK_SUCCESS) {
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 				rosy_utils::debug_print_a("swapchain out of date\n");
-				*resize_requested = true;
+				loop_ctx->resize_requested = true;
 				return;
 			}
 			rosy_utils::debug_print_a("rhi draw failed %d\n", result);
-			*should_run = false;
+			loop_ctx->should_run = false;
 			return;
 		}
 	}
