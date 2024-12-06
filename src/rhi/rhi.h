@@ -19,7 +19,7 @@ public:
 	// Rendering
 	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
 		VkImageLayout new_layout);
-	std::expected<rh::ctx, VkResult> current_frame_data();
+	std::expected<rh::ctx, VkResult> current_frame_data(const SDL_Event* event);
 	std::optional<VkDevice> opt_device = std::nullopt;
 	std::optional<VmaAllocator> opt_allocator = std::nullopt;
 	std::optional<std::unique_ptr<rhi_data>> buffer;

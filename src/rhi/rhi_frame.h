@@ -2,6 +2,7 @@
 #include "../Rosy.h"
 #include "rhi_types.h"
 #include "rhi_descriptor.h"
+#include "SDL3/SDL_events.h"
 
 
 struct frame_data
@@ -22,16 +23,17 @@ namespace rh
 
 	struct rhi
 	{
-		VkDevice device;
-		VmaAllocator allocator;
+		VkDevice device{};
+		VmaAllocator allocator{};
 		std::optional<frame_data> frame_data = std::nullopt;
 		std::optional<rhi_data*> data = std::nullopt;
-		VkExtent2D frame_extent;
+		VkExtent2D frame_extent{};
 		std::optional <descriptor_allocator_growable> descriptor_allocator;
 	};
 
 	struct ctx
 	{
 		rhi rhi;
+		const SDL_Event* sdl_event;
 	};
 }

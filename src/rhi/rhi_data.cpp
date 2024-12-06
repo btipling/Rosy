@@ -1,8 +1,7 @@
 #include "rhi.h"
-#define GLM_ENABLE_EXPERIMENTAL
 #include "../rhi/rhi_types.h"
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
-
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>

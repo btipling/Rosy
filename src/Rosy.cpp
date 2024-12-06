@@ -21,7 +21,7 @@
 #include "utils/utils.h"
 #include "scene/scene_one/scene_one.h"
 
-void render(rhi* renderer, bool* resize_requested, bool* should_run, bool* scene_loaded, scene_one* scene);
+void render(const SDL_Event* event, rhi* renderer, bool* resize_requested, bool* should_run, bool* scene_loaded, scene_one* scene);
 
 struct handler_data {
 	rhi* renderer;
@@ -45,7 +45,7 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 		bool resize_requested;
 		bool should_run;
 		bool scene_loaded;
-		render(data->renderer, &resize_requested, &should_run, &scene_loaded, data->scene);
+		render(event, data->renderer, &resize_requested, &should_run, &scene_loaded, data->scene);
 		break;
 	}
 	return true;
@@ -115,8 +115,8 @@ int main(int argc, char* argv[])
 	bool should_render = true;
 	bool resize_requested = false;
 	bool scene_loaded = false;
+	SDL_Event event{};
 	while (should_run) {
-		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			if (event.type == SDL_EVENT_QUIT) {
@@ -148,12 +148,12 @@ int main(int argc, char* argv[])
 				resize_requested = false;
 			}
 
-			render(renderer.get(), &resize_requested, &should_run, &scene_loaded, &scene);
+			render(&event, renderer.get(), &resize_requested, &should_run, &scene_loaded, &scene);
 		}
 	}
 	{
 		rh::ctx ctx;
-		if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(); opt_ctx.has_value())
+		if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(&event); opt_ctx.has_value())
 		{
 			ctx = opt_ctx.value();
 		}
@@ -175,14 +175,13 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-void render(rhi* renderer, bool* resize_requested, bool* should_run, bool* scene_loaded, scene_one* scene)
+void render(const SDL_Event* event, rhi* renderer, bool* resize_requested, bool* should_run, bool* scene_loaded, scene_one* scene)
 {
 	{
-		VkResult result;
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
-		result = renderer->draw_ui();
+		VkResult result = renderer->draw_ui();
 		if (result != VK_SUCCESS) {
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 				*resize_requested = true;
@@ -194,7 +193,7 @@ void render(rhi* renderer, bool* resize_requested, bool* should_run, bool* scene
 		}
 		{
 			rh::ctx ctx;
-			if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(); opt_ctx.has_value())
+			if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(event); opt_ctx.has_value())
 			{
 				ctx = opt_ctx.value();
 			}
@@ -226,7 +225,7 @@ void render(rhi* renderer, bool* resize_requested, bool* should_run, bool* scene
 		}
 		{
 			rh::ctx ctx;
-			if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(); opt_ctx.has_value())
+			if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(event); opt_ctx.has_value())
 			{
 				ctx = opt_ctx.value();
 			}

@@ -37,7 +37,7 @@ VkResult rhi::draw_ui()
 	return VK_SUCCESS;
 }
 
-std::expected<rh::ctx, VkResult> rhi::current_frame_data()
+std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
 	rh::rhi rhi_ctx = {
@@ -58,6 +58,7 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data()
 	}
 	const rh::ctx ctx = {
 		.rhi = rhi_ctx,
+		.sdl_event = event,
 	};
 	return ctx;
 }
