@@ -24,7 +24,7 @@ static const char* deviceExtensions[] = {
 	//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 };
 
-rhi::rhi(rosy_config::Config cfg) : cfg_{ cfg }, required_features_{ requiredFeatures }
+rhi::rhi(rosy_config::config* cfg) : cfg_{ cfg }, required_features_{ requiredFeatures }
 {
 	memset(&required_features_, 0, sizeof(VkPhysicalDeviceFeatures));
 }
@@ -300,7 +300,7 @@ VkResult rhi::query_instance_layers()
 	layers.resize(p_property_count);
 	result = vkEnumerateInstanceLayerProperties(&p_property_count, layers.data());
 	if (result != VK_SUCCESS) return result;
-	if (!cfg_.enable_validation_layers) return result;
+	if (!cfg_->enable_validation_layers) return result;
 	for (VkLayerProperties lp : layers)
 	{
 		rosy_utils::debug_print_a("Instance layer name: %s layer description: %s\n", lp.layerName, lp.description);
@@ -435,7 +435,7 @@ VkResult rhi::query_device_extensions()
 
 VkResult rhi::create_debug_callback()
 {
-	if (!cfg_.enable_validation_layers) return VK_SUCCESS;
+	if (!cfg_->enable_validation_layers) return VK_SUCCESS;
 
 	VkDebugUtilsMessengerCreateInfoEXT createInfo = create_debug_callback_info();
 	VkDebugUtilsMessengerEXT debugMessenger;
@@ -544,7 +544,7 @@ VkResult rhi::init_physical_device()
 		if (!dynamic_rendering_features.dynamicRendering) continue;
 
 
-		if (device_properties.vendorID == cfg_.device_vendor)
+		if (device_properties.vendorID == cfg_->device_vendor)
 		{
 			{
 				found_device = true;
@@ -840,8 +840,8 @@ VkResult rhi::init_draw_image()
 	VkResult result;
 
 	VkExtent3D draw_image_extent = {
-		.width = static_cast<uint32_t>(cfg_.maxWindowWidth),
-		.height = static_cast<uint32_t>(cfg_.maxWindowHeight),
+		.width = static_cast<uint32_t>(cfg_->max_window_width),
+		.height = static_cast<uint32_t>(cfg_->max_window_height),
 		.depth = 1
 	};
 	allocated_image draw_image = {};

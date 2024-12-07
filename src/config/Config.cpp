@@ -2,6 +2,6 @@
 
 namespace rosy_config {
 	void debug() {
-		OutputDebugStringW(L"Hello config!\n");
+		OutputDebugStringW(L"Rosy started\n");
 	}
 }

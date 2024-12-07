@@ -7,7 +7,16 @@
 class rhi
 {
 public:
-	explicit rhi(rosy_config::Config cfg);
+	std::expected<rh::ctx, VkResult> current_frame_data(const SDL_Event* event);
+	std::optional<VkDevice> opt_device = std::nullopt;
+	std::optional<VmaAllocator> opt_allocator = std::nullopt;
+	std::optional<std::unique_ptr<rhi_data>> buffer;
+	VkExtent2D swapchain_extent_ = {};
+	std::optional<descriptor_allocator_growable> scene_descriptor_allocator = std::nullopt;
+	std::optional<ktxVulkanDeviceInfo> vdi = std::nullopt;
+	rosy_config::config* cfg_;
+
+	explicit rhi(rosy_config::config* cfg);
 	VkResult init(SDL_Window* window);
 	VkResult resize_swapchain(SDL_Window* window);
 	void deinit();
@@ -19,19 +28,11 @@ public:
 	// Rendering
 	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
 		VkImageLayout new_layout);
-	std::expected<rh::ctx, VkResult> current_frame_data(const SDL_Event* event);
-	std::optional<VkDevice> opt_device = std::nullopt;
-	std::optional<VmaAllocator> opt_allocator = std::nullopt;
-	std::optional<std::unique_ptr<rhi_data>> buffer;
-	VkExtent2D swapchain_extent_ = {};
-	std::optional<descriptor_allocator_growable> scene_descriptor_allocator = std::nullopt;
-	std::optional<ktxVulkanDeviceInfo> vdi = std::nullopt;
 	void debug() const;
 	~rhi();
 
 private:
 	bool deinited_ = false;
-	rosy_config::Config cfg_;
 	std::vector<const char*> instance_layer_properties_;
 	std::vector<const char*> device_layer_properties_;
 	std::vector<const char*> instance_extensions_;

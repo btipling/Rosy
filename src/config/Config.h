@@ -4,9 +4,9 @@
 
 namespace rosy_config {
 
-	struct Config {
-		int maxWindowWidth = 0;
-		int maxWindowHeight = 0;
+	struct config {
+		int max_window_width = 0;
+		int max_window_height = 0;
 		uint32_t device_vendor = 4318;
 		bool enable_validation_layers = true;
 	};

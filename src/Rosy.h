@@ -30,13 +30,13 @@ struct state_debouncer
     SDL_Time last_toggled = 0;
     double delay = 0.1f;
     bool state = true;
-    bool toggle()
+    void toggle()
     {
         SDL_Time current_time = 0;
         if (!SDL_GetCurrentTime(&current_time))
         {
             rosy_utils::debug_print_a("failed to get current ticks!\n");
-            return state;
+            return;
         }
         if (current_time - delay > last_toggled)
         {
@@ -44,6 +44,6 @@ struct state_debouncer
             last_toggled = current_time;
             rosy_utils::debug_print_a("updated state to %d!\n", state);
         }
-        return state;
+        return;
     };
 };

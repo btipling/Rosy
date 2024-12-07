@@ -136,6 +136,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="app.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="config\Config.h" />
     <ClInclude Include="framework.h" />
@@ -165,6 +166,7 @@
     <ClInclude Include="utils\utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="app.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="config\Config.cpp" />
     <ClCompile Include="lib\imgui\backends\imgui_impl_sdl3.cpp" />
