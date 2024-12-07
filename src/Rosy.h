@@ -19,30 +19,3 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "app/config/Config.h"
 #include "app/utils/utils.h"
-
-namespace rh
-{
-	struct ctx;
-}
-
-struct state_debouncer
-{
-    SDL_Time last_toggled = 0;
-    double delay = 0.1f;
-    bool state = true;
-    void toggle()
-    {
-        SDL_Time current_time = 0;
-        if (!SDL_GetCurrentTime(&current_time))
-        {
-            rosy_utils::debug_print_a("failed to get current ticks!\n");
-            return;
-        }
-        if (current_time - delay > last_toggled)
-        {
-            state = !state;
-            last_toggled = current_time;
-        }
-        return;
-    };
-};

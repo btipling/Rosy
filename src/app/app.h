@@ -3,6 +3,7 @@
 #include "rhi/rhi.h"
 #include "config/Config.h"
 #include "scene/scene_one/scene_one.h"
+#include "utils/utils.h"
 
 constexpr int max_width = 640;
 constexpr int max_height = 480;
@@ -24,7 +25,7 @@ private:
 	bool should_render_ = true;
 	bool resize_requested_ = false;
 	bool scene_loaded_ = false;
-	state_debouncer show_cursor_ = { .state = true };
+	rosy_utils::state_debouncer show_cursor_ = { .state = true };
 	SDL_Window* window_ = nullptr;
 	scene_one scene_{};
 

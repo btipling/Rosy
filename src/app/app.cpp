@@ -11,9 +11,7 @@
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
-#include "rhi/rhi.h"
 #include "config/Config.h"
-#include "utils/utils.h"
 #include "scene/scene_one/scene_one.h"
 
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
