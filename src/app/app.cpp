@@ -77,7 +77,7 @@ int app::deinit()
 	{
 		// Deinit scene_
 		rh::ctx ctx;
-		if (std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(nullptr); opt_ctx.has_value())
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(nullptr); opt_ctx.has_value())
 			ctx = opt_ctx.value();
 		else rosy_utils::debug_print_a("no available frame data\n");
 		if (scene_.deinit(ctx) == rh::result::error) rosy_utils::debug_print_a("scene_ deinit failed\n");
@@ -100,7 +100,11 @@ int app::run()
 	while (should_run_) {
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_EVENT_KEY_UP) {
-				if (event.key.key == SDLK_C) show_cursor_.toggle();
+				if (event.key.key == SDLK_C) {
+					show_cursor_.toggle();
+					if (show_cursor_.state) SDL_SetWindowMouseGrab(window_, false);
+					else SDL_SetWindowMouseGrab(window_, true);
+				}
 			}
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			if (event.type == SDL_EVENT_QUIT) {

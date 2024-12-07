@@ -42,7 +42,6 @@ struct state_debouncer
         {
             state = !state;
             last_toggled = current_time;
-            rosy_utils::debug_print_a("updated state to %d!\n", state);
         }
         return;
     };
