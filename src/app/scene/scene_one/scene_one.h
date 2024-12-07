@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../../rhi/rhi_frame.h"
-#include "../../../rhi/rhi_shader.h"
-#include "../../../camera.h"
+#include "../../rhi/rhi_frame.h"
+#include "../../rhi/rhi_shader.h"
+#include "../../camera.h"
 
 class scene_one
 {

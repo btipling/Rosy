@@ -17,8 +17,8 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "config/Config.h"
-#include "utils/utils.h"
+#include "app/config/Config.h"
+#include "app/utils/utils.h"
 
 namespace rh
 {

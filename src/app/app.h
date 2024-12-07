@@ -1,5 +1,5 @@
 #pragma once
-#include "Rosy.h"
+#include "../Rosy.h"
 #include "rhi/rhi.h"
 #include "config/Config.h"
 #include "scene/scene_one/scene_one.h"

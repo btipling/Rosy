@@ -1,5 +1,5 @@
 #pragma once
-#include "Rosy.h"
+#include "../Rosy.h"
 #include "rhi/rhi_frame.h"
 
 class camera
