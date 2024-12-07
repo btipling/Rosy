@@ -21,14 +21,23 @@ glm::mat4 camera::get_rotation_matrix() const
 
 void camera::process_sdl_event(const rh::ctx& ctx)
 {
+    if (ctx.sdl_event == nullptr) return;
+    const bool* current_key_states = SDL_GetKeyboardState(nullptr);
+
+    //if (const SDL_Scancode w_sc = SDL_GetScancodeFromKey(SDLK_W, nullptr); current_key_states[w_sc]) velocity.z = 1.f;
+    //if (const SDL_Scancode w_sc = SDL_GetScancodeFromKey(SDLK_S, nullptr); current_key_states[w_sc]) velocity.z = -1.f;
+    //if (const SDL_Scancode w_sc = SDL_GetScancodeFromKey(SDLK_A, nullptr); current_key_states[w_sc]) velocity.x = 1.f;
+    //if (const SDL_Scancode w_sc = SDL_GetScancodeFromKey(SDLK_D, nullptr); current_key_states[w_sc]) velocity.x = -1.f;
+    //if (const SDL_Scancode w_sc = SDL_GetScancodeFromKey(SDLK_SPACE, nullptr); current_key_states[w_sc]) velocity.y = 1.f;
+    //if (const SDL_Scancode w_sc = SDL_GetScancodeFromKey(SDLK_Z, nullptr); current_key_states[w_sc]) velocity.y = -1.f;
     const SDL_Event e = *ctx.sdl_event;
     if (e.type == SDL_EVENT_KEY_DOWN) {
-        if (e.key.key == SDLK_W) { velocity.z = 0.1f; }
-        if (e.key.key == SDLK_S) { velocity.z = -0.1f; }
-        if (e.key.key == SDLK_A) { velocity.x = -0.1f; }
-        if (e.key.key == SDLK_D) { velocity.x = 0.1f; }
-        if (e.key.key == SDLK_SPACE) { velocity.y = 0.1f; }
-        if (e.key.key == SDLK_Z) { velocity.y = -0.1f; }
+        if (e.key.key == SDLK_W) { velocity.z = 1.f; }
+        if (e.key.key == SDLK_S) { velocity.z = -1.f; }
+        if (e.key.key == SDLK_A) { velocity.x = -1.f; }
+        if (e.key.key == SDLK_D) { velocity.x = 1.f; }
+        if (e.key.key == SDLK_SPACE) { velocity.y = 1.f; }
+        if (e.key.key == SDLK_Z) { velocity.y = -1.f; }
 
 
     }
@@ -43,13 +52,13 @@ void camera::process_sdl_event(const rh::ctx& ctx)
     }
     if (!ctx.mouse_enabled) return;
     if (e.type == SDL_EVENT_MOUSE_MOTION) {
-        yaw -= e.motion.xrel / 200.f;
-        pitch += e.motion.yrel / 200.f;
+        yaw -= e.motion.xrel / 500.f;
+        pitch += e.motion.yrel / 500.f;
     }
 }
 
-void camera::update()
+void camera::update(const rh::ctx& ctx)
 {
     const glm::mat4 camera_rotation = get_rotation_matrix();
-    position += glm::vec3(camera_rotation * glm::vec4(velocity * 0.5f, 0.f));
+    position += glm::vec3(camera_rotation * glm::vec4(velocity * 0.05f, 0.f));
 }

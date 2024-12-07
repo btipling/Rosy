@@ -41,7 +41,7 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 		vertices.clear();
 
 		for (fastgltf::Primitive p : mesh.primitives) {
-			geo_surface new_surface;
+			geo_surface new_surface{};
 			new_surface.start_index = static_cast<uint32_t>(indices.size());
 			new_surface.count = static_cast<uint32_t>(gltf.accessors[p.indicesAccessor.value()].count);
 
@@ -65,8 +65,8 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 				vertices.resize(vertices.size() + pos_accessor.count);
 
 				fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, pos_accessor,
-					[&](glm::vec3 v, size_t index) {
-						vertex new_vtx;
+					[&](const glm::vec3 v, const size_t index) {
+						vertex new_vtx{};
 						new_vtx.position = v;
 						new_vtx.normal = { 1.0f, 0.0f, 0.0f };
 						new_vtx.color = glm::vec4{ 1.f };
@@ -224,17 +224,17 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 
 allocated_buffer_result rhi_data::create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const
 {
-		VkBufferCreateInfo buffer_info = {};
+		VkBufferCreateInfo buffer_info{};
 		buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		buffer_info.pNext = nullptr;
 		buffer_info.size = alloc_size;
 		buffer_info.usage = usage;
 
-		VmaAllocationCreateInfo vma_alloc_info = {};
+		VmaAllocationCreateInfo vma_alloc_info{};
 		vma_alloc_info.usage = memory_usage;
 		vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
-		allocated_buffer new_buffer;
+		allocated_buffer new_buffer{};
 		const VkResult result = vmaCreateBuffer(renderer_->opt_allocator.value(), &buffer_info, &vma_alloc_info, &new_buffer.buffer,
 			&new_buffer.allocation,
 			&new_buffer.info);
@@ -253,12 +253,11 @@ void rhi_data::destroy_buffer(const allocated_buffer& buffer) const
 {
 	vmaDestroyBuffer(renderer_->opt_allocator.value(), buffer.buffer, buffer.allocation);
 }
-#include "rhi.h"
 
 allocated_image_result rhi_data::create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
 	bool mip_mapped) const
 {
-	allocated_image new_image;
+	allocated_image new_image{};
 	new_image.image_format = format;
 	new_image.image_extent = size;
 
@@ -268,14 +267,14 @@ allocated_image_result rhi_data::create_image(VkExtent3D size, VkFormat format, 
 		img_info.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(size.width, size.height)))) + 1;
 	}
 
-	VmaAllocationCreateInfo alloc_info = {};
+	VmaAllocationCreateInfo alloc_info{};
 	alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	if (VkResult result = vmaCreateImage(renderer_->opt_allocator.value(), &img_info, &alloc_info, &new_image.image,
 		&new_image.allocation, nullptr); result != VK_SUCCESS)
 	{
-		allocated_image_result rv = {};
+		allocated_image_result rv{};
 		rv.result = result;
 		return rv;
 	}
@@ -292,12 +291,12 @@ allocated_image_result rhi_data::create_image(VkExtent3D size, VkFormat format, 
 	if (VkResult result = vkCreateImageView(renderer_->opt_device.value(), &view_info, nullptr, &new_image.image_view); result !=
 		VK_SUCCESS)
 	{
-		allocated_image_result rv = {};
+		allocated_image_result rv{};
 		rv.result = result;
 		return rv;
 	}
 	{
-		allocated_image_result rv = {};
+		allocated_image_result rv{};
 		rv.result = VK_SUCCESS;
 		rv.image = new_image;
 		return rv;
@@ -306,7 +305,7 @@ allocated_image_result rhi_data::create_image(VkExtent3D size, VkFormat format, 
 
 std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const
 {
-	ktxVulkanTexture texture;
+	ktxVulkanTexture texture{};
 	ktx_error_code_e ktx_result = ktxTexture_VkUploadEx(ktx_texture, &renderer_->vdi.value(), &texture,
 		VK_IMAGE_TILING_OPTIMAL,
 		usage,
@@ -326,13 +325,13 @@ allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D
 	auto [result, created_buffer] = create_buffer("image staging", data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST);
 	if (result != VK_SUCCESS)
 	{
-		allocated_image_result rv = {};
+		allocated_image_result rv{};
 		rv.result = result;
 		return rv;
 	}
 	const allocated_buffer staging = created_buffer;
 
-	void* staging_data;
+	void* staging_data = nullptr;
 	vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &staging_data);
 	memcpy(static_cast<char*>(staging_data), data, data_size);
 	vmaUnmapMemory(renderer_->opt_allocator.value(), staging.allocation);
@@ -350,7 +349,7 @@ allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D
 		{
 			renderer_->transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-			VkBufferImageCopy copy_region = {};
+			VkBufferImageCopy copy_region{};
 			copy_region.bufferOffset = 0;
 			copy_region.bufferRowLength = 0;
 			copy_region.bufferImageHeight = 0;

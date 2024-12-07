@@ -18,21 +18,21 @@ VkResult rhi::init_ui(SDL_Window* window) {
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
 		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 } };
 
-	VkDescriptorPoolCreateInfo pool_info = {};
+	VkDescriptorPoolCreateInfo pool_info{};
 	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	pool_info.maxSets = 1000;
 	pool_info.poolSizeCount = static_cast<uint32_t>(std::size(pool_sizes));
 	pool_info.pPoolSizes = pool_sizes;
 
-	VkDescriptorPool imgui_pool;
+	VkDescriptorPool imgui_pool{};
 	const VkDevice device = opt_device.value();
 	if (const VkResult result = vkCreateDescriptorPool(device, &pool_info, nullptr, &imgui_pool); result != VK_SUCCESS) return result;
 
 	ImGui::CreateContext();
 	ImGui_ImplSDL3_InitForVulkan(window);
 
-	ImGui_ImplVulkan_InitInfo init_info = {};
+	ImGui_ImplVulkan_InitInfo init_info{};
 	init_info.Instance = instance_.value();
 	init_info.PhysicalDevice = physical_device_.value();
 	init_info.Device = opt_device.value();
@@ -65,8 +65,6 @@ VkResult rhi::init_ui(SDL_Window* window) {
 
 VkResult rhi::render_ui(const VkCommandBuffer cmd, const VkImageView target_image_view) const
 {
-	VkResult result;
-
 	const VkRenderingAttachmentInfo colorAttachment = rhi_helpers::attachment_info(target_image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	const VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent_, colorAttachment, std::nullopt);
 	vkCmdBeginRendering(cmd, &render_info);

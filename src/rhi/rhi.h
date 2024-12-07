@@ -103,9 +103,6 @@ private:
 	VkResult init_data();
 	VkResult init_ktx();
 
-
-	VkResult render_frame();
-
 	// Utils
 	swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device) const;
 

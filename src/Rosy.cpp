@@ -27,7 +27,7 @@ struct render_loop
 	bool should_render = true;
 	bool resize_requested = false;
 	bool scene_loaded = false;
-	bool show_cursor = true;
+	state_debouncer show_cursor = {.state = true };
 };
 
 void render(const SDL_Event* event, rhi* renderer, render_loop* loop_ctx, scene_one* scene);  // NOLINT(misc-use-internal-linkage)
@@ -52,14 +52,12 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 			rosy_utils::debug_print_a("resizing-event: rhi failed to resize swapchain %d\n", result);
 			return false;
 		}
-		bool resize_requested;
-		bool should_run;
-		bool scene_loaded;
 		render(event, data->renderer, data->loop_ctx, data->scene);
 		break;
 	}
 	return true;
 }
+
 int main(int argc, char* argv[])
 {
 	SDL_Window* window = nullptr;
@@ -122,44 +120,31 @@ int main(int argc, char* argv[])
 	};
 
 	SDL_AddEventWatch(event_handler, static_cast<void*>(&h_data));
-	SDL_Event event{};
 	SDL_HideCursor();
+	const SDL_Event* event = nullptr;
+	SDL_Event event_capture;
 	while (loop_ctx.should_run) {
-		while (SDL_PollEvent(&event)) {
-
-			if (event.type == SDL_EVENT_KEY_UP) {
-				if (event.key.key == SDLK_C)
+		while (SDL_PollEvent(&event_capture)) {
+			event = &event_capture;
+			if (event == nullptr) abort();
+			if (event->type == SDL_EVENT_KEY_UP) {
+				if (event->key.key == SDLK_C)
 				{
-					if (loop_ctx.show_cursor)
-					{
-						loop_ctx.show_cursor = false;
-						SDL_HideCursor();
-
-					}
-					else
-					{
-						loop_ctx.show_cursor = true;
-						SDL_ShowCursor();
-					}
+					bool _ = loop_ctx.show_cursor.toggle();
 				}
 			}
-			ImGuiIO& io = ImGui::GetIO();
-			if (!loop_ctx.show_cursor)
-			{
-				ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-			}
-			ImGui_ImplSDL3_ProcessEvent(&event);
-			if (event.type == SDL_EVENT_QUIT) {
+			ImGui_ImplSDL3_ProcessEvent(event);
+			if (event->type == SDL_EVENT_QUIT) {
 				loop_ctx.should_run = false;
 				break;
 			}
-			if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
+			if (event->type == SDL_EVENT_WINDOW_MINIMIZED) {
 				loop_ctx.should_render = false;
 			}
-			if (event.type == SDL_EVENT_WINDOW_RESTORED) {
+			if (event->type == SDL_EVENT_WINDOW_RESTORED) {
 				loop_ctx.should_render = true;
 			}
-			if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+			if (event->type == SDL_EVENT_WINDOW_RESIZED) {
 				rosy_utils::debug_print_a("SDL_EVENT_WINDOW_RESIZED\n");
 				loop_ctx.resize_requested = true;
 			}
@@ -177,13 +162,14 @@ int main(int argc, char* argv[])
 				}
 				loop_ctx.resize_requested = false;
 			}
-
-			render(&event, renderer.get(), &loop_ctx, &scene);
+			render(event, renderer.get(), &loop_ctx, &scene);
 		}
+		event = nullptr;
+		render(event, renderer.get(), &loop_ctx, &scene);
 	}
 	{
 		rh::ctx ctx;
-		if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(&event); opt_ctx.has_value())
+		if (std::expected<rh::ctx, VkResult> opt_ctx = renderer->current_frame_data(nullptr); opt_ctx.has_value())
 		{
 			ctx = opt_ctx.value();
 		}
@@ -239,6 +225,11 @@ void render(const SDL_Event* event, rhi* renderer, render_loop* loop_ctx, scene_
 				loop_ctx->should_run = false;
 			}
 		}
+		ImGuiIO& io = ImGui::GetIO();
+		if (!loop_ctx->show_cursor.state)
+		{
+			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+		}
 		ImGui::Render();
 
 
@@ -275,7 +266,13 @@ void render(const SDL_Event* event, rhi* renderer, render_loop* loop_ctx, scene_
 				}
 				loop_ctx->scene_loaded = true;
 			}
-			ctx.mouse_enabled = !loop_ctx->show_cursor;
+			ctx.mouse_enabled = !loop_ctx->show_cursor.state;
+			if (const auto scene_result = scene->update(ctx); scene_result != rh::result::ok)
+			{
+				rosy_utils::debug_print_a("scene update failed %d\n", result);
+				loop_ctx->should_run = false;
+				return;
+			}
 			if (const auto scene_result = scene->draw(ctx); scene_result != rh::result::ok)
 			{
 				rosy_utils::debug_print_a("scene draw failed %d\n", result);

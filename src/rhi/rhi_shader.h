@@ -25,7 +25,7 @@ public:
     float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
     std::vector<VkShaderEXT> shaders = {};
 	std::optional<VkPipelineLayout> pipeline_layout = {};
-    void* shader_constants;
+    void* shader_constants = nullptr;
     uint32_t shader_constants_size = 0;
     std::vector<VkDescriptorSetLayout> layouts;
 

@@ -30,7 +30,7 @@ descriptor_set_layout_result descriptor_layout_builder::build(const VkDevice dev
 	info.bindingCount = static_cast<uint32_t>(bindings.size());
 	info.flags = flags;
 
-	VkDescriptorSetLayout set;
+	VkDescriptorSetLayout set{};
 	if (const VkResult result = vkCreateDescriptorSetLayout(device, &info, nullptr, &set); result != VK_SUCCESS)
 	{
 		descriptor_set_layout_result rv = {};
@@ -47,7 +47,7 @@ descriptor_set_layout_result descriptor_layout_builder::build(const VkDevice dev
 
 void descriptor_allocator::init_pool(const VkDevice device, const uint32_t max_sets, const std::span<pool_size_ratio> pool_ratios)
 {
-	std::vector<VkDescriptorPoolSize> pool_sizes;
+	std::vector<VkDescriptorPoolSize> pool_sizes{};
 
 	for (auto [type, ratio] : pool_ratios)
 	{
@@ -57,7 +57,7 @@ void descriptor_allocator::init_pool(const VkDevice device, const uint32_t max_s
 		});
 	}
 
-	VkDescriptorPoolCreateInfo pool_info = {};
+	VkDescriptorPoolCreateInfo pool_info{};
 	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	pool_info.flags = 0;
 	pool_info.maxSets = max_sets;
@@ -86,15 +86,15 @@ descriptor_set_result descriptor_allocator::allocate(const VkDevice device, cons
 	alloc_info.descriptorSetCount = 1;
 	alloc_info.pSetLayouts = &layout;
 
-	VkDescriptorSet set;
-	if (VkResult result = vkAllocateDescriptorSets(device, &alloc_info, &set); result != VK_SUCCESS)
+	VkDescriptorSet set{};
+	if (const VkResult result = vkAllocateDescriptorSets(device, &alloc_info, &set); result != VK_SUCCESS)
 	{
-		descriptor_set_result rv = {};
+		descriptor_set_result rv{};
 		rv.result = result;
 		return rv;
 	}
 	{
-		descriptor_set_result rv = {};
+		descriptor_set_result rv{};
 		rv.result = VK_SUCCESS;
 		rv.set = set;
 		return rv;

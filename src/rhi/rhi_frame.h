@@ -33,8 +33,9 @@ namespace rh
 
 	struct ctx
 	{
-		rhi rhi;
-		const SDL_Event* sdl_event;
+		rhi rhi{};
+		const SDL_Event* sdl_event{};
 		bool mouse_enabled = true;
+		double current_time = 0.f;
 	};
 }

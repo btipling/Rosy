@@ -34,7 +34,7 @@ VkResult shader_pipeline::build(const VkDevice device)
 	}
 	{
 		const VkPipelineLayoutCreateInfo pl_info = rhi_helpers::create_pipeline_layout_create_info(push_constant_range, 1, layouts.data(), layouts.size());
-		VkPipelineLayout layout;
+		VkPipelineLayout layout{};
 		if (const VkResult result = vkCreatePipelineLayout(device, &pl_info, nullptr, &layout); result != VK_SUCCESS) return result;
 		pipeline_layout = layout;
 	}

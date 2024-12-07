@@ -1,5 +1,6 @@
 #pragma once
 #include "Rosy.h"
+#include "rhi/rhi_frame.h"
 
 class camera
 {
@@ -14,6 +15,6 @@ public:
 
     void process_sdl_event(const rh::ctx& ctx);
 
-    void update();
+    void update(const rh::ctx& ctx);
 };
 

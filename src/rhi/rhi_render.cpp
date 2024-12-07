@@ -56,9 +56,15 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 	{
 		rhi_ctx.descriptor_allocator = scene_descriptor_allocator;
 	}
+	SDL_Time ticks = 0;
+	if (!SDL_GetCurrentTime(&ticks))
+	{
+		rosy_utils::debug_print_a("failed to get current ticks!\n");
+	}
 	const rh::ctx ctx = {
 		.rhi = rhi_ctx,
 		.sdl_event = event,
+		.current_time = static_cast<double>(ticks),
 	};
 	return ctx;
 }

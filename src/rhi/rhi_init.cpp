@@ -775,10 +775,10 @@ VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swap
 	frame_datas_.resize(std::min(static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT), swap_chain_image_count_));
 
 	const VkDevice device = opt_device.value();
-	VkSwapchainKHR swapchain;
+	VkSwapchainKHR swapchain{};
 	const VkExtent2D extent = choose_swap_extent(swapchain_details_.capabilities, window);
 	{
-		VkSwapchainCreateInfoKHR create_info = {};
+		VkSwapchainCreateInfoKHR create_info{};
 		create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		create_info.surface = surface_.value();
 		create_info.minImageCount = swap_chain_image_count_;
@@ -824,7 +824,7 @@ VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swap
 		{
 			VkImageViewCreateInfo create_info = rhi_helpers::img_view_create_info(swapchain_image_format_.format,
 				swap_chain_images_[i], VK_IMAGE_ASPECT_COLOR_BIT);
-			VkImageView image_view;
+			VkImageView image_view{};
 			if (const VkResult result = vkCreateImageView(device, &create_info, nullptr, &image_view); result !=
 				VK_SUCCESS)
 				return result;
@@ -960,7 +960,7 @@ VkResult rhi::init_command_pool()
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		VkCommandPool command_pool;
+		VkCommandPool command_pool{};
 		if (const VkResult result = vkCreateCommandPool(opt_device.value(), &pool_info, nullptr, &command_pool); result !=
 			VK_SUCCESS)
 			return result;
@@ -979,7 +979,7 @@ VkResult rhi::init_command_buffers()
 		alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		alloc_info.commandBufferCount = 1;
 
-		VkCommandBuffer command_buffer;
+		VkCommandBuffer command_buffer{};
 		if (const VkResult result = vkAllocateCommandBuffers(opt_device.value(), &alloc_info, &command_buffer); result !=
 			VK_SUCCESS)
 			return result;

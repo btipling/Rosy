@@ -4,7 +4,7 @@ namespace physics
 {
     derivative derivative::operator*(const double  value) const
     {
-        derivative rv;
+        derivative rv{};
         rv.dx_velocity = dx_velocity * value;
         rv.dv_acceleration = dv_acceleration * value;
         return rv;
@@ -12,7 +12,7 @@ namespace physics
 
     derivative derivative::operator+(const double value) const
     {
-        derivative rv;
+        derivative rv{};
         rv.dx_velocity = dx_velocity + value;
         rv.dv_acceleration = dv_acceleration + value;
         return rv;
@@ -20,7 +20,7 @@ namespace physics
 
     derivative derivative::operator*(const derivative other) const
     {
-        derivative rv;
+        derivative rv{};
         rv.dx_velocity = dx_velocity * other.dx_velocity;
         rv.dv_acceleration = dv_acceleration * other.dv_acceleration;
         return rv;
@@ -28,7 +28,7 @@ namespace physics
 
     derivative derivative::operator+(const derivative other) const
     {
-        derivative rv;
+        derivative rv{};
         rv.dx_velocity = dx_velocity + other.dx_velocity;
         rv.dv_acceleration = dv_acceleration + other.dv_acceleration;
         return rv;
@@ -36,7 +36,7 @@ namespace physics
 
     state state::operator*(const double value) const
     {
-        state rv;
+        state rv{};
         rv.position = position * value;
         rv.velocity = velocity * value;
         return rv;
@@ -45,7 +45,7 @@ namespace physics
 
     state state::operator+(const double value) const
     {
-        state rv;
+        state rv{};
         rv.position = position + value;
         rv.velocity = velocity + value;
         return rv;
@@ -53,7 +53,7 @@ namespace physics
 
     state state::operator*(const state other) const
     {
-        state rv;
+        state rv{};
         rv.position = position * other.position;
         rv.velocity = velocity * other.velocity;
         return rv;
@@ -61,18 +61,18 @@ namespace physics
 
     state state::operator+(const state other) const
     {
-        state rv;
+        state rv{};
         rv.position = position + other.position;
         rv.velocity = velocity + other.velocity;
         return rv;
     }
 
     derivative evaluate(const state& initial, const double t, const double dt, const derivative& d) {
-        state state;
+        state state{};
         state.position = initial.position + d.dx_velocity * dt;
         state.velocity = initial.velocity + d.dv_acceleration * dt;
 
-        derivative output;
+        derivative output{};
         output.dx_velocity = state.velocity;
         output.dv_acceleration = acceleration(state, t + dt);
         return output;

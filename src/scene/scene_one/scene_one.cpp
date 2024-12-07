@@ -87,7 +87,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(earth_vk_texture_.value().imageFormat, earth_vk_texture_.value().image, aspect_flag);
 		view_info.subresourceRange.levelCount = earth_vk_texture_.value().levelCount;
 		view_info.subresourceRange.layerCount = earth_vk_texture_.value().layerCount;
-		VkImageView img_view;
+		VkImageView img_view{};
 		if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
 			VK_SUCCESS)
 		{
@@ -114,7 +114,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 
 		// Linear mipmap mode instead of NEAREST
 		sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		VkSampler sampler;
+		VkSampler sampler{};
 		if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
 		default_sampler_nearest_ = sampler;
 	}
@@ -184,7 +184,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("meshes", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 	
-			gpu_draw_push_constants push_constants;
+			gpu_draw_push_constants push_constants{};
 			auto m = glm::mat4(1.0f);
 			m = translate(m, glm::vec3{ model_x_, model_y_, model_z_ });
 			m = rotate(m, model_rot_x_, glm::vec3(1, 0, 0));
@@ -284,10 +284,16 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 	return rh::result::ok;
 }
 
+rh::result scene_one::update(const rh::ctx& ctx)
+{
+	camera_.process_sdl_event(ctx);
+	return rh::result::ok;
+}
+
 void scene_one::update_scene(const rh::ctx& ctx)
 {
 	camera_.process_sdl_event(ctx);
-	camera_.update();
+	camera_.update(ctx);
 	const auto [width, height] = ctx.rhi.frame_extent;
 	auto m = glm::mat4(1.0f);
 

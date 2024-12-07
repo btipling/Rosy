@@ -8,6 +8,7 @@ class scene_one
 {
 public:
 	rh::result build(const rh::ctx& ctx);
+	rh::result update(const rh::ctx& ctx);
 	rh::result draw(rh::ctx ctx);
 	rh::result draw_ui(const rh::ctx& ctx);
 	rh::result deinit(rh::ctx& ctx);
