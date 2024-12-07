@@ -375,3 +375,4 @@ imgui.ini
 *.glb
 *.lib
 *.dll
+*.spv
