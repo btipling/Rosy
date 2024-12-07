@@ -45,12 +45,6 @@
     <ClInclude Include="Rosy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="config\Config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="utils\utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="lib\imgui\imgui.h">
       <Filter>Header Files\imgui</Filter>
     </ClInclude>
@@ -68,12 +62,6 @@
     </ClInclude>
     <ClInclude Include="lib\imgui\imconfig.h">
       <Filter>Header Files\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi.h">
-      <Filter>Header Files\rhi</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi_utils.h">
-      <Filter>Header Files\rhi</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">
       <Filter>Header Files\windows</Filter>
@@ -93,82 +81,55 @@
     <ClInclude Include="lib\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="loader\loader.h">
+    <ClInclude Include="app\app.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rhi\rhi_descriptor.h">
-      <Filter>Header Files\rhi</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi_shader.h">
-      <Filter>Header Files\rhi</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi_types.h">
-      <Filter>Header Files\rhi</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi_helpers.h">
-      <Filter>Header Files\rhi</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi_cmd.h">
-      <Filter>Header Files\rhi</Filter>
-    </ClInclude>
-    <ClInclude Include="scene\scene_one\scene_one.h">
-      <Filter>scene\scene_one</Filter>
-    </ClInclude>
-    <ClInclude Include="rhi\rhi_frame.h">
-      <Filter>Header Files\rhi</Filter>
-    </ClInclude>
-    <ClInclude Include="physics\physics.h">
+    <ClInclude Include="app\scene\scene_one\scene_one.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="camera.h">
+    <ClInclude Include="app\camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="app.h">
+    <ClInclude Include="app\config\Config.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="app\utils\utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="app\loader\loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="app\physics\physics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="app\rhi\rhi.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="app\rhi\rhi_cmd.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="app\rhi\rhi_descriptor.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="app\rhi\rhi_frame.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="app\rhi\rhi_helpers.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="app\rhi\rhi_shader.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="app\rhi\rhi_types.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="app\rhi\rhi_utils.h">
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="config\Config.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="utils\utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="loader\loader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="scene\scene_one\scene_one.cpp">
-      <Filter>scene\scene_one</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_utils.cpp">
-      <Filter>Source Files\rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_ui.cpp">
-      <Filter>Source Files\rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_shader.cpp">
-      <Filter>Source Files\rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_render.cpp">
-      <Filter>Source Files\rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_init.cpp">
-      <Filter>Source Files\rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_descriptor.cpp">
-      <Filter>Source Files\rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_cmd.cpp">
-      <Filter>Source Files\rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_helpers.cpp">
-      <Filter>Source Files\rhi</Filter>
-    </ClCompile>
-    <ClCompile Include="rhi\rhi_data.cpp">
-      <Filter>Source Files\rhi</Filter>
     </ClCompile>
     <ClCompile Include="lib\imgui\imgui.cpp">
       <Filter>Source Files\imgui</Filter>
@@ -191,14 +152,53 @@
     <ClCompile Include="lib\imgui\imgui_widgets.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="physics\physics.cpp">
+    <ClCompile Include="app\app.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="camera.cpp">
+    <ClCompile Include="app\camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="app.cpp">
+    <ClCompile Include="app\config\Config.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="app\loader\loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="app\physics\physics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="app\scene\scene_one\scene_one.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="app\utils\utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_cmd.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_data.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_descriptor.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_helpers.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_init.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_render.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_shader.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_ui.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_utils.cpp">
+      <Filter>Source Files\rhi</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
