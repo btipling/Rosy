@@ -48,7 +48,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		// Earth pipeline
 		shader_pipeline sp = {};
 		sp.layouts = layouts;
-		sp.name = "test";
+		sp.name = "earth";
 		sp.with_shaders(earth_vertex_shader, earth_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
 		earth_pipeline_ = sp;
@@ -58,7 +58,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		// Skybox pipeline
 		shader_pipeline sp = {};
 		sp.layouts = layouts;
-		sp.name = "test";
+		sp.name = "skybox";
 		sp.with_shaders(skybox_vertex_shader, skybox_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
 		skybox_pipeline_ = sp;
@@ -165,38 +165,37 @@ rh::result scene_one::draw(rh::ctx ctx)
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
-	shader_pipeline shaders = earth_pipeline_.value();
+	shader_pipeline earth_shaders = earth_pipeline_.value();
+	shader_pipeline skybox_shaders = skybox_pipeline_.value();
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 	VmaAllocator allocator = ctx.rhi.allocator;
 
+	// Set descriptor sets
+	std::vector<VkDescriptorSet> sets;
 	{
-		// Set descriptor sets
-		std::vector<VkDescriptorSet> sets;
-		{
-			// Global descriptor
-			auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
-			if (desc_result != VK_SUCCESS) return rh::result::error;
-			VkDescriptorSet global_descriptor = desc_set;
-			void* data_pointer;
-			vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
-			memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
-			vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
+		// Global descriptor
+		auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
+		if (desc_result != VK_SUCCESS) return rh::result::error;
+		VkDescriptorSet global_descriptor = desc_set;
+		void* data_pointer;
+		vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
+		memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
+		vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
 
-			descriptor_writer writer;
-			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, global_descriptor);
-			sets.push_back(desc_set);
-		}
-		{
-			// Mesh descriptor
-			sets.push_back(sphere_image_descriptor_set_.value());
-		}
-		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shaders.pipeline_layout.value(), 0, sets.size(), sets.data(), 0, nullptr);
+		descriptor_writer writer;
+		writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		writer.update_set(device, global_descriptor);
+		sets.push_back(desc_set);
+	}
+	{
+		// Mesh descriptor
+		sets.push_back(sphere_image_descriptor_set_.value());
 	}
 	{
 		// Skybox
 		{
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, sets.size(), sets.data(), 0, nullptr);
 			float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
@@ -210,13 +209,13 @@ rh::result scene_one::draw(rh::ctx ctx)
 				size_t mesh_index = 1;
 				auto mesh = scene_graph_[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
-				shaders.viewport_extent = frame_extent;
-				shaders.shader_constants = &push_constants;
-				shaders.shader_constants_size = sizeof(push_constants);
-				shaders.wire_frames_enabled = toggle_wire_frame_;
-				shaders.depth_enabled = true;
-				shaders.blending = static_cast<shader_blending>(blend_mode_);
-				if (VkResult result = shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+				skybox_shaders.viewport_extent = frame_extent;
+				skybox_shaders.shader_constants = &push_constants;
+				skybox_shaders.shader_constants_size = sizeof(push_constants);
+				skybox_shaders.wire_frames_enabled = toggle_wire_frame_;
+				skybox_shaders.depth_enabled = true;
+				skybox_shaders.blending = static_cast<shader_blending>(blend_mode_);
+				if (VkResult result = skybox_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
 					0, 0);
@@ -225,10 +224,11 @@ rh::result scene_one::draw(rh::ctx ctx)
 		}
 		// Earth
 		{
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, earth_shaders.pipeline_layout.value(), 0, sets.size(), sets.data(), 0, nullptr);
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("earth", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
-	
+
 			gpu_draw_push_constants push_constants{};
 			auto m = glm::mat4(1.0f);
 			m = translate(m, earth_pos_);
@@ -238,19 +238,19 @@ rh::result scene_one::draw(rh::ctx ctx)
 			m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
 			m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
 			push_constants.world_matrix = m;
-	
+
 			if (scene_graph_.size() > 0)
 			{
 				size_t mesh_index = 0;
 				auto mesh = scene_graph_[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
-				shaders.viewport_extent = frame_extent;
-				shaders.shader_constants = &push_constants;
-				shaders.shader_constants_size = sizeof(push_constants);
-				shaders.wire_frames_enabled = toggle_wire_frame_;
-				shaders.depth_enabled = true;
-				shaders.blending = static_cast<shader_blending>(blend_mode_);
-				if (VkResult result = shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+				earth_shaders.viewport_extent = frame_extent;
+				earth_shaders.shader_constants = &push_constants;
+				earth_shaders.shader_constants_size = sizeof(push_constants);
+				earth_shaders.wire_frames_enabled = toggle_wire_frame_;
+				earth_shaders.depth_enabled = true;
+				earth_shaders.blending = static_cast<shader_blending>(blend_mode_);
+				if (VkResult result = earth_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
 					0, 0);
@@ -275,7 +275,7 @@ rh::result scene_one::draw_ui(const rh::ctx& ctx) {
 	return rh::result::ok;
 }
 
-rh::result scene_one::deinit(rh::ctx& ctx) 
+rh::result scene_one::deinit(rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
 	const VmaAllocator allocator = ctx.rhi.allocator;
@@ -324,7 +324,7 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 	{
 		vkDestroyDescriptorSetLayout(device, single_image_descriptor_layout_.value(), nullptr);
 	}
-	
+
 	return rh::result::ok;
 }
 

@@ -634,6 +634,7 @@ VkResult rhi::init_device()
 	vulkan13_features.pNext = nullptr;
 	vulkan13_features.dynamicRendering = true;
 	vulkan13_features.synchronization2 = true;
+	vulkan13_features.maintenance4 = true;
 
 	VkPhysicalDeviceVulkan12Features vulkan12_features{};
 	vulkan12_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
