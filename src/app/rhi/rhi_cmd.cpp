@@ -38,8 +38,8 @@ namespace rhi_cmd
 		return;
 	}
 
-	void toggle_culling(const VkCommandBuffer cmd, const bool enable) {
-		vkCmdSetFrontFaceEXT(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+	void toggle_culling(const VkCommandBuffer cmd, const bool enable, const VkFrontFace front_face) {
+		vkCmdSetFrontFaceEXT(cmd, front_face);
 		vkCmdSetCullModeEXT(cmd, enable);
 		return;
 	}

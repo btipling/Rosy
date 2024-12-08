@@ -44,7 +44,7 @@ VkResult shader_pipeline::build(const VkDevice device)
 VkResult shader_pipeline::shade(const VkCommandBuffer cmd) const
 {
 	rhi_cmd::set_rendering_defaults(cmd);
-	rhi_cmd::toggle_culling(cmd, culling_enabled);
+	rhi_cmd::toggle_culling(cmd, culling_enabled, front_face);
 	rhi_cmd::toggle_wire_frame(cmd, wire_frames_enabled);
 	rhi_cmd::set_view_port(cmd, viewport_extent);
 	rhi_cmd::toggle_depth(cmd, depth_enabled);

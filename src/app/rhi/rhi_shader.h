@@ -33,6 +33,7 @@ public:
     bool depth_enabled = true;
     bool wire_frames_enabled = false;
     bool culling_enabled = true;
+    VkFrontFace front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     shader_blending blending = shader_blending::blending_disabled;
 private:
     std::vector<VkShaderCreateInfoEXT> shaders_create_info_;

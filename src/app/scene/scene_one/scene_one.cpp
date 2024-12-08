@@ -213,7 +213,8 @@ rh::result scene_one::draw(rh::ctx ctx)
 				skybox_shaders.shader_constants = &push_constants;
 				skybox_shaders.shader_constants_size = sizeof(push_constants);
 				skybox_shaders.wire_frames_enabled = toggle_wire_frame_;
-				skybox_shaders.depth_enabled = true;
+				skybox_shaders.depth_enabled = false;
+				skybox_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
 				skybox_shaders.blending = static_cast<shader_blending>(blend_mode_);
 				if (VkResult result = skybox_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
