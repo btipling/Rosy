@@ -19,7 +19,8 @@ private:
 	gpu_scene_data scene_data_ = {};
 	camera camera_;
 
-	std::optional<VkSampler> default_sampler_nearest_ = std::nullopt;
+	std::optional<VkSampler> image_sampler_ = std::nullopt;
+	std::optional<VkSampler> skybox_sampler_ = std::nullopt;
 
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 

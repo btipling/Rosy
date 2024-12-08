@@ -143,14 +143,14 @@ rh::result scene_one::build(const rh::ctx& ctx)
 			sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 			VkSampler sampler{};
 			if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
-			default_sampler_nearest_ = sampler;
+			image_sampler_ = sampler;
 		}
 		{
 			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, earth_image_descriptor_layout_.value());
 			if (image_set_result != VK_SUCCESS) return  rh::result::error;
 			{
 				descriptor_writer writer;
-				writer.write_image(0, earth_view_.value(), default_sampler_nearest_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				writer.write_image(0, earth_view_.value(), image_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 				writer.update_set(device, image_set);
 				earth_image_descriptor_set_ = image_set;
 			}
@@ -218,14 +218,14 @@ rh::result scene_one::build(const rh::ctx& ctx)
 			sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 			VkSampler sampler{};
 			if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
-			default_sampler_nearest_ = sampler;
+			skybox_sampler_ = sampler;
 		}
 		{
 			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, skybox_image_descriptor_layout_.value());
 			if (image_set_result != VK_SUCCESS) return  rh::result::error;
 			{
 				descriptor_writer writer;
-				writer.write_image(0, skybox_view_.value(), default_sampler_nearest_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				writer.write_image(0, skybox_view_.value(), skybox_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 				writer.update_set(device, image_set);
 				skybox_image_descriptor_set_ = image_set;
 			}
@@ -417,7 +417,8 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 		{
 			ctx.rhi.descriptor_allocator.value().clear_pools(device);
 		}
-		if (default_sampler_nearest_.has_value()) vkDestroySampler(device, default_sampler_nearest_.value(), nullptr);
+		if (image_sampler_.has_value()) vkDestroySampler(device, image_sampler_.value(), nullptr);
+		if (skybox_sampler_.has_value()) vkDestroySampler(device, skybox_sampler_.value(), nullptr);
 	}
 
 	for (std::shared_ptr<mesh_asset> mesh : scene_graph_)
@@ -483,6 +484,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	scene_data_.view = view;
 	scene_data_.proj = proj;
 	scene_data_.view_projection = proj * view;
+	scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
 	scene_data_.ambient_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
 	scene_data_.sunlight_direction = glm::vec4(0.0, 0.0, 0.0, 0.0);
 	scene_data_.sunlight_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
