@@ -202,6 +202,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 
 			gpu_draw_push_constants push_constants{};
 			auto m = glm::mat4(1.0f);
+			m = translate(m, camera_.position);
 			push_constants.world_matrix = m;
 
 			if (scene_graph_.size() > 0)
