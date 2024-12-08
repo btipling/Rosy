@@ -23,3 +23,10 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
 ![image](https://github.com/user-attachments/assets/258f0c51-2988-4b21-98f6-46773aacacd0)
 
 ![image](https://github.com/user-attachments/assets/a1b25224-a83d-4c76-ae80-d58c86cdf140)
+
+## Generating Cubemaps with ktx
+
+```
+ ktx create --format R8G8B8A8_SRGB --generate-mipmap --mipmap-filter box --encode uastc --uastc-quality 0  --zstd 5 --cubemap  .\xp.png .\xn.png .\yp.png .\yn.png .\zp.png .\zn.png  skybox.ktx2
+ ```
+ Then have to open them up in Nvidia Texture Tools and save them to get the VkFormat correct
