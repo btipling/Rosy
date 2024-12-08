@@ -319,14 +319,14 @@ VkResult rhi::query_instance_layers()
 VkResult rhi::query_device_layers() const
 {
 	if (!physical_device_.has_value()) return VK_NOT_READY;
-	uint32_t pPropertyCount = 0;
-	VkResult result = vkEnumerateDeviceLayerProperties(physical_device_.value(), &pPropertyCount, nullptr);
+	uint32_t p_property_count = 0;
+	VkResult result = vkEnumerateDeviceLayerProperties(physical_device_.value(), &p_property_count, nullptr);
 	if (result != VK_SUCCESS) return result;
-	rosy_utils::debug_print_a("Found %d device layers\n", pPropertyCount);
-	if (pPropertyCount == 0) return result;
+	rosy_utils::debug_print_a("Found %d device layers\n", p_property_count);
+	if (p_property_count == 0) return result;
 	std::vector<VkLayerProperties> layers;
-	layers.resize(pPropertyCount);
-	result = vkEnumerateDeviceLayerProperties(physical_device_.value(), &pPropertyCount, layers.data());
+	layers.resize(p_property_count);
+	result = vkEnumerateDeviceLayerProperties(physical_device_.value(), &p_property_count, layers.data());
 	if (result != VK_SUCCESS) return result;
 	for (VkLayerProperties lp : layers)
 	{
@@ -337,28 +337,28 @@ VkResult rhi::query_device_layers() const
 
 VkResult rhi::query_instance_extensions()
 {
-	uint32_t pPropertyCount = 0;
-	VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, nullptr);
+	uint32_t p_property_count = 0;
+	VkResult result = vkEnumerateInstanceExtensionProperties(nullptr, &p_property_count, nullptr);
 	if (result != VK_SUCCESS) return result;
 
-	rosy_utils::debug_print_a("Found %d instance extensions\n", pPropertyCount);
-	if (pPropertyCount == 0) return result;
+	rosy_utils::debug_print_a("Found %d instance extensions\n", p_property_count);
+	if (p_property_count == 0) return result;
 
 	std::vector<VkExtensionProperties> extensions;
-	extensions.resize(pPropertyCount);
-	result = vkEnumerateInstanceExtensionProperties(nullptr, &pPropertyCount, extensions.data());
+	extensions.resize(p_property_count);
+	result = vkEnumerateInstanceExtensionProperties(nullptr, &p_property_count, extensions.data());
 	if (result != VK_SUCCESS) return result;
 	rosy_utils::debug_print_a("num required instance extensions: %d\n", std::size(instanceExtensions));
 	{
 		// Setup required instance extensions
 		size_t found_extensions = 0;
-		uint32_t extensionCount;
-		auto extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
-		for (uint32_t i = 0; i < extensionCount; i++)
+		uint32_t extension_count;
+		const auto extension_names = SDL_Vulkan_GetInstanceExtensions(&extension_count);
+		for (uint32_t i = 0; i < extension_count; i++)
 		{
 			rosy_utils::debug_print_a("pushing back required SDL instance extension with name: %s\n",
-				extensionNames[i]);
-			instance_extensions_.push_back(extensionNames[i]);
+				extension_names[i]);
+			instance_extensions_.push_back(extension_names[i]);
 		}
 		for (uint32_t i = 0; i < std::size(instanceExtensions); i++)
 		{
@@ -369,21 +369,21 @@ VkResult rhi::query_instance_extensions()
 	}
 	rosy_utils::debug_print_a("num instanceExtensions: %d\n", instance_extensions_.size());
 
-	std::vector<const char*> requiredInstanceExtensions(std::begin(instance_extensions_),
+	std::vector<const char*> required_instance_extensions(std::begin(instance_extensions_),
 		std::end(instance_extensions_));
-	for (VkExtensionProperties ep : extensions)
+	for (auto [extensionName, specVersion] : extensions)
 	{
-		rosy_utils::debug_print_a("Instance extension name: %s\n", ep.extensionName);
-		for (const char* extensionName : instance_extensions_)
+		rosy_utils::debug_print_a("Instance extension name: %s\n", extensionName);
+		for (const char* extension_name : instance_extensions_)
 		{
-			if (strcmp(extensionName, ep.extensionName) == 0)
+			if (strcmp(extension_name, extensionName) == 0)
 			{
-				rosy_utils::debug_print_a("\tRequiring instance extension: %s\n", extensionName);
-				std::erase(requiredInstanceExtensions, extensionName);
+				rosy_utils::debug_print_a("\tRequiring instance extension: %s\n", extension_name);
+				std::erase(required_instance_extensions, extension_name);
 			}
 		}
 	}
-	if (requiredInstanceExtensions.size() != 0)
+	if (required_instance_extensions.size() != 0)
 	{
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
@@ -392,40 +392,40 @@ VkResult rhi::query_instance_extensions()
 
 VkResult rhi::query_device_extensions()
 {
-	uint32_t pPropertyCount = 0;
+	uint32_t p_property_count = 0;
 	if (!physical_device_.has_value()) return VK_NOT_READY;
 
-	VkResult result = vkEnumerateDeviceExtensionProperties(physical_device_.value(), nullptr, &pPropertyCount, nullptr);
+	VkResult result = vkEnumerateDeviceExtensionProperties(physical_device_.value(), nullptr, &p_property_count, nullptr);
 	if (result != VK_SUCCESS) return result;
 
-	rosy_utils::debug_print_a("Found %d device extensions\n", pPropertyCount);
-	if (pPropertyCount == 0) return result;
+	rosy_utils::debug_print_a("Found %d device extensions\n", p_property_count);
+	if (p_property_count == 0) return result;
 
 	std::vector<VkExtensionProperties> extensions;
-	extensions.resize(pPropertyCount);
+	extensions.resize(p_property_count);
 
-	result = vkEnumerateDeviceExtensionProperties(physical_device_.value(), nullptr, &pPropertyCount,
+	result = vkEnumerateDeviceExtensionProperties(physical_device_.value(), nullptr, &p_property_count,
 		extensions.data());
 	if (result != VK_SUCCESS) return result;
 
 	// validate required device extensions
-	std::vector<const char*> requiredDeviceExtensions(std::begin(deviceExtensions), std::end(deviceExtensions));
+	std::vector<const char*> required_device_extensions(std::begin(deviceExtensions), std::end(deviceExtensions));
 
-	for (VkExtensionProperties ep : extensions)
+	for (auto [extensionName, specVersion] : extensions)
 	{
-		rosy_utils::debug_print_a("Device extension name: %s\n", ep.extensionName);
-		for (const char* extensionName : deviceExtensions)
+		rosy_utils::debug_print_a("Device extension name: %s\n", extensionName);
+		for (const char* extension_name : deviceExtensions)
 		{
-			if (strcmp(extensionName, ep.extensionName) == 0)
+			if (strcmp(extension_name, extensionName) == 0)
 			{
-				rosy_utils::debug_print_a("\tRequiring device extension: %s\n", extensionName);
-				device_device_extensions_.push_back(extensionName);
-				std::erase(requiredDeviceExtensions, extensionName);
+				rosy_utils::debug_print_a("\tRequiring device extension: %s\n", extension_name);
+				device_device_extensions_.push_back(extension_name);
+				std::erase(required_device_extensions, extension_name);
 			}
 		}
 	}
 
-	if (requiredDeviceExtensions.size() != 0)
+	if (required_device_extensions.size() != 0)
 	{
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
@@ -437,11 +437,11 @@ VkResult rhi::create_debug_callback()
 {
 	if (!cfg_->enable_validation_layers) return VK_SUCCESS;
 
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = create_debug_callback_info();
-	VkDebugUtilsMessengerEXT debugMessenger;
-	VkResult result = vkCreateDebugUtilsMessengerEXT(instance_.value(), &createInfo, nullptr, &debugMessenger);
+	const VkDebugUtilsMessengerCreateInfoEXT create_info = create_debug_callback_info();
+	VkDebugUtilsMessengerEXT debug_messenger;
+	const VkResult result = vkCreateDebugUtilsMessengerEXT(instance_.value(), &create_info, nullptr, &debug_messenger);
 	if (result != VK_SUCCESS) return result;
-	debug_messenger_ = debugMessenger;
+	debug_messenger_ = debug_messenger;
 	return result;
 }
 
@@ -455,26 +455,26 @@ VkResult rhi::init_surface(SDL_Window* window)
 
 VkResult rhi::init_instance()
 {
-	VkApplicationInfo appInfo = {};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = "Rosy";
-	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.pEngineName = "Rosy";
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_3;
+	VkApplicationInfo app_info{};
+	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	app_info.pApplicationName = "Rosy";
+	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+	app_info.pEngineName = "Rosy";
+	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+	app_info.apiVersion = VK_API_VERSION_1_3;
 
-	VkDebugUtilsMessengerCreateInfoEXT createDebugCallackInfo = create_debug_callback_info();
-	VkInstanceCreateInfo createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pNext = &createDebugCallackInfo;
-	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledLayerCount = instance_layer_properties_.size();
-	createInfo.ppEnabledLayerNames = instance_layer_properties_.data();
-	createInfo.enabledExtensionCount = instance_extensions_.size();
-	createInfo.ppEnabledExtensionNames = instance_extensions_.data();
+	const VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info_ext = create_debug_callback_info();
+	VkInstanceCreateInfo create_info{};
+	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	create_info.pNext = &create_debug_callback_info_ext;
+	create_info.pApplicationInfo = &app_info;
+	create_info.enabledLayerCount = instance_layer_properties_.size();
+	create_info.ppEnabledLayerNames = instance_layer_properties_.data();
+	create_info.enabledExtensionCount = instance_extensions_.size();
+	create_info.ppEnabledExtensionNames = instance_extensions_.data();
 
 	VkInstance instance;
-	VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
+	const VkResult result = vkCreateInstance(&create_info, nullptr, &instance);
 	if (result != VK_SUCCESS) return result;
 	OutputDebugStringW(L"Vulkan instance created successfully!\n");
 	volkLoadInstance(instance);

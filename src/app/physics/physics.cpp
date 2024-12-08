@@ -1,8 +1,10 @@
 #include "physics.h"
 
+#include <algorithm>
+
 namespace physics
 {
-    derivative derivative::operator*(const double  value) const
+	derivative derivative::operator*(const double  value) const
     {
         derivative rv{};
         rv.dx_velocity = dx_velocity * value;
@@ -102,7 +104,7 @@ namespace physics
         state previous_state = ctx.previous_state;
         double accumulator = ctx.accumulator;
         double t = ctx.time;
-        if (frame_time > 0.25) frame_time = 0.25;
+        frame_time = std::min(frame_time, 0.25);
 
         accumulator += frame_time;
 

@@ -42,6 +42,5 @@ namespace rosy_utils {
 			state = !state;
 			last_toggled = current_time;
 		}
-		return;
 	};
 }

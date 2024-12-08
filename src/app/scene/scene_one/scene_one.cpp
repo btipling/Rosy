@@ -71,8 +71,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 			return rh::result::error;
 		}
 		earth_texture_ = k_texture;
-		std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT);
-		if (res.has_value())
+		if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
 		{
 			earth_vk_texture_ = res.value();
 		}
@@ -310,8 +309,8 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	constexpr float fov = glm::radians(70.0f);
 	const float h = 1.0 / tan(fov * 0.5);
 	const float w = h / aspect;
-	const float a = -z_near / (z_far - z_near);
-	const float b = (z_near * z_far) / (z_far - z_near);
+	constexpr float a = -z_near / (z_far - z_near);
+	constexpr float b = (z_near * z_far) / (z_far - z_near);
 
 	glm::mat4 proj(0.0f);
 

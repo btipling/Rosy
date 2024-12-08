@@ -118,7 +118,7 @@ VkResult rhi::begin_frame()
 		result = vkResetCommandBuffer(cmd, 0);
 		if (result != VK_SUCCESS) return result;
 
-		VkCommandBufferBeginInfo begin_info = {};
+		VkCommandBufferBeginInfo begin_info{};
 		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		result = vkBeginCommandBuffer(cmd, &begin_info);
@@ -214,13 +214,13 @@ VkResult rhi::end_frame()
 
 		{
 			// submit recorded commands to the queue
-			VkCommandBufferSubmitInfo cmd_buffer_submit_info = {};
+			VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
 			cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
 			cmd_buffer_submit_info.pNext = nullptr;
 			cmd_buffer_submit_info.commandBuffer = cmd;
 			cmd_buffer_submit_info.deviceMask = 0;
 
-			VkSemaphoreSubmitInfo wait_info = {};
+			VkSemaphoreSubmitInfo wait_info{};
 			wait_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			wait_info.pNext = nullptr;
 			wait_info.semaphore = image_available;
@@ -228,7 +228,7 @@ VkResult rhi::end_frame()
 			wait_info.deviceIndex = 0;
 			wait_info.value = 1;
 
-			VkSemaphoreSubmitInfo signal_info = {};
+			VkSemaphoreSubmitInfo signal_info{};
 			signal_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			signal_info.pNext = nullptr;
 			signal_info.semaphore = rendered_finished;
@@ -236,7 +236,7 @@ VkResult rhi::end_frame()
 			signal_info.deviceIndex = 0;
 			signal_info.value = 1;
 
-			VkSubmitInfo2 submit_info = {};
+			VkSubmitInfo2 submit_info{};
 			submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
 			submit_info.pNext = nullptr;
 			// This should be obvious, but it wasn't for me. Wait blocks this submit until the semaphore assigned to it is signaled.
@@ -260,7 +260,7 @@ VkResult rhi::end_frame()
 		{
 			// Queue image for presentation
 			VkSwapchainKHR swap_chains[] = { swapchain_.value() };
-			VkPresentInfoKHR present_info = {};
+			VkPresentInfoKHR present_info{};
 			present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 			present_info.waitSemaphoreCount = 1;
 			// Present is waiting for the submit queue above to signal `rendered_finished`
@@ -289,7 +289,7 @@ VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record
 
 	const VkCommandBuffer cmd = imm_command_buffer_.value();
 
-	VkCommandBufferBeginInfo begin_info = {};
+	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
@@ -301,12 +301,12 @@ VkResult rhi::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record
 	result = vkEndCommandBuffer(cmd);
 	if (result != VK_SUCCESS) return result;
 
-	VkCommandBufferSubmitInfo cmd_buffer_submit_info = {};
+	VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
 	cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
 	cmd_buffer_submit_info.pNext = nullptr;
 	cmd_buffer_submit_info.commandBuffer = cmd;
 	cmd_buffer_submit_info.deviceMask = 0;
-	VkSubmitInfo2 submit_info = {};
+	VkSubmitInfo2 submit_info{};
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
 	submit_info.pNext = nullptr;
 
