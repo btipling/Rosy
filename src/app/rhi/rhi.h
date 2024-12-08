@@ -11,10 +11,10 @@ public:
 	std::optional<VkDevice> opt_device = std::nullopt;
 	std::optional<VmaAllocator> opt_allocator = std::nullopt;
 	std::optional<std::unique_ptr<rhi_data>> buffer;
-	VkExtent2D swapchain_extent_ = {};
+	VkExtent2D swapchain_extent = {};
 	std::optional<descriptor_allocator_growable> scene_descriptor_allocator = std::nullopt;
 	std::optional<ktxVulkanDeviceInfo> vdi = std::nullopt;
-	rosy_config::config* cfg_;
+	rosy_config::config* app_cfg;
 
 	explicit rhi(rosy_config::config* cfg);
 	VkResult init(SDL_Window* window);

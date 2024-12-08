@@ -24,7 +24,7 @@ static const char* deviceExtensions[] = {
 	//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 };
 
-rhi::rhi(rosy_config::config* cfg) : cfg_{ cfg }, required_features_{ requiredFeatures }
+rhi::rhi(rosy_config::config* cfg) : app_cfg{ cfg }, required_features_{ requiredFeatures }
 {
 	memset(&required_features_, 0, sizeof(VkPhysicalDeviceFeatures));
 }
@@ -300,7 +300,7 @@ VkResult rhi::query_instance_layers()
 	layers.resize(p_property_count);
 	result = vkEnumerateInstanceLayerProperties(&p_property_count, layers.data());
 	if (result != VK_SUCCESS) return result;
-	if (!cfg_->enable_validation_layers) return result;
+	if (!app_cfg->enable_validation_layers) return result;
 	for (VkLayerProperties lp : layers)
 	{
 		rosy_utils::debug_print_a("Instance layer name: %s layer description: %s\n", lp.layerName, lp.description);
@@ -435,7 +435,7 @@ VkResult rhi::query_device_extensions()
 
 VkResult rhi::create_debug_callback()
 {
-	if (!cfg_->enable_validation_layers) return VK_SUCCESS;
+	if (!app_cfg->enable_validation_layers) return VK_SUCCESS;
 
 	const VkDebugUtilsMessengerCreateInfoEXT create_info = create_debug_callback_info();
 	VkDebugUtilsMessengerEXT debug_messenger;
@@ -544,7 +544,7 @@ VkResult rhi::init_physical_device()
 		if (!dynamic_rendering_features.dynamicRendering) continue;
 
 
-		if (device_properties.vendorID == cfg_->device_vendor)
+		if (device_properties.vendorID == app_cfg->device_vendor)
 		{
 			{
 				found_device = true;
@@ -811,7 +811,7 @@ VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swap
 		destroy_swapchain();
 	}
 	{
-		swapchain_extent_ = extent;
+		swapchain_extent = extent;
 		swapchain_ = swapchain;
 
 		swap_chain_images_.clear();
@@ -839,8 +839,8 @@ VkResult rhi::init_draw_image()
 	VkResult result;
 
 	VkExtent3D draw_image_extent = {
-		.width = static_cast<uint32_t>(cfg_->max_window_width),
-		.height = static_cast<uint32_t>(cfg_->max_window_height),
+		.width = static_cast<uint32_t>(app_cfg->max_window_width),
+		.height = static_cast<uint32_t>(app_cfg->max_window_height),
 		.depth = 1
 	};
 	allocated_image draw_image{};

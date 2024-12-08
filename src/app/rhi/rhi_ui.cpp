@@ -66,7 +66,7 @@ VkResult rhi::init_ui(SDL_Window* window) {
 VkResult rhi::render_ui(const VkCommandBuffer cmd, const VkImageView target_image_view) const
 {
 	const VkRenderingAttachmentInfo color_attachment = rhi_helpers::attachment_info(target_image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-	const VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent_, color_attachment, std::nullopt);
+	const VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent, color_attachment, std::nullopt);
 	vkCmdBeginRendering(cmd, &render_info);
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);

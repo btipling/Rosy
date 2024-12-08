@@ -43,7 +43,7 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 	rh::rhi rhi_ctx = {
 		.device = opt_device.value(),
 		.allocator = opt_allocator.value(),
-		.frame_extent = swapchain_extent_,
+		.frame_extent = swapchain_extent,
 	};
 	if (frame_datas_.size() > 0) {
 		rhi_ctx.frame_data = frame_datas_[current_frame_];
@@ -105,8 +105,8 @@ VkResult rhi::begin_frame()
 
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depth_image = depth_image_.value();
-	draw_extent_.width = std::min(swapchain_extent_.width, draw_image.image_extent.width) * render_scale_;
-	draw_extent_.height = std::min(swapchain_extent_.height, draw_image.image_extent.height) * render_scale_;
+	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * render_scale_;
+	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * render_scale_;
 
 	vkResetFences(device, 1, &fence);
 
@@ -146,7 +146,7 @@ VkResult rhi::begin_frame()
 				draw_image.image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 			VkRenderingAttachmentInfo depth_attachment = rhi_helpers::depth_attachment_info(
 				depth_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-			VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent_, color_attachment, depth_attachment);
+			VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent, color_attachment, depth_attachment);
 			vkCmdBeginRendering(cmd, &render_info);
 		}
 	}
@@ -196,7 +196,7 @@ VkResult rhi::end_frame()
 			transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 			transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			rhi_helpers::blit_images(cmd, draw_image.image, image, draw_extent_, swapchain_extent_);
+			rhi_helpers::blit_images(cmd, draw_image.image, image, draw_extent_, swapchain_extent);
 		}
 		{
 			// draw ui onto swapchain image
