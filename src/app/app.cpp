@@ -100,8 +100,8 @@ int app::run()
 			if (event.type == SDL_EVENT_KEY_UP) {
 				if (event.key.key == SDLK_C) {
 					show_cursor_.toggle();
-					if (show_cursor_.state) SDL_SetWindowMouseGrab(window_, false);
-					else SDL_SetWindowMouseGrab(window_, true);
+					if (show_cursor_.state) SDL_SetWindowRelativeMouseMode(window_, false);
+					else SDL_SetWindowRelativeMouseMode(window_, true);
 				}
 			}
 			ImGui_ImplSDL3_ProcessEvent(&event);

@@ -83,7 +83,7 @@ namespace physics
     }
 
     double acceleration(const state& state, double t) {
-        constexpr double dampening = -0.5;
+        constexpr double dampening = -0.05;
         return dampening * state.velocity;
     }
 
@@ -121,9 +121,9 @@ namespace physics
         const double alpha = accumulator / delta_time;
 
         const state next_state = current_state * alpha + previous_state * (1.0f - alpha);
-        //rosy_utils::debug_print_a("next state position: %f velocity: %f\n",
-        //    next_state.position,
-        //    next_state.velocity);
+        rosy_utils::debug_print_a("next state position: %f velocity: %f\n",
+            next_state.position,
+            next_state.velocity);
         time_ctx new_ctx = {};
         new_ctx.time = t;
         new_ctx.accumulator = accumulator;
