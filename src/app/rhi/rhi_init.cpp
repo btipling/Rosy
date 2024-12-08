@@ -506,11 +506,11 @@ VkResult rhi::init_physical_device()
 
 
 		// shader objects required
-		VkPhysicalDeviceShaderObjectFeaturesEXT shader_object_features = {};
+		VkPhysicalDeviceShaderObjectFeaturesEXT shader_object_features{};
 		shader_object_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
 		shader_object_features.pNext = nullptr;
 
-		VkPhysicalDeviceFeatures2 device_features2 = {};
+		VkPhysicalDeviceFeatures2 device_features2{};
 		device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		device_features2.pNext = &shader_object_features;
 		vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
@@ -519,7 +519,7 @@ VkResult rhi::init_physical_device()
 
 
 		// dynamic rendering required
-		VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features = {};
+		VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features{};
 		buffer_device_address_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
 		buffer_device_address_features.pNext = nullptr;
 
@@ -532,7 +532,7 @@ VkResult rhi::init_physical_device()
 
 
 		// data device address required
-		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_features = {};
+		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_features{};
 		dynamic_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
 		dynamic_rendering_features.pNext = nullptr;
 
@@ -577,7 +577,6 @@ VkResult rhi::init_physical_device()
 	if (!found_device) return VK_ERROR_FEATURE_NOT_PRESENT;
 	uint32_t queue_count = 0;
 	uint32_t queue_index = 0;
-	supported_features_.value_or(requiredFeatures);
 	requiredFeatures.multiDrawIndirect = VK_TRUE;
 	requiredFeatures.tessellationShader = VK_TRUE;
 	requiredFeatures.geometryShader = VK_TRUE;
@@ -620,7 +619,7 @@ VkResult rhi::init_device()
 {
 	if (!physical_device_.has_value()) return VK_NOT_READY;
 
-	VkDeviceQueueCreateInfo device_queue_create_info = {};
+	VkDeviceQueueCreateInfo device_queue_create_info{};
 	device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	device_queue_create_info.pNext = nullptr;
 	device_queue_create_info.flags = 0;
@@ -630,13 +629,13 @@ VkResult rhi::init_device()
 	device_queue_create_info.queueCount = queue_count_;
 	VkDeviceCreateInfo device_create_info = {};
 
-	VkPhysicalDeviceVulkan13Features vulkan13_features = {};
+	VkPhysicalDeviceVulkan13Features vulkan13_features{};
 	vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
 	vulkan13_features.pNext = nullptr;
 	vulkan13_features.dynamicRendering = true;
 	vulkan13_features.synchronization2 = true;
 
-	VkPhysicalDeviceVulkan12Features vulkan12_features = {};
+	VkPhysicalDeviceVulkan12Features vulkan12_features{};
 	vulkan12_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	vulkan12_features.pNext = &vulkan13_features;
 	vulkan12_features.bufferDeviceAddress = true;
@@ -692,7 +691,7 @@ VkResult rhi::init_device()
 VkResult rhi::init_presentation_queue()
 {
 	VkQueue queue;
-	VkDeviceQueueInfo2 get_info = {};
+	VkDeviceQueueInfo2 get_info{};
 	get_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
 	get_info.flags = 0;
 	get_info.queueFamilyIndex = queue_index_;
@@ -844,7 +843,7 @@ VkResult rhi::init_draw_image()
 		.height = static_cast<uint32_t>(cfg_->max_window_height),
 		.depth = 1
 	};
-	allocated_image draw_image = {};
+	allocated_image draw_image{};
 	draw_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
 	draw_image.image_extent = draw_image_extent;
 
@@ -856,7 +855,7 @@ VkResult rhi::init_draw_image()
 
 	VkImageCreateInfo draw_info = rhi_helpers::img_create_info(draw_image.image_format, draw_image_usages, draw_image_extent);
 
-	VmaAllocationCreateInfo r_img_alloc_info = {};
+	VmaAllocationCreateInfo r_img_alloc_info{};
 	r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -870,7 +869,7 @@ VkResult rhi::init_draw_image()
 	if (result != VK_SUCCESS) return result;
 	draw_image_ = draw_image;
 
-	allocated_image depth_image = {};
+	allocated_image depth_image{};
 	depth_image.image_format = VK_FORMAT_D32_SFLOAT;
 	depth_image.image_extent = draw_image_extent;
 	VkImageUsageFlags depth_image_usages{};
@@ -902,7 +901,7 @@ VkResult rhi::init_descriptors()
 	const VkDevice device = opt_device.value();
 
 	{
-		descriptor_allocator allocator = {};
+		descriptor_allocator allocator{};
 		allocator.init_pool(device, 10, sizes);
 		global_descriptor_allocator_ = allocator;
 	}
@@ -934,11 +933,11 @@ VkResult rhi::init_descriptors()
 
 void rhi::init_allocator()
 {
-	VmaVulkanFunctions vulkan_functions = {};
+	VmaVulkanFunctions vulkan_functions{};
 	vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
 	vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
-	VmaAllocatorCreateInfo allocator_create_info = {};
+	VmaAllocatorCreateInfo allocator_create_info{};
 	allocator_create_info.vulkanApiVersion = VK_API_VERSION_1_3;
 	allocator_create_info.physicalDevice = physical_device_.value();
 	allocator_create_info.device = opt_device.value();
@@ -1058,21 +1057,21 @@ VkResult rhi::init_commands()
 
 VkResult rhi::init_data()
 {
-	buffer = std::unique_ptr<rhi_data>(new rhi_data{this});
+	buffer = std::make_unique<rhi_data>(rhi_data{this});
 	return VK_SUCCESS;
 }
 
 VkResult rhi::init_ktx()
 {
-	vulkan_ctx vkctx = {
+	const vulkan_ctx vk_ctx = {
 		.gpu = physical_device_.value(),
 		.device = opt_device.value(),
 		.queue = present_queue_.value(),
 		.cmd_pool = imm_command_pool_.value(),
 	};
 	ktxVulkanDeviceInfo new_vdi;
-	ktxVulkanDeviceInfo_Construct(&new_vdi, vkctx.gpu, vkctx.device,
-		vkctx.queue, vkctx.cmd_pool, nullptr);
+	ktxVulkanDeviceInfo_Construct(&new_vdi, vk_ctx.gpu, vk_ctx.device,
+		vk_ctx.queue, vk_ctx.cmd_pool, nullptr);
 	vdi = new_vdi;
 	return VK_SUCCESS;
 }
