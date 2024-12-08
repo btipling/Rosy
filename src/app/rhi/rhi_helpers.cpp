@@ -5,7 +5,7 @@ namespace rhi_helpers {
 	VkImageCreateInfo img_create_info(const VkFormat format, const VkImageUsageFlags usage_flags,
 		const VkExtent3D extent)
 	{
-		VkImageCreateInfo info = {};
+		VkImageCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		info.pNext = nullptr;
 		info.imageType = VK_IMAGE_TYPE_2D;
@@ -22,7 +22,7 @@ namespace rhi_helpers {
 	VkImageViewCreateInfo img_view_create_info(const VkFormat format, const VkImage image,
 		const VkImageAspectFlags aspect_flags)
 	{
-		VkImageViewCreateInfo info = {};
+		VkImageViewCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		info.pNext = nullptr;
 		info.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -38,7 +38,7 @@ namespace rhi_helpers {
 
 	VkRenderingAttachmentInfo attachment_info(const VkImageView view, const VkImageLayout layout)
 	{
-		VkRenderingAttachmentInfo color_attachment = {};
+		VkRenderingAttachmentInfo color_attachment{};
 		color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 		color_attachment.pNext = nullptr;
 		color_attachment.imageView = view;
@@ -51,7 +51,7 @@ namespace rhi_helpers {
 
 	VkRenderingAttachmentInfo depth_attachment_info(const VkImageView view, const VkImageLayout layout)
 	{
-		VkRenderingAttachmentInfo depth_attachment = {};
+		VkRenderingAttachmentInfo depth_attachment{};
 		depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 		depth_attachment.pNext = nullptr;
 		depth_attachment.imageView = view;
@@ -67,7 +67,7 @@ namespace rhi_helpers {
 		const std::optional<VkRenderingAttachmentInfo>& depth_attachment)
 	{
 		const auto render_area = VkRect2D{ VkOffset2D{0, 0}, render_extent };
-		VkRenderingInfo render_info = {};
+		VkRenderingInfo render_info{};
 		render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 		render_info.pNext = nullptr;
 		render_info.renderArea = render_area;
@@ -90,7 +90,7 @@ namespace rhi_helpers {
 	void blit_images(const VkCommandBuffer cmd, const VkImage source, const VkImage destination,
 		const VkExtent2D src_size, const VkExtent2D dst_size)
 	{
-		VkImageBlit2 blit_region = {};
+		VkImageBlit2 blit_region{};
 		blit_region.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
 		blit_region.pNext = nullptr;
 		blit_region.srcOffsets[1].x = static_cast<int32_t>(src_size.width);
@@ -128,7 +128,7 @@ namespace rhi_helpers {
 	VkDebugUtilsObjectNameInfoEXT add_name(const VkObjectType object_type, const uint64_t object_handle,
 		const char* p_object_name)
 	{
-		VkDebugUtilsObjectNameInfoEXT debug_name = {};
+		VkDebugUtilsObjectNameInfoEXT debug_name{};
 		debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 		debug_name.pNext = nullptr;
 		debug_name.objectType = object_type;
@@ -141,7 +141,7 @@ namespace rhi_helpers {
 	VkShaderCreateInfoEXT create_shader_info(const std::vector<char>& shader_src, const VkShaderStageFlagBits stage,
 		const VkShaderStageFlags next_stage)
 	{
-		VkShaderCreateInfoEXT info = {};
+		VkShaderCreateInfoEXT info{};
 		info.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
 		info.pNext = nullptr;
 		info.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT;
@@ -161,7 +161,7 @@ namespace rhi_helpers {
 
 	VkPushConstantRange create_push_constant(const VkShaderStageFlags stage, const uint32_t size)
 	{
-		VkPushConstantRange push_constant_range = {};
+		VkPushConstantRange push_constant_range{};
 		push_constant_range.stageFlags = stage;
 		push_constant_range.offset = 0;
 		push_constant_range.size = size;
@@ -170,7 +170,7 @@ namespace rhi_helpers {
 
 	VkWriteDescriptorSet create_img_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorImageInfo& img_info)
 	{
-		VkWriteDescriptorSet desc_set = {};
+		VkWriteDescriptorSet desc_set{};
 		desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		desc_set.pNext = nullptr;
 		desc_set.dstBinding = 0;
@@ -183,7 +183,7 @@ namespace rhi_helpers {
 
 	VkWriteDescriptorSet create_buffer_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorBufferInfo& buf_info)
 	{
-		VkWriteDescriptorSet desc_set = {};
+		VkWriteDescriptorSet desc_set{};
 		desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		desc_set.pNext = nullptr;
 		desc_set.dstBinding = 0;
@@ -196,7 +196,7 @@ namespace rhi_helpers {
 
 	VkDescriptorImageInfo create_img_descriptor_info(const VkImageView& image_view)
 	{
-		VkDescriptorImageInfo img_info = {};
+		VkDescriptorImageInfo img_info{};
 		img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		img_info.imageView = image_view;
 		return img_info;
@@ -204,7 +204,7 @@ namespace rhi_helpers {
 
 	VkDebugUtilsLabelEXT create_debug_label(const char* label_name, float color[4])
 	{
-		VkDebugUtilsLabelEXT debug_label = {};
+		VkDebugUtilsLabelEXT debug_label{};
 		debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 		debug_label.pNext = nullptr;
 		debug_label.pLabelName = "meshes";
@@ -214,7 +214,7 @@ namespace rhi_helpers {
 
 	VkImageSubresourceRange create_img_subresource_range(const VkImageAspectFlags aspect_mask)
 	{
-		VkImageSubresourceRange subresource_range = {};
+		VkImageSubresourceRange subresource_range{};
 		subresource_range.aspectMask = aspect_mask;
 		subresource_range.baseMipLevel = 0;
 		subresource_range.levelCount = VK_REMAINING_MIP_LEVELS;
@@ -225,7 +225,7 @@ namespace rhi_helpers {
 
 	VkPipelineLayoutCreateInfo create_pipeline_layout_create_info(const VkPushConstantRange& pc_range, const uint32_t pc_count, const VkDescriptorSetLayout* set_layouts, const uint32_t sl_count)
 	{
-		VkPipelineLayoutCreateInfo pl_info = {};
+		VkPipelineLayoutCreateInfo pl_info{};
 		pl_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pl_info.pNext = nullptr;
 		pl_info.pushConstantRangeCount = pc_count;

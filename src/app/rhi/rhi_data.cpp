@@ -136,7 +136,7 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
 	if (vertex_result != VK_SUCCESS) {
-		gpu_mesh_buffers_result fail = {};
+		gpu_mesh_buffers_result fail{};
 		fail.result = vertex_result;
 		return fail;
 	}
@@ -145,7 +145,7 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	vertex_buffer = new_vertex_buffer;
 	rosy_utils::debug_print_a("vertex buffer set!\n");
 
-	VkBufferDeviceAddressInfo device_address_info = {};
+	VkBufferDeviceAddressInfo device_address_info{};
 	device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
 	device_address_info.buffer = vertex_buffer.buffer;
 
@@ -159,7 +159,7 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
 	if (index_result != VK_SUCCESS) {
-		gpu_mesh_buffers_result fail = {};
+		gpu_mesh_buffers_result fail{};
 		fail.result = index_result;
 		return fail;
 	}
@@ -170,7 +170,7 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 
 	auto [result, new_staging_buffer] = create_buffer("staging", vertex_buffer_size + index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 	if (result != VK_SUCCESS) {
-		gpu_mesh_buffers_result fail = {};
+		gpu_mesh_buffers_result fail{};
 		fail.result = result;
 		return fail;
 	}
@@ -186,7 +186,7 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	rosy_utils::debug_print_a("staging buffer mapped!\n");
 
 	VkResult submit_result;
-	submit_result = renderer_->immediate_submit([&](VkCommandBuffer cmd) {
+	submit_result = renderer_->immediate_submit([&](const VkCommandBuffer cmd) {
 		VkBufferCopy vertex_copy{ 0 };
 		vertex_copy.dstOffset = 0;
 		vertex_copy.srcOffset = 0;
@@ -202,19 +202,19 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 		vkCmdCopyBuffer(cmd, staging.buffer, index_buffer.buffer, 1, &index_copy);
 		});
 	if (submit_result != VK_SUCCESS) {
-		gpu_mesh_buffers_result fail = {};
+		gpu_mesh_buffers_result fail{};
 		fail.result = submit_result;
 		return fail;
 	}
 	destroy_buffer(staging);
 	rosy_utils::debug_print_a("staging buffer submitted!\n");
 
-	gpu_mesh_buffers buffers = {};
+	gpu_mesh_buffers buffers{};
 	buffers.vertex_buffer = vertex_buffer;
 	buffers.vertex_buffer_address = vertex_buffer_address;
 	buffers.index_buffer = index_buffer;
 
-	gpu_mesh_buffers_result rv = {};
+	gpu_mesh_buffers_result rv{};
 	rv.result = VK_SUCCESS;
 	rv.buffers = buffers;
 
@@ -347,7 +347,7 @@ allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D
 
 	renderer_->immediate_submit([&](const VkCommandBuffer cmd)
 		{
-			renderer_->transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			rhi::transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 			VkBufferImageCopy copy_region{};
 			copy_region.bufferOffset = 0;
@@ -362,8 +362,8 @@ allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D
 			vkCmdCopyBufferToImage(cmd, staging.buffer, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
 				&copy_region);
 
-			renderer_->transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			rhi::transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		});
 
 	destroy_buffer(staging);
