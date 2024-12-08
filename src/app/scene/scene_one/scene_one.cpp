@@ -27,25 +27,42 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		single_image_descriptor_layout_ = set;
 		layouts.push_back(set);
 	}
-	std::vector<char> vert_shader_code;
-	std::vector<char> frag_shader_code;
+	std::vector<char> earth_vertex_shader;
+	std::vector<char> earth_fragment_shader;
+	std::vector<char> skybox_vertex_shader;
+	std::vector<char> skybox_fragment_shader;
 	try
 	{
-		vert_shader_code = read_file("out/vert.spv");
-		frag_shader_code = read_file("out/tex_image.frag.spv");
+		earth_vertex_shader = read_file("out/vert.spv");
+		earth_fragment_shader = read_file("out/tex_image.frag.spv");
+		skybox_vertex_shader = read_file("out/skybox.vert.spv");
+		skybox_fragment_shader = read_file("out/skybox.frag.spv");
 	}
 	catch (const std::exception& e)
 	{
 		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
 		return rh::result::error;
 	}
-	
-	shader_pipeline sp = {};
-	sp.layouts = layouts;
-	sp.name = "test";
-	sp.with_shaders(vert_shader_code, frag_shader_code);
-	if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
-	earth_pipeline_ = sp;
+
+	{
+		// Earth pipeline
+		shader_pipeline sp = {};
+		sp.layouts = layouts;
+		sp.name = "test";
+		sp.with_shaders(earth_vertex_shader, earth_fragment_shader);
+		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
+		earth_pipeline_ = sp;
+	}
+
+	{
+		// Skybox pipeline
+		shader_pipeline sp = {};
+		sp.layouts = layouts;
+		sp.name = "test";
+		sp.with_shaders(skybox_vertex_shader, skybox_fragment_shader);
+		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
+		skybox_pipeline_ = sp;
+	}
 
 
 	// ReSharper disable once StringLiteralTypo
@@ -178,10 +195,38 @@ rh::result scene_one::draw(rh::ctx ctx)
 		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shaders.pipeline_layout.value(), 0, sets.size(), sets.data(), 0, nullptr);
 	}
 	{
+		// Skybox
+		{
+			float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
+			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
+
+			gpu_draw_push_constants push_constants{};
+			auto m = glm::mat4(1.0f);
+			push_constants.world_matrix = m;
+
+			if (scene_graph_.size() > 0)
+			{
+				size_t mesh_index = 1;
+				auto mesh = scene_graph_[mesh_index];
+				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
+				shaders.viewport_extent = frame_extent;
+				shaders.shader_constants = &push_constants;
+				shaders.shader_constants_size = sizeof(push_constants);
+				shaders.wire_frames_enabled = toggle_wire_frame_;
+				shaders.depth_enabled = true;
+				shaders.blending = static_cast<shader_blending>(blend_mode_);
+				if (VkResult result = shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
+					0, 0);
+			}
+			vkCmdEndDebugUtilsLabelEXT(cmd);
+		}
 		// Earth
 		{
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("meshes", color);
+			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("earth", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 	
 			gpu_draw_push_constants push_constants{};
@@ -196,7 +241,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 	
 			if (scene_graph_.size() > 0)
 			{
-				size_t mesh_index = 1;
+				size_t mesh_index = 0;
 				auto mesh = scene_graph_[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 				shaders.viewport_extent = frame_extent;
@@ -267,6 +312,9 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 	}
 	if (earth_pipeline_.has_value()) {
 		earth_pipeline_.value().deinit(device);
+	}
+	if (skybox_pipeline_.has_value()) {
+		skybox_pipeline_.value().deinit(device);
 	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
