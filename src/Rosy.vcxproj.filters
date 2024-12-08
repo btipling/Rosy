@@ -222,16 +222,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="compile.ps1" />
-    <None Include="shaders\shader.frag">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="shaders\shader.vert">
+    <None Include="shaders\mesh.vert">
       <Filter>Resource Files\shaders</Filter>
     </None>
     <None Include="shaders\imgui.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
-    <None Include="shaders\tex_image.frag">
+    <None Include="shaders\mesh.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
     <None Include="shaders\skybox.vert">

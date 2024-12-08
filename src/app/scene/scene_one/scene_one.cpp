@@ -41,8 +41,8 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	std::vector<char> skybox_fragment_shader;
 	try
 	{
-		earth_vertex_shader = read_file("out/vert.spv");
-		earth_fragment_shader = read_file("out/tex_image.frag.spv");
+		earth_vertex_shader = read_file("out/mesh.vert.spv");
+		earth_fragment_shader = read_file("out/mesh.frag.spv");
 		skybox_vertex_shader = read_file("out/skybox.vert.spv");
 		skybox_fragment_shader = read_file("out/skybox.frag.spv");
 	}
