@@ -7,6 +7,8 @@
 class scene_one
 {
 public:
+	scene_one() :
+	camera_(glm::vec3{ .0f, 0.0f, -20.0f }){}
 	rh::result build(const rh::ctx& ctx);
 	rh::result update(const rh::ctx& ctx);
 	rh::result draw(rh::ctx ctx);
@@ -15,10 +17,7 @@ public:
 private:
 	void update_scene(const rh::ctx& ctx);
 	gpu_scene_data scene_data_ = {};
-	camera camera_ = {
-		.velocity = glm::vec3{0.f, 0.f, 0.f},
-		.position = glm::vec3{.0f, 0.0f, -20.0f},
-	};
+	camera camera_;
 	std::optional <VkDescriptorSetLayout> single_image_descriptor_layout_ = std::nullopt;
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 	std::optional<shader_pipeline> test_mesh_pipeline_ = std::nullopt;

@@ -216,6 +216,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 }
 
 rh::result scene_one::draw_ui(const rh::ctx& ctx) {
+	ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
 	ImGui::SliderFloat("Rotate X", &model_rot_x_, 0, glm::pi<float>() * 2.0f);
 	ImGui::SliderFloat("Rotate Y", &model_rot_y_, 0, glm::pi<float>() * 2.0f);
 	ImGui::SliderFloat("Rotate Z", &model_rot_z_, 0, glm::pi<float>() * 2.0f);

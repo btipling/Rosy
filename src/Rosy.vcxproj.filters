@@ -126,6 +126,9 @@
     <ClInclude Include="app\rhi\rhi_utils.h">
       <Filter>Header Files\rhi</Filter>
     </ClInclude>
+    <ClInclude Include="math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">
@@ -167,9 +170,6 @@
     <ClCompile Include="app\physics\physics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="app\scene\scene_one\scene_one.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="app\utils\utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -199,6 +199,12 @@
     </ClCompile>
     <ClCompile Include="app\rhi\rhi_utils.cpp">
       <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="math.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="app\scene\scene_one\scene_one.cpp">
+      <Filter>scene\scene_one</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

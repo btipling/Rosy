@@ -4,8 +4,8 @@ namespace physics
 {
     struct state
     {
-        double position;
-        double velocity;
+        double position = 0;
+        double velocity = 0;
         state operator*(const double value) const;
         state operator+(const double value) const;
         state operator*(const state other) const;
@@ -14,8 +14,8 @@ namespace physics
 
     struct derivative
     {
-        double dx_velocity;      // dx_velocity/dt = velocity
-        double dv_acceleration;  // dv_acceleration/dt = acceleration
+        double dx_velocity = 0;      // dx_velocity/dt = velocity
+        double dv_acceleration = 0;  // dv_acceleration/dt = acceleration
         derivative operator*(const double value) const;
         derivative operator+(const double value) const;
         derivative operator*(const derivative other) const;
@@ -26,10 +26,10 @@ namespace physics
 
     struct time_ctx
     {
-        double time = 0.0f;
-        double accumulator = 0.0;
-        state previous_state;
-        state current_state;
+        double time = 0.f;
+        double accumulator = 0.f;
+        state previous_state{};
+        state current_state{};
 
     };
 

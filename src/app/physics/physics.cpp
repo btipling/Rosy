@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "../utils/utils.h"
+
 namespace physics
 {
 	derivative derivative::operator*(const double  value) const
@@ -81,8 +83,8 @@ namespace physics
     }
 
     double acceleration(const state& state, double t) {
-	    constexpr double k = 15.0f;
-        return -k;
+        constexpr double dampening = -0.5;
+        return dampening * state.velocity;
     }
 
     void integrate(state& state, const double t, const double frame_time) {
@@ -119,7 +121,9 @@ namespace physics
         const double alpha = accumulator / delta_time;
 
         const state next_state = current_state * alpha + previous_state * (1.0f - alpha);
-
+        //rosy_utils::debug_print_a("next state position: %f velocity: %f\n",
+        //    next_state.position,
+        //    next_state.velocity);
         time_ctx new_ctx = {};
         new_ctx.time = t;
         new_ctx.accumulator = accumulator;
