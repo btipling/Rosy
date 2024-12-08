@@ -2,7 +2,7 @@
 #include "rhi_frame.h"
 #include "rhi_shader.h"
 
-#define MAX_FRAMES_IN_FLIGHT 2
+#define MAX_FRAMES_IN_FLIGHT 2  // NOLINT(modernize-macro-to-enum)
 
 class rhi
 {

@@ -56,7 +56,7 @@ namespace rhi_cmd
 
 	void set_view_port(const VkCommandBuffer cmd, const VkExtent2D extent) {
 		{
-			VkViewport viewport = {};
+			VkViewport viewport{};
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
 			viewport.width = static_cast<float>(extent.width);
