@@ -26,6 +26,23 @@ glm::mat4 camera::get_rotation_matrix() const
     return toMat4(yaw_rotation) * toMat4(pitch_rotation);
 }
 
+void camera::integrate_all()
+{
+    constexpr double base_velocity = 0.00025;
+    if (velocity.x != 0)
+    {
+        integrate(movement::direction::horizontal, velocity.x * base_velocity);
+    }
+    if (velocity.y != 0)
+    {
+        integrate(movement::direction::vertical, velocity.y * base_velocity);
+    }
+    if (velocity.z != 0)
+    {
+        integrate(movement::direction::depth, velocity.z * base_velocity);
+    }
+}
+
 void camera::integrate(const movement::direction direction, const double velocity)
 {
     SDL_Time  ticks = 0;
@@ -62,33 +79,24 @@ void camera::process_sdl_event(const rh::ctx& ctx)
     if (ctx.sdl_event == nullptr) return;
     const SDL_Event e = *ctx.sdl_event;
     if (e.type == SDL_EVENT_KEY_DOWN) {
-	    constexpr double base_velocity = 0.01;
-	    if (e.key.key == SDLK_W)
-        {
-            integrate(movement::direction::depth, base_velocity);
-        }
-        if (e.key.key == SDLK_S)
-        {
-            integrate(movement::direction::depth, -base_velocity);
-        }
-        if (e.key.key == SDLK_A)
-        {
-            integrate(movement::direction::horizontal, -base_velocity);
-        }
-        if (e.key.key == SDLK_D)
-        {
-            integrate(movement::direction::horizontal, base_velocity);
-        }
-        if (e.key.key == SDLK_SPACE)
-        {
-            integrate(movement::direction::vertical, base_velocity);
-        }
-        if (e.key.key == SDLK_Z)
-        {
-            integrate(movement::direction::vertical, -base_velocity);
-        }
+        if (e.key.key == SDLK_W) { velocity.z = 1.f; }
+        if (e.key.key == SDLK_S) { velocity.z = -1.f; }
+        if (e.key.key == SDLK_A) { velocity.x = -1.f; }
+        if (e.key.key == SDLK_D) { velocity.x = 1.f; }
+        if (e.key.key == SDLK_SPACE) { velocity.y = 1.f; }
+        if (e.key.key == SDLK_Z) { velocity.y = -1.f; }
+
+
     }
 
+    if (e.type == SDL_EVENT_KEY_UP) {
+        if (e.key.key == SDLK_W) { velocity.z = 0; }
+        if (e.key.key == SDLK_S) { velocity.z = 0; }
+        if (e.key.key == SDLK_A) { velocity.x = 0; }
+        if (e.key.key == SDLK_D) { velocity.x = 0; }
+        if (e.key.key == SDLK_SPACE) { velocity.y = 0; }
+        if (e.key.key == SDLK_Z) { velocity.y = 0; }
+    }
     if (!ctx.mouse_enabled) return;
     if (e.type == SDL_EVENT_MOUSE_MOTION) {
         yaw -= e.motion.xrel / 500.f;
@@ -98,6 +106,7 @@ void camera::process_sdl_event(const rh::ctx& ctx)
 
 void camera::update(const rh::ctx& ctx)
 {
+    integrate_all();
     int to_remove{ -1 };
     const glm::mat4 camera_rotation = get_rotation_matrix();
     glm::vec4 vel = { 0.f, 0.f, 0.f, 0.f };

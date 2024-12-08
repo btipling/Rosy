@@ -22,6 +22,7 @@ class camera
 {
 public:
     explicit camera(glm::vec3 position);
+    glm::vec3 velocity{0.f};
     glm::vec3 position;
     float pitch{ 0.f };
     float yaw{ 0.f };
@@ -34,6 +35,7 @@ public:
     void update(const rh::ctx& ctx);
 private:
     std::vector<movement> movements_;
+    void integrate_all();
     void integrate(movement::direction direction, double velocity);
 };
 
