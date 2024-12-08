@@ -44,13 +44,13 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	sp.name = "test";
 	sp.with_shaders(vert_shader_code, frag_shader_code);
 	if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
-	test_mesh_pipeline_ = sp;
+	earth_pipeline_ = sp;
 
 
 	// ReSharper disable once StringLiteralTypo
 	if (auto load_result = data->load_gltf_meshes("assets\\sphere.glb"); load_result.has_value())
 	{
-		test_meshes_ = load_result.value();
+		scene_graph_ = load_result.value();
 	}
 	else
 	{
@@ -147,7 +147,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
-	shader_pipeline shaders = test_mesh_pipeline_.value();
+	shader_pipeline shaders = earth_pipeline_.value();
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 	VmaAllocator allocator = ctx.rhi.allocator;
 
@@ -185,17 +185,18 @@ rh::result scene_one::draw(rh::ctx ctx)
 	
 			gpu_draw_push_constants push_constants{};
 			auto m = glm::mat4(1.0f);
-			m = translate(m, glm::vec3{ model_x_, model_y_, model_z_ });
-			m = rotate(m, model_rot_x_, glm::vec3(1, 0, 0));
-			m = rotate(m, model_rot_y_, glm::vec3(0, 1, 0));
-			m = rotate(m, model_rot_z_, glm::vec3(0, 0, 1));
-			m = scale(m, glm::vec3(model_scale_, model_scale_, model_scale_));
+			m = translate(m, earth_pos_);
+			m = rotate(m, earth_rot_[0], glm::vec3(1, 0, 0));
+			m = rotate(m, earth_rot_[1], glm::vec3(0, 1, 0));
+			m = rotate(m, earth_rot_[2], glm::vec3(0, 0, 1));
+			m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
+			m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
 			push_constants.world_matrix = m;
 	
-			if (test_meshes_.size() > 0)
+			if (scene_graph_.size() > 0)
 			{
-				size_t mesh_index = 0;
-				auto mesh = test_meshes_[mesh_index];
+				size_t mesh_index = 1;
+				auto mesh = scene_graph_[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 				shaders.viewport_extent = frame_extent;
 				shaders.shader_constants = &push_constants;
@@ -217,13 +218,13 @@ rh::result scene_one::draw(rh::ctx ctx)
 
 rh::result scene_one::draw_ui(const rh::ctx& ctx) {
 	ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
-	ImGui::SliderFloat("Rotate X", &model_rot_x_, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Rotate Y", &model_rot_y_, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Rotate Z", &model_rot_z_, 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Translate X", &model_x_, -100.0f, 100.0f);
-	ImGui::SliderFloat("Translate Y", &model_y_, -100.0f, 100.0f);
-	ImGui::SliderFloat("Translate Z", &model_z_, -100.0f, 10.0f);
-	ImGui::SliderFloat("Scale", &model_scale_, 0.1f, 10.0f);
+	ImGui::SliderFloat("Rotate X", &earth_rot_[0], 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Rotate Y", &earth_rot_[1], 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Rotate Z", &earth_rot_[2], 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat("Translate X", &earth_pos_[0], -100.0f, 100.0f);
+	ImGui::SliderFloat("Translate Y", &earth_pos_[0], -100.0f, 100.0f);
+	ImGui::SliderFloat("Translate Z", &earth_pos_[0], -100.0f, 10.0f);
+	ImGui::SliderFloat("Scale", &earth_scale_, 0.1f, 10.0f);
 	ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 	ImGui::Text("Blending");
 	ImGui::RadioButton("disabled", &blend_mode_, 0); ImGui::SameLine();
@@ -258,19 +259,17 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 			ctx.rhi.descriptor_allocator.value().clear_pools(device);
 		}
 		if (default_sampler_nearest_.has_value()) vkDestroySampler(device, default_sampler_nearest_.value(), nullptr);
-		if (black_image_.has_value())  buffer->destroy_image(black_image_.value());
-		if (error_checkerboard_image_.has_value())  buffer->destroy_image(error_checkerboard_image_.value());
 	}
 
-	for (std::shared_ptr<mesh_asset> mesh : test_meshes_)
+	for (std::shared_ptr<mesh_asset> mesh : scene_graph_)
 	{
 		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
 		buffer->destroy_buffer(rectangle.vertex_buffer);
 		buffer->destroy_buffer(rectangle.index_buffer);
 		mesh.reset();
 	}
-	if (test_mesh_pipeline_.has_value()) {
-		test_mesh_pipeline_.value().deinit(device);
+	if (earth_pipeline_.has_value()) {
+		earth_pipeline_.value().deinit(device);
 	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
@@ -295,14 +294,6 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	camera_.process_sdl_event(ctx);
 	camera_.update(ctx);
 	const auto [width, height] = ctx.rhi.frame_extent;
-	auto m = glm::mat4(1.0f);
-
-
-	m = translate(m, glm::vec3{ model_x_, model_y_, model_z_ });
-	m = rotate(m, model_rot_x_, glm::vec3(1, 0, 0));
-	m = rotate(m, model_rot_y_, glm::vec3(0, 1, 0));
-	m = rotate(m, model_rot_z_, glm::vec3(0, 0, 1));
-	m = scale(m, glm::vec3(model_scale_, model_scale_, model_scale_));
 
 	constexpr float z_near = 0.1f;
 	constexpr float z_far = 1000.0f;
