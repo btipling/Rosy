@@ -29,5 +29,9 @@ private:
 	SDL_Window* window_ = nullptr;
 	scene_one scene_{};
 
+	void end_rendering(const char* message);
+	void render_ui(const SDL_Event* event);
+	void render_scene(const SDL_Event* event);
+
 };
 

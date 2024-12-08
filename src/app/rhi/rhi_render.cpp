@@ -81,10 +81,8 @@ VkResult rhi::begin_frame()
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
 
-	VkCommandPool command_pool = opt_command_pool.value();
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	VkSemaphore image_available = opt_image_available_semaphores.value();
-	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
 	VkFence fence = opt_in_flight_fence.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 
@@ -111,6 +109,7 @@ VkResult rhi::begin_frame()
 	draw_extent_.height = std::min(swapchain_extent_.height, draw_image.image_extent.height) * render_scale_;
 
 	vkResetFences(device, 1, &fence);
+
 	{
 		// Start recording commands. This records commands that aren't actually submitted to a queue to do anything with until 
 		// 1. The submit queue call has been made but also

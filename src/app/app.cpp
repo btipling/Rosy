@@ -110,16 +110,14 @@ int app::run()
 			}
 			if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
 				should_render_ = false;
+				break;
 			}
 			if (event.type == SDL_EVENT_WINDOW_RESTORED) {
 				should_render_ = true;
+				resize_requested_ = true;
 			}
 			if (event.type == SDL_EVENT_WINDOW_RESIZED) {
 				resize_requested_ = true;
-			}
-			if (!should_render_) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-				continue;
 			}
 			if (resize_requested_) {
 				if (const VkResult result = renderer.resize_swapchain(window_); result != VK_SUCCESS) {
@@ -130,110 +128,78 @@ int app::run()
 			}
 			render(&event);
 		}
+		if (!should_render_) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			continue;
+		}
 		render(nullptr);
 	}
 	return 0;
 }
 
+void app::end_rendering(const char* message)
+{
+	rosy_utils::debug_print_a(message);
+	should_run_ = false;
+	return;
+}
+
 void app::render(const SDL_Event* event)
 {
+	render_ui(event);
+	render_scene(event);
+}
+
+void app::render_ui(const SDL_Event* event)
+{
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
+	ImGui::NewFrame();
+
+	if (const VkResult result = renderer.draw_ui(); result != VK_SUCCESS) return end_rendering("rhi draw ui failed\n");
+
 	{
-		ImGui_ImplVulkan_NewFrame();
-		ImGui_ImplSDL3_NewFrame();
-		ImGui::NewFrame();
-		VkResult result = renderer.draw_ui();
-		if (result != VK_SUCCESS) {
-			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-				resize_requested_ = true;
-				return;
-			}
-			rosy_utils::debug_print_a("rhi draw ui failed %d\n", result);
-			should_run_ = false;
+		rh::ctx ctx;
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value()) ctx = opt_ctx.value();
+		else return end_rendering("no available frame data\n");
+		if (const auto scene_result = scene_.draw_ui(ctx); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
+	}
+
+	if (!show_cursor_.state) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+	ImGui::Render();
+}
+
+void app::render_scene(const SDL_Event* event)
+{
+	if (const VkResult result = renderer.begin_frame();  result != VK_SUCCESS) {
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			rosy_utils::debug_print_a("swapchain out of date\n");
+			resize_requested_ = true;
 			return;
 		}
-		{
-			rh::ctx ctx;
-			if (std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value())
-			{
-				ctx = opt_ctx.value();
-			}
-			else
-			{
-				rosy_utils::debug_print_a("no available frame data\n");
-				should_run_ = false;
-				return;
-			}
-			if (const auto scene_result = scene_.draw_ui(ctx); scene_result != rh::result::ok)
-			{
-				rosy_utils::debug_print_a("scene_ ui draw failed %d\n", result);
-				should_run_ = false;
-			}
-		}
-		ImGuiIO& io = ImGui::GetIO();
-		if (!show_cursor_.state)
-		{
-			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-		}
-		ImGui::Render();
+		return end_rendering("rhi begin frame failed\n");
+	}
 
+	{
+		rh::ctx ctx;
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value()) ctx = opt_ctx.value();
+		else return end_rendering("no available frame data\n");
+		if (!scene_loaded_)
+		{
+			if (const auto scene_result = scene_.build(ctx); scene_result != rh::result::ok) return end_rendering("scene_ build failed\n");
+			scene_loaded_ = true;
+		}
+		ctx.mouse_enabled = !show_cursor_.state;
+		if (const auto scene_result = scene_.update(ctx); scene_result != rh::result::ok) return end_rendering("scene_ update failed\n");
+		if (const auto scene_result = scene_.draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
+	}
 
-		result = renderer.begin_frame();
-		if (result != VK_SUCCESS) {
-			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-				rosy_utils::debug_print_a("swapchain out of date\n");
-				resize_requested_ = true;
-				return;
-			}
-			rosy_utils::debug_print_a("rhi draw failed %d\n", result);
-			should_run_ = false;
+	if (const VkResult result = renderer.end_frame(); result != VK_SUCCESS) {
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			rosy_utils::debug_print_a("swapchain out of date\n");
+			resize_requested_ = true;
 			return;
 		}
-		{
-			rh::ctx ctx;
-			if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value())
-			{
-				ctx = opt_ctx.value();
-			}
-			else
-			{
-				rosy_utils::debug_print_a("no available frame data\n");
-				should_run_ = false;
-				return;
-			}
-			if (!scene_loaded_)
-			{
-				if (const auto scene_result = scene_.build(ctx); scene_result != rh::result::ok)
-				{
-					rosy_utils::debug_print_a("scene_ build failed %d\n", result);
-					should_run_ = false;
-					return;
-				}
-				scene_loaded_ = true;
-			}
-			ctx.mouse_enabled = !show_cursor_.state;
-			if (const auto scene_result = scene_.update(ctx); scene_result != rh::result::ok)
-			{
-				rosy_utils::debug_print_a("scene_ update failed %d\n", result);
-				should_run_ = false;
-				return;
-			}
-			if (const auto scene_result = scene_.draw(ctx); scene_result != rh::result::ok)
-			{
-				rosy_utils::debug_print_a("scene_ draw failed %d\n", result);
-				should_run_ = false;
-				return;
-			}
-		}
-
-		result = renderer.end_frame();
-		if (result != VK_SUCCESS) {
-			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-				rosy_utils::debug_print_a("swapchain out of date\n");
-				resize_requested_ = true;
-				return;
-			}
-			rosy_utils::debug_print_a("rhi draw failed %d\n", result);
-			should_run_ = false;
-		}
+		return end_rendering("renderer end frame failed\n");
 	}
 }
