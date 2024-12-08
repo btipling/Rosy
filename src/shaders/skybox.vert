@@ -1,7 +1,7 @@
 #version 460
 #extension GL_EXT_buffer_reference : require
 
-layout (location = 0) out vec2 tcOut;
+layout (location = 0) out vec3 tcOut;
 
 layout(set = 0, binding = 0) uniform  SceneData{
 	mat4 view;
@@ -33,5 +33,5 @@ layout( push_constant ) uniform constants
 void main() {
 	Vertex v = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
     gl_Position = sceneData.viewproj * PushConstants.worldMatrix * vec4(v.position, 1.0);
-	tcOut = vec2(1.0 - v.textureCoordinates_s, v.textureCoordinates_t);
+	tcOut = v.position;
 }

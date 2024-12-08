@@ -24,7 +24,15 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return rh::result::error;
-		single_image_descriptor_layout_ = set;
+		earth_image_descriptor_layout_ = set;
+		layouts.push_back(set);
+	}
+	{
+		descriptor_layout_builder layout_builder;
+		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
+		if (result != VK_SUCCESS) return rh::result::error;
+		skybox_image_descriptor_layout_ = set;
 		layouts.push_back(set);
 	}
 	std::vector<char> earth_vertex_shader;
@@ -79,72 +87,152 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	const uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
 
 	{
-
-		ktxTexture* k_texture;
-		ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/earth_4k.ktx2",
-			KTX_TEXTURE_CREATE_NO_FLAGS,
-			&k_texture);
-		if (ktx_result != KTX_SUCCESS) {
-			rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
-			return rh::result::error;
-		}
-		earth_texture_ = k_texture;
-		if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
+		// Earth texture and sampler
 		{
-			earth_vk_texture_ = res.value();
+
+			ktxTexture* k_texture;
+			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/earth_4k.ktx2",
+				KTX_TEXTURE_CREATE_NO_FLAGS,
+				&k_texture);
+			if (ktx_result != KTX_SUCCESS) {
+				rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
+				return rh::result::error;
+			}
+			earth_texture_ = k_texture;
+			if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
+			{
+				earth_vk_texture_ = res.value();
+			}
+			else
+			{
+				rosy_utils::debug_print_a("ktx upload failure: %d\n", res.error());
+			}
+
+
+			VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
+
+			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(earth_vk_texture_.value().imageFormat, earth_vk_texture_.value().image, aspect_flag);
+			view_info.subresourceRange.levelCount = earth_vk_texture_.value().levelCount;
+			view_info.subresourceRange.layerCount = earth_vk_texture_.value().layerCount;
+			VkImageView img_view{};
+			if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
+				VK_SUCCESS)
+			{
+				return rh::result::error;
+			}
+			earth_view_ = img_view;
 		}
-		else
 		{
-			rosy_utils::debug_print_a("ktx upload failure: %d\n", res.error());
+			VkSamplerCreateInfo sample = {};
+			sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			sample.maxLod = earth_vk_texture_.value().levelCount;
+			sample.minLod = 0;
+
+			sample.magFilter = VK_FILTER_LINEAR;
+			sample.minFilter = VK_FILTER_LINEAR;
+
+			sample.anisotropyEnable = VK_FALSE;
+			sample.maxAnisotropy = 0.f;
+
+			// Set proper address modes for spherical mapping
+			sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+			// Linear mipmap mode instead of NEAREST
+			sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			VkSampler sampler{};
+			if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
+			default_sampler_nearest_ = sampler;
 		}
-
-
-		VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
-
-		VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(earth_vk_texture_.value().imageFormat, earth_vk_texture_.value().image, aspect_flag);
-		view_info.subresourceRange.levelCount = earth_vk_texture_.value().levelCount;
-		view_info.subresourceRange.layerCount = earth_vk_texture_.value().layerCount;
-		VkImageView img_view{};
-		if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
-			VK_SUCCESS)
 		{
-			return rh::result::error;
+			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, earth_image_descriptor_layout_.value());
+			if (image_set_result != VK_SUCCESS) return  rh::result::error;
+			{
+				descriptor_writer writer;
+				writer.write_image(0, earth_view_.value(), default_sampler_nearest_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				writer.update_set(device, image_set);
+				earth_image_descriptor_set_ = image_set;
+			}
 		}
-		earth_view_ = img_view;
 	}
+
 	{
-		VkSamplerCreateInfo sample = {};
-		sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		sample.maxLod = earth_vk_texture_.value().levelCount;
-		sample.minLod = 0;
-
-		sample.magFilter = VK_FILTER_LINEAR;
-		sample.minFilter = VK_FILTER_LINEAR;
-
-		sample.anisotropyEnable = VK_FALSE;
-		sample.maxAnisotropy = 0.f;
-
-		// Set proper address modes for spherical mapping
-		sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-		// Linear mipmap mode instead of NEAREST
-		sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		VkSampler sampler{};
-		if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
-		default_sampler_nearest_ = sampler;
-	}
-	{
-		auto [image_set_result, image_set] = descriptor_allocator.allocate(device, single_image_descriptor_layout_.value());
-		if (image_set_result != VK_SUCCESS) return  rh::result::error;
+		// Skybox texture and sampler
 		{
-			descriptor_writer writer;
-			writer.write_image(0, earth_view_.value(), default_sampler_nearest_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-			writer.update_set(device, image_set);
-			sphere_image_descriptor_set_ = image_set;
+
+			ktxTexture* k_texture;
+			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/skybox.ktx2",
+				KTX_TEXTURE_CREATE_NO_FLAGS,
+				&k_texture);
+			if (ktx_result != KTX_SUCCESS) {
+				rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
+				return rh::result::error;
+			}
+
+			skybox_texture_ = k_texture;
+			if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
+			{
+				skybox_vk_texture_ = res.value();
+			}
+			else
+			{
+				rosy_utils::debug_print_a("ktx upload failure: %d\n", res.error());
+			}
+
+
+			VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
+
+			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(skybox_vk_texture_.value().imageFormat, skybox_vk_texture_.value().image, aspect_flag);
+			view_info.subresourceRange.levelCount = skybox_vk_texture_.value().levelCount;
+			view_info.subresourceRange.layerCount = skybox_vk_texture_.value().layerCount;
+			view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+			VkImageView img_view{};
+			if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
+				VK_SUCCESS)
+			{
+				return rh::result::error;
+			}
+			skybox_view_ = img_view;
+		}
+		{
+			VkSamplerCreateInfo sample = {};
+			sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			sample.maxLod = skybox_vk_texture_.value().levelCount;
+			sample.minLod = 0;
+
+			sample.magFilter = VK_FILTER_LINEAR;
+			sample.minFilter = VK_FILTER_LINEAR;
+
+			sample.anisotropyEnable = VK_FALSE;
+			sample.maxAnisotropy = 0.f;
+			sample.mipLodBias = 0.0f;
+			sample.compareOp = VK_COMPARE_OP_NEVER;
+
+			// Set proper address modes for spherical mapping
+			sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+			// Linear mipmap mode instead of NEAREST
+			sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			VkSampler sampler{};
+			if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
+			default_sampler_nearest_ = sampler;
+		}
+		{
+			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, skybox_image_descriptor_layout_.value());
+			if (image_set_result != VK_SUCCESS) return  rh::result::error;
+			{
+				descriptor_writer writer;
+				writer.write_image(0, skybox_view_.value(), default_sampler_nearest_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				writer.update_set(device, image_set);
+				skybox_image_descriptor_set_ = image_set;
+			}
 		}
 	}
+
+
 
 	return rh::result::ok;
 }
@@ -171,31 +259,42 @@ rh::result scene_one::draw(rh::ctx ctx)
 	VmaAllocator allocator = ctx.rhi.allocator;
 
 	// Set descriptor sets
-	std::vector<VkDescriptorSet> sets;
+	std::vector<VkDescriptorSet> earth_sets;
+	std::vector<VkDescriptorSet> skybox_sets;
 	{
 		// Global descriptor
 		auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
 		if (desc_result != VK_SUCCESS) return rh::result::error;
-		VkDescriptorSet global_descriptor = desc_set;
 		void* data_pointer;
 		vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
 		memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
 		vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
 
-		descriptor_writer writer;
-		writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		writer.update_set(device, global_descriptor);
-		sets.push_back(desc_set);
-	}
-	{
-		// Mesh descriptor
-		sets.push_back(sphere_image_descriptor_set_.value());
+		{
+			VkDescriptorSet earth_descriptor = desc_set;
+			// Earth
+			descriptor_writer writer;
+			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			writer.update_set(device, earth_descriptor);
+			earth_sets.push_back(desc_set);
+			earth_sets.push_back(earth_image_descriptor_set_.value());
+		}
+		{
+			VkDescriptorSet skybox_descriptor = desc_set;
+			// Skybox
+			descriptor_writer writer;
+			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			writer.update_set(device, skybox_descriptor);
+			skybox_sets.push_back(desc_set);
+			skybox_sets.push_back(skybox_image_descriptor_set_.value());
+		}
 	}
 	{
 		// Skybox
 		{
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, sets.size(), sets.data(), 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, skybox_sets.size(), skybox_sets.data(), 0, nullptr);
 			float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
@@ -226,7 +325,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 		}
 		// Earth
 		{
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, earth_shaders.pipeline_layout.value(), 0, sets.size(), sets.data(), 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, earth_shaders.pipeline_layout.value(), 0, earth_sets.size(), earth_sets.data(), 0, nullptr);
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("earth", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
@@ -297,6 +396,22 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 	{
 		ktxTexture_Destroy(earth_texture_.value());
 	}
+
+
+	if (skybox_view_.has_value())
+	{
+		vkDestroyImageView(device, skybox_view_.value(), nullptr);
+	}
+	if (skybox_vk_texture_.has_value())
+	{
+		ktxVulkanTexture_Destruct(&skybox_vk_texture_.value(), device, nullptr);
+	}
+	if (skybox_texture_.has_value())
+	{
+		ktxTexture_Destroy(skybox_texture_.value());
+	}
+
+
 	{
 		if (ctx.rhi.descriptor_allocator.has_value())
 		{
@@ -322,9 +437,13 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 	{
 		vkDestroyDescriptorSetLayout(device, gpu_scene_data_descriptor_layout_.value(), nullptr);
 	}
-	if (single_image_descriptor_layout_.has_value())
+	if (earth_image_descriptor_layout_.has_value())
 	{
-		vkDestroyDescriptorSetLayout(device, single_image_descriptor_layout_.value(), nullptr);
+		vkDestroyDescriptorSetLayout(device, earth_image_descriptor_layout_.value(), nullptr);
+	}
+	if (skybox_image_descriptor_layout_.has_value())
+	{
+		vkDestroyDescriptorSetLayout(device, skybox_image_descriptor_layout_.value(), nullptr);
 	}
 
 	return rh::result::ok;
