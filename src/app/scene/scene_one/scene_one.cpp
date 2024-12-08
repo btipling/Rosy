@@ -1,5 +1,6 @@
 #include "scene_one.h"
 #include "imgui.h"
+#include <glm/gtc/type_ptr.hpp>
 #include "../../utils/utils.h"
 #include "../../loader/loader.h"
 
@@ -218,12 +219,8 @@ rh::result scene_one::draw(rh::ctx ctx)
 
 rh::result scene_one::draw_ui(const rh::ctx& ctx) {
 	ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
-	ImGui::SliderFloat("Rotate X", &earth_rot_[0], 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Rotate Y", &earth_rot_[1], 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Rotate Z", &earth_rot_[2], 0, glm::pi<float>() * 2.0f);
-	ImGui::SliderFloat("Translate X", &earth_pos_[0], -100.0f, 100.0f);
-	ImGui::SliderFloat("Translate Y", &earth_pos_[0], -100.0f, 100.0f);
-	ImGui::SliderFloat("Translate Z", &earth_pos_[0], -100.0f, 10.0f);
+	ImGui::SliderFloat3("Rotate", value_ptr(earth_rot_), 0, glm::pi<float>() * 2.0f);
+	ImGui::SliderFloat3("Translate", value_ptr(earth_pos_), -100.0f, 100.0f);
 	ImGui::SliderFloat("Scale", &earth_scale_, 0.1f, 10.0f);
 	ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 	ImGui::Text("Blending");
