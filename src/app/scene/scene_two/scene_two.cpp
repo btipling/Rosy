@@ -162,7 +162,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		{
 
 			ktxTexture* k_texture;
-			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/skybox.ktx2",
+			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/skybox_clouds.ktx2",
 				KTX_TEXTURE_CREATE_NO_FLAGS,
 				&k_texture);
 			if (ktx_result != KTX_SUCCESS) {
