@@ -28,12 +28,12 @@ private:
 	bool scene_loaded_ = false;
 	rosy_utils::state_debouncer show_cursor_ = { .state = true };
 	SDL_Window* window_ = nullptr;
-	std::unique_ptr <scene> scene_{};
+	std::unique_ptr <scene> scene_ = nullptr;
 	scene_selector scene_selector_{};
 
 	void end_rendering(const char* message);
 	void render_ui(const SDL_Event* event);
 	void render_scene(const SDL_Event* event);
-
+	void change_scene();
 };
 

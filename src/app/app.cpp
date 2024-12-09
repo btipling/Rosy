@@ -13,6 +13,7 @@
 #include "backends/imgui_impl_vulkan.h"
 #include "config/Config.h"
 #include "scene/scene_one/scene_one.h"
+#include "scene/scene_two/scene_two.h"
 
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
 static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-use-anonymous-namespace)
@@ -67,7 +68,6 @@ int app::init()
 	}
 	renderer.debug();
 	SDL_AddEventWatch(event_handler, static_cast<void*>(this));
-	scene_ = std::make_unique<scene_one>();
 	return 0;
 }
 
@@ -79,7 +79,9 @@ int app::deinit()
 		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(nullptr); opt_ctx.has_value())
 			ctx = opt_ctx.value();
 		else rosy_utils::debug_print_a("no available frame data\n");
-		if (scene_->deinit(ctx) == rh::result::error) rosy_utils::debug_print_a("scene_ deinit failed\n");
+		if (scene_ != nullptr) {
+			if (scene_->deinit(ctx) == rh::result::error) rosy_utils::debug_print_a("scene_ deinit failed\n");
+		}
 	}
 	{
 		// Deinit renderer
@@ -93,6 +95,34 @@ int app::deinit()
 	return 0;
 }
 
+void app::change_scene()
+{
+	{
+		// Deinit current scene_
+		rh::ctx ctx;
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(nullptr); opt_ctx.has_value())
+		{
+			ctx = opt_ctx.value();
+		}
+		else end_rendering("no available frame data\n");
+		if (scene_ != nullptr && scene_->deinit(ctx) == rh::result::error) end_rendering("scene_ deinit failed\n");
+		scene_loaded_ = false;
+	}
+	{
+		switch (scene_selector_.selected_scene)
+		{
+		case 0:
+			scene_ = std::make_unique<scene_one>();
+			break;
+		case 1:
+			scene_ = std::make_unique<scene_two>();
+			break;
+		default:
+			return end_rendering("Invalid scene selected\n");
+		}
+	}
+}
+
 int app::run()
 {
 	SDL_Event event{};
@@ -100,6 +130,7 @@ int app::run()
 		if (scene_selector_.updated)
 		{
 			rosy_utils::debug_print_a("Scene selection changed %d\n", scene_selector_.selected_scene);
+			change_scene();
 			scene_selector_.updated = false;
 		}
 		while (SDL_PollEvent(&event)) {
@@ -167,7 +198,10 @@ void app::render_ui(const SDL_Event* event)
 		rh::ctx ctx;
 		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value()) ctx = opt_ctx.value();
 		else return end_rendering("no available frame data\n");
-		if (const auto scene_result = scene_->draw_ui(ctx); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
+		if (scene_ != nullptr)
+		{
+			if (const auto scene_result = scene_->draw_ui(ctx); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
+		}
 	}
 	scene_selector_.draw_ui();
 	if (!show_cursor_.state) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
@@ -185,7 +219,7 @@ void app::render_scene(const SDL_Event* event)
 		return end_rendering("rhi begin frame failed\n");
 	}
 
-	{
+	if (scene_ != nullptr) {
 		rh::ctx ctx;
 		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value()) ctx = opt_ctx.value();
 		else return end_rendering("no available frame data\n");
