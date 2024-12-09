@@ -1,3 +1,4 @@
+#include "imgui.h"
 #include "rhi.h"
 
 
@@ -34,6 +35,9 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 
 VkResult rhi::draw_ui()
 {
+	ImGui::Begin("Rosy");
+	ImGui::Text("Hello world");
+	ImGui::End();
 	return VK_SUCCESS;
 }
 
