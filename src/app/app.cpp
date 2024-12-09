@@ -158,14 +158,13 @@ void app::render_ui(const SDL_Event* event)
 	ImGui::NewFrame();
 
 	if (const VkResult result = renderer.draw_ui(); result != VK_SUCCESS) return end_rendering("rhi draw ui failed\n");
-
 	{
 		rh::ctx ctx;
 		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value()) ctx = opt_ctx.value();
 		else return end_rendering("no available frame data\n");
 		if (const auto scene_result = scene_->draw_ui(ctx); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
 	}
-
+	scene_selector_.draw_ui();
 	if (!show_cursor_.state) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 	ImGui::Render();
 }

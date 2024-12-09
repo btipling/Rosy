@@ -209,6 +209,9 @@
     <ClCompile Include="app\scene\scene_one\scene_one.cpp">
       <Filter>scene\scene_one</Filter>
     </ClCompile>
+    <ClCompile Include="app\scene\scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc">

@@ -1,4 +1,5 @@
 #pragma once
+#include "../rhi/rhi_frame.h"
 
 class scene
 {
@@ -15,4 +16,12 @@ public:
     scene(scene&& other) noexcept = default;
     scene& operator=(const scene& other) = default;
     scene& operator=(scene&& other) noexcept = default;
+};
+
+class scene_selector
+{
+public:
+    size_t selected_scene = 0;
+    bool updated = true;
+    void draw_ui();
 };

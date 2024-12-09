@@ -168,6 +168,7 @@
     <ClInclude Include="app\physics\physics.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="app\scene\scene.cpp" />
     <ClCompile Include="math.cpp" />
     <ClCompile Include="Rosy.cpp" />
     <ClCompile Include="lib\imgui\backends\imgui_impl_sdl3.cpp" />
