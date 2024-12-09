@@ -37,6 +37,8 @@ private:
 	glm::vec3 earth_pos_ = glm::vec3(0.f, 0.f, -15.f);
 	float earth_scale_ = 1.0f;
 
+	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 1.f, 0.f);
+
 	// Skybox
 	std::optional <VkDescriptorSetLayout> skybox_image_descriptor_layout_ = std::nullopt;
 	std::optional<VkDescriptorSet> skybox_image_descriptor_set_ = std::nullopt;

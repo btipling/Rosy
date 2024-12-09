@@ -368,6 +368,7 @@ rh::result scene_one::draw_ui(const rh::ctx& ctx) {
 	ImGui::SliderFloat3("Rotate", value_ptr(earth_rot_), 0, glm::pi<float>() * 2.0f);
 	ImGui::SliderFloat3("Translate", value_ptr(earth_pos_), -100.0f, 100.0f);
 	ImGui::SliderFloat("Scale", &earth_scale_, 0.1f, 10.0f);
+	ImGui::SliderFloat3("Sunlight direction", value_ptr(sunlight_direction_), -30.0f, 30.0f);
 	ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 	ImGui::Text("Blending");
 	ImGui::RadioButton("disabled", &blend_mode_, 0); ImGui::SameLine();
@@ -485,8 +486,8 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	scene_data_.proj = proj;
 	scene_data_.view_projection = proj * view;
 	scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
-	scene_data_.ambient_color = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
-	scene_data_.sunlight_direction = glm::vec4(2.0, 1.0, 0.0, 0.0);
+	scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+	scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
 	scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
 }
 
