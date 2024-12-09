@@ -97,6 +97,11 @@ int app::run()
 {
 	SDL_Event event{};
 	while (should_run_) {
+		if (scene_selector_.updated)
+		{
+			rosy_utils::debug_print_a("Scene selection changed %d\n", scene_selector_.selected_scene);
+			scene_selector_.updated = false;
+		}
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_EVENT_KEY_UP) {
 				if (event.key.key == SDLK_C) {

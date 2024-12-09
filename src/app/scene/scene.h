@@ -21,7 +21,7 @@ public:
 class scene_selector
 {
 public:
-    size_t selected_scene = 0;
+    int selected_scene = 0;
     bool updated = true;
     void draw_ui();
 };
