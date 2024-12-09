@@ -485,8 +485,8 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	scene_data_.proj = proj;
 	scene_data_.view_projection = proj * view;
 	scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
-	scene_data_.ambient_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
-	scene_data_.sunlight_direction = glm::vec4(0.0, 0.0, 0.0, 0.0);
-	scene_data_.sunlight_color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+	scene_data_.ambient_color = glm::vec4(0.01f, 0.01f, 0.01f, 1.0f);
+	scene_data_.sunlight_direction = glm::vec4(2.0, 1.0, 0.0, 0.0);
+	scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
 }
 

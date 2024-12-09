@@ -3,7 +3,8 @@
 
 layout (location = 0) out vec3 fragmentColor;
 layout (location = 1) out vec3 fragmentNormal;
-layout (location = 2) out vec2 textureCoordinates;
+layout (location = 2) out vec3 fragmentVertex;
+layout (location = 3) out vec2 textureCoordinates;
 
 layout(set = 0, binding = 0) uniform  SceneData{
 	mat4 view;
@@ -37,6 +38,8 @@ void main() {
 	Vertex v = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
     gl_Position = sceneData.viewproj * PushConstants.worldMatrix * vec4(v.position, 1.0);
     fragmentColor = v.color.xyz;
-	fragmentNormal = v.normal.xyz;
+	mat3 normalTransform = transpose(inverse(mat3(PushConstants.worldMatrix)));
+	fragmentNormal = normalize(normalTransform * v.normal);
+	fragmentVertex = v.position;
 	textureCoordinates = vec2(1.0 - v.textureCoordinates_s, v.textureCoordinates_t);
 }
