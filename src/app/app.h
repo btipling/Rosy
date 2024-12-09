@@ -2,6 +2,7 @@
 #include "../Rosy.h"
 #include "rhi/rhi.h"
 #include "config/Config.h"
+#include "scene/scene.h"
 #include "scene/scene_one/scene_one.h"
 #include "utils/utils.h"
 
@@ -27,7 +28,7 @@ private:
 	bool scene_loaded_ = false;
 	rosy_utils::state_debouncer show_cursor_ = { .state = true };
 	SDL_Window* window_ = nullptr;
-	scene_one scene_{};
+	std::unique_ptr <scene> scene_{};
 
 	void end_rendering(const char* message);
 	void render_ui(const SDL_Event* event);

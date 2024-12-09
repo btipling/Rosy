@@ -129,6 +129,9 @@
     <ClInclude Include="app\scene\scene_one\scene_one.h">
       <Filter>scene\scene_one</Filter>
     </ClInclude>
+    <ClInclude Include="app\scene\scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">

@@ -136,6 +136,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="app\scene\scene.h" />
     <ClInclude Include="math.h" />
     <ClInclude Include="Rosy.h" />
     <ClInclude Include="framework.h" />

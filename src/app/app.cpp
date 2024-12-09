@@ -67,6 +67,7 @@ int app::init()
 	}
 	renderer.debug();
 	SDL_AddEventWatch(event_handler, static_cast<void*>(this));
+	scene_ = std::make_unique<scene_one>();
 	return 0;
 }
 
@@ -78,7 +79,7 @@ int app::deinit()
 		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(nullptr); opt_ctx.has_value())
 			ctx = opt_ctx.value();
 		else rosy_utils::debug_print_a("no available frame data\n");
-		if (scene_.deinit(ctx) == rh::result::error) rosy_utils::debug_print_a("scene_ deinit failed\n");
+		if (scene_->deinit(ctx) == rh::result::error) rosy_utils::debug_print_a("scene_ deinit failed\n");
 	}
 	{
 		// Deinit renderer
@@ -162,7 +163,7 @@ void app::render_ui(const SDL_Event* event)
 		rh::ctx ctx;
 		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value()) ctx = opt_ctx.value();
 		else return end_rendering("no available frame data\n");
-		if (const auto scene_result = scene_.draw_ui(ctx); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
+		if (const auto scene_result = scene_->draw_ui(ctx); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
 	}
 
 	if (!show_cursor_.state) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
@@ -186,12 +187,12 @@ void app::render_scene(const SDL_Event* event)
 		else return end_rendering("no available frame data\n");
 		if (!scene_loaded_)
 		{
-			if (const auto scene_result = scene_.build(ctx); scene_result != rh::result::ok) return end_rendering("scene_ build failed\n");
+			if (const auto scene_result = scene_->build(ctx); scene_result != rh::result::ok) return end_rendering("scene_ build failed\n");
 			scene_loaded_ = true;
 		}
 		ctx.mouse_enabled = !show_cursor_.state;
-		if (const auto scene_result = scene_.update(ctx); scene_result != rh::result::ok) return end_rendering("scene_ update failed\n");
-		if (const auto scene_result = scene_.draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
+		if (const auto scene_result = scene_->update(ctx); scene_result != rh::result::ok) return end_rendering("scene_ update failed\n");
+		if (const auto scene_result = scene_->draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
 	}
 
 	if (const VkResult result = renderer.end_frame(); result != VK_SUCCESS) {

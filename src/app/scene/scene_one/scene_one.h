@@ -3,17 +3,18 @@
 #include "../../rhi/rhi_frame.h"
 #include "../../rhi/rhi_shader.h"
 #include "../../camera.h"
+#include "../scene.h"
 
-class scene_one
+class scene_one final : public scene
 {
 public:
 	scene_one() :
 	camera_(glm::vec3{ .0f, 0.0f, -20.0f }){}
-	rh::result build(const rh::ctx& ctx);
-	rh::result update(const rh::ctx& ctx);
-	rh::result draw(rh::ctx ctx);
-	rh::result draw_ui(const rh::ctx& ctx);
-	rh::result deinit(rh::ctx& ctx);
+	rh::result build(const rh::ctx& ctx) override;
+	rh::result update(const rh::ctx& ctx) override;
+	rh::result draw(rh::ctx ctx) override;
+	rh::result draw_ui(const rh::ctx& ctx) override;
+	rh::result deinit(rh::ctx& ctx) override;
 private:
 	void update_scene(const rh::ctx& ctx);
 	gpu_scene_data scene_data_ = {};
