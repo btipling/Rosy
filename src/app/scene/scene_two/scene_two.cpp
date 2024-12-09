@@ -74,7 +74,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 
 
 	// ReSharper disable once StringLiteralTypo
-	if (auto load_result = data->load_gltf_meshes("assets\\sphere.glb"); load_result.has_value())
+	if (auto load_result = data->load_gltf_meshes("assets\\SM_Deccer_Cubes_Textured_Complex.gltf"); load_result.has_value())
 	{
 		scene_graph_ = load_result.value();
 	}
@@ -91,7 +91,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		{
 
 			ktxTexture* k_texture;
-			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/earth_4k.ktx2",
+			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/painted_concrete.ktx2",
 				KTX_TEXTURE_CREATE_NO_FLAGS,
 				&k_texture);
 			if (ktx_result != KTX_SUCCESS) {
@@ -306,7 +306,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 
 			if (scene_graph_.size() > 0)
 			{
-				size_t mesh_index = 1;
+				size_t mesh_index = 3;
 				auto mesh = scene_graph_[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 				skybox_shaders.viewport_extent = frame_extent;
@@ -367,9 +367,10 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 	ImGui::Begin("Scene Graph");
 	{
 		ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
+		ImGui::Text("Camera orientation: (%f, %f)", camera_.pitch, camera_.yaw);
 		ImGui::SliderFloat3("Rotate", value_ptr(earth_rot_), 0, glm::pi<float>() * 2.0f);
 		ImGui::SliderFloat3("Translate", value_ptr(earth_pos_), -100.0f, 100.0f);
-		ImGui::SliderFloat("Scale", &earth_scale_, 0.1f, 10.0f);
+		ImGui::SliderFloat("Scale", &earth_scale_, 0.01f, 1.0f);
 		ImGui::SliderFloat3("Sunlight direction", value_ptr(sunlight_direction_), -30.0f, 30.0f);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 		ImGui::Text("Blending");

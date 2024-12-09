@@ -9,7 +9,9 @@ class scene_two final : public scene
 {
 public:
 	scene_two() :
-		camera_(glm::vec3{ .0f, 0.0f, -20.0f }) {
+		camera_(glm::vec3{ 4.48f, 2.77f, -19.78f }) {
+		camera_.pitch = 0.36f;
+		camera_.yaw = 1.f;
 	}
 	rh::result build(const rh::ctx& ctx) override;
 	rh::result update(const rh::ctx& ctx) override;
@@ -37,7 +39,7 @@ private:
 	std::optional<VkImageView> earth_view_ = std::nullopt;
 	glm::vec3 earth_rot_ = glm::vec3(0.f);
 	glm::vec3 earth_pos_ = glm::vec3(0.f, 0.f, -15.f);
-	float earth_scale_ = 1.0f;
+	float earth_scale_ = 0.1f;
 
 	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 1.f, 0.f);
 
