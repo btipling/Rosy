@@ -137,6 +137,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="app\scene\scene.h" />
+    <ClInclude Include="app\scene\scene_two\scene_two.h" />
     <ClInclude Include="math.h" />
     <ClInclude Include="Rosy.h" />
     <ClInclude Include="framework.h" />
@@ -169,6 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="app\scene\scene.cpp" />
+    <ClCompile Include="app\scene\scene_two\scene_two.cpp" />
     <ClCompile Include="math.cpp" />
     <ClCompile Include="Rosy.cpp" />
     <ClCompile Include="lib\imgui\backends\imgui_impl_sdl3.cpp" />

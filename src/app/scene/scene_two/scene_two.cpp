@@ -1,11 +1,11 @@
-#include "scene_one.h"
+#include "scene_two.h"
 #include "imgui.h"
 #include <glm/gtc/type_ptr.hpp>
 #include "../../utils/utils.h"
 #include "../../loader/loader.h"
 
 
-rh::result scene_one::build(const rh::ctx& ctx)
+rh::result scene_two::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
 	auto data = ctx.rhi.data.value();
@@ -237,7 +237,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	return rh::result::ok;
 }
 
-rh::result scene_one::draw(rh::ctx ctx)
+rh::result scene_two::draw(rh::ctx ctx)
 {
 	update_scene(ctx);
 	VkDevice device = ctx.rhi.device;
@@ -363,8 +363,8 @@ rh::result scene_one::draw(rh::ctx ctx)
 	return rh::result::ok;
 }
 
-rh::result scene_one::draw_ui(const rh::ctx& ctx) {
-	ImGui::Begin("Solar System");
+rh::result scene_two::draw_ui(const rh::ctx& ctx) {
+	ImGui::Begin("Scene Graph");
 	{
 		ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
 		ImGui::SliderFloat3("Rotate", value_ptr(earth_rot_), 0, glm::pi<float>() * 2.0f);
@@ -381,7 +381,7 @@ rh::result scene_one::draw_ui(const rh::ctx& ctx) {
 	return rh::result::ok;
 }
 
-rh::result scene_one::deinit(rh::ctx& ctx)
+rh::result scene_two::deinit(rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
 	const VmaAllocator allocator = ctx.rhi.allocator;
@@ -455,13 +455,13 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 	return rh::result::ok;
 }
 
-rh::result scene_one::update(const rh::ctx& ctx)
+rh::result scene_two::update(const rh::ctx& ctx)
 {
 	camera_.process_sdl_event(ctx);
 	return rh::result::ok;
 }
 
-void scene_one::update_scene(const rh::ctx& ctx)
+void scene_two::update_scene(const rh::ctx& ctx)
 {
 	camera_.process_sdl_event(ctx);
 	camera_.update(ctx);

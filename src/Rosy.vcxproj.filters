@@ -132,6 +132,9 @@
     <ClInclude Include="app\scene\scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="app\scene\scene_two\scene_two.h">
+      <Filter>scene\scene_two</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">
@@ -211,6 +214,9 @@
     </ClCompile>
     <ClCompile Include="app\scene\scene.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="app\scene\scene_two\scene_two.cpp">
+      <Filter>scene\scene_two</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
