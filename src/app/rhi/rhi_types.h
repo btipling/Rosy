@@ -112,17 +112,17 @@ struct vulkan_ctx
 
 struct mesh_node
 {
-	//std::vector<std::unique_ptr<mesh_node>> children;
+	std::vector<std::shared_ptr<mesh_node>> children;
 	glm::vec3 translation;
 	glm::vec4 rotation;
 	glm::vec3 scale;
 
-	size_t mesh_index;
+	std::optional<size_t> mesh_index = std::nullopt;
 };
 
 struct mesh_scene
 {
-	std::vector<std::unique_ptr<mesh_node>> nodes;
+	std::vector<std::shared_ptr<mesh_node>> nodes;
 	std::vector<std::shared_ptr<mesh_asset>> meshes;
 };
 

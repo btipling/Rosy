@@ -11,13 +11,17 @@ rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer } {}
 
 std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_path) const
 {
+	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
+		fastgltf::Options::AllowDouble |
+		fastgltf::Options::LoadExternalBuffers |
+		fastgltf::Options::DecomposeNodeMatrices;
 	fastgltf::Asset gltf;
 	fastgltf::Parser parser{};
 	auto data = fastgltf::GltfDataBuffer::FromPath(file_path);
 	if (data.error() != fastgltf::Error::None) {
 		return std::nullopt;
 	}
-	auto asset = parser.loadGltf(data.get(), file_path.parent_path(), fastgltf::Options::None);
+	auto asset = parser.loadGltf(data.get(), file_path.parent_path(), gltf_options);
 	if (asset) {
 		gltf = std::move(asset.get());
 	}
@@ -114,8 +118,34 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_
 		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
 	}
 
+	std::vector<std::shared_ptr<mesh_node>> nodes;
+	std::vector<fastgltf::Node> gltf_nodes;
+	std::optional<mesh_node> parent_node = std::nullopt;
+	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_nodes.push_back(gltf_node);
+	while (gltf_nodes.size())
+	{
+		auto current_n = gltf_nodes[gltf_nodes.size() - 1];
+		gltf_nodes.pop_back();
+		std::shared_ptr<mesh_node> new_node = std::make_shared<mesh_node>();
+		if (current_n.meshIndex.has_value())
+		{
+			new_node->mesh_index = current_n.meshIndex.value();
+			auto [translation, rotation, scale] = std::get<fastgltf::TRS>(current_n.transform);
+			new_node->translation = glm::vec3(translation[0], translation[1], translation[2]);
+			new_node->rotation = glm::vec4(rotation[0], rotation[1], rotation[1], rotation[3]);
+			new_node->scale = glm::vec3(scale[0], scale[1], scale[2]);
+		}
+		if (parent_node.has_value())
+		{
+			parent_node.value().children.push_back(new_node);
+		}
+		else nodes.push_back(new_node);
+	}
+
 	return gltf_mesh_scene;
 }
+
+
 
 
 gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const
@@ -221,29 +251,29 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 
 allocated_buffer_result rhi_data::create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const
 {
-		VkBufferCreateInfo buffer_info{};
-		buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		buffer_info.pNext = nullptr;
-		buffer_info.size = alloc_size;
-		buffer_info.usage = usage;
+	VkBufferCreateInfo buffer_info{};
+	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_info.pNext = nullptr;
+	buffer_info.size = alloc_size;
+	buffer_info.usage = usage;
 
-		VmaAllocationCreateInfo vma_alloc_info{};
-		vma_alloc_info.usage = memory_usage;
-		vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+	VmaAllocationCreateInfo vma_alloc_info{};
+	vma_alloc_info.usage = memory_usage;
+	vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
-		allocated_buffer new_buffer{};
-		const VkResult result = vmaCreateBuffer(renderer_->opt_allocator.value(), &buffer_info, &vma_alloc_info, &new_buffer.buffer,
-			&new_buffer.allocation,
-			&new_buffer.info);
-		if (result != VK_SUCCESS) return { .result = result };
-		{
-			const VkDebugUtilsObjectNameInfoEXT buffer_name =  rhi_helpers::add_name(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(new_buffer.buffer), name);
-			if (const VkResult debug_name_result = vkSetDebugUtilsObjectNameEXT(renderer_->opt_device.value(), &buffer_name); debug_name_result != VK_SUCCESS) return  { .result = result };
-		}
-		return {
-			.result = VK_SUCCESS,
-			.buffer = new_buffer,
-		};
+	allocated_buffer new_buffer{};
+	const VkResult result = vmaCreateBuffer(renderer_->opt_allocator.value(), &buffer_info, &vma_alloc_info, &new_buffer.buffer,
+		&new_buffer.allocation,
+		&new_buffer.info);
+	if (result != VK_SUCCESS) return { .result = result };
+	{
+		const VkDebugUtilsObjectNameInfoEXT buffer_name = rhi_helpers::add_name(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(new_buffer.buffer), name);
+		if (const VkResult debug_name_result = vkSetDebugUtilsObjectNameEXT(renderer_->opt_device.value(), &buffer_name); debug_name_result != VK_SUCCESS) return  { .result = result };
+	}
+	return {
+		.result = VK_SUCCESS,
+		.buffer = new_buffer,
+	};
 }
 
 void rhi_data::destroy_buffer(const allocated_buffer& buffer) const
@@ -316,7 +346,7 @@ std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxText
 
 
 allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D size, const VkFormat format,
-                                              const VkImageUsageFlags usage, const bool mip_mapped) const
+	const VkImageUsageFlags usage, const bool mip_mapped) const
 {
 	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
 	auto [result, created_buffer] = create_buffer("image staging", data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST);
@@ -360,7 +390,7 @@ allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D
 				&copy_region);
 
 			rhi::transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		});
 
 	destroy_buffer(staging);
