@@ -30,18 +30,18 @@ private:
 
 	std::vector<std::shared_ptr<mesh_asset>> scene_graph_;
 
-	// Earth
-	std::optional <VkDescriptorSetLayout> earth_image_descriptor_layout_ = std::nullopt;
-	std::optional<VkDescriptorSet> earth_image_descriptor_set_ = std::nullopt;
-	std::optional<shader_pipeline> earth_pipeline_ = std::nullopt;
-	std::optional<ktxTexture*> earth_texture_ = std::nullopt;
-	std::optional<ktxVulkanTexture> earth_vk_texture_ = std::nullopt;
-	std::optional<VkImageView> earth_view_ = std::nullopt;
-	glm::vec3 earth_rot_ = glm::vec3(0.f);
-	glm::vec3 earth_pos_ = glm::vec3(0.f, 0.f, -15.f);
-	float earth_scale_ = 0.1f;
+	// Scene
+	std::optional <VkDescriptorSetLayout> scene_image_descriptor_layout_ = std::nullopt;
+	std::optional<VkDescriptorSet> scene_image_descriptor_set_ = std::nullopt;
+	std::optional<shader_pipeline> scene_pipeline_ = std::nullopt;
+	std::optional<ktxTexture*> scene_texture_ = std::nullopt;
+	std::optional<ktxVulkanTexture> scene_vk_texture_ = std::nullopt;
+	std::optional<VkImageView> scene_view_ = std::nullopt;
+	glm::vec3 scene_rot_ = glm::vec3(0.f);
+	glm::vec3 scene_pos_ = glm::vec3(0.f, 0.f, -15.f);
+	float scene_scale_ = 0.1f;
 
-	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 1.f, 0.f);
+	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 2.593f, -1.362f);
 
 	// Skybox
 	std::optional <VkDescriptorSetLayout> skybox_image_descriptor_layout_ = std::nullopt;

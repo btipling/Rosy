@@ -28,7 +28,6 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 	}
 	std::vector<std::shared_ptr<mesh_asset>> meshes;
 
-	// use the same vectors for all meshes so that the memory doesn't reallocate as often
 	std::vector<uint32_t> indices;
 	std::vector<vertex> vertices;
 	for (fastgltf::Mesh& mesh : gltf.meshes) {
@@ -36,7 +35,6 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 
 		new_mesh.name = mesh.name;
 
-		// clear the mesh arrays each mesh, we don't want to merge them by error
 		indices.clear();
 		vertices.clear();
 
@@ -47,7 +45,6 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 
 			size_t initial_vtx = vertices.size();
 
-			// load indexes
 			{
 				fastgltf::Accessor& index_accessor = gltf.accessors[p.indicesAccessor.value()];
 				indices.reserve(indices.size() + index_accessor.count);

@@ -317,6 +317,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 				skybox_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
 				skybox_shaders.blending = static_cast<shader_blending>(blend_mode_);
 				if (VkResult result = skybox_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+				if (VkResult result = skybox_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
 					0, 0);
@@ -352,6 +353,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 				earth_shaders.depth_enabled = true;
 				earth_shaders.blending = static_cast<shader_blending>(blend_mode_);
 				if (VkResult result = earth_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+				if (VkResult result = earth_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
 					0, 0);

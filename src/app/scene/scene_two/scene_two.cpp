@@ -24,7 +24,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return rh::result::error;
-		earth_image_descriptor_layout_ = set;
+		scene_image_descriptor_layout_ = set;
 		layouts.push_back(set);
 	}
 	{
@@ -35,14 +35,14 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		skybox_image_descriptor_layout_ = set;
 		layouts.push_back(set);
 	}
-	std::vector<char> earth_vertex_shader;
-	std::vector<char> earth_fragment_shader;
+	std::vector<char> scene_vertex_shader;
+	std::vector<char> scene_fragment_shader;
 	std::vector<char> skybox_vertex_shader;
 	std::vector<char> skybox_fragment_shader;
 	try
 	{
-		earth_vertex_shader = read_file("out/mesh.vert.spv");
-		earth_fragment_shader = read_file("out/mesh.frag.spv");
+		scene_vertex_shader = read_file("out/mesh.vert.spv");
+		scene_fragment_shader = read_file("out/mesh.frag.spv");
 		skybox_vertex_shader = read_file("out/skybox.vert.spv");
 		skybox_fragment_shader = read_file("out/skybox.frag.spv");
 	}
@@ -53,13 +53,13 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	}
 
 	{
-		// Earth pipeline
+		// scene pipeline
 		shader_pipeline sp = {};
 		sp.layouts = layouts;
-		sp.name = "earth";
-		sp.with_shaders(earth_vertex_shader, earth_fragment_shader);
+		sp.name = "scene";
+		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
-		earth_pipeline_ = sp;
+		scene_pipeline_ = sp;
 	}
 
 	{
@@ -87,7 +87,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	const uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
 
 	{
-		// Earth texture and sampler
+		// scene texture and sampler
 		{
 
 			ktxTexture* k_texture;
@@ -98,10 +98,10 @@ rh::result scene_two::build(const rh::ctx& ctx)
 				rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
 				return rh::result::error;
 			}
-			earth_texture_ = k_texture;
+			scene_texture_ = k_texture;
 			if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
 			{
-				earth_vk_texture_ = res.value();
+				scene_vk_texture_ = res.value();
 			}
 			else
 			{
@@ -111,21 +111,21 @@ rh::result scene_two::build(const rh::ctx& ctx)
 
 			VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
 
-			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(earth_vk_texture_.value().imageFormat, earth_vk_texture_.value().image, aspect_flag);
-			view_info.subresourceRange.levelCount = earth_vk_texture_.value().levelCount;
-			view_info.subresourceRange.layerCount = earth_vk_texture_.value().layerCount;
+			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(scene_vk_texture_.value().imageFormat, scene_vk_texture_.value().image, aspect_flag);
+			view_info.subresourceRange.levelCount = scene_vk_texture_.value().levelCount;
+			view_info.subresourceRange.layerCount = scene_vk_texture_.value().layerCount;
 			VkImageView img_view{};
 			if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
 				VK_SUCCESS)
 			{
 				return rh::result::error;
 			}
-			earth_view_ = img_view;
+			scene_view_ = img_view;
 		}
 		{
 			VkSamplerCreateInfo sample = {};
 			sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			sample.maxLod = earth_vk_texture_.value().levelCount;
+			sample.maxLod = scene_vk_texture_.value().levelCount;
 			sample.minLod = 0;
 
 			sample.magFilter = VK_FILTER_LINEAR;
@@ -146,13 +146,13 @@ rh::result scene_two::build(const rh::ctx& ctx)
 			image_sampler_ = sampler;
 		}
 		{
-			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, earth_image_descriptor_layout_.value());
+			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, scene_image_descriptor_layout_.value());
 			if (image_set_result != VK_SUCCESS) return  rh::result::error;
 			{
 				descriptor_writer writer;
-				writer.write_image(0, earth_view_.value(), image_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				writer.write_image(0, scene_view_.value(), image_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 				writer.update_set(device, image_set);
-				earth_image_descriptor_set_ = image_set;
+				scene_image_descriptor_set_ = image_set;
 			}
 		}
 	}
@@ -253,13 +253,13 @@ rh::result scene_two::draw(rh::ctx ctx)
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
-	shader_pipeline earth_shaders = earth_pipeline_.value();
+	shader_pipeline scene_shaders = scene_pipeline_.value();
 	shader_pipeline skybox_shaders = skybox_pipeline_.value();
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 	VmaAllocator allocator = ctx.rhi.allocator;
 
 	// Set descriptor sets
-	std::vector<VkDescriptorSet> earth_sets;
+	std::vector<VkDescriptorSet> scene_sets;
 	std::vector<VkDescriptorSet> skybox_sets;
 	{
 		// Global descriptor
@@ -271,14 +271,14 @@ rh::result scene_two::draw(rh::ctx ctx)
 		vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
 
 		{
-			VkDescriptorSet earth_descriptor = desc_set;
-			// Earth
+			VkDescriptorSet scene_descriptor = desc_set;
+			// scene
 			descriptor_writer writer;
 			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, earth_descriptor);
-			earth_sets.push_back(desc_set);
-			earth_sets.push_back(earth_image_descriptor_set_.value());
+			writer.update_set(device, scene_descriptor);
+			scene_sets.push_back(desc_set);
+			scene_sets.push_back(scene_image_descriptor_set_.value());
 		}
 		{
 			VkDescriptorSet skybox_descriptor = desc_set;
@@ -317,44 +317,51 @@ rh::result scene_two::draw(rh::ctx ctx)
 				skybox_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
 				skybox_shaders.blending = static_cast<shader_blending>(blend_mode_);
 				if (VkResult result = skybox_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+				if (VkResult result = skybox_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
 					0, 0);
 			}
 			vkCmdEndDebugUtilsLabelEXT(cmd);
 		}
-		// Earth
+		// Scene
 		{
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, earth_shaders.pipeline_layout.value(), 0, earth_sets.size(), earth_sets.data(), 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_shaders.pipeline_layout.value(), 0, scene_sets.size(), scene_sets.data(), 0, nullptr);
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("earth", color);
+			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
-
-			gpu_draw_push_constants push_constants{};
-			auto m = glm::mat4(1.0f);
-			m = translate(m, earth_pos_);
-			m = rotate(m, earth_rot_[0], glm::vec3(1, 0, 0));
-			m = rotate(m, earth_rot_[1], glm::vec3(0, 1, 0));
-			m = rotate(m, earth_rot_[2], glm::vec3(0, 0, 1));
-			m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
-			m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
-			push_constants.world_matrix = m;
 
 			if (scene_graph_.size() > 0)
 			{
-				size_t mesh_index = 0;
-				auto mesh = scene_graph_[mesh_index];
-				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
-				earth_shaders.viewport_extent = frame_extent;
-				earth_shaders.shader_constants = &push_constants;
-				earth_shaders.shader_constants_size = sizeof(push_constants);
-				earth_shaders.wire_frames_enabled = toggle_wire_frame_;
-				earth_shaders.depth_enabled = true;
-				earth_shaders.blending = static_cast<shader_blending>(blend_mode_);
-				if (VkResult result = earth_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
-				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
-					0, 0);
+
+				scene_shaders.viewport_extent = frame_extent;
+				scene_shaders.wire_frames_enabled = toggle_wire_frame_;
+				scene_shaders.depth_enabled = true;
+				scene_shaders.blending = static_cast<shader_blending>(blend_mode_);
+				scene_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
+				if (VkResult result = scene_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+				float i = 0.f;
+				for (auto mesh : scene_graph_) {
+					auto m = glm::mat4(1.0f);
+					m = translate(m, scene_pos_);
+					m = glm::translate(m, glm::vec3(0.f, i * 10.f, 0.f));
+					m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+					m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+					m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+					m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
+					m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
+
+					i += 1;
+					gpu_draw_push_constants push_constants{};
+					push_constants.world_matrix = m;
+					push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
+					scene_shaders.shader_constants = &push_constants;
+					scene_shaders.shader_constants_size = sizeof(push_constants);
+					if (VkResult result = scene_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
+					vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+					vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
+						0, 0);
+				}
 			}
 			vkCmdEndDebugUtilsLabelEXT(cmd);
 		}
@@ -368,9 +375,9 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 	{
 		ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
 		ImGui::Text("Camera orientation: (%f, %f)", camera_.pitch, camera_.yaw);
-		ImGui::SliderFloat3("Rotate", value_ptr(earth_rot_), 0, glm::pi<float>() * 2.0f);
-		ImGui::SliderFloat3("Translate", value_ptr(earth_pos_), -100.0f, 100.0f);
-		ImGui::SliderFloat("Scale", &earth_scale_, 0.01f, 1.0f);
+		ImGui::SliderFloat3("Rotate", value_ptr(scene_rot_), 0, glm::pi<float>() * 2.0f);
+		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -100.0f, 100.0f);
+		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 1.0f);
 		ImGui::SliderFloat3("Sunlight direction", value_ptr(sunlight_direction_), -30.0f, 30.0f);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 		ImGui::Text("Blending");
@@ -390,17 +397,17 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	{
 		vkDeviceWaitIdle(device);
 	}
-	if (earth_view_.has_value())
+	if (scene_view_.has_value())
 	{
-		vkDestroyImageView(device, earth_view_.value(), nullptr);
+		vkDestroyImageView(device, scene_view_.value(), nullptr);
 	}
-	if (earth_vk_texture_.has_value())
+	if (scene_vk_texture_.has_value())
 	{
-		ktxVulkanTexture_Destruct(&earth_vk_texture_.value(), device, nullptr);
+		ktxVulkanTexture_Destruct(&scene_vk_texture_.value(), device, nullptr);
 	}
-	if (earth_texture_.has_value())
+	if (scene_texture_.has_value())
 	{
-		ktxTexture_Destroy(earth_texture_.value());
+		ktxTexture_Destroy(scene_texture_.value());
 	}
 
 
@@ -434,8 +441,8 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 		buffer->destroy_buffer(rectangle.index_buffer);
 		mesh.reset();
 	}
-	if (earth_pipeline_.has_value()) {
-		earth_pipeline_.value().deinit(device);
+	if (scene_pipeline_.has_value()) {
+		scene_pipeline_.value().deinit(device);
 	}
 	if (skybox_pipeline_.has_value()) {
 		skybox_pipeline_.value().deinit(device);
@@ -444,9 +451,9 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	{
 		vkDestroyDescriptorSetLayout(device, gpu_scene_data_descriptor_layout_.value(), nullptr);
 	}
-	if (earth_image_descriptor_layout_.has_value())
+	if (scene_image_descriptor_layout_.has_value())
 	{
-		vkDestroyDescriptorSetLayout(device, earth_image_descriptor_layout_.value(), nullptr);
+		vkDestroyDescriptorSetLayout(device, scene_image_descriptor_layout_.value(), nullptr);
 	}
 	if (skybox_image_descriptor_layout_.has_value())
 	{

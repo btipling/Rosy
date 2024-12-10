@@ -20,6 +20,7 @@ public:
     void with_shaders(const std::vector<char>& vert, const std::vector<char>& frag);
     VkResult build(VkDevice device);
     VkResult shade(VkCommandBuffer cmd) const;
+    VkResult push(VkCommandBuffer cmd) const;
 
     const char* name = "geometry";
     float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };

@@ -75,6 +75,11 @@ VkResult shader_pipeline::shade(const VkCommandBuffer cmd) const
 		VK_SHADER_STAGE_GEOMETRY_BIT
 	};
 	vkCmdBindShadersEXT(cmd, 3, unused_stages, nullptr);
+	return VK_SUCCESS;
+}
+
+VkResult shader_pipeline::push(const VkCommandBuffer cmd) const
+{
 	vkCmdPushConstants(cmd, pipeline_layout.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, shader_constants_size, shader_constants);
 	return VK_SUCCESS;
 }
