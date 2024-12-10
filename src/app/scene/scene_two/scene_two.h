@@ -28,7 +28,7 @@ private:
 
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 
-	std::vector<std::shared_ptr<mesh_asset>> scene_graph_;
+	std::shared_ptr<mesh_scene> scene_graph_;
 
 	// Scene
 	std::optional <VkDescriptorSetLayout> scene_image_descriptor_layout_ = std::nullopt;

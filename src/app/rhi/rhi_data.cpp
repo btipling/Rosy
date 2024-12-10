@@ -9,7 +9,7 @@
 
 rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer } {}
 
-std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_meshes(std::filesystem::path file_path) const
+std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_path) const
 {
 	fastgltf::Asset gltf;
 	fastgltf::Parser parser{};
@@ -26,7 +26,7 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 		rosy_utils::debug_print_a("failed to load gltf: %d %s\n", err, file_path.string().c_str());
 		return std::nullopt;
 	}
-	std::vector<std::shared_ptr<mesh_asset>> meshes;
+	mesh_scene gltf_mesh_scene{};
 
 	std::vector<uint32_t> indices;
 	std::vector<vertex> vertices;
@@ -111,10 +111,10 @@ std::optional<std::vector<std::shared_ptr<mesh_asset>>> rhi_data::load_gltf_mesh
 			return std::nullopt;
 		}
 		new_mesh.mesh_buffers = uploaded_mesh;
-		meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
+		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
 	}
 
-	return meshes;
+	return gltf_mesh_scene;
 }
 
 

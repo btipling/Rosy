@@ -76,7 +76,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	// ReSharper disable once StringLiteralTypo
 	if (auto load_result = data->load_gltf_meshes("assets\\SM_Deccer_Cubes_Textured_Complex.gltf"); load_result.has_value())
 	{
-		scene_graph_ = load_result.value();
+		scene_graph_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
 	}
 	else
 	{
@@ -304,10 +304,10 @@ rh::result scene_two::draw(rh::ctx ctx)
 			m = translate(m, camera_.position);
 			push_constants.world_matrix = m;
 
-			if (scene_graph_.size() > 0)
+			if (scene_graph_->meshes.size() > 0)
 			{
-				size_t mesh_index = 3;
-				auto mesh = scene_graph_[mesh_index];
+				size_t mesh_index = 0;
+				auto mesh = scene_graph_->meshes[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 				skybox_shaders.viewport_extent = frame_extent;
 				skybox_shaders.shader_constants = &push_constants;
@@ -331,7 +331,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 
-			if (scene_graph_.size() > 0)
+			if (scene_graph_->meshes.size() > 0)
 			{
 
 				scene_shaders.viewport_extent = frame_extent;
@@ -341,7 +341,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 				scene_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
 				if (VkResult result = scene_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 				float i = 0.f;
-				for (auto mesh : scene_graph_) {
+				for (auto mesh : scene_graph_->meshes) {
 					auto m = glm::mat4(1.0f);
 					m = translate(m, scene_pos_);
 					m = glm::translate(m, glm::vec3(0.f, i * 10.f, 0.f));
@@ -434,7 +434,7 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 		if (skybox_sampler_.has_value()) vkDestroySampler(device, skybox_sampler_.value(), nullptr);
 	}
 
-	for (std::shared_ptr<mesh_asset> mesh : scene_graph_)
+	for (std::shared_ptr<mesh_asset> mesh : scene_graph_->meshes)
 	{
 		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
 		buffer->destroy_buffer(rectangle.vertex_buffer);
