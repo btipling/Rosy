@@ -1,6 +1,9 @@
 #include "scene_two.h"
 #include "imgui.h"
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtx/quaternion.hpp"
 #include <glm/gtc/type_ptr.hpp>
+#include <numbers>
 #include "../../utils/utils.h"
 #include "../../loader/loader.h"
 
@@ -345,13 +348,13 @@ rh::result scene_two::draw(rh::ctx ctx)
 					if (!node->mesh_index.has_value()) continue;
 					auto mesh = scene_graph_->meshes[node->mesh_index.value()];
 					auto m = glm::mat4(1.0f);
-					m = translate(m, scene_pos_);
-					m = glm::translate(m, glm::vec3(0.f, i * 10.f, 0.f));
-					m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
-					m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
-					m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
-					m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
-					m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
+					m = rotate(m, static_cast<float>(std::numbers::pi/2.f), glm::vec3(1.f, 0.f, 0.));
+					m = scale(m, glm::vec3(scene_scale_));
+					//m = translate(m, scene_pos_);
+					m = glm::translate(m, node->translation);
+					auto q = glm::quat(node->rotation);
+					m = m * toMat4(q);
+					m = scale(m, node->scale);
 
 					i += 1;
 					gpu_draw_push_constants push_constants{};
