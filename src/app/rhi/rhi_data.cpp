@@ -141,6 +141,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_
 		}
 		else nodes.push_back(new_node);
 	}
+	gltf_mesh_scene.nodes = nodes;
 
 	return gltf_mesh_scene;
 }

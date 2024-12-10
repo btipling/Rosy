@@ -341,7 +341,9 @@ rh::result scene_two::draw(rh::ctx ctx)
 				scene_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
 				if (VkResult result = scene_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 				float i = 0.f;
-				for (auto mesh : scene_graph_->meshes) {
+				for (auto node : scene_graph_->nodes) {
+					if (!node->mesh_index.has_value()) continue;
+					auto mesh = scene_graph_->meshes[node->mesh_index.value()];
 					auto m = glm::mat4(1.0f);
 					m = translate(m, scene_pos_);
 					m = glm::translate(m, glm::vec3(0.f, i * 10.f, 0.f));
