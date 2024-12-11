@@ -113,7 +113,7 @@ struct vulkan_ctx
 
 struct mesh_node
 {
-	std::vector<std::shared_ptr<mesh_node>> children;
+	std::vector<size_t> children;
 	glm::vec3 translation;
 	glm::vec4 rotation;
 	glm::vec3 scale;
@@ -124,11 +124,11 @@ struct mesh_node
 struct mesh_scene
 {
 	size_t root_scene = 0;
-	std::vector<size_t>scenes;
+	std::vector<std::vector<size_t>>scenes;
 	std::vector<std::shared_ptr<mesh_node>> nodes;
 	std::vector<std::shared_ptr<mesh_asset>> meshes;
 
-	void add_node(fastgltf::Node& gltf_node, std::optional<mesh_node> parent_node)
+	void add_node(fastgltf::Node& gltf_node)
 	{
 		const auto new_node = std::make_shared<mesh_node>();
 		if (gltf_node.meshIndex.has_value())
@@ -136,14 +136,17 @@ struct mesh_scene
 			new_node->mesh_index = gltf_node.meshIndex.value();
 			auto [translation, rotation, scale] = std::get<fastgltf::TRS>(gltf_node.transform);
 			new_node->translation = glm::vec3(translation[0], translation[1], translation[2]);
-			new_node->rotation = glm::vec4(rotation[0], rotation[1], rotation[1], rotation[3]);
+			new_node->rotation = glm::vec4(rotation[0], rotation[1], rotation[2], rotation[3]);
 			new_node->scale = glm::vec3(scale[0], scale[1], scale[2]);
 		}
-		if (parent_node.has_value())
-		{
-			parent_node.value().children.push_back(new_node);
-		}
-		else nodes.push_back(new_node);
+		new_node->children.reserve(gltf_node.children.size());
+		for (size_t i : gltf_node.children)	new_node->children.emplace_back(i);
+		nodes.push_back(new_node);
+	};
+
+	void add_scene(fastgltf::Scene& gltf_scene)
+	{
+		scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 	};
 };
 

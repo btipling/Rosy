@@ -118,8 +118,8 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_
 		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
 	}
 
-	std::vector<fastgltf::Node> gltf_nodes;
-	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_mesh_scene.add_node(gltf_node, std::nullopt);
+	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_mesh_scene.add_node(gltf_node);
+	for (fastgltf::Scene& gltf_scene : gltf.scenes) gltf_mesh_scene.add_scene(gltf_scene);
 
 	return gltf_mesh_scene;
 }
