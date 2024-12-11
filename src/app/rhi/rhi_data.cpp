@@ -120,7 +120,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_
 
 	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_mesh_scene.add_node(gltf_node);
 	for (fastgltf::Scene& gltf_scene : gltf.scenes) gltf_mesh_scene.add_scene(gltf_scene);
-
+	gltf_mesh_scene.root_scene = gltf.defaultScene.value_or(0);
 	return gltf_mesh_scene;
 }
 
