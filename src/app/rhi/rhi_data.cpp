@@ -118,30 +118,8 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_
 		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
 	}
 
-	std::vector<std::shared_ptr<mesh_node>> nodes;
 	std::vector<fastgltf::Node> gltf_nodes;
-	std::optional<mesh_node> parent_node = std::nullopt;
-	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_nodes.push_back(gltf_node);
-	while (gltf_nodes.size())
-	{
-		auto current_n = gltf_nodes[gltf_nodes.size() - 1];
-		gltf_nodes.pop_back();
-		std::shared_ptr<mesh_node> new_node = std::make_shared<mesh_node>();
-		if (current_n.meshIndex.has_value())
-		{
-			new_node->mesh_index = current_n.meshIndex.value();
-			auto [translation, rotation, scale] = std::get<fastgltf::TRS>(current_n.transform);
-			new_node->translation = glm::vec3(translation[0], translation[1], translation[2]);
-			new_node->rotation = glm::vec4(rotation[0], rotation[1], rotation[1], rotation[3]);
-			new_node->scale = glm::vec3(scale[0], scale[1], scale[2]);
-		}
-		if (parent_node.has_value())
-		{
-			parent_node.value().children.push_back(new_node);
-		}
-		else nodes.push_back(new_node);
-	}
-	gltf_mesh_scene.nodes = nodes;
+	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_mesh_scene.add_node(gltf_node, std::nullopt);
 
 	return gltf_mesh_scene;
 }
