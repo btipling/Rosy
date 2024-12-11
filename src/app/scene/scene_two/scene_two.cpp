@@ -344,12 +344,12 @@ rh::result scene_two::draw(rh::ctx ctx)
 				scene_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
 				if (VkResult result = scene_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 				float i = 0.f;
-				for (auto node : scene_graph_->nodes) {
+				for (auto [parent_transform, node] : scene_graph_->draw_queue(scene_graph_->root_scene)) {
 					if (!node->mesh_index.has_value()) continue;
 					auto mesh = scene_graph_->meshes[node->mesh_index.value()];
-					auto m = glm::mat4(1.0f);
-					m = rotate(m, static_cast<float>(std::numbers::pi/2.f), glm::vec3(1.f, 0.f, 0.));
-					m = scale(m, glm::vec3(scene_scale_));
+					auto m = parent_transform;
+				/*	m = rotate(m, static_cast<float>(std::numbers::pi/2.f), glm::vec3(1.f, 0.f, 0.));
+					m = scale(m, glm::vec3(scene_scale_));*/
 					//m = translate(m, scene_pos_);
 					m = glm::translate(m, node->translation);
 					auto q = glm::quat(node->rotation);

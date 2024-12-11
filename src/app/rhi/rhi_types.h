@@ -125,7 +125,7 @@ struct mesh_node
 	std::optional<size_t> mesh_index = std::nullopt;
 };
 
-struct mesh_stack
+struct draw_node
 {
 	glm::mat4 parent_transform;
 	std::shared_ptr<mesh_node> mesh_n;
@@ -159,14 +159,14 @@ struct mesh_scene
 		scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 	};
 
-	[[nodiscard]] std::vector<mesh_stack> draw_queue(const size_t scene_index) const
+	[[nodiscard]] std::vector<draw_node> draw_queue(const size_t scene_index) const
 	{
 		if (scene_index >= scenes.size()) return {};
-		std::queue<mesh_stack> queue{};
-		std::vector<mesh_stack> draw_nodes{};
+		std::queue<draw_node> queue{};
+		std::vector<draw_node> draw_nodes{};
 		for (const size_t node_index : scenes[scene_index])
 		{
-			queue.push(mesh_stack{
+			queue.push(draw_node{
 				.parent_transform = glm::mat4(1.f),
 				.mesh_n = nodes[node_index],
 			});
@@ -184,7 +184,7 @@ struct mesh_scene
 			m = scale(m, current_node.mesh_n->scale);
 			for (const size_t child_index: current_node.mesh_n->children)
 			{
-				queue.push(mesh_stack{
+				queue.push(draw_node{
 					.parent_transform = m,
 					.mesh_n = nodes[child_index],
 				});
