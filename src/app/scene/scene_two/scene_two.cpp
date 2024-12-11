@@ -343,22 +343,18 @@ rh::result scene_two::draw(rh::ctx ctx)
 				scene_shaders.blending = static_cast<shader_blending>(blend_mode_);
 				scene_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
 				if (VkResult result = scene_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
-				float i = 0.f;
-				for (auto [parent_transform, node] : scene_graph_->draw_queue(scene_graph_->root_scene)) {
+
+				for (auto [world_transform, node] : scene_graph_->draw_queue(scene_graph_->root_scene)) {
 					if (!node->mesh_index.has_value()) continue;
 					auto mesh = scene_graph_->meshes[node->mesh_index.value()];
-					auto m = parent_transform;
+					auto w = world_transform;
 				/*	m = rotate(m, static_cast<float>(std::numbers::pi/2.f), glm::vec3(1.f, 0.f, 0.));
 					m = scale(m, glm::vec3(scene_scale_));*/
 					//m = translate(m, scene_pos_);
-					m = glm::translate(m, node->translation);
-					auto q = glm::quat(node->rotation);
-					m = m * toMat4(q);
-					m = scale(m, node->scale);
+				
 
-					i += 1;
 					gpu_draw_push_constants push_constants{};
-					push_constants.world_matrix = m;
+					push_constants.world_matrix = w;
 					push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 					scene_shaders.shader_constants = &push_constants;
 					scene_shaders.shader_constants_size = sizeof(push_constants);

@@ -127,7 +127,7 @@ struct mesh_node
 
 struct draw_node
 {
-	glm::mat4 parent_transform;
+	glm::mat4 world_transform;
 	std::shared_ptr<mesh_node> mesh_n;
 };
 
@@ -146,7 +146,7 @@ struct mesh_scene
 			new_node->mesh_index = gltf_node.meshIndex.value();
 			auto [translation, rotation, scale] = std::get<fastgltf::TRS>(gltf_node.transform);
 			new_node->translation = glm::vec3(translation[0], translation[1], translation[2]);
-			new_node->rotation = glm::vec4(rotation[0], rotation[1], rotation[2], rotation[3]);
+			new_node->rotation = glm::vec4(rotation[3], rotation[0], rotation[1], rotation[2]);
 			new_node->scale = glm::vec3(scale[0], scale[1], scale[2]);
 		}
 		new_node->children.reserve(gltf_node.children.size());
@@ -167,13 +167,18 @@ struct mesh_scene
 		for (const size_t node_index : scenes[scene_index])
 		{
 			queue.push(draw_node{
-				.parent_transform = glm::mat4(1.f),
+				.world_transform = glm::mat4(1.f),
 				.mesh_n = nodes[node_index],
 			});
 				
 		}
 		while (queue.size() > 0)
 		{
+			// todo apply the whole matrix hierarchy downward duh
+			//auto l = glm::translate(glm::mat4(1.f), node->translation);
+			//auto q = glm::quat(node->rotation);
+			//l = l * toMat4(q);
+			//l = scale(l, node->scale);
 			auto current_node = queue.front();
 			queue.pop();
 			draw_nodes.push_back(current_node);
@@ -185,7 +190,7 @@ struct mesh_scene
 			for (const size_t child_index: current_node.mesh_n->children)
 			{
 				queue.push(draw_node{
-					.parent_transform = m,
+					.world_transform = m,
 					.mesh_n = nodes[child_index],
 				});
 			}
