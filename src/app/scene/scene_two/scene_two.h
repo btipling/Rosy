@@ -9,7 +9,7 @@ class scene_two final : public scene
 {
 public:
 	scene_two() :
-		camera_(glm::vec3{ 4.48f, 2.77f, -19.78f }) {
+		camera_(glm::vec3{ 0.2f, 0.6f, -1.3f }) {
 		camera_.pitch = 0.36f;
 		camera_.yaw = 1.f;
 	}
@@ -38,7 +38,7 @@ private:
 	std::optional<ktxVulkanTexture> scene_vk_texture_ = std::nullopt;
 	std::optional<VkImageView> scene_view_ = std::nullopt;
 	glm::vec3 scene_rot_ = glm::vec3(0.f);
-	glm::vec3 scene_pos_ = glm::vec3(0.f, 0.f, -15.f);
+	glm::vec3 scene_pos_ = glm::vec3(0.f, 0.f, 0.f);
 	float scene_scale_ = 0.1f;
 
 	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 2.593f, -1.362f);

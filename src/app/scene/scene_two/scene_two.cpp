@@ -336,25 +336,31 @@ rh::result scene_two::draw(rh::ctx ctx)
 
 			if (scene_graph_->meshes.size() > 0)
 			{
+				auto ndc = glm::mat4(
+					glm::vec4(-1.f, 0.f, 0.f, 0.f),
+					glm::vec4(0.f, 1.f, 0.f, 0.f),
+					glm::vec4(0.f, 0.f, 1.f, 0.f),
+					glm::vec4(0.f, 0.f, 0.f, 1.f)
+					);
+				auto m = translate(glm::mat4(1.f), scene_pos_);
+				m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+				m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+				m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+				m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 
 				scene_shaders.viewport_extent = frame_extent;
 				scene_shaders.wire_frames_enabled = toggle_wire_frame_;
 				scene_shaders.depth_enabled = true;
 				scene_shaders.blending = static_cast<shader_blending>(blend_mode_);
 				scene_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
+				scene_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
 				if (VkResult result = scene_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 
-				for (auto [world_transform, node] : scene_graph_->draw_queue(scene_graph_->root_scene)) {
+				for (auto node : scene_graph_->draw_queue(scene_graph_->root_scene, ndc * m)) {
 					if (!node->mesh_index.has_value()) continue;
 					auto mesh = scene_graph_->meshes[node->mesh_index.value()];
-					auto w = world_transform;
-				/*	m = rotate(m, static_cast<float>(std::numbers::pi/2.f), glm::vec3(1.f, 0.f, 0.));
-					m = scale(m, glm::vec3(scene_scale_));*/
-					//m = translate(m, scene_pos_);
-				
-
 					gpu_draw_push_constants push_constants{};
-					push_constants.world_matrix = w;
+					push_constants.world_matrix = node->world_transform;
 					push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 					scene_shaders.shader_constants = &push_constants;
 					scene_shaders.shader_constants_size = sizeof(push_constants);
