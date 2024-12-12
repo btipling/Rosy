@@ -57,7 +57,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 		{
 			for (
 				const std::shared_ptr<mesh_asset> ma = meshes[current_node->mesh_index.value()];
-				const auto [start_index, count] : ma->surfaces)
+				const auto [start_index, count, material] : ma->surfaces)
 			{
 				render_object ro{};
 				ro.transform = current_node->world_transform;
@@ -76,7 +76,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	return draw_nodes;
 };
 
-texture_id texture_cache::add_texture(const VkImageView& image, VkSampler sampler)
+texture_id texture_cache::add_texture(const VkImageView& image, const VkSampler sampler)
 {
 	for (unsigned int i = 0; i < cache.size(); i++) {
 		if (cache[i].imageView == image && cache[i].sampler == sampler) {

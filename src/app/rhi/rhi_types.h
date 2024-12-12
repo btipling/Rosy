@@ -81,10 +81,14 @@ struct gpu_draw_push_constants
 	VkDeviceAddress vertex_buffer;
 };
 
+struct glft_material;
+
 struct geo_surface
 {
 	uint32_t start_index;
 	uint32_t count;
+
+	std::shared_ptr<glft_material> material = nullptr;
 };
 
 struct mesh_asset
@@ -121,6 +125,11 @@ struct material_instance {
 	shader_pipeline* shaders;
 	VkDescriptorSet material_set;
 	material_pass pass_type;
+};
+
+struct glft_material
+{
+	material_instance data;
 };
 
 struct vulkan_ctx
