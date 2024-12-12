@@ -6,6 +6,7 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
+#include <stb_image.h>
 
 rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer } {}
 
@@ -323,68 +324,130 @@ std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxText
 	return texture;
 }
 
+
+std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(const void* data, const VkExtent3D size, const VkFormat format,
+	const VkImageUsageFlags usage, const bool mip_mapped) const
+{
+	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
+
+	ktxTextureCreateInfo create_info{};
+	create_info.vkFormat = static_cast<ktx_uint32_t>(format);
+	create_info.baseWidth = size.width;
+	create_info.baseHeight = size.height;
+	create_info.baseDepth = size.depth;
+	create_info.numDimensions = 2;
+	create_info.numLevels = 1;
+	create_info.numLayers = 1;
+	create_info.numFaces = 1;
+	create_info.pDfd = nullptr;
+	create_info.isArray = false;
+	create_info.generateMipmaps = KTX_TRUE;
+
+	ktxTexture2* texture;
+	KTX_error_code result = ktxTexture2_Create(
+		&create_info,
+		KTX_TEXTURE_CREATE_ALLOC_STORAGE,
+		&texture
+	);
+	if (result != KTX_SUCCESS) {
+		return std::unexpected(result);
+	}
+	result = ktxTexture_SetImageFromMemory(
+		ktxTexture(texture),
+		0,
+		0,
+		0,
+		static_cast<const ktx_uint8_t*>(data),
+		data_size
+	);
+	if (result != KTX_SUCCESS) {
+		ktxTexture_Destroy(ktxTexture(texture));
+		return std::unexpected(result);
+	}
+	return create_image(ktxTexture(texture), VK_IMAGE_USAGE_SAMPLED_BIT);
+}
+
 std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(fastgltf::Asset& asset,
 	fastgltf::Image& image) const
 {
-	return std::unexpected<ktx_error_code_e>(KTX_FILE_DATA_ERROR);
-}
 
+	std::expected<ktxVulkanTexture, ktx_error_code_e> vk_ktx_texture;
 
-allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D size, const VkFormat format,
-                                              const VkImageUsageFlags usage, const bool mip_mapped) const
-{
-	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
-	auto [result, created_buffer] = create_buffer("image staging", data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST);
-	if (result != VK_SUCCESS)
-	{
-		allocated_image_result rv{};
-		rv.result = result;
-		return rv;
-	}
-	const allocated_buffer staging = created_buffer;
+	int width, height, num_channels;
 
-	void* staging_data = nullptr;
-	vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &staging_data);
-	memcpy(static_cast<char*>(staging_data), data, data_size);
-	vmaUnmapMemory(renderer_->opt_allocator.value(), staging.allocation);
+	std::visit(
+		fastgltf::visitor{
+	[](auto& arg) {},
+	[&](const fastgltf::sources::URI& file_path) {
+			// No offsets or non-local files supported.
+			assert(file_path.fileByteOffset == 0);
+			assert(file_path.uri.isLocalPath());
 
-	const auto image_result = create_image(size, format,
-		usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-		mip_mapped);
-	if (image_result.result != VK_SUCCESS)
-	{
-		return image_result;
-	}
-	const allocated_image new_image = image_result.image;
+			const std::string path(file_path.uri.path().begin(), file_path.uri.path().end());
+			if (unsigned char* data = stbi_load(path.c_str(), &width, &height, &num_channels, 4)) {
+				VkExtent3D image_size{};
+				image_size.width = width;
+				image_size.height = height;
+				image_size.depth = 1;
 
-	renderer_->immediate_submit([&](const VkCommandBuffer cmd)
-		{
-			rhi::transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+				vk_ktx_texture = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
 
-			VkBufferImageCopy copy_region{};
-			copy_region.bufferOffset = 0;
-			copy_region.bufferRowLength = 0;
-			copy_region.bufferImageHeight = 0;
-			copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			copy_region.imageSubresource.mipLevel = 0;
-			copy_region.imageSubresource.baseArrayLayer = 0;
-			copy_region.imageSubresource.layerCount = 1;
-			copy_region.imageExtent = size;
+				stbi_image_free(data);
+			}
+		},
+		[&](const fastgltf::sources::Vector& vector) {
+			unsigned char* data = stbi_load_from_memory(
+				static_cast<const stbi_uc*>(static_cast<const void*>(vector.bytes.data())), // NOLINT(bugprone-casting-through-void)
+				static_cast<int>(vector.bytes.size()),
+				&width, &height, &num_channels, 4);
 
-			vkCmdCopyBufferToImage(cmd, staging.buffer, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-				&copy_region);
+			if (data) {
+				VkExtent3D image_size{};
+				image_size.width = width;
+				image_size.height = height;
+				image_size.depth = 1;
+				vk_ktx_texture = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
 
-			rhi::transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		});
+				stbi_image_free(data);
+			}
+		},
+		[&](const fastgltf::sources::BufferView& view) {
+			auto& [
+				bufferIndex,
+				byteOffset,
+				byteLength,
+				byteStride,
+				target,
+					// ReSharper disable once IdentifierTypo
+					meshoptCompression,
+					name
+				] = asset.bufferViews[view.bufferViewIndex];
+				auto& buffer = asset.buffers[bufferIndex];
 
-	destroy_buffer(staging);
-	{
-		allocated_image_result rv = {};
-		rv.result = VK_SUCCESS;
-		rv.image = new_image;
-		return rv;
-	}
+				std::visit(fastgltf::visitor {
+			[](auto& arg) {},
+			[&](const fastgltf::sources::Vector& vector) {
+				unsigned char* data = stbi_load_from_memory(static_cast<const stbi_uc*>(static_cast<const void*>(vector.bytes.data())) + byteOffset, // NOLINT(bugprone-casting-through-void)
+					static_cast<int>(byteLength),
+					&width, &height, &num_channels, 4);
+
+				if (data) {
+					VkExtent3D image_size{};
+					image_size.width = width;
+					image_size.height = height;
+					image_size.depth = 1;
+
+					vk_ktx_texture = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
+
+					stbi_image_free(data);
+				}
+			} },
+			buffer.data);
+			},
+		},
+		image.data);
+
+	return vk_ktx_texture;
 }
 
 void rhi_data::destroy_image(const allocated_image& img) const

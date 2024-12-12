@@ -175,7 +175,7 @@ public:
 
 	[[nodiscard]] auto create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
 	                                bool mip_mapped) const -> allocated_image_result;
-	allocated_image_result create_image(const void* data, const VkExtent3D size, const VkFormat format,
+	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(const void* data, const VkExtent3D size, const VkFormat format,
 		const VkImageUsageFlags usage, const bool mip_mapped) const;
 	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const;
 	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(fastgltf::Asset& asset, fastgltf::Image& image) const;
