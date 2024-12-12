@@ -356,17 +356,15 @@ rh::result scene_two::draw(rh::ctx ctx)
 				scene_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
 				if (VkResult result = scene_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 
-				for (auto node : scene_graph_->draw_queue(scene_graph_->root_scene, ndc * m)) {
-					if (!node->mesh_index.has_value()) continue;
-					auto mesh = scene_graph_->meshes[node->mesh_index.value()];
+				for (auto ro : scene_graph_->draw_queue(scene_graph_->root_scene, ndc * m)) {
 					gpu_draw_push_constants push_constants{};
-					push_constants.world_matrix = node->world_transform;
-					push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
+					push_constants.world_matrix = ro.transform;
+					push_constants.vertex_buffer = ro.vertex_buffer_address;
 					scene_shaders.shader_constants = &push_constants;
 					scene_shaders.shader_constants_size = sizeof(push_constants);
 					if (VkResult result = scene_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-					vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-					vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
+					vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+					vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index,
 						0, 0);
 				}
 			}

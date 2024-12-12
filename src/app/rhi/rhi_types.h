@@ -95,6 +95,22 @@ struct mesh_asset
 	gpu_mesh_buffers mesh_buffers;
 };
 
+struct bounds {
+	glm::vec3 origin;
+	float sphere_radius;
+	glm::vec3 extents;
+};
+
+struct render_object {
+	uint32_t index_count;
+	uint32_t first_index;
+	VkBuffer index_buffer;
+
+	bounds bounds;
+	glm::mat4 transform;
+	VkDeviceAddress vertex_buffer_address;
+};
+
 enum class material_pass :uint8_t {
 	main_color,
 	transparent,
@@ -168,11 +184,11 @@ struct mesh_scene
 		scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 	};
 
-	[[nodiscard]] std::vector<std::shared_ptr<mesh_node>> draw_queue(const size_t scene_index, const glm::mat4& m = {1.f}) const
+	[[nodiscard]] std::vector<render_object> draw_queue(const size_t scene_index, const glm::mat4& m = {1.f}) const
 	{
 		if (scene_index >= scenes.size()) return {};
 		std::queue<std::shared_ptr<mesh_node>> queue{};
-		std::vector<std::shared_ptr<mesh_node>> draw_nodes{};
+		std::vector<render_object> draw_nodes{};
 		for (const size_t node_index : scenes[scene_index])
 		{
 			auto draw_node = nodes[node_index];
@@ -182,9 +198,23 @@ struct mesh_scene
 		}
 		while (queue.size() > 0)
 		{
-			auto current_node = queue.front();
+			const auto current_node = queue.front();
 			queue.pop();
-			draw_nodes.push_back(current_node);
+			if (current_node->mesh_index.has_value())
+			{
+				for (
+					const std::shared_ptr<mesh_asset> ma = meshes[current_node->mesh_index.value()]; 
+					const auto [start_index, count] : ma->surfaces)
+				{
+					render_object ro{};
+					ro.transform = current_node->world_transform;
+					ro.first_index = start_index;
+					ro.index_count = count;
+					ro.index_buffer = ma->mesh_buffers.index_buffer.buffer;
+					ro.vertex_buffer_address = ma->mesh_buffers.vertex_buffer_address;
+					draw_nodes.push_back(ro);
+				}
+			}
 			for (const size_t child_index: current_node->children)
 			{
 				queue.push(nodes[child_index]);
