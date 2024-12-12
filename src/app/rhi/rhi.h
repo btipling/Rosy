@@ -30,6 +30,10 @@ public:
 		VkImageLayout new_layout);
 	void debug() const;
 	~rhi();
+	rhi(const rhi&) = delete;
+	rhi& operator=(const rhi&) = delete;
+	rhi(rhi&&) noexcept = default;
+	rhi& operator=(rhi&&) noexcept = default;
 
 private:
 	bool deinited_ = false;

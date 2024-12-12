@@ -323,9 +323,15 @@ std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxText
 	return texture;
 }
 
+std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(fastgltf::Asset& asset,
+	fastgltf::Image& image) const
+{
+	return std::unexpected<ktx_error_code_e>(KTX_FILE_DATA_ERROR);
+}
+
 
 allocated_image_result rhi_data::create_image(const void* data, const VkExtent3D size, const VkFormat format,
-	const VkImageUsageFlags usage, const bool mip_mapped) const
+                                              const VkImageUsageFlags usage, const bool mip_mapped) const
 {
 	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
 	auto [result, created_buffer] = create_buffer("image staging", data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO_PREFER_HOST);
