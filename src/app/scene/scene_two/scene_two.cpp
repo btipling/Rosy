@@ -403,7 +403,6 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 		ktxTexture_Destroy(scene_texture_.value());
 	}
 
-
 	if (skybox_view_.has_value())
 	{
 		vkDestroyImageView(device, skybox_view_.value(), nullptr);
@@ -416,7 +415,6 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	{
 		ktxTexture_Destroy(skybox_texture_.value());
 	}
-
 
 	{
 		if (ctx.rhi.descriptor_allocator.has_value())
@@ -433,6 +431,14 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 		buffer->destroy_buffer(rectangle.vertex_buffer);
 		buffer->destroy_buffer(rectangle.index_buffer);
 		mesh.reset();
+	}
+	for (ktxVulkanTexture tx : scene_graph_->ktx_vk_textures)
+	{
+		ktxVulkanTexture_Destruct(&tx, device, nullptr);
+	}
+	for (ktxTexture* tx : scene_graph_->ktx_textures)
+	{
+		ktxTexture_Destroy(tx);
 	}
 	if (scene_pipeline_.has_value()) {
 		scene_pipeline_.value().deinit(device);

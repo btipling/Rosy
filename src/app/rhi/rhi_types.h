@@ -174,10 +174,18 @@ struct mesh_scene
 	std::vector<std::vector<size_t>>scenes;
 	std::vector<std::shared_ptr<mesh_node>> nodes;
 	std::vector<std::shared_ptr<mesh_asset>> meshes;
+	std::vector<ktxVulkanTexture> ktx_vk_textures;
+	std::vector<ktxTexture*> ktx_textures;
 
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
 	[[nodiscard]] std::vector<render_object> draw_queue(const size_t scene_index, const glm::mat4& m = { 1.f }) const;
+};
+
+struct ktx_auto_texture
+{
+	ktxTexture* texture;
+	ktxVulkanTexture vk_texture;
 };
 
 class rhi;
@@ -195,10 +203,10 @@ public:
 
 	[[nodiscard]] auto create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
 	                                bool mip_mapped) const -> allocated_image_result;
-	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(const void* data, const VkExtent3D size, const VkFormat format,
+	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(const void* data, const VkExtent3D size, const VkFormat format,
 		const VkImageUsageFlags usage, const bool mip_mapped) const;
 	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const;
-	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(fastgltf::Asset& asset, fastgltf::Image& image) const;
+	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(fastgltf::Asset& asset, fastgltf::Image& image) const;
 
 	void destroy_image(const allocated_image& img) const;
 

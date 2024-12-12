@@ -1,6 +1,7 @@
 #include "rhi.h"
 #include "../rhi/rhi_types.h"
 #define GLM_ENABLE_EXPERIMENTAL
+#include <iostream>
 #include <glm/gtx/quaternion.hpp>
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/core.hpp>
@@ -197,6 +198,16 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_
 		}
 		new_mesh.mesh_buffers = uploaded_mesh;
 		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
+	}
+
+	for (fastgltf::Image& image : gltf.images) {
+		if (std::expected<ktx_auto_texture, ktx_error_code_e> res = create_image(gltf, image); res.has_value()) {
+			gltf_mesh_scene.ktx_vk_textures.push_back(res.value().vk_texture);
+			gltf_mesh_scene.ktx_textures.push_back(res.value().texture);
+		}
+		else {
+			rosy_utils::debug_print_a("failed to create gltf texture image: %d\n", res.error());
+		}
 	}
 
 	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_mesh_scene.add_node(gltf_node);
@@ -405,7 +416,7 @@ std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxText
 }
 
 
-std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(const void* data, const VkExtent3D size, const VkFormat format,
+std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(const void* data, const VkExtent3D size, const VkFormat format,
 	const VkImageUsageFlags usage, const bool mip_mapped) const
 {
 	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
@@ -444,15 +455,19 @@ std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(const v
 		ktxTexture_Destroy(ktxTexture(texture));
 		return std::unexpected(result);
 	}
-	return create_image(ktxTexture(texture), VK_IMAGE_USAGE_SAMPLED_BIT);
+	if (auto res = create_image(ktxTexture(texture), VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
+	{
+		ktx_auto_texture rv{};
+		rv.vk_texture = res.value();
+		rv.texture = ktxTexture(texture);
+		return rv;
+	}
+	else return std::unexpected(res.error());
 }
 
-std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(fastgltf::Asset& asset,
+std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastgltf::Asset& asset,
 	fastgltf::Image& image) const
 {
-
-	std::expected<ktxVulkanTexture, ktx_error_code_e> vk_ktx_texture;
-
 	int width, height, num_channels;
 
 	std::visit(
@@ -470,9 +485,10 @@ std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(fastglt
 				image_size.height = height;
 				image_size.depth = 1;
 
-				vk_ktx_texture = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
+				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
 
 				stbi_image_free(data);
+				return rv;
 			}
 		},
 		[&](const fastgltf::sources::Vector& vector) {
@@ -486,48 +502,50 @@ std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(fastglt
 				image_size.width = width;
 				image_size.height = height;
 				image_size.depth = 1;
-				vk_ktx_texture = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
+				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
 
 				stbi_image_free(data);
+				return rv;
 			}
 		},
 		[&](const fastgltf::sources::BufferView& view) {
-			auto& [
-				bufferIndex,
-				byteOffset,
-				byteLength,
-				byteStride,
-				target,
-					// ReSharper disable once IdentifierTypo
-					meshoptCompression,
-					name
-				] = asset.bufferViews[view.bufferViewIndex];
-				auto& buffer = asset.buffers[bufferIndex];
+				auto& [
+					bufferIndex,
+					byteOffset,
+					byteLength,
+					byteStride,
+					target,
+						// ReSharper disable once IdentifierTypo
+						meshoptCompression,
+						name
+					] = asset.bufferViews[view.bufferViewIndex];
+					auto& buffer = asset.buffers[bufferIndex];
 
-				std::visit(fastgltf::visitor {
-			[](auto& arg) {},
-			[&](const fastgltf::sources::Vector& vector) {
-				unsigned char* data = stbi_load_from_memory(static_cast<const stbi_uc*>(static_cast<const void*>(vector.bytes.data())) + byteOffset, // NOLINT(bugprone-casting-through-void)
-					static_cast<int>(byteLength),
-					&width, &height, &num_channels, 4);
+					std::visit(fastgltf::visitor {
+				[](auto& arg) {},
+				[&](const fastgltf::sources::Vector& vector) {
+					unsigned char* data = stbi_load_from_memory(static_cast<const stbi_uc*>(static_cast<const void*>(vector.bytes.data())) + byteOffset, // NOLINT(bugprone-casting-through-void)
+						static_cast<int>(byteLength),
+						&width, &height, &num_channels, 4);
 
-				if (data) {
-					VkExtent3D image_size{};
-					image_size.width = width;
-					image_size.height = height;
-					image_size.depth = 1;
+					if (data) {
+						VkExtent3D image_size{};
+						image_size.width = width;
+						image_size.height = height;
+						image_size.depth = 1;
 
-					vk_ktx_texture = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
+						std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
 
-					stbi_image_free(data);
-				}
-			} },
+						stbi_image_free(data);
+						return rv;
+					}
+				} },
 			buffer.data);
 			},
 		},
 		image.data);
 
-	return vk_ktx_texture;
+	return std::unexpected(KTX_FILE_DATA_ERROR);
 }
 
 void rhi_data::destroy_image(const allocated_image& img) const
