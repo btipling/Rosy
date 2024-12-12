@@ -176,6 +176,8 @@ struct mesh_scene
 	std::vector<std::shared_ptr<mesh_asset>> meshes;
 	std::vector<ktxVulkanTexture> ktx_vk_textures;
 	std::vector<ktxTexture*> ktx_textures;
+	std::vector<VkImageView> views;
+	std::vector<VkSampler> samplers;
 
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
