@@ -148,6 +148,17 @@ struct mesh_node
 	}
 };
 
+struct texture_id {
+	uint32_t index;
+};
+
+struct texture_cache
+{
+	std::vector<VkDescriptorImageInfo> cache;
+	std::unordered_map<std::string, texture_id> name_map;
+	texture_id add_texture(const VkImageView& image, VkSampler sampler);
+};
+
 struct mesh_scene
 {
 	size_t root_scene = 0;
@@ -184,4 +195,5 @@ public:
 
 private:
 	rhi* renderer_;
+	texture_cache texture_cache_{};
 };

@@ -264,40 +264,42 @@ rh::result scene_two::draw(rh::ctx ctx)
 	// Set descriptor sets
 	std::vector<VkDescriptorSet> scene_sets;
 	std::vector<VkDescriptorSet> skybox_sets;
+	auto [desc_result, global_descriptor] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
+	if (desc_result != VK_SUCCESS) return rh::result::error;
 	{
 		// Global descriptor
-		auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
-		if (desc_result != VK_SUCCESS) return rh::result::error;
-		void* data_pointer;
-		vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
-		memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
-		vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
+		{
+			// copy memory
+			void* data_pointer;
+			vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
+			memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
+			vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
+		}
+		{
+
+			descriptor_writer writer;
+			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			writer.update_set(device, global_descriptor);
+		}
+	}
+	{
 
 		{
-			VkDescriptorSet scene_descriptor = desc_set;
 			// scene
 			descriptor_writer writer;
-			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, scene_descriptor);
-			scene_sets.push_back(desc_set);
 			scene_sets.push_back(scene_image_descriptor_set_.value());
 		}
 		{
-			VkDescriptorSet skybox_descriptor = desc_set;
 			// Skybox
 			descriptor_writer writer;
-			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, skybox_descriptor);
-			skybox_sets.push_back(desc_set);
 			skybox_sets.push_back(skybox_image_descriptor_set_.value());
 		}
 	}
 	{
 		// Skybox
 		{
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, skybox_sets.size(), skybox_sets.data(), 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 1, skybox_sets.size(), skybox_sets.data(), 0, nullptr);
 			float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
@@ -329,7 +331,8 @@ rh::result scene_two::draw(rh::ctx ctx)
 		}
 		// Scene
 		{
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_shaders.pipeline_layout.value(), 0, scene_sets.size(), scene_sets.data(), 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_shaders.pipeline_layout.value(), 1, scene_sets.size(), scene_sets.data(), 0, nullptr);
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
