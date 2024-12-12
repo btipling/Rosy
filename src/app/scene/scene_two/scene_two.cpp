@@ -262,8 +262,6 @@ rh::result scene_two::draw(rh::ctx ctx)
 	VmaAllocator allocator = ctx.rhi.allocator;
 
 	// Set descriptor sets
-	std::vector<VkDescriptorSet> scene_sets;
-	std::vector<VkDescriptorSet> skybox_sets;
 	auto [desc_result, global_descriptor] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
 	if (desc_result != VK_SUCCESS) return rh::result::error;
 	{
@@ -283,23 +281,10 @@ rh::result scene_two::draw(rh::ctx ctx)
 		}
 	}
 	{
-
-		{
-			// scene
-			descriptor_writer writer;
-			scene_sets.push_back(scene_image_descriptor_set_.value());
-		}
-		{
-			// Skybox
-			descriptor_writer writer;
-			skybox_sets.push_back(skybox_image_descriptor_set_.value());
-		}
-	}
-	{
 		// Skybox
 		{
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 1, skybox_sets.size(), skybox_sets.data(), 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 1, 1, &skybox_image_descriptor_set_.value(), 0, nullptr);
 			float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
@@ -332,7 +317,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 		// Scene
 		{
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_shaders.pipeline_layout.value(), 1, scene_sets.size(), scene_sets.data(), 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_shaders.pipeline_layout.value(), 1, 1, &scene_image_descriptor_set_.value(), 0, nullptr);
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
