@@ -123,9 +123,6 @@
     <ClInclude Include="app\rhi\rhi_utils.h">
       <Filter>Header Files\rhi</Filter>
     </ClInclude>
-    <ClInclude Include="math.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="app\scene\scene_one\scene_one.h">
       <Filter>scene\scene_one</Filter>
     </ClInclude>
@@ -134,6 +131,9 @@
     </ClInclude>
     <ClInclude Include="app\scene\scene_two\scene_two.h">
       <Filter>scene\scene_two</Filter>
+    </ClInclude>
+    <ClInclude Include="math.h">
+      <Filter>Resource Files\shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

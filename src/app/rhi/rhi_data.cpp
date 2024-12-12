@@ -469,32 +469,22 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastglt
 	fastgltf::Image& image) const
 {
 	int width, height, num_channels;
-
-	std::visit(
-		fastgltf::visitor{
-	[](auto& arg) {},
-	[&](const fastgltf::sources::URI& file_path) {
-			// No offsets or non-local files supported.
-			assert(file_path.fileByteOffset == 0);
-			assert(file_path.uri.isLocalPath());
-
-			const std::string path(file_path.uri.path().begin(), file_path.uri.path().end());
-			if (unsigned char* data = stbi_load(path.c_str(), &width, &height, &num_channels, 4)) {
-				VkExtent3D image_size{};
-				image_size.width = width;
-				image_size.height = height;
-				image_size.depth = 1;
-
-				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
-
-				stbi_image_free(data);
-				return rv;
-			}
-		},
-		[&](const fastgltf::sources::Vector& vector) {
-			unsigned char* data = stbi_load_from_memory(
-				static_cast<const stbi_uc*>(static_cast<const void*>(vector.bytes.data())), // NOLINT(bugprone-casting-through-void)
-				static_cast<int>(vector.bytes.size()),
+	if (const fastgltf::sources::BufferView* view = std::get_if<fastgltf::sources::BufferView>(&image.data)) {
+		rosy_utils::debug_print_a(" a buffer view\n");
+		auto& [
+			bufferIndex,
+				byteOffset,
+				byteLength,
+				byteStride,
+				target,
+				// ReSharper disable once IdentifierTypo
+				meshoptCompression,
+				name
+		] = asset.bufferViews[view->bufferViewIndex];
+		auto& buffer = asset.buffers[bufferIndex];
+		if (const fastgltf::sources::Vector* vector = std::get_if<fastgltf::sources::Vector>(&buffer.data)) {
+			unsigned char* data = stbi_load_from_memory(static_cast<const stbi_uc*>(static_cast<const void*>(vector->bytes.data())) + byteOffset, // NOLINT(bugprone-casting-through-void)
+				static_cast<int>(byteLength),
 				&width, &height, &num_channels, 4);
 
 			if (data) {
@@ -502,48 +492,44 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastglt
 				image_size.width = width;
 				image_size.height = height;
 				image_size.depth = 1;
-				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
+
+				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, false);
 
 				stbi_image_free(data);
 				return rv;
 			}
-		},
-		[&](const fastgltf::sources::BufferView& view) {
-				auto& [
-					bufferIndex,
-					byteOffset,
-					byteLength,
-					byteStride,
-					target,
-						// ReSharper disable once IdentifierTypo
-						meshoptCompression,
-						name
-					] = asset.bufferViews[view.bufferViewIndex];
-					auto& buffer = asset.buffers[bufferIndex];
+		}
+		else {
+			rosy_utils::debug_print_a("not a vector view\n");
+		}if (const fastgltf::sources::Array* arr = std::get_if<fastgltf::sources::Array>(&buffer.data)) {
+			unsigned char* data = stbi_load_from_memory(static_cast<const stbi_uc*>(static_cast<const void*>(arr->bytes.data())) + byteOffset, // NOLINT(bugprone-casting-through-void)
+				static_cast<int>(byteLength),
+				&width, &height, &num_channels, 4);
 
-					std::visit(fastgltf::visitor {
-				[](auto& arg) {},
-				[&](const fastgltf::sources::Vector& vector) {
-					unsigned char* data = stbi_load_from_memory(static_cast<const stbi_uc*>(static_cast<const void*>(vector.bytes.data())) + byteOffset, // NOLINT(bugprone-casting-through-void)
-						static_cast<int>(byteLength),
-						&width, &height, &num_channels, 4);
+			rosy_utils::debug_print_a("has data?\n");
+			if (data) {
+				rosy_utils::debug_print_a("has data!\n");
+				VkExtent3D image_size{};
+				image_size.width = width;
+				image_size.height = height;
+				image_size.depth = 1;
 
-					if (data) {
-						VkExtent3D image_size{};
-						image_size.width = width;
-						image_size.height = height;
-						image_size.depth = 1;
+				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, false);
 
-						std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT,false);
+				stbi_image_free(data);
+				return rv;
+			}
+			rosy_utils::debug_print_a("is an array!\n");
+		}
+		else {
+			rosy_utils::debug_print_a("not a vector view\n");
+		}
+	}
+	else {
+		rosy_utils::debug_print_a("not a buffer view\n");
+	}
 
-						stbi_image_free(data);
-						return rv;
-					}
-				} },
-			buffer.data);
-			},
-		},
-		image.data);
+
 
 	return std::unexpected(KTX_FILE_DATA_ERROR);
 }
