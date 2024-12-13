@@ -24,8 +24,8 @@ public:
 	mesh_scene& operator=(const mesh_scene&) = delete;
 	mesh_scene(mesh_scene&&) noexcept = default;
 	mesh_scene& operator=(mesh_scene&&) noexcept = default;
-	void init(rh::ctx ctx);
-	void deinit(const rh::ctx& ctx) const;
+	void init(const rh::ctx& ctx);
+	void deinit(const rh::ctx& ctx);
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
 	[[nodiscard]] std::vector<render_object> draw_queue(const size_t scene_index, const glm::mat4& m = { 1.f }) const;

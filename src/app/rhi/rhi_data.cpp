@@ -23,7 +23,7 @@ texture_id texture_cache::add_texture(const VkImageView& image, const VkSampler 
 
 rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer } {}
 
-std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_path) const
+std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path) const
 {
 	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
 		fastgltf::Options::AllowDouble |
@@ -45,6 +45,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_
 		return std::nullopt;
 	}
 	mesh_scene gltf_mesh_scene{};
+	gltf_mesh_scene.init(ctx);
 
 	std::vector<uint32_t> indices;
 	std::vector<vertex> vertices;

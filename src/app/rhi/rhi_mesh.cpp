@@ -1,10 +1,20 @@
 #include "rhi.h"
 
-void mesh_scene::init(rh::ctx ctx)
+void mesh_scene::init(const rh::ctx& ctx)
 {
+	const VkDevice device = ctx.rhi.device;
+	std::vector<descriptor_allocator_growable::pool_size_ratio> frame_sizes = {
+		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
+		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
+		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
+		{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
+	};
+
+	descriptor_allocator = descriptor_allocator_growable{};
+	descriptor_allocator.value().init(device, 1000, frame_sizes);
 }
 
-void mesh_scene::deinit(const rh::ctx& ctx) const
+void mesh_scene::deinit(const rh::ctx& ctx)
 {
 	const auto buffer = ctx.rhi.data.value();
 	const VkDevice device = ctx.rhi.device;
@@ -23,9 +33,12 @@ void mesh_scene::deinit(const rh::ctx& ctx) const
 	{
 		ktxTexture_Destroy(tx);
 	}
-	for (VkImageView iv : image_views)
+	for (const VkImageView iv : image_views)
 	{
 		vkDestroyImageView(device, iv, nullptr);
+	}
+	if (descriptor_allocator.has_value()) {
+		descriptor_allocator.value().destroy_pools(device);
 	}
 }
 

@@ -74,7 +74,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 
 
 	// ReSharper disable once StringLiteralTypo
-	if (auto load_result = data->load_gltf_meshes("assets\\sphere.glb"); load_result.has_value())
+	if (auto load_result = data->load_gltf_meshes(ctx, "assets\\sphere.glb"); load_result.has_value())
 	{
 		scene_graph_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
 	}
@@ -427,13 +427,8 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 		if (image_sampler_.has_value()) vkDestroySampler(device, image_sampler_.value(), nullptr);
 		if (skybox_sampler_.has_value()) vkDestroySampler(device, skybox_sampler_.value(), nullptr);
 	}
-
-	for (std::shared_ptr<mesh_asset> mesh : scene_graph_->meshes)
 	{
-		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
-		buffer->destroy_buffer(rectangle.vertex_buffer);
-		buffer->destroy_buffer(rectangle.index_buffer);
-		mesh.reset();
+		scene_graph_->deinit(ctx);
 	}
 	if (earth_pipeline_.has_value()) {
 		earth_pipeline_.value().deinit(device);

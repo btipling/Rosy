@@ -77,7 +77,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 
 
 	// ReSharper disable once StringLiteralTypo
-	if (auto load_result = data->load_gltf_meshes("assets\\SM_Deccer_Cubes_Textured_Complex.gltf"); load_result.has_value())
+	if (auto load_result = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf"); load_result.has_value())
 	{
 		scene_graph_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
 	}
