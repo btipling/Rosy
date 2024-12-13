@@ -48,7 +48,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 	gltf_mesh_scene.init(ctx);
 
 	for (fastgltf::Image& image : gltf.images) {
-		if (std::expected<ktx_auto_texture, ktx_error_code_e> res = create_image(gltf, image); res.has_value()) {
+		if (std::expected<ktx_auto_texture, ktx_error_code_e> res = create_image(gltf, image, VK_FORMAT_R8G8B8A8_SRGB); res.has_value()) {
 			auto [ktx_texture, ktx_vk_texture] = res.value();
 			gltf_mesh_scene.ktx_vk_textures.push_back(ktx_vk_texture);
 			gltf_mesh_scene.ktx_textures.push_back(ktx_texture);
@@ -476,7 +476,7 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(const v
 }
 
 std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastgltf::Asset& asset,
-	fastgltf::Image& image) const
+	const fastgltf::Image& image, const VkFormat format) const
 {
 	int width, height, num_channels;
 	if (const fastgltf::sources::BufferView* view = std::get_if<fastgltf::sources::BufferView>(&image.data)) {
@@ -491,7 +491,7 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastglt
 				meshoptCompression,
 				name
 		] = asset.bufferViews[view->bufferViewIndex];
-		auto& buffer = asset.buffers[bufferIndex];
+		const auto& buffer = asset.buffers[bufferIndex];
 		if (const fastgltf::sources::Vector* vector = std::get_if<fastgltf::sources::Vector>(&buffer.data)) {
 			unsigned char* data = stbi_load_from_memory(static_cast<const stbi_uc*>(static_cast<const void*>(vector->bytes.data())) + byteOffset, // NOLINT(bugprone-casting-through-void)
 				static_cast<int>(byteLength),
@@ -502,8 +502,7 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastglt
 				image_size.width = width;
 				image_size.height = height;
 				image_size.depth = 1;
-
-				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, false);
+				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, format, VK_IMAGE_USAGE_SAMPLED_BIT, false);
 
 				stbi_image_free(data);
 				return rv;
@@ -524,7 +523,7 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastglt
 				image_size.height = height;
 				image_size.depth = 1;
 
-				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, false);
+				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, format, VK_IMAGE_USAGE_SAMPLED_BIT, false);
 
 				stbi_image_free(data);
 				return rv;

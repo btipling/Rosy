@@ -193,7 +193,7 @@ public:
 	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(const void* data, const VkExtent3D size, const VkFormat format,
 		const VkImageUsageFlags usage, const bool mip_mapped) const;
 	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const;
-	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(fastgltf::Asset& asset, fastgltf::Image& image) const;
+	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(fastgltf::Asset& asset, const fastgltf::Image& image, VkFormat format) const;
 
 	void destroy_image(const allocated_image& img) const;
 
