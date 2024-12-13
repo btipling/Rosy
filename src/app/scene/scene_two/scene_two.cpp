@@ -334,7 +334,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 						auto [pass_type, descriptor_set_id] = scene_graph_->materials[ro.material_index];
 						VkDescriptorSet desc = scene_graph_->descriptor_sets[descriptor_set_id];
 						vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
-						vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &scene_image_descriptor_set_.value(), 0, nullptr);
+						vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &desc, 0, nullptr);
 					}
 					gpu_draw_push_constants push_constants{};
 					push_constants.world_matrix = ro.transform;
