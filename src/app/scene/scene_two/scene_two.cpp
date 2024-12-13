@@ -38,14 +38,10 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		skybox_image_descriptor_layout_ = set;
 		layouts.push_back(set);
 	}
-	std::vector<char> scene_vertex_shader;
-	std::vector<char> scene_fragment_shader;
 	std::vector<char> skybox_vertex_shader;
 	std::vector<char> skybox_fragment_shader;
 	try
 	{
-		scene_vertex_shader = read_file("out/mesh.vert.spv");
-		scene_fragment_shader = read_file("out/mesh.frag.spv");
 		skybox_vertex_shader = read_file("out/skybox.vert.spv");
 		skybox_fragment_shader = read_file("out/skybox.frag.spv");
 	}
@@ -53,16 +49,6 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	{
 		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
 		return rh::result::error;
-	}
-
-	{
-		// scene pipeline
-		shader_pipeline sp = {};
-		sp.layouts = layouts;
-		sp.name = "scene";
-		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
-		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
-		scene_pipeline_ = sp;
 	}
 
 	{
@@ -256,7 +242,6 @@ rh::result scene_two::draw(rh::ctx ctx)
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
-	shader_pipeline scene_shaders = scene_pipeline_.value();
 	shader_pipeline skybox_shaders = skybox_pipeline_.value();
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 	VmaAllocator allocator = ctx.rhi.allocator;
@@ -430,9 +415,6 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	}
 	{
 		scene_graph_->deinit(ctx);
-	}
-	if (scene_pipeline_.has_value()) {
-		scene_pipeline_.value().deinit(device);
 	}
 	if (skybox_pipeline_.has_value()) {
 		skybox_pipeline_.value().deinit(device);
