@@ -122,6 +122,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 		if (mat.pbrData.baseColorTexture.has_value()) {
 			m.descriptor_set_id = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
 		}
+		gltf_mesh_scene.materials.push_back(m);
 	}
 
 	std::vector<uint32_t> indices;
