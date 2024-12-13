@@ -164,37 +164,13 @@ struct texture_cache
 	texture_id add_texture(const VkImageView& image, VkSampler sampler);
 };
 
-struct descriptor_allocator_growable;
 
 namespace rh
 {
 	struct ctx;
 }
 
-class mesh_scene
-{
-public:
-	size_t root_scene = 0;
-	std::vector<std::vector<size_t>>scenes;
-	std::vector<std::shared_ptr<mesh_node>> nodes;
-	std::vector<std::shared_ptr<mesh_asset>> meshes;
-	std::vector<material> materials;
-
-	std::vector<ktxVulkanTexture> ktx_vk_textures;
-	std::vector<ktxTexture*> ktx_textures;
-	std::vector<VkSampler> samplers;
-	std::vector<VkImageView> image_views;
-	std::vector<VkDescriptorSet> descriptor_sets;
-
-	std::vector<std::shared_ptr<shader_pipeline>> shaders; // TODO
-	//std::optional <descriptor_allocator_growable> descriptor_allocator;
-
-	void init(rh::ctx ctx);
-	void deinit(const rh::ctx& ctx) const;
-	void add_node(fastgltf::Node& gltf_node);
-	void add_scene(fastgltf::Scene& gltf_scene);
-	[[nodiscard]] std::vector<render_object> draw_queue(const size_t scene_index, const glm::mat4& m = { 1.f }) const;
-};
+class mesh_scene;
 
 struct ktx_auto_texture
 {
@@ -209,14 +185,14 @@ class rhi_data
 public:
 	explicit rhi_data(rhi* renderer);
 	[[nodiscard]] std::optional<mesh_scene> load_gltf_meshes(std::filesystem::path file_path) const;
-	[[nodiscard]] auto upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const -> gpu_mesh_buffers_result;
+	[[nodiscard]] auto upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_mesh_buffers_result;
 	allocated_buffer_result create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 
 
 	void destroy_buffer(const allocated_buffer& buffer) const;
 
 	[[nodiscard]] auto create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
-	                                bool mip_mapped) const -> allocated_image_result;
+		bool mip_mapped) const->allocated_image_result;
 	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(const void* data, const VkExtent3D size, const VkFormat format,
 		const VkImageUsageFlags usage, const bool mip_mapped) const;
 	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const;

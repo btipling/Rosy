@@ -135,6 +135,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="app\rhi\rhi_mesh.h" />
     <ClInclude Include="app\scene\scene.h" />
     <ClInclude Include="app\scene\scene_two\scene_two.h" />
     <ClInclude Include="math.h" />

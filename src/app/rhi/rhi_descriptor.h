@@ -37,7 +37,7 @@ struct descriptor_allocator {
 	descriptor_set_result allocate(VkDevice device, VkDescriptorSetLayout layout) const;
 };
 
-struct descriptor_allocator_growable {
+class descriptor_allocator_growable {
 public:
 	struct pool_size_ratio {
 		VkDescriptorType type;

@@ -135,6 +135,9 @@
     <ClInclude Include="math.h">
       <Filter>Resource Files\shaders</Filter>
     </ClInclude>
+    <ClInclude Include="app\rhi\rhi_mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">
