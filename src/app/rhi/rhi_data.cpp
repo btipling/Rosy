@@ -101,12 +101,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 				gltf_mesh_scene.samplers.push_back(sampler);
 			}
 			{
-				descriptor_layout_builder layout_builder;
-				layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-				auto [result, set] = layout_builder.build(renderer_->opt_device.value(), VK_SHADER_STAGE_FRAGMENT_BIT);
-				gltf_mesh_scene.descriptor_layouts.push_back(set);
-				if (result != VK_SUCCESS) continue;
-				auto [image_set_result, image_set] = gltf_mesh_scene.descriptor_allocator.value().allocate(renderer_->opt_device.value(), set);
+				auto [image_set_result, image_set] = gltf_mesh_scene.descriptor_allocator.value().allocate(renderer_->opt_device.value(), gltf_mesh_scene.image_layout);
 				if (image_set_result != VK_SUCCESS) continue;
 				{
 					descriptor_writer writer;

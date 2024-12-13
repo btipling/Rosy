@@ -5,7 +5,6 @@ void mesh_scene::init(const rh::ctx& ctx)
 {
 	std::vector<char> scene_vertex_shader;
 	std::vector<char> scene_fragment_shader;
-	std::vector<VkDescriptorSetLayout> layouts;
 	try
 	{
 		scene_vertex_shader = read_file("out/mesh.vert.spv");
@@ -17,14 +16,6 @@ void mesh_scene::init(const rh::ctx& ctx)
 		return;
 	}
 
-	{
-		shader_pipeline sp = {};
-		sp.layouts = layouts;
-		sp.name = "scene";
-		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
-		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
-		shaders = sp;
-	}
 	const VkDevice device = ctx.rhi.device;
 	std::vector<descriptor_allocator_growable::pool_size_ratio> frame_sizes = {
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
@@ -35,6 +26,31 @@ void mesh_scene::init(const rh::ctx& ctx)
 
 	descriptor_allocator = descriptor_allocator_growable{};
 	descriptor_allocator.value().init(device, 1000, frame_sizes);
+
+	{
+		descriptor_layout_builder layout_builder;
+		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		if (result != VK_SUCCESS) return;
+		data_layout = set;
+		descriptor_layouts.push_back(set);
+	}
+	{
+		descriptor_layout_builder layout_builder;
+		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
+		if (result != VK_SUCCESS) return;
+		image_layout = set;
+		descriptor_layouts.push_back(set);
+	}
+	{
+		shader_pipeline sp = {};
+		sp.layouts = descriptor_layouts;
+		sp.name = "scene";
+		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
+		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
+		shaders = sp;
+	}
 }
 
 void mesh_scene::deinit(const rh::ctx& ctx)

@@ -333,27 +333,28 @@ rh::result scene_two::draw(rh::ctx ctx)
 				float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 				VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
 				vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
-				scene_shaders.viewport_extent = frame_extent;
-				scene_shaders.wire_frames_enabled = toggle_wire_frame_;
-				scene_shaders.depth_enabled = true;
-				scene_shaders.blending = static_cast<shader_blending>(blend_mode_);
-				scene_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
-				scene_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
-				if (VkResult result = scene_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+				shader_pipeline m_shaders = scene_graph_->shaders.value();
+				m_shaders.viewport_extent = frame_extent;
+				m_shaders.wire_frames_enabled = toggle_wire_frame_;
+				m_shaders.depth_enabled = true;
+				m_shaders.blending = static_cast<shader_blending>(blend_mode_);
+				m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
+				m_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
+				if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 				size_t last_material = 100'000;
 				for (auto ro : scene_graph_->draw_queue(scene_graph_->root_scene, ndc * m)) {
 					if (ro.material_index != last_material)
 					{
 						last_material = ro.material_index;
-						vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
-						vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_shaders.pipeline_layout.value(), 1, 1, &scene_image_descriptor_set_.value(), 0, nullptr);
+						vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
+						vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &scene_image_descriptor_set_.value(), 0, nullptr);
 					}
 					gpu_draw_push_constants push_constants{};
 					push_constants.world_matrix = ro.transform;
 					push_constants.vertex_buffer = ro.vertex_buffer_address;
-					scene_shaders.shader_constants = &push_constants;
-					scene_shaders.shader_constants_size = sizeof(push_constants);
-					if (VkResult result = scene_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
+					m_shaders.shader_constants = &push_constants;
+					m_shaders.shader_constants_size = sizeof(push_constants);
+					if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 					vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
 					vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index,
 						0, 0);

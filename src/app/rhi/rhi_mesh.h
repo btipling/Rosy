@@ -19,6 +19,9 @@ public:
 	std::optional<shader_pipeline> shaders;
 	std::optional<descriptor_allocator_growable> descriptor_allocator = std::nullopt;
 
+	VkDescriptorSetLayout data_layout{};
+	VkDescriptorSetLayout image_layout{};
+
 	explicit mesh_scene() = default;
 	~mesh_scene() = default;
 	mesh_scene(const mesh_scene&) = delete;
