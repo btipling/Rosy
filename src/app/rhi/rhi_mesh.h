@@ -14,8 +14,9 @@ public:
 	std::vector<VkSampler> samplers;
 	std::vector<VkImageView> image_views;
 	std::vector<VkDescriptorSet> descriptor_sets;
+	std::vector<VkDescriptorSetLayout> descriptor_layouts;
 
-	std::vector<std::shared_ptr<shader_pipeline>> shaders; // TODO
+	std::optional<shader_pipeline> shaders;
 	std::optional<descriptor_allocator_growable> descriptor_allocator = std::nullopt;
 
 	explicit mesh_scene() = default;

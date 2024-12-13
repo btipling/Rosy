@@ -139,6 +139,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 			gltf_mesh_scene.ktx_vk_textures.push_back(ktx_vk_texture);
 			gltf_mesh_scene.ktx_textures.push_back(ktx_texture);
 
+			VkImageView img_view{};
 			{
 				ktxTexture* k_texture;
 				ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/skybox_clouds.ktx2",
@@ -153,7 +154,6 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 				view_info.subresourceRange.levelCount = ktx_vk_texture.levelCount;
 				view_info.subresourceRange.layerCount = ktx_vk_texture.layerCount;
 				view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-				VkImageView img_view{};
 				if (VkResult result = vkCreateImageView(renderer_->opt_device.value(), &view_info, nullptr, &img_view); result !=
 					VK_SUCCESS)
 				{
@@ -161,45 +161,46 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 				}
 				gltf_mesh_scene.image_views.push_back(img_view);
 			}
-			//{
-			//	VkSamplerCreateInfo sample = {};
-			//	sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			//	sample.maxLod = ktx_vk_texture.levelCount;
-			//	sample.minLod = 0;
-			//
-			//	sample.magFilter = VK_FILTER_LINEAR;
-			//	sample.minFilter = VK_FILTER_LINEAR;
-			//
-			//	sample.anisotropyEnable = VK_FALSE;
-			//	sample.maxAnisotropy = 0.f;
-			//	sample.mipLodBias = 0.0f;
-			//	sample.compareOp = VK_COMPARE_OP_NEVER;
-			//
-			//	// Set proper address modes for spherical mapping
-			//	sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			//	sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			//	sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			//
-			//	// Linear mipmap mode instead of NEAREST
-			//	sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			//	VkSampler sampler{};
-			//	if (VkResult result = vkCreateSampler(renderer_->opt_device.value(), &sample, nullptr, &sampler); result != VK_SUCCESS) continue;
-			//	gltf_mesh_scene.samplers.push_back(sampler);
-			//}
-			//{
-			//	descriptor_layout_builder layout_builder;
-			//	layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-			//	auto [result, set] = layout_builder.build(renderer_->opt_device.value(), VK_SHADER_STAGE_FRAGMENT_BIT);
-			//	if (result != VK_SUCCESS) continue;
-			//	auto [image_set_result, image_set] = renderer_->glo.allocate(renderer_->opt_device.value(), set);
-			//	if (image_set_result != VK_SUCCESS) return  rh::result::error;
-			//	{
-			//		descriptor_writer writer;
-			//		writer.write_image(0, skybox_view_.value(), skybox_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-			//		writer.update_set(device, image_set);
-			//		skybox_image_descriptor_set_ = image_set;
-			//	}
-			//}
+			VkSampler sampler{};
+			{
+				VkSamplerCreateInfo sample = {};
+				sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+				sample.maxLod = ktx_vk_texture.levelCount;
+				sample.minLod = 0;
+			
+				sample.magFilter = VK_FILTER_LINEAR;
+				sample.minFilter = VK_FILTER_LINEAR;
+			
+				sample.anisotropyEnable = VK_FALSE;
+				sample.maxAnisotropy = 0.f;
+				sample.mipLodBias = 0.0f;
+				sample.compareOp = VK_COMPARE_OP_NEVER;
+			
+				// Set proper address modes for spherical mapping
+				sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+				sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+				sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			
+				// Linear mipmap mode instead of NEAREST
+				sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+				if (VkResult result = vkCreateSampler(renderer_->opt_device.value(), &sample, nullptr, &sampler); result != VK_SUCCESS) continue;
+				gltf_mesh_scene.samplers.push_back(sampler);
+			}
+			{
+				descriptor_layout_builder layout_builder;
+				layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				auto [result, set] = layout_builder.build(renderer_->opt_device.value(), VK_SHADER_STAGE_FRAGMENT_BIT);
+				gltf_mesh_scene.descriptor_layouts.push_back(set);
+				if (result != VK_SUCCESS) continue;
+				auto [image_set_result, image_set] = gltf_mesh_scene.descriptor_allocator.value().allocate(renderer_->opt_device.value(), set);
+				if (image_set_result != VK_SUCCESS) continue;
+				{
+					descriptor_writer writer;
+					writer.write_image(0, img_view, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+					writer.update_set(renderer_->opt_device.value(), image_set);
+					gltf_mesh_scene.descriptor_sets.push_back(image_set);
+				}
+			}
 		}
 		else {
 			rosy_utils::debug_print_a("failed to create gltf texture image: %d\n", res.error());

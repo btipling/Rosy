@@ -1,7 +1,30 @@
 #include "rhi.h"
+#include "../loader/loader.h"
 
 void mesh_scene::init(const rh::ctx& ctx)
 {
+	std::vector<char> scene_vertex_shader;
+	std::vector<char> scene_fragment_shader;
+	std::vector<VkDescriptorSetLayout> layouts;
+	try
+	{
+		scene_vertex_shader = read_file("out/mesh.vert.spv");
+		scene_fragment_shader = read_file("out/mesh.frag.spv");
+	}
+	catch (const std::exception& e)
+	{
+		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
+		return;
+	}
+
+	{
+		shader_pipeline sp = {};
+		sp.layouts = layouts;
+		sp.name = "scene";
+		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
+		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
+		shaders = sp;
+	}
 	const VkDevice device = ctx.rhi.device;
 	std::vector<descriptor_allocator_growable::pool_size_ratio> frame_sizes = {
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
@@ -37,8 +60,19 @@ void mesh_scene::deinit(const rh::ctx& ctx)
 	{
 		vkDestroyImageView(device, iv, nullptr);
 	}
+	for (const VkSampler smp : samplers)
+	{
+		vkDestroySampler(device, smp, nullptr);
+	}
+	for (const VkDescriptorSetLayout set : descriptor_layouts)
+	{
+		vkDestroyDescriptorSetLayout(device, set, nullptr);
+	}
 	if (descriptor_allocator.has_value()) {
 		descriptor_allocator.value().destroy_pools(device);
+	}
+	if (shaders.has_value()) {
+		shaders.value().deinit(device);
 	}
 }
 

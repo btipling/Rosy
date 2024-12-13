@@ -2,6 +2,7 @@
 #include "../../../Rosy.h"
 #include "rhi_types.h"
 #include "rhi_descriptor.h"
+#include "rhi_shader.h"
 #include "rhi_mesh.h"
 #include "SDL3/SDL_events.h"
 

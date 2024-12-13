@@ -28,7 +28,7 @@ private:
 	std::shared_ptr<mesh_scene> scene_graph_;
 
 	// Earth
-	std::optional <VkDescriptorSetLayout> earth_image_descriptor_layout_ = std::nullopt;
+	std::optional<VkDescriptorSetLayout> earth_image_descriptor_layout_ = std::nullopt;
 	std::optional<VkDescriptorSet> earth_image_descriptor_set_ = std::nullopt;
 	std::optional<shader_pipeline> earth_pipeline_ = std::nullopt;
 	std::optional<ktxTexture*> earth_texture_ = std::nullopt;

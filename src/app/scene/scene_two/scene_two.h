@@ -31,7 +31,7 @@ private:
 	std::shared_ptr<mesh_scene> scene_graph_;
 
 	// Scene
-	std::optional <VkDescriptorSetLayout> scene_image_descriptor_layout_ = std::nullopt;
+	std::optional<VkDescriptorSetLayout> scene_image_descriptor_layout_ = std::nullopt;
 	std::optional<VkDescriptorSet> scene_image_descriptor_set_ = std::nullopt;
 	std::optional<shader_pipeline> scene_pipeline_ = std::nullopt;
 	std::optional<ktxTexture*> scene_texture_ = std::nullopt;
