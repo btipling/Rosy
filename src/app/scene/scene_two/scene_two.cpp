@@ -328,14 +328,13 @@ rh::result scene_two::draw(rh::ctx ctx)
 			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
 			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_shaders.pipeline_layout.value(), 1, 1, &scene_image_descriptor_set_.value(), 0, nullptr);
-			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
-			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 			if (scene_graph_->meshes.size() > 0)
 			{
-
+				vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
+				vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_shaders.pipeline_layout.value(), 1, 1, &scene_image_descriptor_set_.value(), 0, nullptr);
+				float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
+				VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
+				vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 				scene_shaders.viewport_extent = frame_extent;
 				scene_shaders.wire_frames_enabled = toggle_wire_frame_;
 				scene_shaders.depth_enabled = true;
@@ -344,7 +343,13 @@ rh::result scene_two::draw(rh::ctx ctx)
 				scene_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
 				if (VkResult result = scene_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 
+				size_t last_material = 100'000;
 				for (auto ro : scene_graph_->draw_queue(scene_graph_->root_scene, ndc * m)) {
+					if (ro.material_index != last_material)
+					{
+						rosy_utils::debug_print_a("updating material to %d\n", ro.material_index);
+						last_material = ro.material_index;
+					}
 					gpu_draw_push_constants push_constants{};
 					push_constants.world_matrix = ro.transform;
 					push_constants.vertex_buffer = ro.vertex_buffer_address;
@@ -355,6 +360,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 					vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index,
 						0, 0);
 				}
+				rosy_utils::debug_print_a("frame scene end \n\n");
 			}
 			vkCmdEndDebugUtilsLabelEXT(cmd);
 		}
