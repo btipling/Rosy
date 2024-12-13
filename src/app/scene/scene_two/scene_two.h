@@ -44,7 +44,7 @@ private:
 	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 2.593f, -1.362f);
 
 	// Skybox
-	std::optional <VkDescriptorSetLayout> skybox_image_descriptor_layout_ = std::nullopt;
+	std::optional<VkDescriptorSetLayout> skybox_image_descriptor_layout_ = std::nullopt;
 	std::optional<VkDescriptorSet> skybox_image_descriptor_set_ = std::nullopt;
 	std::optional<shader_pipeline> skybox_pipeline_ = std::nullopt;
 	std::optional<ktxTexture*> skybox_texture_ = std::nullopt;

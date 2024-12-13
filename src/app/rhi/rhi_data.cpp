@@ -9,6 +9,35 @@
 #include <fastgltf/tools.hpp>
 #include <stb_image.h>
 
+void mesh_scene::init(rh::ctx ctx)
+{
+}
+
+void mesh_scene::deinit(const rh::ctx& ctx) const
+{
+	const auto buffer = ctx.rhi.data.value();
+	const VkDevice device = ctx.rhi.device;
+	for (std::shared_ptr<mesh_asset> mesh : meshes)
+	{
+		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
+		buffer->destroy_buffer(rectangle.vertex_buffer);
+		buffer->destroy_buffer(rectangle.index_buffer);
+		mesh.reset();
+	}
+	for (ktxVulkanTexture tx : ktx_vk_textures)
+	{
+		ktxVulkanTexture_Destruct(&tx, device, nullptr);
+	}
+	for (ktxTexture* tx : ktx_textures)
+	{
+		ktxTexture_Destroy(tx);
+	}
+	for (VkImageView iv : image_views)
+	{
+		vkDestroyImageView(device, iv, nullptr);
+	}
+}
+
 void mesh_scene::add_node(fastgltf::Node& gltf_node)
 {
 	const auto new_node = std::make_shared<mesh_node>();
@@ -202,54 +231,51 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_
 
 	for (fastgltf::Image& image : gltf.images) {
 		if (std::expected<ktx_auto_texture, ktx_error_code_e> res = create_image(gltf, image); res.has_value()) {
-			ktx_auto_texture auto_texture = res.value();
-			gltf_mesh_scene.ktx_vk_textures.push_back(auto_texture.vk_texture);
-			gltf_mesh_scene.ktx_textures.push_back(auto_texture.texture);
+			auto [ktx_texture, ktx_vk_texture] = res.value();
+			gltf_mesh_scene.ktx_vk_textures.push_back(ktx_vk_texture);
+			gltf_mesh_scene.ktx_textures.push_back(ktx_texture);
 
-			//{
-
-			//	ktxTexture* k_texture;
-			//	ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/skybox_clouds.ktx2",
-			//		KTX_TEXTURE_CREATE_NO_FLAGS,
-			//		&k_texture);
-			//	if (ktx_result != KTX_SUCCESS) {
-			//		rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
-			//		continue;
-			//	}
-
-			//	VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
-
-			//	VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(auto_texture.vk_texture.imageFormat, auto_texture.vk_texture.image, aspect_flag);
-			//	view_info.subresourceRange.levelCount = auto_texture.vk_texture.levelCount;
-			//	view_info.subresourceRange.layerCount = auto_texture.vk_texture.layerCount;
-			//	view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-			//	VkImageView img_view{};
-			//	if (VkResult result = vkCreateImageView(renderer_->opt_device.value(), &view_info, nullptr, &img_view); result !=
-			//		VK_SUCCESS)
-			//	{
-			//		continue;
-			//	}
-			//	gltf_mesh_scene.views.push_back(img_view);
-			//}
+			{
+				ktxTexture* k_texture;
+				ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/skybox_clouds.ktx2",
+					KTX_TEXTURE_CREATE_NO_FLAGS,
+					&k_texture);
+				if (ktx_result != KTX_SUCCESS) {
+					rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
+					continue;
+				}
+				VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
+				VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(ktx_vk_texture.imageFormat, ktx_vk_texture.image, aspect_flag);
+				view_info.subresourceRange.levelCount = ktx_vk_texture.levelCount;
+				view_info.subresourceRange.layerCount = ktx_vk_texture.layerCount;
+				view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+				VkImageView img_view{};
+				if (VkResult result = vkCreateImageView(renderer_->opt_device.value(), &view_info, nullptr, &img_view); result !=
+					VK_SUCCESS)
+				{
+					continue;
+				}
+				gltf_mesh_scene.image_views.push_back(img_view);
+			}
 			//{
 			//	VkSamplerCreateInfo sample = {};
 			//	sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			//	sample.maxLod = auto_texture.vk_texture.levelCount;
+			//	sample.maxLod = ktx_vk_texture.levelCount;
 			//	sample.minLod = 0;
-
+			//
 			//	sample.magFilter = VK_FILTER_LINEAR;
 			//	sample.minFilter = VK_FILTER_LINEAR;
-
+			//
 			//	sample.anisotropyEnable = VK_FALSE;
 			//	sample.maxAnisotropy = 0.f;
 			//	sample.mipLodBias = 0.0f;
 			//	sample.compareOp = VK_COMPARE_OP_NEVER;
-
+			//
 			//	// Set proper address modes for spherical mapping
 			//	sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 			//	sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 			//	sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
+			//
 			//	// Linear mipmap mode instead of NEAREST
 			//	sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 			//	VkSampler sampler{};
@@ -270,8 +296,6 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(std::filesystem::path file_
 			//		skybox_image_descriptor_set_ = image_set;
 			//	}
 			//}
-		//}
-
 		}
 		else {
 			rosy_utils::debug_print_a("failed to create gltf texture image: %d\n", res.error());

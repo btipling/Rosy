@@ -424,21 +424,8 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 		if (image_sampler_.has_value()) vkDestroySampler(device, image_sampler_.value(), nullptr);
 		if (skybox_sampler_.has_value()) vkDestroySampler(device, skybox_sampler_.value(), nullptr);
 	}
-
-	for (std::shared_ptr<mesh_asset> mesh : scene_graph_->meshes)
 	{
-		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
-		buffer->destroy_buffer(rectangle.vertex_buffer);
-		buffer->destroy_buffer(rectangle.index_buffer);
-		mesh.reset();
-	}
-	for (ktxVulkanTexture tx : scene_graph_->ktx_vk_textures)
-	{
-		ktxVulkanTexture_Destruct(&tx, device, nullptr);
-	}
-	for (ktxTexture* tx : scene_graph_->ktx_textures)
-	{
-		ktxTexture_Destroy(tx);
+		scene_graph_->deinit(ctx);
 	}
 	if (scene_pipeline_.has_value()) {
 		scene_pipeline_.value().deinit(device);
