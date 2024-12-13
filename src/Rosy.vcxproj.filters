@@ -218,6 +218,9 @@
     <ClCompile Include="app\scene\scene_two\scene_two.cpp">
       <Filter>scene\scene_two</Filter>
     </ClCompile>
+    <ClCompile Include="app\rhi\rhi_mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc">
