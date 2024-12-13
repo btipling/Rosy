@@ -133,6 +133,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 				ro.index_count = count;
 				ro.index_buffer = ma->mesh_buffers.index_buffer.buffer;
 				ro.vertex_buffer_address = ma->mesh_buffers.vertex_buffer_address;
+				ro.material_index = material;
 				draw_nodes.push_back(ro);
 			}
 		}

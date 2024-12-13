@@ -107,6 +107,7 @@ struct render_object {
 	uint32_t first_index;
 	VkBuffer index_buffer;
 
+	size_t material_index;
 	bounds bounds;
 	glm::mat4 transform;
 	VkDeviceAddress vertex_buffer_address;

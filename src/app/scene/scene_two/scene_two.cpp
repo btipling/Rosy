@@ -316,25 +316,25 @@ rh::result scene_two::draw(rh::ctx ctx)
 		}
 		// Scene
 		{
+			auto ndc = glm::mat4(
+				glm::vec4(-1.f, 0.f, 0.f, 0.f),
+				glm::vec4(0.f, 1.f, 0.f, 0.f),
+				glm::vec4(0.f, 0.f, 1.f, 0.f),
+				glm::vec4(0.f, 0.f, 0.f, 1.f)
+			);
+			auto m = translate(glm::mat4(1.f), scene_pos_);
+			m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
+
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_shaders.pipeline_layout.value(), 1, 1, &scene_image_descriptor_set_.value(), 0, nullptr);
 			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
-
 			if (scene_graph_->meshes.size() > 0)
 			{
-				auto ndc = glm::mat4(
-					glm::vec4(-1.f, 0.f, 0.f, 0.f),
-					glm::vec4(0.f, 1.f, 0.f, 0.f),
-					glm::vec4(0.f, 0.f, 1.f, 0.f),
-					glm::vec4(0.f, 0.f, 0.f, 1.f)
-					);
-				auto m = translate(glm::mat4(1.f), scene_pos_);
-				m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
-				m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
-				m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
-				m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 
 				scene_shaders.viewport_extent = frame_extent;
 				scene_shaders.wire_frames_enabled = toggle_wire_frame_;
