@@ -120,10 +120,7 @@ enum class material_pass :uint8_t {
 
 struct material
 {
-	VkDescriptorSet material_set;
 	material_pass pass_type;
-
-	size_t shaders_id = 0; // TODO
 	size_t descriptor_set_id = 0;
 };
 

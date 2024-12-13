@@ -121,6 +121,14 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 		}
 	}
 
+
+	for (fastgltf::Material& mat : gltf.materials) {
+		material m{};
+		if (mat.pbrData.baseColorTexture.has_value()) {
+			m.descriptor_set_id = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
+		}
+	}
+
 	std::vector<uint32_t> indices;
 	std::vector<vertex> vertices;
 
@@ -191,6 +199,14 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 						vertices[initial_vtx + index].color = v;
 					});
 			}
+
+			if (p.materialIndex.has_value()) {
+				new_surface.material = p.materialIndex.value();
+			}
+			else {
+				new_surface.material = 0;
+			}
+
 			new_mesh.surfaces.push_back(new_surface);
 		}
 
