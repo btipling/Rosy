@@ -67,13 +67,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	{
 		scene_graph_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
 	}
-	else
-	{
-		return rh::result::error;
-	}
-
-	const uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
-	const uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
+	else return rh::result::error;
 
 	{
 		// scene texture and sampler
