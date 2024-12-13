@@ -118,7 +118,6 @@ enum class material_pass :uint8_t {
 	other
 };
 
-
 struct material
 {
 	VkDescriptorSet material_set;
