@@ -27,14 +27,6 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return rh::result::error;
-		scene_image_descriptor_layout_ = set;
-		layouts.push_back(set);
-	}
-	{
-		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return rh::result::error;
 		skybox_image_descriptor_layout_ = set;
 		layouts.push_back(set);
 	}
@@ -68,78 +60,6 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		scene_graph_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
 	}
 	else return rh::result::error;
-
-	{
-		// scene texture and sampler
-		{
-
-			ktxTexture* k_texture;
-			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/painted_concrete.ktx2",
-				KTX_TEXTURE_CREATE_NO_FLAGS,
-				&k_texture);
-			if (ktx_result != KTX_SUCCESS) {
-				rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
-				return rh::result::error;
-			}
-			scene_texture_ = k_texture;
-			if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
-			{
-				scene_vk_texture_ = res.value();
-			}
-			else
-			{
-				rosy_utils::debug_print_a("ktx upload failure: %d\n", res.error());
-			}
-
-
-			VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
-
-			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(scene_vk_texture_.value().imageFormat, scene_vk_texture_.value().image, aspect_flag);
-			view_info.subresourceRange.levelCount = scene_vk_texture_.value().levelCount;
-			view_info.subresourceRange.layerCount = scene_vk_texture_.value().layerCount;
-			VkImageView img_view{};
-			if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
-				VK_SUCCESS)
-			{
-				return rh::result::error;
-			}
-			scene_view_ = img_view;
-		}
-		{
-			VkSamplerCreateInfo sample = {};
-			sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			sample.maxLod = scene_vk_texture_.value().levelCount;
-			sample.minLod = 0;
-
-			sample.magFilter = VK_FILTER_LINEAR;
-			sample.minFilter = VK_FILTER_LINEAR;
-
-			sample.anisotropyEnable = VK_FALSE;
-			sample.maxAnisotropy = 0.f;
-
-			// Set proper address modes for spherical mapping
-			sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-			// Linear mipmap mode instead of NEAREST
-			sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			VkSampler sampler{};
-			if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
-			image_sampler_ = sampler;
-		}
-		{
-			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, scene_image_descriptor_layout_.value());
-			if (image_set_result != VK_SUCCESS) return  rh::result::error;
-			{
-				descriptor_writer writer;
-				writer.write_image(0, scene_view_.value(), image_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-				writer.update_set(device, image_set);
-				scene_image_descriptor_set_ = image_set;
-			}
-		}
-	}
-
 	{
 		// Skybox texture and sampler
 		{
@@ -375,19 +295,6 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	{
 		vkDeviceWaitIdle(device);
 	}
-	if (scene_view_.has_value())
-	{
-		vkDestroyImageView(device, scene_view_.value(), nullptr);
-	}
-	if (scene_vk_texture_.has_value())
-	{
-		ktxVulkanTexture_Destruct(&scene_vk_texture_.value(), device, nullptr);
-	}
-	if (scene_texture_.has_value())
-	{
-		ktxTexture_Destroy(scene_texture_.value());
-	}
-
 	if (skybox_view_.has_value())
 	{
 		vkDestroyImageView(device, skybox_view_.value(), nullptr);
@@ -406,7 +313,6 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 		{
 			ctx.rhi.descriptor_allocator.value().clear_pools(device);
 		}
-		if (image_sampler_.has_value()) vkDestroySampler(device, image_sampler_.value(), nullptr);
 		if (skybox_sampler_.has_value()) vkDestroySampler(device, skybox_sampler_.value(), nullptr);
 	}
 	{
@@ -418,10 +324,6 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
 		vkDestroyDescriptorSetLayout(device, gpu_scene_data_descriptor_layout_.value(), nullptr);
-	}
-	if (scene_image_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(device, scene_image_descriptor_layout_.value(), nullptr);
 	}
 	if (skybox_image_descriptor_layout_.has_value())
 	{
