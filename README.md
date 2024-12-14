@@ -33,15 +33,7 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
 
  ## Open Source Code Dependencies
 
- ### Nameless engine
-
- https://github.com/Flone-dnb/nameless-engine <br/>
- MIT License<br/>
- Copyright (c) 2022-2024 Alexander Tretyakov<br/>
- For some of the ktx vma allocation logic.<br/>
-
  ### KTX tools
-
  https://github.com/KhronosGroup/KTX-Software   <br/>
  Apache 2.0 license <br/>
  Copyright (c) Mark Callow, the KTX-Software author; The Khronos Group Inc. <br/>
@@ -49,38 +41,39 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
  https://github.com/KhronosGroup/KTX-Software/tree/main/LICENSES
 
  ### fastgltf 
-
  https://github.com/spnda/fastgltf  <br/>
  MIT license <br/>
  Copyright (c) 2022 - 2024 spnda.  <br/>
 
  ### Vulkan memory allocator
-
  https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator  <br/>
  MIT License  <br/>
  Copyright  (c) 2017-2024 Advanced Micro Devices, Inc. <br/>
 
  ### Dear Imgui 
-
  https://github.com/ocornut/imgui  <br/>
  MIT license  <br/>
  Copyright (c) 2014-2024 Omar Cornut <br/>
 
  ### Volk
-
  https://github.com/zeux/volk  <br/>
  MIT license  <br/>
  Copyright (c) 2018-2024 Arseny Kapoulkine <br/>
 
 
  ### DirectXTex 
-
  https://github.com/microsoft/DirectXTex  <br/>
  MIT license  <br/>
  Copyright (c) Microsoft Corporation.
   <br/>
- ### stb
 
+ ### stb
  https://github.com/nothings/stb/tree/master?tab=License-1-ov-file#readme   <br/>
  MIT License  <br/>
  Copyright (c) 2017 Sean Barrett <br/>
+
+ ### Nameless engine
+ https://github.com/Flone-dnb/nameless-engine <br/>
+ MIT License<br/>
+ Copyright (c) 2022-2024 Alexander Tretyakov<br/>
+ For some of the ktx vma allocation logic.<br/>
