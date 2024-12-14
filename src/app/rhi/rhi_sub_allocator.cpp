@@ -32,8 +32,10 @@ namespace ktx_sub_allocator
     {
         const uint64_t alloc_id = mt64();
         VmaAllocationCreateInfo p_create_info = {};
+        bool b_using_host_visible_memory = false;
         if ((alloc_info->memoryTypeIndex & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
         {
+            b_using_host_visible_memory = true;
             p_create_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
             p_create_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
         }
@@ -52,6 +54,16 @@ namespace ktx_sub_allocator
         alloc_mem_c_wrapper_directory[alloc_id].allocation = allocation;
         alloc_mem_c_wrapper_directory[alloc_id].map_size = mem_req->size;
         *num_pages = 1ull;
+
+        vmaSetAllocationName(
+            vma_allocator,
+            allocation,
+            std::format(
+                "KTX texture allocation #{} {}",
+                alloc_id,
+                b_using_host_visible_memory ? "(upload resource)" : "")
+            .c_str());
+
         return alloc_id;
     }
 
