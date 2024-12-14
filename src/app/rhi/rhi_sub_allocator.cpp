@@ -16,7 +16,7 @@ namespace ktx_sub_allocator
 
     namespace {
         VmaAllocator vma_allocator;
-        std::mt19937_64 mt64{};;
+        std::mt19937_64 mt64{ std::random_device{}() };
         std::unordered_map<uint64_t, allocation_info> alloc_mem_c_wrapper_directory;
         bool is_initialized = false;
     }
