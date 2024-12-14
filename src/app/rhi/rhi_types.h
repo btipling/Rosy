@@ -34,6 +34,13 @@ struct allocated_image
 	VkFormat image_format;
 };
 
+struct allocated_ktx_image
+{
+	VkImage image;
+	VkImageView image_view;
+	VmaAllocation allocation;
+};
+
 struct allocated_image_result
 {
 	VkResult result;
@@ -175,13 +182,25 @@ struct ktx_auto_texture
 	ktxVulkanTexture vk_texture;
 };
 
+
+namespace ktx_sub_allocator
+{
+	void init_vma(const VmaAllocator& allocator);
+	uint64_t alloc_mem_c_wrapper(VkMemoryAllocateInfo* alloc_info, VkMemoryRequirements* mem_req, uint64_t* num_pages);
+	VkResult bind_buffer_memory_c_wrapper(VkBuffer buffer, uint64_t alloc_id);
+	VkResult bind_image_memory_c_wrapper(VkImage image, uint64_t alloc_id);
+	VkResult map_memory_c_wrapper(uint64_t alloc_id, uint64_t, VkDeviceSize* map_length, void** data_ptr);
+	void unmap_memory_c_wrapper(uint64_t alloc_id, uint64_t);
+	void free_mem_c_wrapper(uint64_t alloc_id);
+}
+
 class rhi;
 
 class rhi_data
 {
 public:
 	explicit rhi_data(rhi* renderer);
-	[[nodiscard]] std::optional<mesh_scene> load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path) const;
+	[[nodiscard]] std::optional<mesh_scene> load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path);
 	[[nodiscard]] auto upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_mesh_buffers_result;
 	allocated_buffer_result create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 
@@ -191,13 +210,15 @@ public:
 	[[nodiscard]] auto create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
 		bool mip_mapped) const->allocated_image_result;
 	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(const void* data, const VkExtent3D size, const VkFormat format,
-		const VkImageUsageFlags usage, const bool mip_mapped) const;
-	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const;
-	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(fastgltf::Asset& asset, const fastgltf::Image& image, VkFormat format) const;
+		const VkImageUsageFlags usage, const bool mip_mapped);
+	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage);
+	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(fastgltf::Asset& asset, const fastgltf::Image& image, VkFormat format);
 
 	void destroy_image(const allocated_image& img) const;
+	void destroy_image(ktx_auto_texture& img);
 
 private:
 	rhi* renderer_;
 	texture_cache texture_cache_{};
+	ktxVulkanTexture_subAllocatorCallbacks sub_allocator_callbacks_{};
 };

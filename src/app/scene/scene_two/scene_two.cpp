@@ -63,7 +63,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	{
 		// Skybox texture and sampler
 		{
-
+			ktx_auto_texture skybox_txt{};
 			ktxTexture* k_texture;
 			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/skybox_clouds.ktx2",
 				KTX_TEXTURE_CREATE_NO_FLAGS,
@@ -72,23 +72,25 @@ rh::result scene_two::build(const rh::ctx& ctx)
 				rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
 				return rh::result::error;
 			}
-
-			skybox_texture_ = k_texture;
+			skybox_txt.texture = k_texture;
 			if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
 			{
-				skybox_vk_texture_ = res.value();
+				skybox_txt.vk_texture = res.value();;
+				skybox_texture_ = skybox_txt;;
 			}
 			else
 			{
 				rosy_utils::debug_print_a("ktx upload failure: %d\n", res.error());
+				ktxTexture_Destroy(k_texture);
+				return rh::result::error;
 			}
 
 
 			VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
 
-			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(skybox_vk_texture_.value().imageFormat, skybox_vk_texture_.value().image, aspect_flag);
-			view_info.subresourceRange.levelCount = skybox_vk_texture_.value().levelCount;
-			view_info.subresourceRange.layerCount = skybox_vk_texture_.value().layerCount;
+			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(skybox_txt.vk_texture.imageFormat, skybox_txt.vk_texture.image, aspect_flag);
+			view_info.subresourceRange.levelCount = skybox_txt.vk_texture.levelCount;
+			view_info.subresourceRange.layerCount = skybox_txt.vk_texture.layerCount;
 			view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
 			VkImageView img_view{};
 			if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
@@ -101,7 +103,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		{
 			VkSamplerCreateInfo sample = {};
 			sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			sample.maxLod = skybox_vk_texture_.value().levelCount;
+			sample.maxLod = skybox_texture_.value().vk_texture.levelCount;
 			sample.minLod = 0;
 
 			sample.magFilter = VK_FILTER_LINEAR;
@@ -299,13 +301,9 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	{
 		vkDestroyImageView(device, skybox_view_.value(), nullptr);
 	}
-	if (skybox_vk_texture_.has_value())
-	{
-		ktxVulkanTexture_Destruct(&skybox_vk_texture_.value(), device, nullptr);
-	}
 	if (skybox_texture_.has_value())
 	{
-		ktxTexture_Destroy(skybox_texture_.value());
+		ctx.rhi.data.value()->destroy_image(skybox_texture_.value());
 	}
 
 	{

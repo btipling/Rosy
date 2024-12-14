@@ -64,13 +64,9 @@ void mesh_scene::deinit(const rh::ctx& ctx)
 		buffer->destroy_buffer(rectangle.index_buffer);
 		mesh.reset();
 	}
-	for (ktxVulkanTexture tx : ktx_vk_textures)
+	for (ktx_auto_texture tx : ktx_textures)
 	{
-		ktxVulkanTexture_Destruct(&tx, device, nullptr);
-	}
-	for (ktxTexture* tx : ktx_textures)
-	{
-		ktxTexture_Destroy(tx);
+		ctx.rhi.data.value()->destroy_image(tx);
 	}
 	for (const VkImageView iv : image_views)
 	{

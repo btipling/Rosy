@@ -224,6 +224,9 @@
     <ClCompile Include="app\rhi\rhi_mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="app\rhi\rhi_sub_allocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc">

@@ -37,8 +37,7 @@ private:
 	std::optional<VkDescriptorSetLayout> skybox_image_descriptor_layout_ = std::nullopt;
 	std::optional<VkDescriptorSet> skybox_image_descriptor_set_ = std::nullopt;
 	std::optional<shader_pipeline> skybox_pipeline_ = std::nullopt;
-	std::optional<ktxTexture*> skybox_texture_ = std::nullopt;
-	std::optional<ktxVulkanTexture> skybox_vk_texture_ = std::nullopt;
+	std::optional<ktx_auto_texture> skybox_texture_ = std::nullopt;
 	std::optional<VkImageView> skybox_view_ = std::nullopt;
 
 	bool toggle_wire_frame_ = false;

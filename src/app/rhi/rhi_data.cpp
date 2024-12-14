@@ -21,9 +21,20 @@ texture_id texture_cache::add_texture(const VkImageView& image, const VkSampler 
 	return texture_id{ idx };
 }
 
-rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer } {}
+rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer }
+{
+	ktx_sub_allocator::init_vma(renderer->opt_allocator.value());
+	sub_allocator_callbacks_ = {
+		ktx_sub_allocator::alloc_mem_c_wrapper,
+		ktx_sub_allocator::bind_buffer_memory_c_wrapper,
+		ktx_sub_allocator::bind_image_memory_c_wrapper,
+		ktx_sub_allocator::map_memory_c_wrapper,
+		ktx_sub_allocator::unmap_memory_c_wrapper,
+		ktx_sub_allocator::free_mem_c_wrapper
+	};
+}
 
-std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path) const
+std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path)
 {
 	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
 		fastgltf::Options::AllowDouble |
@@ -49,9 +60,9 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 
 	for (fastgltf::Image& image : gltf.images) {
 		if (std::expected<ktx_auto_texture, ktx_error_code_e> res = create_image(gltf, image, VK_FORMAT_R8G8B8A8_SRGB); res.has_value()) {
-			auto [ktx_texture, ktx_vk_texture] = res.value();
-			gltf_mesh_scene.ktx_vk_textures.push_back(ktx_vk_texture);
-			gltf_mesh_scene.ktx_textures.push_back(ktx_texture);
+			auto ktx_txt = res.value();
+			auto [ktx_texture, ktx_vk_texture] = ktx_txt;
+			gltf_mesh_scene.ktx_textures.push_back(ktx_txt);
 
 			VkImageView img_view{};
 			{
@@ -251,7 +262,6 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 
 	// *** SETTING VERTEX BUFFER *** //
 	vertex_buffer = new_vertex_buffer;
-	rosy_utils::debug_print_a("vertex buffer set!\n");
 
 	VkBufferDeviceAddressInfo device_address_info{};
 	device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
@@ -259,7 +269,6 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 
 	// *** SETTING VERTEX BUFFER ADDRESS *** //
 	vertex_buffer_address = vkGetBufferDeviceAddress(renderer_->opt_device.value(), &device_address_info);
-	rosy_utils::debug_print_a("vertex buffer address set!\n");
 
 	auto [index_result, new_index_buffer] = create_buffer(
 		"indexBuffer",
@@ -274,7 +283,6 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 
 	// *** SETTING INDEX BUFFER *** //
 	index_buffer = new_index_buffer;
-	rosy_utils::debug_print_a("index buffer address set!\n");
 
 	auto [result, new_staging_buffer] = create_buffer("staging", vertex_buffer_size + index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 	if (result != VK_SUCCESS) {
@@ -283,15 +291,12 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 		return fail;
 	}
 	allocated_buffer staging = new_staging_buffer;
-	rosy_utils::debug_print_a("staging buffer created!\n");
 
 	void* data;
 	vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &data);
 	memcpy(data, vertices.data(), vertex_buffer_size);
 	memcpy(static_cast<char*>(data) + vertex_buffer_size, indices.data(), index_buffer_size);
 	vmaUnmapMemory(renderer_->opt_allocator.value(), staging.allocation);
-
-	rosy_utils::debug_print_a("staging buffer mapped!\n");
 
 	VkResult submit_result;
 	submit_result = renderer_->immediate_submit([&](const VkCommandBuffer cmd) {
@@ -315,7 +320,6 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 		return fail;
 	}
 	destroy_buffer(staging);
-	rosy_utils::debug_print_a("staging buffer submitted!\n");
 
 	gpu_mesh_buffers buffers{};
 	buffers.vertex_buffer = vertex_buffer;
@@ -326,7 +330,6 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	rv.result = VK_SUCCESS;
 	rv.buffers = buffers;
 
-	rosy_utils::debug_print_a("done uploading mesh!\n");
 	return rv;
 }
 
@@ -411,13 +414,14 @@ allocated_image_result rhi_data::create_image(VkExtent3D size, VkFormat format, 
 	}
 }
 
-std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage) const
+std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage)
 {
 	ktxVulkanTexture texture{};
-	ktx_error_code_e ktx_result = ktxTexture_VkUploadEx(ktx_texture, &renderer_->vdi.value(), &texture,
+	ktx_error_code_e ktx_result = ktxTexture_VkUploadEx_WithSuballocator(ktx_texture, &renderer_->vdi.value(), &texture,
 		VK_IMAGE_TILING_OPTIMAL,
 		usage,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		&sub_allocator_callbacks_);
 	if (ktx_result != KTX_SUCCESS)
 	{
 		return std::unexpected<ktx_error_code_e>(ktx_result);
@@ -427,7 +431,7 @@ std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxText
 
 
 std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(const void* data, const VkExtent3D size, const VkFormat format,
-	const VkImageUsageFlags usage, const bool mip_mapped) const
+	const VkImageUsageFlags usage, const bool mip_mapped)
 {
 	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
 
@@ -476,11 +480,10 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(const v
 }
 
 std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastgltf::Asset& asset,
-	const fastgltf::Image& image, const VkFormat format) const
+	const fastgltf::Image& image, const VkFormat format)
 {
 	int width, height, num_channels;
 	if (const fastgltf::sources::BufferView* view = std::get_if<fastgltf::sources::BufferView>(&image.data)) {
-		rosy_utils::debug_print_a(" a buffer view\n");
 		auto& [
 			bufferIndex,
 				byteOffset,
@@ -508,16 +511,12 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastglt
 				return rv;
 			}
 		}
-		else {
-			rosy_utils::debug_print_a("not a vector view\n");
-		}if (const fastgltf::sources::Array* arr = std::get_if<fastgltf::sources::Array>(&buffer.data)) {
+		if (const fastgltf::sources::Array* arr = std::get_if<fastgltf::sources::Array>(&buffer.data)) {
 			unsigned char* data = stbi_load_from_memory(static_cast<const stbi_uc*>(static_cast<const void*>(arr->bytes.data())) + byteOffset, // NOLINT(bugprone-casting-through-void)
 				static_cast<int>(byteLength),
 				&width, &height, &num_channels, 4);
 
-			rosy_utils::debug_print_a("has data?\n");
 			if (data) {
-				rosy_utils::debug_print_a("has data!\n");
 				VkExtent3D image_size{};
 				image_size.width = width;
 				image_size.height = height;
@@ -528,17 +527,8 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastglt
 				stbi_image_free(data);
 				return rv;
 			}
-			rosy_utils::debug_print_a("is an array!\n");
-		}
-		else {
-			rosy_utils::debug_print_a("not a vector view\n");
 		}
 	}
-	else {
-		rosy_utils::debug_print_a("not a buffer view\n");
-	}
-
-
 
 	return std::unexpected(KTX_FILE_DATA_ERROR);
 }
@@ -547,4 +537,10 @@ void rhi_data::destroy_image(const allocated_image& img) const
 {
 	vkDestroyImageView(renderer_->opt_device.value(), img.image_view, nullptr);
 	vmaDestroyImage(renderer_->opt_allocator.value(), img.image, img.allocation);
+}
+
+void rhi_data::destroy_image(ktx_auto_texture& img)
+{
+	ktxTexture_Destroy(img.texture);
+	ktxVulkanTexture_Destruct_WithSuballocator(&img.vk_texture, renderer_->opt_device.value(), nullptr, &sub_allocator_callbacks_);
 }

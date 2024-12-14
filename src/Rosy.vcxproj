@@ -170,6 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="app\rhi\rhi_mesh.cpp" />
+    <ClCompile Include="app\rhi\rhi_sub_allocator.cpp" />
     <ClCompile Include="app\scene\scene.cpp" />
     <ClCompile Include="app\scene\scene_two\scene_two.cpp" />
     <ClCompile Include="math.cpp" />

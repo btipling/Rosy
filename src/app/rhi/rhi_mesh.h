@@ -9,8 +9,7 @@ public:
 	std::vector<std::shared_ptr<mesh_asset>> meshes;
 	std::vector<material> materials;
 
-	std::vector<ktxVulkanTexture> ktx_vk_textures;
-	std::vector<ktxTexture*> ktx_textures;
+	std::vector<ktx_auto_texture> ktx_textures;
 	std::vector<VkSampler> samplers;
 	std::vector<VkImageView> image_views;
 	std::vector<VkDescriptorSet> descriptor_sets;
