@@ -31,7 +31,7 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
  ```
  Then have to open them up in Nvidia Texture Tools and save them to get the VkFormat correct
 
- ## Open Source Code Referenced
+ ## Open Source Code referenced and depndencies
 
  Nameless engine
 
