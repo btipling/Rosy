@@ -934,6 +934,7 @@ VkResult rhi::init_descriptors()
 
 void rhi::init_allocator()
 {
+	constexpr VkDeviceSize device_size = 0;
 	VmaVulkanFunctions vulkan_functions{};
 	vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
 	vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
@@ -944,6 +945,7 @@ void rhi::init_allocator()
 	allocator_create_info.device = opt_device.value();
 	allocator_create_info.instance = instance_.value();
 	allocator_create_info.pVulkanFunctions = &vulkan_functions;
+	allocator_create_info.preferredLargeHeapBlockSize = device_size;
 	allocator_create_info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
 	VmaAllocator allocator;

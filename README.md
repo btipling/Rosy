@@ -31,40 +31,40 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
  ```
  Then have to open them up in Nvidia Texture Tools and save them to get the VkFormat correct
 
- ## Open Source Code referenced and depndencies
+ ## Open Source Code Dependencies
 
- Nameless engine
+ ### Nameless engine
 
  https://github.com/Flone-dnb/nameless-engine MIT License Copyright (c) 2022-2024 Alexander Tretyakov
  For some of the ktx vma allocation logic.
 
- KTX tools
+ ### KTX tools
 
  https://github.com/KhronosGroup/KTX-Software  Apache 2.0 license Copyright (c) Mark Callow, the KTX-Software author; The Khronos Group Inc. 
  and additional licenses
  https://github.com/KhronosGroup/KTX-Software/tree/main/LICENSES
 
- fastgltf 
+ ### fastgltf 
 
  https://github.com/spnda/fastgltf MIT license Copyright (c) 2022 - 2024 spnda. All rights reserved.
 
- Vulkan memory allocator
+ ### Vulkan memory allocator
 
  https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator MIT License Copyright (c) 2017-2024 Advanced Micro Devices, Inc. All rights reserved.
 
- Dear Imgui 
+ ### Dear Imgui 
 
  https://github.com/ocornut/imgui MIT license Copyright (c) 2014-2024 Omar Cornut
 
- Volk
+ ### Volk
 
  https://github.com/zeux/volk MIT license Copyright (c) 2018-2024 Arseny Kapoulkine
 
 
- DirectXTex 
+ ### DirectXTex 
 
  https://github.com/microsoft/DirectXTex MIT license Copyright (c) Microsoft Corporation.
 
- stb
+ ### stb
 
  https://github.com/nothings/stb/tree/master?tab=License-1-ov-file#readme  MIT License Copyright (c) 2017 Sean Barrett
