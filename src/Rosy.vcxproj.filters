@@ -258,6 +258,9 @@
     <None Include="shaders\skybox.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
+    <None Include="shaders\skybox_mesh.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\SDL3.lib">

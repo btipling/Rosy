@@ -76,7 +76,7 @@ VkSamplerAddressMode extract_wrap_mode(const fastgltf::Wrap wrap)
 	}
 }
 
-std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path)
+rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path, mesh_scene& gltf_mesh_scene)
 {
 	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
 		fastgltf::Options::AllowDouble |
@@ -86,7 +86,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 	fastgltf::Parser parser{};
 	auto data = fastgltf::GltfDataBuffer::FromPath(file_path);
 	if (data.error() != fastgltf::Error::None) {
-		return std::nullopt;
+		return rh::result::error;
 	}
 	auto asset = parser.loadGltf(data.get(), file_path.parent_path(), gltf_options);
 	if (asset) {
@@ -95,10 +95,8 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 	else {
 		auto err = fastgltf::to_underlying(asset.error());
 		rosy_utils::debug_print_a("failed to load gltf: %d %s\n", err, file_path.string().c_str());
-		return std::nullopt;
+		return rh::result::error;
 	}
-	mesh_scene gltf_mesh_scene{};
-	gltf_mesh_scene.init(ctx);
 
 	std::vector<VkSamplerCreateInfo> sampler_create_infos{};
 
@@ -281,7 +279,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 		auto [result, uploaded_mesh] = upload_mesh(indices, vertices);
 		if (result != VK_SUCCESS) {
 			rosy_utils::debug_print_a("failed to upload mesh: %d\n", result);
-			return std::nullopt;
+			return rh::result::error;
 		}
 		new_mesh.mesh_buffers = uploaded_mesh;
 		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
@@ -290,7 +288,7 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_mesh_scene.add_node(gltf_node);
 	for (fastgltf::Scene& gltf_scene : gltf.scenes) gltf_mesh_scene.add_scene(gltf_scene);
 	gltf_mesh_scene.root_scene = gltf.defaultScene.value_or(0);
-	return gltf_mesh_scene;
+	return rh::result::ok;
 }
 
 

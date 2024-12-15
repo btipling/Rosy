@@ -213,6 +213,7 @@
     <None Include="shaders\skybox.frag" />
     <None Include="shaders\skybox.vert" />
     <None Include="shaders\mesh.frag" />
+    <None Include="shaders\skybox_mesh.frag" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\ktx.lib" />

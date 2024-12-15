@@ -72,15 +72,17 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		skybox_pipeline_ = sp;
 	}
 
-
-	// ReSharper disable once StringLiteralTypo
-	if (auto load_result = data->load_gltf_meshes(ctx, "assets\\sphere.glb"); load_result.has_value())
 	{
-		scene_graph_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
-	}
-	else
-	{
-		return rh::result::error;
+		mesh_scene mesh_graph{};
+		mesh_graph.init(ctx);
+		if (auto res = data->load_gltf_meshes(ctx, "assets\\sphere.glb", mesh_graph); res != rh::result::ok)
+		{
+			return res;
+		}
+		scene_graph_ = std::make_shared<mesh_scene>(std::move(mesh_graph));
+		constexpr float label[4] = { 0.5f, 0.1f, 0.1f, 1.0f };
+		scene_graph_->name = "earth";
+		std::ranges::copy(label, std::begin(scene_graph_->color));
 	}
 
 	const uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));

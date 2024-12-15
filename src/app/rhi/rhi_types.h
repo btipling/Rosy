@@ -201,7 +201,7 @@ class rhi_data
 {
 public:
 	explicit rhi_data(rhi* renderer);
-	[[nodiscard]] std::optional<mesh_scene> load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path);
+	rh::result load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path, mesh_scene& gltf_mesh_scene);
 	[[nodiscard]] auto upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_mesh_buffers_result;
 	allocated_buffer_result create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 

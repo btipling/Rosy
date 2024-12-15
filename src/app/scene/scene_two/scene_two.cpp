@@ -60,24 +60,32 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		skybox_pipeline_ = sp;
 	}
 
-
-	// ReSharper disable once StringLiteralTypo
-	if (auto load_result = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf"); load_result.has_value())
 	{
-		scene_graph_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
+		mesh_scene mesh_graph{};
+		mesh_graph.init(ctx);
+		// ReSharper disable once StringLiteralTypo
+		if (auto res = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf", mesh_graph); res != rh::result::ok)
+		{
+			return res;
+		}
+		scene_graph_ = std::make_shared<mesh_scene>(std::move(mesh_graph));
 		constexpr float label[4] = { 0.5f, 0.1f, 0.1f, 1.0f };
 		// ReSharper disable once StringLiteralTypo
 		scene_graph_->name = "deccer's cubes";
 		std::ranges::copy(label, std::begin(scene_graph_->color));
 	}
-	if (auto load_result = data->load_gltf_meshes(ctx, "assets\\anime_skybox.glb"); load_result.has_value())
 	{
-		anime_sky_box_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
+		mesh_scene mesh_graph{};
+		mesh_graph.init(ctx);
+		if (auto res = data->load_gltf_meshes(ctx, "assets\\anime_skybox.glb", mesh_graph); res != rh::result::ok)
+		{
+			return res;
+		}
+		anime_sky_box_ = std::make_shared<mesh_scene>(std::move(mesh_graph));
 		constexpr float label[4] = { 0.5f, 0.1f, 1.f, 1.0f };
 		anime_sky_box_->name = "anime skybox";
 		std::ranges::copy(label, std::begin(anime_sky_box_->color));
 	}
-	else return rh::result::error;
 	{
 		// Skybox texture and sampler
 		{
