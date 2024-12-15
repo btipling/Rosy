@@ -21,6 +21,7 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
 * [x] Do resize and draw in SDL resize callback for maximum responsiveness
 
 ![image](https://github.com/user-attachments/assets/96deac49-17c2-4321-91e3-c9071fcd5d78)
+[skybox attribution](https://sketchfab.com/3d-models/free-skybox-blue-desert-fd952e60be9746e0872840e89fbf7370)
 
 ## Generating Cubemaps with ktx
 
