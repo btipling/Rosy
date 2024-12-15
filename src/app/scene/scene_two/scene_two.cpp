@@ -287,6 +287,13 @@ namespace
 
 		return p * shadow_map_view;
 	}
+
+	glm::mat4 shadow_map_projection(const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view)
+	{
+		const auto frustum = shadow_map_frustum(p, world_view);
+		const auto shadow_view = shadow_map_view(frustum, light_direction);
+		return shadow_map_projection(frustum, shadow_view);
+	}
 }
 
 void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer)
@@ -319,6 +326,7 @@ void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_sce
 		scene_data_.view = view;
 		scene_data_.proj = proj;
 		scene_data_.view_projection = proj * view;
+		scene_data_.shadow_projection = shadow_map_projection(sunlight_direction_, proj, view);
 		scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
 		scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
 		scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
