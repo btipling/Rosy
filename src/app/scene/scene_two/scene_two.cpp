@@ -223,6 +223,72 @@ rh::result scene_two::update(const rh::ctx& ctx)
 	return rh::result::ok;
 }
 
+namespace
+{
+	std::vector<glm::vec4> shadow_map_frustum(const glm::mat4& proj, const glm::mat4& view)
+	{
+		const auto inv = glm::inverse(proj * view);
+
+		std::vector<glm::vec4> corners;
+		for (unsigned int x = 0; x < 2; ++x)
+		{
+			for (unsigned int y = 0; y < 2; ++y)
+			{
+				for (unsigned int z = 0; z < 2; ++z)
+				{
+					const glm::vec4 point = inv * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
+					corners.push_back(point / point.w);
+				}
+			}
+		}
+
+		return corners;
+	}
+
+	glm::mat4 shadow_map_view(const std::vector<glm::vec4>& shadow_frustum, const glm::vec3 light_direction)
+	{
+		auto center = glm::vec3(0, 0, 0);
+		for (const auto& v : shadow_frustum) center += glm::vec3(v);
+		center /= shadow_frustum.size();
+		return lookAt(center + light_direction, center, glm::vec3(0.0f, 1.0f, 0.0f));
+
+	}
+
+	glm::mat4 shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view)
+	{
+		float min_x = std::numeric_limits<float>::max();
+		float max_x = std::numeric_limits<float>::lowest();
+		float min_y = std::numeric_limits<float>::max();
+		float max_y = std::numeric_limits<float>::lowest();
+		float min_z = std::numeric_limits<float>::max();
+		float max_z = std::numeric_limits<float>::lowest();
+
+		for (const auto& v : shadow_frustum)
+		{
+			const auto point = shadow_map_view * v;
+			min_x = std::min(min_x, point.x);
+			max_x = std::max(max_x, point.x);
+			min_y = std::min(min_y, point.y);
+			max_y = std::max(max_y, point.y);
+			min_z = std::min(min_z, point.z);
+			max_z = std::max(max_z, point.z);
+		}
+
+		constexpr float z_offset = 10.0f;
+		if (min_z < 0) min_z *= z_offset;
+		else min_z /= z_offset;
+		if (max_z < 0) max_z /= z_offset;
+		else max_z *= z_offset;
+
+		const glm::mat4 p = glm::ortho(
+			min_x, max_x,
+			min_y, max_y,
+			min_z, max_z);
+
+		return p * shadow_map_view;
+	}
+}
+
 void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer)
 {
 	camera_.process_sdl_event(ctx);

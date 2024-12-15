@@ -42,10 +42,15 @@ VkResult rhi::draw_ui()
 std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
+	const VkExtent2D shadow_map_extent = {
+		.width = shadow_map_image_.value().image_extent.width,
+		.height = shadow_map_image_.value().image_extent.height,
+	};
 	rh::rhi rhi_ctx = {
 		.device = opt_device.value(),
 		.allocator = opt_allocator.value(),
 		.frame_extent = swapchain_extent,
+		.shadow_map_extent = shadow_map_extent,
 	};
 	if (frame_datas_.size() > 0) {
 		rhi_ctx.frame_data = frame_datas_[current_frame_];
@@ -152,10 +157,15 @@ VkResult rhi::shadow_pass()
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_image shadow_map_image = shadow_map_image_.value();
+
+	const VkExtent2D shadow_map_extent = {
+		.width = shadow_map_image.image_extent.width,
+		.height = shadow_map_image.image_extent.height,
+	};
 	transition_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 	{
 		VkRenderingAttachmentInfo depth_attachment = rhi_helpers::depth_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-		VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(swapchain_extent, depth_attachment);
+		VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
 		// begin shadow pass
 		vkCmdBeginRendering(cmd, &render_info);
 	}

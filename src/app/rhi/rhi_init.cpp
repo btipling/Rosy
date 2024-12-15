@@ -851,7 +851,7 @@ VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swap
 VkResult rhi::init_draw_image()
 {
 	VkResult result;
-
+	const VkDevice device = opt_device.value();
 	VkExtent3D draw_image_extent = {
 		.width = static_cast<uint32_t>(app_cfg->max_window_width),
 		.height = static_cast<uint32_t>(app_cfg->max_window_height),
@@ -882,7 +882,7 @@ VkResult rhi::init_draw_image()
 		VkImageViewCreateInfo r_view_info = rhi_helpers::img_view_create_info(draw_image.image_format, draw_image.image,
 			VK_IMAGE_ASPECT_COLOR_BIT);
 
-		result = vkCreateImageView(opt_device.value(), &r_view_info, nullptr, &draw_image.image_view);
+		result = vkCreateImageView(device, &r_view_info, nullptr, &draw_image.image_view);
 		if (result != VK_SUCCESS) return result;
 		draw_image_ = draw_image;
 	}
@@ -902,19 +902,24 @@ VkResult rhi::init_draw_image()
 		VkImageViewCreateInfo d_view_info = rhi_helpers::img_view_create_info(depth_image.image_format, depth_image.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT);
 
-		result = vkCreateImageView(opt_device.value(), &d_view_info, nullptr, &depth_image.image_view);
+		result = vkCreateImageView(device, &d_view_info, nullptr, &depth_image.image_view);
 		if (result != VK_SUCCESS) return result;
 		depth_image_ = depth_image;
 	}
 	{
 		// Shadow map image creation.
+		VkExtent3D shadow_map_image_extent = {
+			.width = 4096,
+			.height = 4096,
+			.depth = 1
+		};
 		allocated_image shadow_map_image{};
 		shadow_map_image.image_format = VK_FORMAT_D32_SFLOAT;
-		shadow_map_image.image_extent = draw_image_extent;
+		shadow_map_image.image_extent = shadow_map_image_extent;
 		VkImageUsageFlags depth_image_usages{};
 		depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-		VkImageCreateInfo depth_info = rhi_helpers::img_create_info(shadow_map_image.image_format, depth_image_usages, draw_image_extent);
+		VkImageCreateInfo depth_info = rhi_helpers::img_create_info(shadow_map_image.image_format, depth_image_usages, shadow_map_image_extent);
 
 		vmaCreateImage(opt_allocator.value(), &depth_info, &r_img_alloc_info, &shadow_map_image.image, &shadow_map_image.allocation,
 			nullptr);
@@ -922,9 +927,12 @@ VkResult rhi::init_draw_image()
 		VkImageViewCreateInfo d_view_info = rhi_helpers::img_view_create_info(shadow_map_image.image_format, shadow_map_image.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT);
 
-		result = vkCreateImageView(opt_device.value(), &d_view_info, nullptr, &shadow_map_image.image_view);
+		result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view);
 		if (result != VK_SUCCESS) return result;
 		shadow_map_image_ = shadow_map_image;
+		auto obj_name = "shadow_map_image";
+		const VkDebugUtilsObjectNameInfoEXT vert_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(shadow_map_image.image), obj_name);
+		if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &vert_name); result != VK_SUCCESS) return result;
 	}
 
 	return result;

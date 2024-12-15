@@ -68,6 +68,7 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 	const VkDevice device = ctx.rhi.device;
 	std::vector<char> scene_vertex_shader;
 	std::vector<char> scene_fragment_shader;
+	shadow_map_extent_ = ctx.rhi.shadow_map_extent;
 	try
 	{
 		scene_vertex_shader = read_file(shadow_vertex_path);
@@ -222,7 +223,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 
 	size_t last_material = 100'000;
 
-	for (auto ro : draw_queue(ctx.scene_index, ndc * ctx.world_transform)) {
+	for (auto ro : draw_queue(ctx.scene_index, ndc* ctx.world_transform)) {
 		if (ro.material_index != last_material)
 		{
 			last_material = ro.material_index;
@@ -257,7 +258,7 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 
 	shader_pipeline m_shaders = shadow_shaders.value();
 	{
-		m_shaders.viewport_extent = ctx.extent;
+		m_shaders.viewport_extent = shadow_map_extent_;
 		m_shaders.wire_frames_enabled = false;
 		m_shaders.depth_enabled = true;
 		m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);

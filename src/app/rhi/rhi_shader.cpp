@@ -23,12 +23,12 @@ VkResult shader_pipeline::build(const VkDevice device)
 	shaders.resize(2);
 	if (const VkResult result = vkCreateShadersEXT(device, shaders_create_info_.size(), shaders_create_info_.data(), nullptr, shaders.data()); result != VK_SUCCESS) return result;
 	{
-		const auto obj_name = std::string(name) + "_vert";
+		const auto obj_name = std::format("{}_vert", name);
 		const VkDebugUtilsObjectNameInfoEXT vert_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders.data()[0]), obj_name.c_str());
 		if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &vert_name); result != VK_SUCCESS) return result;
 	}
 	{
-		const auto obj_name = std::string(name) + "_frag";
+		const auto obj_name = std::format("{}_frag", name);
 		const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders.data()[1]), obj_name.c_str());
 		if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 	}

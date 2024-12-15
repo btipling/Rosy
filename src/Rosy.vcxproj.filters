@@ -132,11 +132,11 @@
     <ClInclude Include="app\scene\scene_two\scene_two.h">
       <Filter>scene\scene_two</Filter>
     </ClInclude>
-    <ClInclude Include="math.h">
-      <Filter>Resource Files\shaders</Filter>
-    </ClInclude>
     <ClInclude Include="app\rhi\rhi_mesh.h">
       <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="math.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

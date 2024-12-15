@@ -12,6 +12,7 @@ struct gpu_scene_data
 	glm::mat4 view;
 	glm::mat4 proj;
 	glm::mat4 view_projection;
+	glm::mat4 shadow_projection = glm::mat4(1.f);
 	glm::vec4 camera_position;
 	glm::vec4 ambient_color;
 	glm::vec4 sunlight_direction; // w for light intensity
