@@ -8,11 +8,7 @@
 class scene_two final : public scene
 {
 public:
-	scene_two() :
-		camera_(glm::vec3{ 0.2f, 0.6f, -1.3f }) {
-		camera_.pitch = 0.36f;
-		camera_.yaw = 1.f;
-	}
+	scene_two();
 	rh::result build(const rh::ctx& ctx) override;
 	rh::result update(const rh::ctx& ctx) override;
 	rh::result draw(rh::ctx ctx) override;
@@ -23,7 +19,6 @@ private:
 	gpu_scene_data scene_data_ = {};
 	camera camera_;
 
-	std::optional<VkSampler> skybox_sampler_ = std::nullopt;
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 	std::shared_ptr<mesh_scene> scene_graph_;
 
@@ -34,6 +29,7 @@ private:
 	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 2.593f, -1.362f);
 
 	// Skybox
+	std::optional<VkSampler> skybox_sampler_ = std::nullopt;
 	std::optional<VkDescriptorSetLayout> skybox_image_descriptor_layout_ = std::nullopt;
 	std::optional<VkDescriptorSet> skybox_image_descriptor_set_ = std::nullopt;
 	std::optional<shader_pipeline> skybox_pipeline_ = std::nullopt;

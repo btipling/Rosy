@@ -8,6 +8,13 @@
 #include "../../loader/loader.h"
 
 
+scene_two::scene_two():  // NOLINT(modernize-use-equals-default)
+	camera_(glm::vec3{ 10.2f, 0.6f, -13.3f })
+{
+	camera_.pitch = 0.36f;
+	camera_.yaw = 1.f;
+}
+
 rh::result scene_two::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
@@ -182,6 +189,13 @@ rh::result scene_two::draw(rh::ctx ctx)
 		}
 	}
 	{
+
+		auto m = translate(glm::mat4(1.f), scene_pos_);
+		m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+		m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+		m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+		m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
+
 		// Skybox
 		{
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
@@ -217,18 +231,11 @@ rh::result scene_two::draw(rh::ctx ctx)
 		}
 		// Scene
 		{
-			auto m = translate(glm::mat4(1.f), scene_pos_);
-			m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
-			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
-			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
-			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
-
 			mesh_ctx m_ctx{};
 			m_ctx.wire_frame = toggle_wire_frame_;
 			m_ctx.cmd = cmd;
 			m_ctx.extent = frame_extent;
 			m_ctx.global_descriptor = &global_descriptor;
-			m_ctx.world_transform = m;
 			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 	}
