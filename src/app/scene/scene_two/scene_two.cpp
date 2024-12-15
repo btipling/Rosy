@@ -66,6 +66,10 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	{
 		scene_graph_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
 	}
+	if (auto load_result = data->load_gltf_meshes(ctx, "assets\\anime_skybox.glb"); load_result.has_value())
+	{
+		anime_sky_box_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
+	}
 	else return rh::result::error;
 	{
 		// Skybox texture and sampler
@@ -288,6 +292,9 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	}
 	{
 		scene_graph_->deinit(ctx);
+	}
+	{
+		anime_sky_box_->deinit(ctx);
 	}
 	if (skybox_pipeline_.has_value()) {
 		skybox_pipeline_.value().deinit(device);

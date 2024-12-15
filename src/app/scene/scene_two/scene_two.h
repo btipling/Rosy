@@ -21,6 +21,7 @@ private:
 
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 	std::shared_ptr<mesh_scene> scene_graph_;
+	std::shared_ptr<mesh_scene> anime_sky_box_;
 
 	// Scene
 	glm::vec3 scene_rot_ = glm::vec3(0.f);
