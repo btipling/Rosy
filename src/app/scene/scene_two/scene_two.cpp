@@ -8,7 +8,7 @@
 #include "../../loader/loader.h"
 
 
-scene_two::scene_two():  // NOLINT(modernize-use-equals-default)
+scene_two::scene_two() :  // NOLINT(modernize-use-equals-default)
 	camera_(glm::vec3{ 10.2f, 0.6f, -13.3f })
 {
 	camera_.pitch = 0.36f;
@@ -29,37 +29,6 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		gpu_scene_data_descriptor_layout_ = set;
 		layouts.push_back(set);
 	}
-	{
-		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return rh::result::error;
-		skybox_image_descriptor_layout_ = set;
-		layouts.push_back(set);
-	}
-	std::vector<char> skybox_vertex_shader;
-	std::vector<char> skybox_fragment_shader;
-	try
-	{
-		skybox_vertex_shader = read_file("out/skybox.vert.spv");
-		skybox_fragment_shader = read_file("out/skybox.frag.spv");
-	}
-	catch (const std::exception& e)
-	{
-		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
-		return rh::result::error;
-	}
-
-	{
-		// Skybox pipeline
-		shader_pipeline sp = {};
-		sp.layouts = layouts;
-		sp.name = "skybox";
-		sp.with_shaders(skybox_vertex_shader, skybox_fragment_shader);
-		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
-		skybox_pipeline_ = sp;
-	}
-
 	{
 		mesh_scene mesh_graph{};
 		mesh_graph.init(ctx);
@@ -87,84 +56,6 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		anime_sky_box_->name = "anime skybox";
 		std::ranges::copy(label, std::begin(anime_sky_box_->color));
 	}
-	{
-		// Skybox texture and sampler
-		{
-			ktx_auto_texture skybox_txt{};
-			ktxTexture* k_texture;
-			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/skybox_clouds.ktx2",
-				KTX_TEXTURE_CREATE_NO_FLAGS,
-				&k_texture);
-			if (ktx_result != KTX_SUCCESS) {
-				rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
-				return rh::result::error;
-			}
-			skybox_txt.texture = k_texture;
-			if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
-			{
-				skybox_txt.vk_texture = res.value();;
-				skybox_texture_ = skybox_txt;;
-			}
-			else
-			{
-				rosy_utils::debug_print_a("ktx upload failure: %d\n", res.error());
-				ktxTexture_Destroy(k_texture);
-				return rh::result::error;
-			}
-
-
-			VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
-
-			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(skybox_txt.vk_texture.imageFormat, skybox_txt.vk_texture.image, aspect_flag);
-			view_info.subresourceRange.levelCount = skybox_txt.vk_texture.levelCount;
-			view_info.subresourceRange.layerCount = skybox_txt.vk_texture.layerCount;
-			view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-			VkImageView img_view{};
-			if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
-				VK_SUCCESS)
-			{
-				return rh::result::error;
-			}
-			skybox_view_ = img_view;
-		}
-		{
-			VkSamplerCreateInfo sample = {};
-			sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			sample.maxLod = skybox_texture_.value().vk_texture.levelCount;
-			sample.minLod = 0;
-
-			sample.magFilter = VK_FILTER_LINEAR;
-			sample.minFilter = VK_FILTER_LINEAR;
-
-			sample.anisotropyEnable = VK_FALSE;
-			sample.maxAnisotropy = 0.f;
-			sample.mipLodBias = 0.0f;
-			sample.compareOp = VK_COMPARE_OP_NEVER;
-
-			// Set proper address modes for spherical mapping
-			sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-			// Linear mipmap mode instead of NEAREST
-			sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			VkSampler sampler{};
-			if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
-			skybox_sampler_ = sampler;
-		}
-		{
-			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, skybox_image_descriptor_layout_.value());
-			if (image_set_result != VK_SUCCESS) return  rh::result::error;
-			{
-				descriptor_writer writer;
-				writer.write_image(0, skybox_view_.value(), skybox_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-				writer.update_set(device, image_set);
-				skybox_image_descriptor_set_ = image_set;
-			}
-		}
-	}
-
-
 
 	return rh::result::ok;
 }
@@ -185,7 +76,6 @@ rh::result scene_two::draw(rh::ctx ctx)
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
-	shader_pipeline skybox_shaders = skybox_pipeline_.value();
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 	VmaAllocator allocator = ctx.rhi.allocator;
 
@@ -209,40 +99,6 @@ rh::result scene_two::draw(rh::ctx ctx)
 		}
 	}
 	{
-
-		// Skybox
-		//{
-		//	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
-		//	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 1, 1, &skybox_image_descriptor_set_.value(), 0, nullptr);
-		//	float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
-		//	VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
-		//	vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
-
-		//	gpu_draw_push_constants push_constants{};
-		//	auto m = glm::mat4(1.0f);
-		//	m = translate(m, camera_.position);
-		//	push_constants.world_matrix = m;
-
-		//	if (scene_graph_->meshes.size() > 0)
-		//	{
-		//		size_t mesh_index = 0;
-		//		auto mesh = scene_graph_->meshes[mesh_index];
-		//		push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
-		//		skybox_shaders.viewport_extent = frame_extent;
-		//		skybox_shaders.shader_constants = &push_constants;
-		//		skybox_shaders.shader_constants_size = sizeof(push_constants);
-		//		skybox_shaders.wire_frames_enabled = toggle_wire_frame_;
-		//		skybox_shaders.depth_enabled = false;
-		//		skybox_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
-		//		skybox_shaders.blending = static_cast<shader_blending>(blend_mode_);
-		//		if (VkResult result = skybox_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
-		//		if (VkResult result = skybox_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-		//		vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-		//		vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
-		//			0, 0);
-		//	}
-		//	vkCmdEndDebugUtilsLabelEXT(cmd);
-		//}
 		// Anime skybox
 		{
 			auto m = glm::mat4(1.0f);
@@ -305,38 +161,16 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	{
 		vkDeviceWaitIdle(device);
 	}
-	if (skybox_view_.has_value())
-	{
-		vkDestroyImageView(device, skybox_view_.value(), nullptr);
-	}
-	if (skybox_texture_.has_value())
-	{
-		ctx.rhi.data.value()->destroy_image(skybox_texture_.value());
-	}
-
-	{
-		if (ctx.rhi.descriptor_allocator.has_value())
-		{
-			ctx.rhi.descriptor_allocator.value().clear_pools(device);
-		}
-		if (skybox_sampler_.has_value()) vkDestroySampler(device, skybox_sampler_.value(), nullptr);
-	}
+	if (ctx.rhi.descriptor_allocator.has_value()) ctx.rhi.descriptor_allocator.value().clear_pools(device);
 	{
 		scene_graph_->deinit(ctx);
 	}
 	{
 		anime_sky_box_->deinit(ctx);
 	}
-	if (skybox_pipeline_.has_value()) {
-		skybox_pipeline_.value().deinit(device);
-	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
 		vkDestroyDescriptorSetLayout(device, gpu_scene_data_descriptor_layout_.value(), nullptr);
-	}
-	if (skybox_image_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(device, skybox_image_descriptor_layout_.value(), nullptr);
 	}
 
 	return rh::result::ok;

@@ -21,21 +21,13 @@ private:
 
 	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 	std::shared_ptr<mesh_scene> scene_graph_;
-	std::shared_ptr<mesh_scene> anime_sky_box_;
+	std::shared_ptr<mesh_scene> skybox_;
 
 	// Scene
 	glm::vec3 scene_rot_ = glm::vec3(0.f);
 	glm::vec3 scene_pos_ = glm::vec3(0.f, 0.f, 0.f);
 	float scene_scale_ = 0.1f;
 	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 2.593f, -1.362f);
-
-	// Skybox
-	std::optional<VkSampler> skybox_sampler_ = std::nullopt;
-	std::optional<VkDescriptorSetLayout> skybox_image_descriptor_layout_ = std::nullopt;
-	std::optional<VkDescriptorSet> skybox_image_descriptor_set_ = std::nullopt;
-	std::optional<shader_pipeline> skybox_pipeline_ = std::nullopt;
-	std::optional<ktx_auto_texture> skybox_texture_ = std::nullopt;
-	std::optional<VkImageView> skybox_view_ = std::nullopt;
 
 	bool toggle_wire_frame_ = false;
 	int blend_mode_ = 0;
