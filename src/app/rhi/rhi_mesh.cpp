@@ -7,8 +7,8 @@ void mesh_scene::init(const rh::ctx& ctx)
 	std::vector<char> scene_fragment_shader;
 	try
 	{
-		scene_vertex_shader = read_file("out/mesh.vert.spv");
-		scene_fragment_shader = read_file("out/mesh.frag.spv");
+		scene_vertex_shader = read_file(vertex_path);
+		scene_fragment_shader = read_file(frag_path);
 	}
 	catch (const std::exception& e)
 	{

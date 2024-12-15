@@ -17,6 +17,8 @@ class mesh_scene
 public:
 	const char* name = "mesh";
 	float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
+	const char* vertex_path = "out/mesh.vert.spv";;
+	const char* frag_path = "out/mesh.frag.spv";
 
 	size_t root_scene = 0;
 	std::vector<std::vector<size_t>>scenes;
