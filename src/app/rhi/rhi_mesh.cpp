@@ -223,7 +223,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 
 	size_t last_material = 100'000;
 
-	for (auto ro : draw_queue(ctx.scene_index, ndc* ctx.world_transform)) {
+	for (auto ro : draw_queue(ctx.scene_index, ndc * ctx.world_transform)) {
 		if (ro.material_index != last_material)
 		{
 			last_material = ro.material_index;
@@ -267,7 +267,7 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 	}
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
-	for (auto ro : draw_queue(ctx.scene_index, ndc* ctx.world_transform)) {
+	for (auto ro : draw_queue(ctx.scene_index, ndc * ctx.world_transform)) {
 		gpu_draw_push_constants push_constants{};
 		push_constants.world_matrix = ro.transform;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;

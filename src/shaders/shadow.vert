@@ -32,5 +32,5 @@ layout( push_constant ) uniform constants
 
 void main() {
 	Vertex v = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
-    gl_Position = sceneData.viewproj * PushConstants.worldMatrix * vec4(v.position, 1.0);
+    gl_Position = sceneData.shadowproj * PushConstants.worldMatrix * vec4(v.position, 1.0);
 }

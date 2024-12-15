@@ -909,8 +909,8 @@ VkResult rhi::init_draw_image()
 	{
 		// Shadow map image creation.
 		VkExtent3D shadow_map_image_extent = {
-			.width = 4096,
-			.height = 4096,
+			.width = 1024,
+			.height = 1024,
 			.depth = 1
 		};
 		allocated_image shadow_map_image{};

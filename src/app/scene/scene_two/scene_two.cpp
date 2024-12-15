@@ -227,7 +227,13 @@ namespace
 {
 	std::vector<glm::vec4> shadow_map_frustum(const glm::mat4& proj, const glm::mat4& view)
 	{
-		const auto inv = glm::inverse(proj * view);
+		constexpr auto fix = glm::mat4(
+			glm::vec4(-1.f, 0.f, 0.f, 0.f),
+			glm::vec4(0.f, 1.f, 0.f, 0.f),
+			glm::vec4(0.f, 0.f, -1.f, 0.f),
+			glm::vec4(0.f, 0.f, 0.f, 1.f)
+		);
+		const auto inv = glm::inverse(proj * view * fix);
 
 		std::vector<glm::vec4> corners;
 		for (unsigned int x = 0; x < 2; ++x)
@@ -237,9 +243,11 @@ namespace
 				for (unsigned int z = 0; z < 2; ++z)
 				{
 					const glm::vec4 point = inv * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
+					rosy_utils::debug_print_a("\tcorner: (%f, %f, %f)\n", point.x, point.y, point.z);
 					corners.push_back(point / point.w);
 				}
 			}
+			rosy_utils::debug_print_a("\n");
 		}
 
 		return corners;
@@ -251,7 +259,6 @@ namespace
 		for (const auto& v : shadow_frustum) center += glm::vec3(v);
 		center /= shadow_frustum.size();
 		return lookAt(center + light_direction, center, glm::vec3(0.0f, 1.0f, 0.0f));
-
 	}
 
 	glm::mat4 shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view)
@@ -274,7 +281,7 @@ namespace
 			max_z = std::max(max_z, point.z);
 		}
 
-		constexpr float z_offset = 10.0f;
+		constexpr float z_offset = 1.0f;
 		if (min_z < 0) min_z *= z_offset;
 		else min_z /= z_offset;
 		if (max_z < 0) max_z /= z_offset;
@@ -282,7 +289,7 @@ namespace
 
 		const glm::mat4 p = glm::ortho(
 			min_x, max_x,
-			min_y, max_y,
+			max_y, min_y,
 			min_z, max_z);
 
 		return p * shadow_map_view;
@@ -303,30 +310,36 @@ void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_sce
 
 	{
 		const auto [width, height] = ctx.rhi.frame_extent;
-
-		constexpr float z_near = 0.1f;
-		constexpr float z_far = 1000.0f;
-		const float aspect = static_cast<float>(width) / static_cast<float>(height);
-		constexpr float fov = glm::radians(70.0f);
-		const float h = 1.0 / tan(fov * 0.5);
-		const float w = h / aspect;
-		constexpr float a = -z_near / (z_far - z_near);
-		constexpr float b = (z_near * z_far) / (z_far - z_near);
-
 		glm::mat4 proj(0.0f);
+			constexpr float z_near = 0.1f;
+			constexpr float z_far = 1000.0f;
+			const float aspect = static_cast<float>(width) / static_cast<float>(height);
+			constexpr float fov = glm::radians(70.0f);
+			const float h = 1.0 / tan(fov * 0.5);
+			const float w = h / aspect;
+			constexpr float a = -z_near / (z_far - z_near);
+			constexpr float b = (z_near * z_far) / (z_far - z_near);
 
-		proj[0][0] = w;
-		proj[1][1] = -h;
 
-		proj[2][2] = a;
-		proj[3][2] = b;
-		proj[2][3] = 1.0f;
+			proj[0][0] = w;
+			proj[1][1] = -h;
+
+			proj[2][2] = a;
+			proj[3][2] = b;
+			proj[2][3] = 1.0f;
+
+		const auto shadow_proj = glm::perspective(
+			fov,
+			(static_cast<float>(width) / static_cast<float>(height)),
+			0.1f,
+			25.0f
+		);
 
 		const glm::mat4 view = camera_.get_view_matrix();
 		scene_data_.view = view;
 		scene_data_.proj = proj;
 		scene_data_.view_projection = proj * view;
-		scene_data_.shadow_projection = shadow_map_projection(sunlight_direction_, proj, view);
+		scene_data_.shadow_projection = shadow_map_projection(sunlight_direction_, shadow_proj, view);
 		scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
 		scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
 		scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
