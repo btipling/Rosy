@@ -20,9 +20,7 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
 * [ ] read links in https://github.com/Darianopolis/Links/blob/main/Links.txt
 * [x] Do resize and draw in SDL resize callback for maximum responsiveness
 
-![image](https://github.com/user-attachments/assets/258f0c51-2988-4b21-98f6-46773aacacd0)
-
-![image](https://github.com/user-attachments/assets/a1b25224-a83d-4c76-ae80-d58c86cdf140)
+![image](https://github.com/user-attachments/assets/96deac49-17c2-4321-91e3-c9071fcd5d78)
 
 ## Generating Cubemaps with ktx
 
