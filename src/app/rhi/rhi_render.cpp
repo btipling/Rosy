@@ -107,6 +107,7 @@ VkResult rhi::begin_frame()
 
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depth_image = depth_image_.value();
+	allocated_image shadow_map_image = shadow_map_image_.value();
 	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * render_scale_;
 	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * render_scale_;
 
@@ -142,6 +143,7 @@ VkResult rhi::begin_frame()
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
 		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		transition_image(cmd, depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		transition_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
 			VkRenderingAttachmentInfo color_attachment = rhi_helpers::attachment_info(

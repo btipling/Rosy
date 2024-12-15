@@ -12,6 +12,7 @@ public:
 	camera_(glm::vec3{ .0f, 0.0f, -20.0f }){}
 	rh::result build(const rh::ctx& ctx) override;
 	rh::result update(const rh::ctx& ctx) override;
+	rh::result depth(rh::ctx ctx) override;
 	rh::result draw(rh::ctx ctx) override;
 	rh::result draw_ui(const rh::ctx& ctx) override;
 	rh::result deinit(rh::ctx& ctx) override;

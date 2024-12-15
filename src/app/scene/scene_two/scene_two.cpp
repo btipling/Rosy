@@ -51,10 +51,10 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		{
 			return res;
 		}
-		anime_sky_box_ = std::make_shared<mesh_scene>(std::move(mesh_graph));
+		skybox_ = std::make_shared<mesh_scene>(std::move(mesh_graph));
 		constexpr float label[4] = { 0.5f, 0.1f, 1.f, 1.0f };
-		anime_sky_box_->name = "anime skybox";
-		std::ranges::copy(label, std::begin(anime_sky_box_->color));
+		skybox_->name = "anime skybox";
+		std::ranges::copy(label, std::begin(skybox_->color));
 	}
 
 	return rh::result::ok;
@@ -111,7 +111,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 			m_ctx.extent = frame_extent;
 			m_ctx.global_descriptor = &global_descriptor;
 			m_ctx.world_transform = m;
-			if (const auto res = anime_sky_box_->draw(m_ctx); res != rh::result::ok) return res;
+			if (const auto res = skybox_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 		// Scene
 		{
@@ -166,7 +166,7 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 		scene_graph_->deinit(ctx);
 	}
 	{
-		anime_sky_box_->deinit(ctx);
+		skybox_->deinit(ctx);
 	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
@@ -179,6 +179,11 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 rh::result scene_two::update(const rh::ctx& ctx)
 {
 	camera_.process_sdl_event(ctx);
+	return rh::result::ok;
+}
+
+rh::result scene_two::depth(rh::ctx ctx)
+{
 	return rh::result::ok;
 }
 

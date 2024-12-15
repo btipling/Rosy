@@ -3,28 +3,31 @@
 #include "../loader/loader.h"
 #include "rhi_utils.h"
 
-static const char* instanceLayers[] = {
-	"VK_LAYER_LUNARG_api_dump",
-	"VK_LAYER_KHRONOS_validation",
-	//"VK_LAYER_LUNARG_monitor",
-	//"VK_LAYER_KHRONOS_profiles",
-	//"VK_LAYER_LUNARG_crash_diagnostic",
-	"VK_LAYER_KHRONOS_shader_object",
-	"VK_LAYER_KHRONOS_synchronization2",
-};
-static VkPhysicalDeviceFeatures requiredFeatures;
+namespace {
+	const char* instance_layers[] = {
+		"VK_LAYER_LUNARG_api_dump",
+		"VK_LAYER_KHRONOS_validation",
+		//"VK_LAYER_LUNARG_monitor",
+		//"VK_LAYER_KHRONOS_profiles",
+		//"VK_LAYER_LUNARG_crash_diagnostic",
+		"VK_LAYER_KHRONOS_shader_object",
+		"VK_LAYER_KHRONOS_synchronization2",
+	};
 
-static const char* instanceExtensions[] = {
-	VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-};
+	VkPhysicalDeviceFeatures required_features;
 
-static const char* deviceExtensions[] = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
-	//VK_KHR_MULTIVIEW_EXTENSION_NAME,
-};
+	const char* instance_extensions[] = {
+		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+	};
 
-rhi::rhi(rosy_config::config* cfg) : app_cfg{ cfg }, required_features_{ requiredFeatures }
+	const char* device_extensions[] = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
+		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
+	};
+}
+
+rhi::rhi(rosy_config::config* cfg) : app_cfg{ cfg }, required_features_{ required_features }
 {
 	memset(&required_features_, 0, sizeof(VkPhysicalDeviceFeatures));
 }
@@ -223,18 +226,28 @@ void rhi::deinit()
 	{
 		global_descriptor_allocator_.value().destroy_pool(opt_device.value());
 	}
-	if (depth_image_.has_value())
-	{
-		const allocated_image depth_image = depth_image_.value();
-		vkDestroyImageView(opt_device.value(), depth_image.image_view, nullptr);
-		vmaDestroyImage(opt_allocator.value(), depth_image.image, depth_image.allocation);
-	}
 
-	if (draw_image_.has_value())
 	{
-		const allocated_image draw_image = draw_image_.value();
-		vkDestroyImageView(opt_device.value(), draw_image.image_view, nullptr);
-		vmaDestroyImage(opt_allocator.value(), draw_image.image, draw_image.allocation);
+		// Deinit draw images
+		if (shadow_map_image_.has_value())
+		{
+			const allocated_image depth_image = shadow_map_image_.value();
+			vkDestroyImageView(opt_device.value(), depth_image.image_view, nullptr);
+			vmaDestroyImage(opt_allocator.value(), depth_image.image, depth_image.allocation);
+		}
+		if (depth_image_.has_value())
+		{
+			const allocated_image depth_image = depth_image_.value();
+			vkDestroyImageView(opt_device.value(), depth_image.image_view, nullptr);
+			vmaDestroyImage(opt_allocator.value(), depth_image.image, depth_image.allocation);
+		}
+
+		if (draw_image_.has_value())
+		{
+			const allocated_image draw_image = draw_image_.value();
+			vkDestroyImageView(opt_device.value(), draw_image.image_view, nullptr);
+			vmaDestroyImage(opt_allocator.value(), draw_image.image, draw_image.allocation);
+		}
 	}
 
 	destroy_swapchain();
@@ -304,7 +317,7 @@ VkResult rhi::query_instance_layers()
 	for (VkLayerProperties lp : layers)
 	{
 		rosy_utils::debug_print_a("Instance layer name: %s layer description: %s\n", lp.layerName, lp.description);
-		for (const char* layerName : instanceLayers)
+		for (const char* layerName : instance_layers)
 		{
 			if (strcmp(layerName, lp.layerName) == 0)
 			{
@@ -348,7 +361,7 @@ VkResult rhi::query_instance_extensions()
 	extensions.resize(p_property_count);
 	result = vkEnumerateInstanceExtensionProperties(nullptr, &p_property_count, extensions.data());
 	if (result != VK_SUCCESS) return result;
-	rosy_utils::debug_print_a("num required instance extensions: %d\n", std::size(instanceExtensions));
+	rosy_utils::debug_print_a("num required instance extensions: %d\n", std::size(instance_extensions));
 	{
 		// Setup required instance extensions
 		size_t found_extensions = 0;
@@ -360,11 +373,11 @@ VkResult rhi::query_instance_extensions()
 				extension_names[i]);
 			instance_extensions_.push_back(extension_names[i]);
 		}
-		for (uint32_t i = 0; i < std::size(instanceExtensions); i++)
+		for (uint32_t i = 0; i < std::size(instance_extensions); i++)
 		{
 			rosy_utils::debug_print_a("pushing back required rosy instance extension with name: %s\n",
-				instanceExtensions[i]);
-			instance_extensions_.push_back(instanceExtensions[i]);
+				instance_extensions[i]);
+			instance_extensions_.push_back(instance_extensions[i]);
 		}
 	}
 	rosy_utils::debug_print_a("num instanceExtensions: %d\n", instance_extensions_.size());
@@ -409,12 +422,12 @@ VkResult rhi::query_device_extensions()
 	if (result != VK_SUCCESS) return result;
 
 	// validate required device extensions
-	std::vector<const char*> required_device_extensions(std::begin(deviceExtensions), std::end(deviceExtensions));
+	std::vector<const char*> required_device_extensions(std::begin(device_extensions), std::end(device_extensions));
 
 	for (auto [extensionName, specVersion] : extensions)
 	{
 		rosy_utils::debug_print_a("Device extension name: %s\n", extensionName);
-		for (const char* extension_name : deviceExtensions)
+		for (const char* extension_name : device_extensions)
 		{
 			if (strcmp(extension_name, extensionName) == 0)
 			{
@@ -577,11 +590,11 @@ VkResult rhi::init_physical_device()
 	if (!found_device) return VK_ERROR_FEATURE_NOT_PRESENT;
 	uint32_t queue_count = 0;
 	uint32_t queue_index = 0;
-	requiredFeatures.multiDrawIndirect = VK_TRUE;
-	requiredFeatures.tessellationShader = VK_TRUE;
-	requiredFeatures.geometryShader = VK_TRUE;
-	requiredFeatures.fillModeNonSolid = VK_TRUE;
-	required_features_ = requiredFeatures;
+	required_features.multiDrawIndirect = VK_TRUE;
+	required_features.tessellationShader = VK_TRUE;
+	required_features.geometryShader = VK_TRUE;
+	required_features.fillModeNonSolid = VK_TRUE;
+	required_features_ = required_features;
 	if (!physical_device_.has_value()) return VK_NOT_READY;
 
 	VkPhysicalDevice p_device = physical_device_.value();
@@ -844,49 +857,75 @@ VkResult rhi::init_draw_image()
 		.height = static_cast<uint32_t>(app_cfg->max_window_height),
 		.depth = 1
 	};
-	allocated_image draw_image{};
-	draw_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
-	draw_image.image_extent = draw_image_extent;
-
-	VkImageUsageFlags draw_image_usages{};
-	draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-	draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
-	draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-	VkImageCreateInfo draw_info = rhi_helpers::img_create_info(draw_image.image_format, draw_image_usages, draw_image_extent);
 
 	VmaAllocationCreateInfo r_img_alloc_info{};
 	r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	vmaCreateImage(opt_allocator.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation,
-		nullptr);
+	{
+		// Draw image creation.
+		allocated_image draw_image{};
+		draw_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		draw_image.image_extent = draw_image_extent;
 
-	VkImageViewCreateInfo r_view_info = rhi_helpers::img_view_create_info(draw_image.image_format, draw_image.image,
-		VK_IMAGE_ASPECT_COLOR_BIT);
+		VkImageUsageFlags draw_image_usages{};
+		draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+		draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	result = vkCreateImageView(opt_device.value(), &r_view_info, nullptr, &draw_image.image_view);
-	if (result != VK_SUCCESS) return result;
-	draw_image_ = draw_image;
+		VkImageCreateInfo draw_info = rhi_helpers::img_create_info(draw_image.image_format, draw_image_usages, draw_image_extent);
 
-	allocated_image depth_image{};
-	depth_image.image_format = VK_FORMAT_D32_SFLOAT;
-	depth_image.image_extent = draw_image_extent;
-	VkImageUsageFlags depth_image_usages{};
-	depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		vmaCreateImage(opt_allocator.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation,
+			nullptr);
 
-	VkImageCreateInfo depth_info = rhi_helpers::img_create_info(depth_image.image_format, depth_image_usages, draw_image_extent);
+		VkImageViewCreateInfo r_view_info = rhi_helpers::img_view_create_info(draw_image.image_format, draw_image.image,
+			VK_IMAGE_ASPECT_COLOR_BIT);
 
-	vmaCreateImage(opt_allocator.value(), &depth_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation,
-		nullptr);
+		result = vkCreateImageView(opt_device.value(), &r_view_info, nullptr, &draw_image.image_view);
+		if (result != VK_SUCCESS) return result;
+		draw_image_ = draw_image;
+	}
+	{
+		// Depth image creation.
+		allocated_image depth_image{};
+		depth_image.image_format = VK_FORMAT_D32_SFLOAT;
+		depth_image.image_extent = draw_image_extent;
+		VkImageUsageFlags depth_image_usages{};
+		depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-	VkImageViewCreateInfo d_view_info = rhi_helpers::img_view_create_info(depth_image.image_format, depth_image.image,
-		VK_IMAGE_ASPECT_DEPTH_BIT);
+		VkImageCreateInfo depth_info = rhi_helpers::img_create_info(depth_image.image_format, depth_image_usages, draw_image_extent);
 
-	result = vkCreateImageView(opt_device.value(), &d_view_info, nullptr, &depth_image.image_view);
-	if (result != VK_SUCCESS) return result;
-	depth_image_ = depth_image;
+		vmaCreateImage(opt_allocator.value(), &depth_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation,
+			nullptr);
+
+		VkImageViewCreateInfo d_view_info = rhi_helpers::img_view_create_info(depth_image.image_format, depth_image.image,
+			VK_IMAGE_ASPECT_DEPTH_BIT);
+
+		result = vkCreateImageView(opt_device.value(), &d_view_info, nullptr, &depth_image.image_view);
+		if (result != VK_SUCCESS) return result;
+		depth_image_ = depth_image;
+	}
+	{
+		// Shadow map image creation.
+		allocated_image shadow_map_image{};
+		shadow_map_image.image_format = VK_FORMAT_D32_SFLOAT;
+		shadow_map_image.image_extent = draw_image_extent;
+		VkImageUsageFlags depth_image_usages{};
+		depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+		VkImageCreateInfo depth_info = rhi_helpers::img_create_info(shadow_map_image.image_format, depth_image_usages, draw_image_extent);
+
+		vmaCreateImage(opt_allocator.value(), &depth_info, &r_img_alloc_info, &shadow_map_image.image, &shadow_map_image.allocation,
+			nullptr);
+
+		VkImageViewCreateInfo d_view_info = rhi_helpers::img_view_create_info(shadow_map_image.image_format, shadow_map_image.image,
+			VK_IMAGE_ASPECT_DEPTH_BIT);
+
+		result = vkCreateImageView(opt_device.value(), &d_view_info, nullptr, &shadow_map_image.image_view);
+		if (result != VK_SUCCESS) return result;
+		shadow_map_image_ = shadow_map_image;
+	}
 
 	return result;
 }

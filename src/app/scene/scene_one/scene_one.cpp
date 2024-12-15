@@ -246,6 +246,11 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	return rh::result::ok;
 }
 
+rh::result scene_one::depth(rh::ctx ctx)
+{
+	return rh::result::ok;
+}
+
 rh::result scene_one::draw(rh::ctx ctx)
 {
 	update_scene(ctx);

@@ -63,6 +63,21 @@ namespace rhi_helpers {
 		return depth_attachment;
 	}
 
+	VkRenderingInfo shadow_map_rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& depth_attachment)
+	{
+		const auto render_area = VkRect2D{ VkOffset2D{0, 0}, render_extent };
+		VkRenderingInfo render_info{};
+		render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		render_info.pNext = nullptr;
+		render_info.renderArea = render_area;
+		render_info.layerCount = 1;
+		render_info.colorAttachmentCount = 0;
+		render_info.pColorAttachments = nullptr;
+		render_info.pDepthAttachment = &depth_attachment;
+		render_info.pStencilAttachment = nullptr;
+		return render_info;
+	}
+
 	VkRenderingInfo rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& color_attachment,
 		const std::optional<VkRenderingAttachmentInfo>& depth_attachment)
 	{

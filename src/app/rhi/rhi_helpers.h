@@ -8,6 +8,7 @@ namespace rhi_helpers {
 	VkRenderingAttachmentInfo depth_attachment_info(VkImageView view, VkImageLayout layout);
 	VkRenderingInfo rendering_info(VkExtent2D render_extent, const VkRenderingAttachmentInfo& color_attachment,
 		const std::optional<VkRenderingAttachmentInfo>& depth_attachment);
+	VkRenderingInfo shadow_map_rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& depth_attachment);
 	void blit_images(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D src_size,
 		VkExtent2D dst_size);
 	VkDebugUtilsObjectNameInfoEXT add_name(VkObjectType object_type, uint64_t object_handle,
