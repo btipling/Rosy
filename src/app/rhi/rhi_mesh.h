@@ -1,5 +1,15 @@
 #pragma once
 
+struct mesh_ctx
+{
+	glm::mat4 world_transform = { 1.f };
+	size_t scene_index = 0;
+	bool wire_frame = false;
+	VkCommandBuffer cmd;
+	VkExtent2D extent;
+	VkDescriptorSet* global_descriptor;
+};
+
 class mesh_scene
 {
 public:
@@ -32,4 +42,5 @@ public:
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
 	[[nodiscard]] std::vector<render_object> draw_queue(const size_t scene_index, const glm::mat4& m = { 1.f }) const;
+	[[nodiscard]] auto draw(mesh_ctx ctx) const -> rh::result;
 };

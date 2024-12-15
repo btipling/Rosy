@@ -155,4 +155,57 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 		}
 	}
 	return draw_nodes;
+}
+
+rh::result mesh_scene::draw(mesh_ctx ctx) const
+{
+	if (meshes.size() == 0) return rh::result::ok;
+	auto cmd = ctx.cmd;
+
+	auto ndc = glm::mat4(
+		glm::vec4(-1.f, 0.f, 0.f, 0.f),
+		glm::vec4(0.f, 1.f, 0.f, 0.f),
+		glm::vec4(0.f, 0.f, 1.f, 0.f),
+		glm::vec4(0.f, 0.f, 0.f, 1.f)
+	);
+
+	{
+		float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
+		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
+		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
+	}
+
+	shader_pipeline m_shaders = shaders.value();
+	{
+		m_shaders.viewport_extent = ctx.extent;
+		m_shaders.wire_frames_enabled = ctx.wire_frame;
+		m_shaders.depth_enabled = true;
+		m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
+		m_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
+		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+	}
+
+	size_t last_material = 100'000;
+
+	for (auto ro : draw_queue(ctx.scene_index, ndc * ctx.world_transform)) {
+		if (ro.material_index != last_material)
+		{
+			last_material = ro.material_index;
+			auto [pass_type, descriptor_set_id] = materials[ro.material_index];
+			VkDescriptorSet desc = descriptor_sets[descriptor_set_id];
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &desc, 0, nullptr);
+		}
+		gpu_draw_push_constants push_constants{};
+		push_constants.world_matrix = ro.transform;
+		push_constants.vertex_buffer = ro.vertex_buffer_address;
+		m_shaders.shader_constants = &push_constants;
+		m_shaders.shader_constants_size = sizeof(push_constants);
+		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
+		vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index, 0, 0);
+	}
+
+	vkCmdEndDebugUtilsLabelEXT(cmd);
+	return rh::result::ok;
 };

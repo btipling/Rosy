@@ -217,53 +217,19 @@ rh::result scene_two::draw(rh::ctx ctx)
 		}
 		// Scene
 		{
-			auto ndc = glm::mat4(
-				glm::vec4(-1.f, 0.f, 0.f, 0.f),
-				glm::vec4(0.f, 1.f, 0.f, 0.f),
-				glm::vec4(0.f, 0.f, 1.f, 0.f),
-				glm::vec4(0.f, 0.f, 0.f, 1.f)
-			);
 			auto m = translate(glm::mat4(1.f), scene_pos_);
 			m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
 			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
 			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
 			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 
-			if (scene_graph_->meshes.size() > 0)
-			{
-				float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-				VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
-				vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
-				shader_pipeline m_shaders = scene_graph_->shaders.value();
-				m_shaders.viewport_extent = frame_extent;
-				m_shaders.wire_frames_enabled = toggle_wire_frame_;
-				m_shaders.depth_enabled = true;
-				m_shaders.blending = static_cast<shader_blending>(blend_mode_);
-				m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
-				m_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
-				if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
-				size_t last_material = 100'000;
-				for (auto ro : scene_graph_->draw_queue(scene_graph_->root_scene, ndc * m)) {
-					if (ro.material_index != last_material)
-					{
-						last_material = ro.material_index;
-						auto [pass_type, descriptor_set_id] = scene_graph_->materials[ro.material_index];
-						VkDescriptorSet desc = scene_graph_->descriptor_sets[descriptor_set_id];
-						vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
-						vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &desc, 0, nullptr);
-					}
-					gpu_draw_push_constants push_constants{};
-					push_constants.world_matrix = ro.transform;
-					push_constants.vertex_buffer = ro.vertex_buffer_address;
-					m_shaders.shader_constants = &push_constants;
-					m_shaders.shader_constants_size = sizeof(push_constants);
-					if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-					vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
-					vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index,
-						0, 0);
-				}
-			}
-			vkCmdEndDebugUtilsLabelEXT(cmd);
+			mesh_ctx m_ctx{};
+			m_ctx.wire_frame = toggle_wire_frame_;
+			m_ctx.cmd = cmd;
+			m_ctx.extent = frame_extent;
+			m_ctx.global_descriptor = &global_descriptor;
+			m_ctx.world_transform = m;
+			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 	}
 

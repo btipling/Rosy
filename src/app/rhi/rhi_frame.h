@@ -21,8 +21,6 @@ struct frame_data
 
 namespace rh
 {
-	enum class result : std::uint8_t { ok, error };
-
 	struct rhi
 	{
 		VkDevice device{};

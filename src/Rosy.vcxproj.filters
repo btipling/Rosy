@@ -136,7 +136,7 @@
       <Filter>Resource Files\shaders</Filter>
     </ClInclude>
     <ClInclude Include="app\rhi\rhi_mesh.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\rhi</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

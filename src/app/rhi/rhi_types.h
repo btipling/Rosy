@@ -171,6 +171,7 @@ struct texture_cache
 
 namespace rh
 {
+	enum class result : std::uint8_t { ok, error };
 	struct ctx;
 }
 
