@@ -53,6 +53,8 @@ public:
 	void deinit(const rh::ctx& ctx);
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
-	[[nodiscard]] std::vector<render_object> draw_queue(const size_t scene_index, const glm::mat4& m = { 1.f }) const;
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
+	[[nodiscard]] auto generate_shadows(mesh_ctx ctx) -> rh::result;
+private:
+	[[nodiscard]] std::vector<render_object> draw_queue(const size_t scene_index, const glm::mat4& m = { 1.f }) const;
 };

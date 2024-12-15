@@ -1,6 +1,16 @@
 #include "rhi.h"
 #include "../loader/loader.h"
 
+
+namespace {
+	constexpr auto ndc = glm::mat4(
+		glm::vec4(-1.f, 0.f, 0.f, 0.f),
+		glm::vec4(0.f, 1.f, 0.f, 0.f),
+		glm::vec4(0.f, 0.f, 1.f, 0.f),
+		glm::vec4(0.f, 0.f, 0.f, 1.f)
+	);
+}
+
 void mesh_scene::init(const rh::ctx& ctx)
 {
 	std::vector<char> scene_vertex_shader;
@@ -195,13 +205,6 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 	if (meshes.size() == 0) return rh::result::ok;
 	auto cmd = ctx.cmd;
 
-	auto ndc = glm::mat4(
-		glm::vec4(-1.f, 0.f, 0.f, 0.f),
-		glm::vec4(0.f, 1.f, 0.f, 0.f),
-		glm::vec4(0.f, 0.f, 1.f, 0.f),
-		glm::vec4(0.f, 0.f, 0.f, 1.f)
-	);
-
 	{
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name, color);
 		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
@@ -241,3 +244,40 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 	vkCmdEndDebugUtilsLabelEXT(cmd);
 	return rh::result::ok;
 };
+
+rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
+{
+	if (meshes.size() == 0) return rh::result::ok;
+	auto cmd = ctx.cmd;
+
+	{
+		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name, color);
+		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
+	}
+
+	shader_pipeline m_shaders = shadow_shaders.value();
+	{
+		m_shaders.viewport_extent = ctx.extent;
+		m_shaders.wire_frames_enabled = false;
+		m_shaders.depth_enabled = true;
+		m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
+		m_shaders.front_face = ctx.front_face;
+		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+	}
+
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
+	for (auto ro : draw_queue(ctx.scene_index, ndc* ctx.world_transform)) {
+		gpu_draw_push_constants push_constants{};
+		push_constants.world_matrix = ro.transform;
+		push_constants.vertex_buffer = ro.vertex_buffer_address;
+		m_shaders.shader_constants = &push_constants;
+		m_shaders.shader_constants_size = sizeof(push_constants);
+		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
+		vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index, 0, 0);
+	}
+
+	vkCmdEndDebugUtilsLabelEXT(cmd);
+	return rh::result::ok;
+};
+
