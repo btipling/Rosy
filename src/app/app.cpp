@@ -211,6 +211,7 @@ void app::render_ui(const SDL_Event* event)
 
 void app::render_scene(const SDL_Event* event)
 {
+	if (scene_ == nullptr) return;
 	if (const VkResult result = renderer.begin_frame();  result != VK_SUCCESS) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			rosy_utils::debug_print_a("swapchain out of date\n");
@@ -220,19 +221,44 @@ void app::render_scene(const SDL_Event* event)
 		return end_rendering("rhi begin frame failed\n");
 	}
 
-	if (scene_ != nullptr) {
-		rh::ctx ctx;
+	rh::ctx ctx;
+	{
+		// Init render context
 		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value()) ctx = opt_ctx.value();
 		else return end_rendering("no available frame data\n");
-		if (!scene_loaded_)
-		{
-			if (const auto scene_result = scene_->build(ctx); scene_result != rh::result::ok) return end_rendering("scene_ build failed\n");
-			scene_loaded_ = true;
-		}
 		ctx.mouse_enabled = !show_cursor_.state;
-		if (const auto scene_result = scene_->update(ctx); scene_result != rh::result::ok) return end_rendering("scene_ update failed\n");
-		if (const auto scene_result = scene_->draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
 	}
+
+	if (!scene_loaded_)
+	{
+		// Load scene
+		if (const auto scene_result = scene_->build(ctx); scene_result != rh::result::ok) return end_rendering("scene_ build failed\n");
+		scene_loaded_ = true;
+		// Update scene
+		if (const auto scene_result = scene_->update(ctx); scene_result != rh::result::ok) return end_rendering("scene_ update failed\n");
+	}
+
+	// Generate shadows
+	if (const VkResult result = renderer.shadow_pass();  result != VK_SUCCESS) {
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			rosy_utils::debug_print_a("swapchain out of date\n");
+			resize_requested_ = true;
+			return;
+		}
+		return end_rendering("rhi shadow pass failed\n");
+	}
+	if (const auto scene_result = scene_->depth(ctx); scene_result != rh::result::ok) return end_rendering("scene_ depth failed\n");
+
+	// Render Scene
+	if (const VkResult result = renderer.render_pass();  result != VK_SUCCESS) {
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			rosy_utils::debug_print_a("swapchain out of date\n");
+			resize_requested_ = true;
+			return;
+		}
+		return end_rendering("rhi render pass failed\n");
+	}
+	if (const auto scene_result = scene_->draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
 
 	if (const VkResult result = renderer.end_frame(); result != VK_SUCCESS) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {

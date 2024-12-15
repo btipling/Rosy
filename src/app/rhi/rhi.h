@@ -20,6 +20,8 @@ public:
 	VkResult resize_swapchain(SDL_Window* window);
 	void deinit();
 	VkResult begin_frame();
+	VkResult shadow_pass();
+	VkResult render_pass();
 	VkResult end_frame();
 	static VkResult draw_ui();
 	// Buffer read write

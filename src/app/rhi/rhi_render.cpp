@@ -106,8 +106,6 @@ VkResult rhi::begin_frame()
 	current_swapchain_image_index_ = image_index;
 
 	allocated_image draw_image = draw_image_.value();
-	allocated_image depth_image = depth_image_.value();
-	allocated_image shadow_map_image = shadow_map_image_.value();
 	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * render_scale_;
 	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * render_scale_;
 
@@ -127,7 +125,54 @@ VkResult rhi::begin_frame()
 		result = vkBeginCommandBuffer(cmd, &begin_info);
 		if (result != VK_SUCCESS) return result;
 	}
+	{
+		//allocate a new uniform data for the scene data
+		auto [result, created_buffer] = buffer.value()->create_buffer("gpu_scene_data", sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VMA_MEMORY_USAGE_AUTO);
+		if (result != VK_SUCCESS) return result;
+		allocated_buffer gpu_scene_buffer = created_buffer;
+		frame_datas_[current_frame_].gpu_scene_buffer = gpu_scene_buffer;
+	}
+	return VK_SUCCESS;
+}
 
+
+VkResult rhi::shadow_pass()
+{
+	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
+		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+	{
+		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
+		if (!opt_command_pool.has_value()) return VK_NOT_READY;
+	}
+
+	VkCommandBuffer cmd = opt_command_buffers.value();
+	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
+	allocated_image shadow_map_image = shadow_map_image_.value();
+	transition_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+	return VK_SUCCESS;
+}
+
+
+VkResult rhi::render_pass()
+{
+	allocated_image draw_image = draw_image_.value();
+	allocated_image depth_image = depth_image_.value();
+	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
+		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+	{
+		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
+		if (!opt_command_pool.has_value()) return VK_NOT_READY;
+	}
+
+	VkCommandBuffer cmd = opt_command_buffers.value();
+	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 
 	{
 		// Clear image. This transition means that all the commands recorded before now happen before
@@ -143,7 +188,6 @@ VkResult rhi::begin_frame()
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
 		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		transition_image(cmd, depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-		transition_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
 			VkRenderingAttachmentInfo color_attachment = rhi_helpers::attachment_info(
@@ -153,15 +197,6 @@ VkResult rhi::begin_frame()
 			VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent, color_attachment, depth_attachment);
 			vkCmdBeginRendering(cmd, &render_info);
 		}
-	}
-	{
-		//allocate a new uniform data for the scene data
-		auto [result, created_buffer] = buffer.value()->create_buffer("gpu_scene_data", sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VMA_MEMORY_USAGE_AUTO);
-		if (result != VK_SUCCESS) return result;
-		allocated_buffer gpu_scene_buffer = created_buffer;
-		frame_datas_[current_frame_].gpu_scene_buffer = gpu_scene_buffer;
-
 	}
 
 	return VK_SUCCESS;
