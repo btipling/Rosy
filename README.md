@@ -72,6 +72,12 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
  MIT License  <br/>
  Copyright (c) 2017 Sean Barrett <br/>
 
+ ### VkGuide
+ https://github.com/vblanco20-1/vulkan-guide <br/>
+ MIT License<br/>
+ Copyright (c) 2022-2024 2016 VkGuide Author<br/>
+ I initially relied a lot on this for developing my scene graph.<br/>
+
  ### Nameless engine
  https://github.com/Flone-dnb/nameless-engine <br/>
  MIT License<br/>

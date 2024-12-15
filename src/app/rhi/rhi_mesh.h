@@ -13,6 +13,9 @@ struct mesh_ctx
 class mesh_scene
 {
 public:
+	const char* name = "mesh";
+	float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
+
 	size_t root_scene = 0;
 	std::vector<std::vector<size_t>>scenes;
 	std::vector<std::shared_ptr<mesh_node>> nodes;
@@ -42,5 +45,5 @@ public:
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
 	[[nodiscard]] std::vector<render_object> draw_queue(const size_t scene_index, const glm::mat4& m = { 1.f }) const;
-	[[nodiscard]] auto draw(mesh_ctx ctx) const -> rh::result;
+	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 };

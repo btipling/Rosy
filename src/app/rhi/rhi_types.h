@@ -63,9 +63,9 @@ struct allocated_buffer_result
 struct vertex
 {
 	glm::vec3 position;
-	float texture_coordinates_s;
+	float texture_coordinates_x;
 	glm::vec3 normal;
-	float texture_coordinates_t;
+	float texture_coordinates_y;
 	glm::vec4 color;
 };
 

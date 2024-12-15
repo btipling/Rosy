@@ -207,7 +207,7 @@ namespace rhi_helpers {
 		VkDebugUtilsLabelEXT debug_label{};
 		debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 		debug_label.pNext = nullptr;
-		debug_label.pLabelName = "meshes";
+		debug_label.pLabelName = label_name;
 		std::copy_n(color, 4, debug_label.color);
 		return debug_label;
 	}

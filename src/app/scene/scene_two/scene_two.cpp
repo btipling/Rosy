@@ -65,10 +65,17 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	if (auto load_result = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf"); load_result.has_value())
 	{
 		scene_graph_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
+		constexpr float label[4] = { 0.5f, 0.1f, 0.1f, 1.0f };
+		// ReSharper disable once StringLiteralTypo
+		scene_graph_->name = "deccer's cubes";
+		std::ranges::copy(label, std::begin(scene_graph_->color));
 	}
 	if (auto load_result = data->load_gltf_meshes(ctx, "assets\\anime_skybox.glb"); load_result.has_value())
 	{
 		anime_sky_box_ = std::make_shared<mesh_scene>(std::move(load_result.value()));
+		constexpr float label[4] = { 0.5f, 0.1f, 1.f, 1.0f };
+		anime_sky_box_->name = "anime skybox";
+		std::ranges::copy(label, std::begin(anime_sky_box_->color));
 	}
 	else return rh::result::error;
 	{
@@ -232,6 +239,16 @@ rh::result scene_two::draw(rh::ctx ctx)
 					0, 0);
 			}
 			vkCmdEndDebugUtilsLabelEXT(cmd);
+		}
+		// Anime skybox
+		{
+			mesh_ctx m_ctx{};
+			m_ctx.wire_frame = toggle_wire_frame_;
+			m_ctx.cmd = cmd;
+			m_ctx.extent = frame_extent;
+			m_ctx.global_descriptor = &global_descriptor;
+			//m_ctx.world_transform = m;
+			if (const auto res = anime_sky_box_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 		// Scene
 		{

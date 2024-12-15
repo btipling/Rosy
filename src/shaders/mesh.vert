@@ -18,9 +18,9 @@ layout(set = 0, binding = 0) uniform  SceneData{
 
 struct Vertex {
 	vec3 position;
-	float textureCoordinates_s;
+	float textureCoordinates_x;
 	vec3 normal;
-	float textureCoordinates_t;
+	float textureCoordinates_y;
 	vec4 color;
 }; 
 
@@ -41,5 +41,5 @@ void main() {
 	mat3 normalTransform = transpose(inverse(mat3(PushConstants.worldMatrix)));
 	fragmentNormal = normalize(normalTransform * v.normal);
 	fragmentVertex = v.position;
-	textureCoordinates = vec2(1.0 - v.textureCoordinates_s, v.textureCoordinates_t);
+	textureCoordinates = vec2(v.textureCoordinates_x, v.textureCoordinates_y);
 }

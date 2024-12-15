@@ -34,6 +34,48 @@ rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer }
 	};
 }
 
+VkFilter extract_filter(const fastgltf::Filter filter)
+{
+	switch (filter) {
+	case fastgltf::Filter::Nearest:
+	case fastgltf::Filter::NearestMipMapNearest:
+	case fastgltf::Filter::NearestMipMapLinear:
+		return VK_FILTER_NEAREST;
+	case fastgltf::Filter::Linear:
+	case fastgltf::Filter::LinearMipMapNearest:
+	case fastgltf::Filter::LinearMipMapLinear:
+	default:
+		return VK_FILTER_LINEAR;
+	}
+}
+
+VkSamplerMipmapMode extract_mipmap_mode(const fastgltf::Filter filter)
+{
+	switch (filter) {
+	case fastgltf::Filter::NearestMipMapNearest:
+	case fastgltf::Filter::LinearMipMapNearest:
+		return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+
+	case fastgltf::Filter::NearestMipMapLinear:
+	case fastgltf::Filter::LinearMipMapLinear:
+	default:
+		return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	}
+}
+
+VkSamplerAddressMode extract_wrap_mode(const fastgltf::Wrap wrap)
+{
+	switch (wrap) {
+	case fastgltf::Wrap::ClampToEdge:
+		return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	case fastgltf::Wrap::MirroredRepeat:
+		return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+	case fastgltf::Wrap::Repeat:
+	default:
+		return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	}
+}
+
 std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path)
 {
 	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
@@ -57,6 +99,8 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 	}
 	mesh_scene gltf_mesh_scene{};
 	gltf_mesh_scene.init(ctx);
+
+	std::vector<VkSamplerCreateInfo> sampler_create_infos{};
 
 	for (fastgltf::Image& image : gltf.images) {
 		if (std::expected<ktx_auto_texture, ktx_error_code_e> res = create_image(gltf, image, VK_FORMAT_R8G8B8A8_SRGB); res.has_value()) {
@@ -86,54 +130,66 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 				}
 				gltf_mesh_scene.image_views.push_back(img_view);
 			}
-			VkSampler sampler{};
-			{
-				VkSamplerCreateInfo sample = {};
-				sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-				sample.maxLod = ktx_vk_texture.levelCount;
-				sample.minLod = 0;
-			
-				sample.magFilter = VK_FILTER_LINEAR;
-				sample.minFilter = VK_FILTER_LINEAR;
-			
-				sample.anisotropyEnable = VK_FALSE;
-				sample.maxAnisotropy = 0.f;
-				sample.mipLodBias = 0.0f;
-				sample.compareOp = VK_COMPARE_OP_NEVER;
-			
-				// Set proper address modes for spherical mapping
-				sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-				sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-				sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			
-				// Linear mipmap mode instead of NEAREST
-				sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-				if (VkResult result = vkCreateSampler(renderer_->opt_device.value(), &sample, nullptr, &sampler); result != VK_SUCCESS) continue;
-				gltf_mesh_scene.samplers.push_back(sampler);
-			}
-			{
-				auto [image_set_result, image_set] = gltf_mesh_scene.descriptor_allocator.value().allocate(renderer_->opt_device.value(), gltf_mesh_scene.image_layout);
-				if (image_set_result != VK_SUCCESS) continue;
-				{
-					descriptor_writer writer;
-					writer.write_image(0, img_view, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-					writer.update_set(renderer_->opt_device.value(), image_set);
-					gltf_mesh_scene.descriptor_sets.push_back(image_set);
-				}
-			}
 		}
 		else {
 			rosy_utils::debug_print_a("failed to create gltf texture image: %d\n", res.error());
 		}
 	}
 
+	for (fastgltf::Sampler& sampler : gltf.samplers) {
 
-	for (fastgltf::Material& mat : gltf.materials) {
-		material m{};
-		if (mat.pbrData.baseColorTexture.has_value()) {
-			m.descriptor_set_id = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
+		VkSamplerCreateInfo sampler_create_info = { .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, .pNext = nullptr };
+		sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
+		sampler_create_info.minLod = 0;
+		sampler_create_info.addressModeU = extract_wrap_mode(sampler.wrapS);
+		sampler_create_info.addressModeV = extract_wrap_mode(sampler.wrapT);
+		sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+		sampler_create_info.magFilter = extract_filter(sampler.magFilter.value_or(fastgltf::Filter::Nearest));
+		sampler_create_info.minFilter = extract_filter(sampler.minFilter.value_or(fastgltf::Filter::Nearest));
+
+		sampler_create_infos.push_back(sampler_create_info);
+
+	}
+	{
+		size_t desc_index{ 0 };
+		for (fastgltf::Material& mat : gltf.materials) {
+			material m{};
+			if (mat.pbrData.baseColorTexture.has_value()) {
+				auto image_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
+				auto sampler_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
+				VkSamplerCreateInfo sample = sampler_create_infos[sampler_index];
+				auto [texture, vk_texture] = gltf_mesh_scene.ktx_textures[image_index];
+				auto img_view = gltf_mesh_scene.image_views[image_index];
+				VkSampler sampler{};
+				{
+					sample.maxLod = vk_texture.levelCount;
+					sample.minLod = 0;
+
+					sample.anisotropyEnable = VK_FALSE;
+					sample.maxAnisotropy = 0.f;
+					sample.mipLodBias = 0.0f;
+
+					sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+					sampler_create_infos.push_back(sample);
+					if (VkResult result = vkCreateSampler(renderer_->opt_device.value(), &sample, nullptr, &sampler); result != VK_SUCCESS) continue;
+					gltf_mesh_scene.samplers.push_back(sampler);
+				}
+				{
+					auto [image_set_result, image_set] = gltf_mesh_scene.descriptor_allocator.value().allocate(renderer_->opt_device.value(), gltf_mesh_scene.image_layout);
+					if (image_set_result != VK_SUCCESS) continue;
+					{
+						descriptor_writer writer;
+						writer.write_image(0, img_view, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+						writer.update_set(renderer_->opt_device.value(), image_set);
+						gltf_mesh_scene.descriptor_sets.push_back(image_set);
+					}
+				}
+				m.descriptor_set_id = desc_index;
+				desc_index++;
+			}
+			gltf_mesh_scene.materials.push_back(m);
 		}
-		gltf_mesh_scene.materials.push_back(m);
 	}
 
 	std::vector<uint32_t> indices;
@@ -176,8 +232,8 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 						new_vtx.position = v;
 						new_vtx.normal = { 1.0f, 0.0f, 0.0f };
 						new_vtx.color = glm::vec4{ 1.f };
-						new_vtx.texture_coordinates_s = 0.0f;
-						new_vtx.texture_coordinates_t = 0.0f;
+						new_vtx.texture_coordinates_x = 0.0f;
+						new_vtx.texture_coordinates_y = 0.0f;
 						vertices[initial_vtx + index] = new_vtx;
 					});
 			}
@@ -194,8 +250,8 @@ std::optional<mesh_scene> rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::fi
 
 				fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[uv->accessorIndex],
 					[&](const glm::vec2 tc, const size_t index) {
-						vertices[initial_vtx + index].texture_coordinates_s = tc.x;
-						vertices[initial_vtx + index].texture_coordinates_t = tc.y;
+						vertices[initial_vtx + index].texture_coordinates_x = tc.x;
+						vertices[initial_vtx + index].texture_coordinates_y = tc.y;
 					});
 			}
 

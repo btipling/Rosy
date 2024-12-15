@@ -157,7 +157,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	return draw_nodes;
 }
 
-rh::result mesh_scene::draw(mesh_ctx ctx) const
+rh::result mesh_scene::draw(mesh_ctx ctx)
 {
 	if (meshes.size() == 0) return rh::result::ok;
 	auto cmd = ctx.cmd;
@@ -170,8 +170,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx) const
 	);
 
 	{
-		float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("scene", color);
+		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name, color);
 		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 	}
 
