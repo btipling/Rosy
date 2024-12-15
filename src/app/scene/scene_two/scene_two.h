@@ -16,7 +16,7 @@ public:
 	rh::result draw_ui(const rh::ctx& ctx) override;
 	rh::result deinit(rh::ctx& ctx) override;
 private:
-	void update_scene(const rh::ctx& ctx);
+	void update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer);
 	gpu_scene_data scene_data_ = {};
 	camera camera_;
 

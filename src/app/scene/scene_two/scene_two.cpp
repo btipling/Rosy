@@ -61,13 +61,11 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	return rh::result::ok;
 }
 
-rh::result scene_two::draw(rh::ctx ctx)
+rh::result scene_two::depth(rh::ctx ctx)
 {
-	update_scene(ctx);
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
-	auto data = ctx.rhi.data.value();
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
 		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
 	{
@@ -78,7 +76,8 @@ rh::result scene_two::draw(rh::ctx ctx)
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
-	VmaAllocator allocator = ctx.rhi.allocator;
+
+	update_scene(ctx, gpu_scene_buffer);
 
 	// Set descriptor sets
 	auto [desc_result, global_descriptor] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
@@ -86,12 +85,53 @@ rh::result scene_two::draw(rh::ctx ctx)
 	{
 		// Global descriptor
 		{
-			// copy memory
-			void* data_pointer;
-			vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
-			memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
-			vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
+
+			descriptor_writer writer;
+			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			writer.update_set(device, global_descriptor);
 		}
+	}
+	// Scene
+	{
+
+		auto m = translate(glm::mat4(1.f), scene_pos_);
+		m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+		m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+		m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+		m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
+		mesh_ctx m_ctx{};
+		m_ctx.wire_frame = toggle_wire_frame_;
+		m_ctx.cmd = cmd;
+		m_ctx.extent = frame_extent;
+		m_ctx.global_descriptor = &global_descriptor;
+		m_ctx.world_transform = m;
+		if (const auto res = scene_graph_->generate_shadows(m_ctx); res != rh::result::ok) return res;
+	}
+
+	return rh::result::ok;
+}
+
+rh::result scene_two::draw(rh::ctx ctx)
+{
+	VkDevice device = ctx.rhi.device;
+	if (!ctx.rhi.data.has_value()) return rh::result::error;
+	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
+	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
+		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
+	{
+		if (!opt_command_buffers.has_value()) return rh::result::error;
+		if (!opt_frame_descriptors.has_value()) return rh::result::error;
+	}
+	VkCommandBuffer cmd = opt_command_buffers.value();
+	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
+	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
+	VkExtent2D frame_extent = ctx.rhi.frame_extent;
+
+	// Set descriptor sets
+	auto [desc_result, global_descriptor] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
+	if (desc_result != VK_SUCCESS) return rh::result::error;
+	{
+		// Global descriptor
 		{
 
 			descriptor_writer writer;
@@ -183,42 +223,49 @@ rh::result scene_two::update(const rh::ctx& ctx)
 	return rh::result::ok;
 }
 
-rh::result scene_two::depth(rh::ctx ctx)
-{
-	return rh::result::ok;
-}
-
-void scene_two::update_scene(const rh::ctx& ctx)
+void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer)
 {
 	camera_.process_sdl_event(ctx);
 	camera_.update(ctx);
-	const auto [width, height] = ctx.rhi.frame_extent;
 
-	constexpr float z_near = 0.1f;
-	constexpr float z_far = 1000.0f;
-	const float aspect = static_cast<float>(width) / static_cast<float>(height);
-	constexpr float fov = glm::radians(70.0f);
-	const float h = 1.0 / tan(fov * 0.5);
-	const float w = h / aspect;
-	constexpr float a = -z_near / (z_far - z_near);
-	constexpr float b = (z_near * z_far) / (z_far - z_near);
+	{
+		const auto [width, height] = ctx.rhi.frame_extent;
 
-	glm::mat4 proj(0.0f);
+		constexpr float z_near = 0.1f;
+		constexpr float z_far = 1000.0f;
+		const float aspect = static_cast<float>(width) / static_cast<float>(height);
+		constexpr float fov = glm::radians(70.0f);
+		const float h = 1.0 / tan(fov * 0.5);
+		const float w = h / aspect;
+		constexpr float a = -z_near / (z_far - z_near);
+		constexpr float b = (z_near * z_far) / (z_far - z_near);
 
-	proj[0][0] = w;
-	proj[1][1] = -h;
+		glm::mat4 proj(0.0f);
 
-	proj[2][2] = a;
-	proj[3][2] = b;
-	proj[2][3] = 1.0f;
+		proj[0][0] = w;
+		proj[1][1] = -h;
 
-	const glm::mat4 view = camera_.get_view_matrix();
-	scene_data_.view = view;
-	scene_data_.proj = proj;
-	scene_data_.view_projection = proj * view;
-	scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
-	scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
-	scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
-	scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+		proj[2][2] = a;
+		proj[3][2] = b;
+		proj[2][3] = 1.0f;
+
+		const glm::mat4 view = camera_.get_view_matrix();
+		scene_data_.view = view;
+		scene_data_.proj = proj;
+		scene_data_.view_projection = proj * view;
+		scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
+		scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+		scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
+		scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+	}
+
+	{
+		const VmaAllocator allocator = ctx.rhi.allocator;
+		// copy memory
+		void* data_pointer;
+		vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
+		memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
+		vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
+	}
 }
 
