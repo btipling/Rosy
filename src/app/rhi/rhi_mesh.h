@@ -17,8 +17,10 @@ class mesh_scene
 public:
 	const char* name = "mesh";
 	float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-	const char* vertex_path = "out/mesh.vert.spv";;
+	const char* vertex_path = "out/mesh.vert.spv";
 	const char* frag_path = "out/mesh.frag.spv";
+	const char* shadow_vertex_path = "out/shadow.vert.spv";
+	const char* shadow_frag_path = "out/shadow.frag.spv";
 
 	size_t root_scene = 0;
 	std::vector<std::vector<size_t>>scenes;
@@ -31,8 +33,10 @@ public:
 	std::vector<VkImageView> image_views;
 	std::vector<VkDescriptorSet> descriptor_sets;
 	std::vector<VkDescriptorSetLayout> descriptor_layouts;
+	std::vector<VkDescriptorSetLayout> shadow_descriptor_layouts;
 
 	std::optional<shader_pipeline> shaders;
+	std::optional<shader_pipeline> shadow_shaders;
 	std::optional<descriptor_allocator_growable> descriptor_allocator = std::nullopt;
 
 	VkDescriptorSetLayout data_layout{};
@@ -45,6 +49,7 @@ public:
 	mesh_scene(mesh_scene&&) noexcept = default;
 	mesh_scene& operator=(mesh_scene&&) noexcept = default;
 	void init(const rh::ctx& ctx);
+	void init_shadows(const rh::ctx& ctx);
 	void deinit(const rh::ctx& ctx);
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);

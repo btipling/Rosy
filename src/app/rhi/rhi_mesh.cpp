@@ -46,10 +46,40 @@ void mesh_scene::init(const rh::ctx& ctx)
 	{
 		shader_pipeline sp = {};
 		sp.layouts = descriptor_layouts;
-		sp.name = "scene";
+		sp.name = std::format("scene %s", name).c_str();
 		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shaders = sp;
+	}
+}
+
+void mesh_scene::init_shadows(const rh::ctx& ctx)
+{
+	const VkDevice device = ctx.rhi.device;
+	std::vector<char> scene_vertex_shader;
+	std::vector<char> scene_fragment_shader;
+	try
+	{
+		scene_vertex_shader = read_file(shadow_vertex_path);
+		scene_fragment_shader = read_file(shadow_frag_path);
+	}
+	catch (const std::exception& e)
+	{
+		rosy_utils::debug_print_a("error reading shadow shader files! %s", e.what());
+		return;
+	}
+
+	{
+		shadow_descriptor_layouts.push_back(data_layout);
+	}
+
+	{
+		shader_pipeline sp = {};
+		sp.layouts = shadow_descriptor_layouts;
+		sp.name = std::format("shadows %s", name).c_str();
+		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
+		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
+		shadow_shaders = sp;
 	}
 }
 
@@ -82,6 +112,9 @@ void mesh_scene::deinit(const rh::ctx& ctx)
 	}
 	if (descriptor_allocator.has_value()) {
 		descriptor_allocator.value().destroy_pools(device);
+	}
+	if (shadow_shaders.has_value()) {
+		shadow_shaders.value().deinit(device);
 	}
 	if (shaders.has_value()) {
 		shaders.value().deinit(device);

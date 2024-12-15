@@ -18,10 +18,10 @@ scene_two::scene_two() :  // NOLINT(modernize-use-equals-default)
 rh::result scene_two::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
-	auto data = ctx.rhi.data.value();
-	std::vector<VkDescriptorSetLayout> layouts;
+	const auto data = ctx.rhi.data.value();
 	descriptor_allocator_growable descriptor_allocator = ctx.rhi.descriptor_allocator.value();
 	{
+		std::vector<VkDescriptorSetLayout> layouts;
 		descriptor_layout_builder layout_builder;
 		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -32,8 +32,9 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	{
 		mesh_scene mesh_graph{};
 		mesh_graph.init(ctx);
+		mesh_graph.init_shadows(ctx);
 		// ReSharper disable once StringLiteralTypo
-		if (auto res = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf", mesh_graph); res != rh::result::ok)
+		if (const auto res = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf", mesh_graph); res != rh::result::ok)
 		{
 			return res;
 		}
@@ -47,7 +48,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		mesh_scene mesh_graph{};
 		mesh_graph.frag_path = "out/skybox_mesh.frag.spv";
 		mesh_graph.init(ctx);
-		if (auto res = data->load_gltf_meshes(ctx, "assets\\skybox_blue_desert.glb", mesh_graph); res != rh::result::ok)
+		if (const auto res = data->load_gltf_meshes(ctx, "assets\\skybox_blue_desert.glb", mesh_graph); res != rh::result::ok)
 		{
 			return res;
 		}
