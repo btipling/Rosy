@@ -153,6 +153,12 @@ VkResult rhi::shadow_pass()
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_image shadow_map_image = shadow_map_image_.value();
 	transition_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+	{
+		VkRenderingAttachmentInfo depth_attachment = rhi_helpers::depth_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(swapchain_extent, depth_attachment);
+		// begin shadow pass
+		vkCmdBeginRendering(cmd, &render_info);
+	}
 	return VK_SUCCESS;
 }
 
@@ -173,6 +179,10 @@ VkResult rhi::render_pass()
 
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
+
+
+	// end shadow pass
+	vkCmdEndRendering(cmd);
 
 	{
 		// Clear image. This transition means that all the commands recorded before now happen before
@@ -195,6 +205,7 @@ VkResult rhi::render_pass()
 			VkRenderingAttachmentInfo depth_attachment = rhi_helpers::depth_attachment_info(
 				depth_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 			VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent, color_attachment, depth_attachment);
+			// begin render pass
 			vkCmdBeginRendering(cmd, &render_info);
 		}
 	}
@@ -228,7 +239,7 @@ VkResult rhi::end_frame()
 	allocated_image draw_image = draw_image_.value();
 	{
 		VkResult result;
-		// end app rendering
+		// end render pass
 		vkCmdEndRendering(cmd);
 		{
 			// blit the draw image to the swapchain image
