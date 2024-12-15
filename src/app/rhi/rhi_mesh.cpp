@@ -178,9 +178,9 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 	{
 		m_shaders.viewport_extent = ctx.extent;
 		m_shaders.wire_frames_enabled = ctx.wire_frame;
-		m_shaders.depth_enabled = true;
+		m_shaders.depth_enabled = ctx.depth_enabled;
 		m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
-		m_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
+		m_shaders.front_face = ctx.front_face;
 		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 	}
 

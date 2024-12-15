@@ -201,62 +201,67 @@ rh::result scene_two::draw(rh::ctx ctx)
 	}
 	{
 
-		auto m = translate(glm::mat4(1.f), scene_pos_);
-		m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
-		m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
-		m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
-		m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
-
 		// Skybox
-		{
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 1, 1, &skybox_image_descriptor_set_.value(), 0, nullptr);
-			float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
-			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
-			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
+		//{
+		//	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, 1, &global_descriptor, 0, nullptr);
+		//	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 1, 1, &skybox_image_descriptor_set_.value(), 0, nullptr);
+		//	float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+		//	VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
+		//	vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 
-			gpu_draw_push_constants push_constants{};
-			auto m = glm::mat4(1.0f);
-			m = translate(m, camera_.position);
-			push_constants.world_matrix = m;
+		//	gpu_draw_push_constants push_constants{};
+		//	auto m = glm::mat4(1.0f);
+		//	m = translate(m, camera_.position);
+		//	push_constants.world_matrix = m;
 
-			if (scene_graph_->meshes.size() > 0)
-			{
-				size_t mesh_index = 0;
-				auto mesh = scene_graph_->meshes[mesh_index];
-				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
-				skybox_shaders.viewport_extent = frame_extent;
-				skybox_shaders.shader_constants = &push_constants;
-				skybox_shaders.shader_constants_size = sizeof(push_constants);
-				skybox_shaders.wire_frames_enabled = toggle_wire_frame_;
-				skybox_shaders.depth_enabled = false;
-				skybox_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
-				skybox_shaders.blending = static_cast<shader_blending>(blend_mode_);
-				if (VkResult result = skybox_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
-				if (VkResult result = skybox_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
-					0, 0);
-			}
-			vkCmdEndDebugUtilsLabelEXT(cmd);
-		}
+		//	if (scene_graph_->meshes.size() > 0)
+		//	{
+		//		size_t mesh_index = 0;
+		//		auto mesh = scene_graph_->meshes[mesh_index];
+		//		push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
+		//		skybox_shaders.viewport_extent = frame_extent;
+		//		skybox_shaders.shader_constants = &push_constants;
+		//		skybox_shaders.shader_constants_size = sizeof(push_constants);
+		//		skybox_shaders.wire_frames_enabled = toggle_wire_frame_;
+		//		skybox_shaders.depth_enabled = false;
+		//		skybox_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
+		//		skybox_shaders.blending = static_cast<shader_blending>(blend_mode_);
+		//		if (VkResult result = skybox_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+		//		if (VkResult result = skybox_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
+		//		vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		//		vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
+		//			0, 0);
+		//	}
+		//	vkCmdEndDebugUtilsLabelEXT(cmd);
+		//}
 		// Anime skybox
 		{
+			auto m = glm::mat4(1.0f);
+			m = translate(m, glm::vec3(-camera_.position[0], camera_.position[1], camera_.position[2]));
 			mesh_ctx m_ctx{};
 			m_ctx.wire_frame = toggle_wire_frame_;
+			m_ctx.depth_enabled = false;
 			m_ctx.cmd = cmd;
+			m_ctx.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;;
 			m_ctx.extent = frame_extent;
 			m_ctx.global_descriptor = &global_descriptor;
-			//m_ctx.world_transform = m;
+			m_ctx.world_transform = m;
 			if (const auto res = anime_sky_box_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 		// Scene
 		{
+
+			auto m = translate(glm::mat4(1.f), scene_pos_);
+			m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 			mesh_ctx m_ctx{};
 			m_ctx.wire_frame = toggle_wire_frame_;
 			m_ctx.cmd = cmd;
 			m_ctx.extent = frame_extent;
 			m_ctx.global_descriptor = &global_descriptor;
+			m_ctx.world_transform = m;
 			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 	}
