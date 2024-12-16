@@ -56,7 +56,7 @@ void mesh_scene::init(const rh::ctx& ctx)
 	{
 		shader_pipeline sp = {};
 		sp.layouts = descriptor_layouts;
-		sp.name = std::format("scene %s", name).c_str();
+		sp.name = std::format("scene {}", name);
 		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shaders = sp;
@@ -87,7 +87,7 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 	{
 		shader_pipeline sp = {};
 		sp.layouts = shadow_descriptor_layouts;
-		sp.name = std::format("shadows %s", name).c_str();
+		sp.name = std::format("shadows {}", name);
 		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shadow_shaders = sp;
@@ -207,7 +207,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 	auto cmd = ctx.cmd;
 
 	{
-		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name, color);
+		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
 		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 	}
 
@@ -252,7 +252,7 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 	auto cmd = ctx.cmd;
 
 	{
-		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name, color);
+		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
 		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 	}
 

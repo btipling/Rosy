@@ -15,12 +15,12 @@ struct mesh_ctx
 class mesh_scene
 {
 public:
-	const char* name = "mesh";
+	std::string name{ "mesh" };
 	float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-	const char* vertex_path = "out/mesh.vert.spv";
-	const char* frag_path = "out/mesh.frag.spv";
-	const char* shadow_vertex_path = "out/shadow.vert.spv";
-	const char* shadow_frag_path = "out/shadow.frag.spv";
+	std::string vertex_path{"out/mesh.vert.spv"};
+	std::string frag_path{"out/mesh.frag.spv"};
+	std::string shadow_vertex_path{"out/shadow.vert.spv"};
+	std::string shadow_frag_path{ "out/shadow.frag.spv" };
 
 	size_t root_scene = 0;
 	std::vector<std::vector<size_t>>scenes;

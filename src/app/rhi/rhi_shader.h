@@ -22,7 +22,7 @@ public:
     VkResult shade(VkCommandBuffer cmd) const;
     VkResult push(VkCommandBuffer cmd) const;
 
-    const char* name = "geometry";
+    std::string name{ "geometry" };
     float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
     std::vector<VkShaderEXT> shaders = {};
 	std::optional<VkPipelineLayout> pipeline_layout = {};

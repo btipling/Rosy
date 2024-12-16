@@ -243,11 +243,11 @@ namespace
 				for (unsigned int z = 0; z < 2; ++z)
 				{
 					const glm::vec4 point = inv * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
-					rosy_utils::debug_print_a("\tcorner: (%f, %f, %f)\n", point.x, point.y, point.z);
+					//rosy_utils::debug_print_a("\tcorner: (%f, %f, %f)\n", point.x, point.y, point.z);
 					corners.push_back(point / point.w);
 				}
 			}
-			rosy_utils::debug_print_a("\n");
+			//rosy_utils::debug_print_a("\n");
 		}
 
 		return corners;
