@@ -27,7 +27,7 @@ public:
     std::vector<VkShaderEXT> shaders = {};
 	std::optional<VkPipelineLayout> pipeline_layout = {};
     void* shader_constants = nullptr;
-    uint32_t shader_constants_size = 0;
+    uint32_t shader_constants_size = sizeof(gpu_draw_push_constants);
     std::vector<VkDescriptorSetLayout> layouts;
 
     VkExtent2D viewport_extent = {};

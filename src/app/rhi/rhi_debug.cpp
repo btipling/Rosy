@@ -39,6 +39,7 @@ void debug_gfx::init(const rh::ctx& ctx)
 		shader_pipeline sp = {};
 		sp.layouts = descriptor_layouts;
 		sp.name = std::format("scene {}", name);
+		sp.shader_constants_size = sizeof(debug_draw_push_constants);
 		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shaders = sp;
@@ -76,7 +77,6 @@ rh::result debug_gfx::draw(debug_ctx ctx)
 		m_shaders.viewport_extent = ctx.extent;
 		m_shaders.wire_frames_enabled = ctx.wire_frame;
 		m_shaders.depth_enabled = ctx.depth_enabled;
-		m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
 		m_shaders.front_face = ctx.front_face;
 		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 	}

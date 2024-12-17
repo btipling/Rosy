@@ -11,7 +11,7 @@ void shader_pipeline::with_shaders(const std::vector<char>& vert, const std::vec
 VkResult shader_pipeline::build(const VkDevice device)
 {
 
-	VkPushConstantRange push_constant_range = rhi_helpers::create_push_constant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(gpu_draw_push_constants));
+	VkPushConstantRange push_constant_range = rhi_helpers::create_push_constant(VK_SHADER_STAGE_VERTEX_BIT, shader_constants_size);
 	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	for (VkShaderCreateInfoEXT& create_info : shaders_create_info_)
 	{
