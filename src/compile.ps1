@@ -9,3 +9,5 @@ if (-not (Test-Path -Path "out")) {
 & "$env:VULKAN_SDK\Bin\glslc.exe" shaders/skybox.frag -o out/skybox.frag.spv
 & "$env:VULKAN_SDK\Bin\glslc.exe" shaders/shadow.vert -o out/shadow.vert.spv
 & "$env:VULKAN_SDK\Bin\glslc.exe" shaders/shadow.frag -o out/shadow.frag.spv
+& "$env:VULKAN_SDK\Bin\glslc.exe" shaders/debug.vert -o out/debug.vert.spv
+& "$env:VULKAN_SDK\Bin\glslc.exe" shaders/debug.frag -o out/debug.frag.spv

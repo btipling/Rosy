@@ -208,6 +208,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="compile.ps1" />
+    <None Include="shaders\debug.frag" />
+    <None Include="shaders\debug.vert" />
     <None Include="shaders\imgui.frag" />
     <None Include="shaders\mesh.vert" />
     <None Include="shaders\shadow.frag" />

@@ -181,8 +181,8 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
 		ImGui::Text("Camera orientation: (%f, %f)", camera_.pitch, camera_.yaw);
 		ImGui::SliderFloat3("Rotate", value_ptr(scene_rot_), 0, glm::pi<float>() * 2.0f);
-		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -100.0f, 100.0f);
-		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 1.0f);
+		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -1000.0f, 1000.0f);
+		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 100.0f);
 		ImGui::SliderFloat3("Sunlight direction", value_ptr(sunlight_direction_), -30.0f, 30.0f);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 		ImGui::Text("Blending");
@@ -338,7 +338,7 @@ void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_sce
 		const glm::mat4 view = camera_.get_view_matrix();
 		scene_data_.view = view;
 		scene_data_.proj = proj;
-		scene_data_.view_projection = proj * view;
+		scene_data_.view_projection = proj* view;
 		scene_data_.shadow_projection = shadow_map_projection(sunlight_direction_, shadow_proj, view);
 		scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
 		scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);

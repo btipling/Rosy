@@ -267,6 +267,12 @@
     <None Include="shaders\shadow.vert">
       <Filter>Resource Files\shaders</Filter>
     </None>
+    <None Include="shaders\debug.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="shaders\debug.vert">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\SDL3.lib">
