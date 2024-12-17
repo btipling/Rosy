@@ -89,6 +89,12 @@ struct gpu_draw_push_constants
 	VkDeviceAddress vertex_buffer;
 };
 
+struct debug_draw_push_constants
+{
+	glm::mat4 world_matrix;
+	glm::vec4 color;
+};
+
 struct geo_surface
 {
 	uint32_t start_index;

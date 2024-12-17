@@ -4,6 +4,7 @@
 #include "rhi_descriptor.h"
 #include "rhi_shader.h"
 #include "rhi_mesh.h"
+#include "rhi_debug.h"
 #include "SDL3/SDL_events.h"
 
 

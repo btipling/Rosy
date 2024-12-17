@@ -138,6 +138,9 @@
     <ClInclude Include="math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="app\rhi\rhi_debug.h">
+      <Filter>Header Files\rhi</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Rosy.cpp">
@@ -225,6 +228,9 @@
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
     <ClCompile Include="app\rhi\rhi_mesh.cpp">
+      <Filter>Source Files\rhi</Filter>
+    </ClCompile>
+    <ClCompile Include="app\rhi\rhi_debug.cpp">
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
   </ItemGroup>
