@@ -57,6 +57,14 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		skybox_->name = "anime skybox";
 		std::ranges::copy(label, std::begin(skybox_->color));
 	}
+	{
+		debug_gfx debug{};
+		debug.init(ctx);
+		debug_ = std::make_shared<debug_gfx>(std::move(debug));
+		constexpr float label[4] = { 0.5f, 0.1f, 0.1f, 1.0f };
+		scene_graph_->name = "scene_two_lines";
+		std::ranges::copy(label, std::begin(scene_graph_->color));
+	}
 
 	return rh::result::ok;
 }
@@ -156,7 +164,6 @@ rh::result scene_two::draw(rh::ctx ctx)
 		}
 		// Scene
 		{
-
 			auto m = translate(glm::mat4(1.f), scene_pos_);
 			m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
 			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
@@ -169,6 +176,22 @@ rh::result scene_two::draw(rh::ctx ctx)
 			m_ctx.global_descriptor = &global_descriptor;
 			m_ctx.world_transform = m;
 			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
+		}
+		// Debug
+		{
+		/*	auto m = translate(glm::mat4(1.f), scene_pos_);
+			m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));*/
+			debug_ctx d_ctx{
+				.lines = debug_lines_,
+			};
+			d_ctx.wire_frame = toggle_wire_frame_;
+			d_ctx.cmd = cmd;
+			d_ctx.extent = frame_extent;
+			d_ctx.global_descriptor = &global_descriptor;
+			if (const auto res = debug_->draw(d_ctx); res != rh::result::ok) return res;
 		}
 	}
 
@@ -208,6 +231,9 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	}
 	{
 		skybox_->deinit(ctx);
+	}
+	{
+		debug_->deinit(ctx);
 	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{

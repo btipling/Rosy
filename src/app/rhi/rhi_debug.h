@@ -2,8 +2,7 @@
 
 struct debug_ctx
 {
-	std::vector<debug_draw_push_constants> lines{};
-	glm::mat4 world_transform = { 1.f };
+	std::vector<debug_draw_push_constants>& lines;
 	size_t scene_index = 0;
 	bool wire_frame = false;
 	bool depth_enabled = true;

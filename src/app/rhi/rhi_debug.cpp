@@ -1,16 +1,6 @@
 #include "rhi.h"
 #include "../loader/loader.h"
 
-
-namespace {
-	constexpr auto ndc = glm::mat4(
-		glm::vec4(-1.f, 0.f, 0.f, 0.f),
-		glm::vec4(0.f, 1.f, 0.f, 0.f),
-		glm::vec4(0.f, 0.f, 1.f, 0.f),
-		glm::vec4(0.f, 0.f, 0.f, 1.f)
-	);
-}
-
 void debug_gfx::init(const rh::ctx& ctx)
 {
 	std::vector<char> scene_vertex_shader;
