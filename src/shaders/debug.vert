@@ -18,16 +18,16 @@ layout(set = 0, binding = 0) uniform  SceneData{
 layout( push_constant ) uniform constants
 {
 	mat4 worldMatrix;
+	vec4 p1;
+	vec4 p2;
 	vec4 color;
 } PushConstants;
 
 void main() {
-	vec4 p1 = vec4(0.0, 0.0, 0.0, 1.0);
-	vec4 p2 = vec4(1.0, 0.0, 0.0, 1.0);
 
-	vec4 v = p1;
+	vec4 v = PushConstants.p1;
 	if (gl_VertexIndex != 0) {
-		v = p2;
+		v = PushConstants.p2;
 	}
 
     gl_Position = sceneData.viewproj * PushConstants.worldMatrix * v;

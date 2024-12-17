@@ -72,7 +72,7 @@ rh::result debug_gfx::draw(debug_ctx ctx)
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
 		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 	}
-	vkCmdSetLineWidth(cmd, 3.f);
+	vkCmdSetLineWidth(cmd, 5.f);
 
 	shader_pipeline m_shaders = shaders.value();
 	{

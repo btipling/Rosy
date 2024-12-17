@@ -68,6 +68,16 @@ rh::result scene_two::build(const rh::ctx& ctx)
 			debug_draw_push_constants line{};
 			line.world_matrix = glm::mat4(1.f);
 			line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+			line.p1 = glm::vec4(0.f, 0.f, 0.f, 1.f);
+			line.p2 = glm::vec4(1.f, 0.f, 0.f, 1.f);
+			debug_lines_.push_back(line);
+			line.p1 = glm::vec4(0.f, 0.f, 0.f, 1.f);
+			line.p2 = glm::vec4(0.f, 1.f, 0.f, 1.f);
+			line.color = glm::vec4(0.f, 1.f, 0.f, 1.f);
+			debug_lines_.push_back(line);
+			line.p1 = glm::vec4(0.f, 0.f, 0.f, 1.f);
+			line.p2 = glm::vec4(0.f, 0.f, 1.f, 1.f);
+			line.color = glm::vec4(0.f, 0.f, 1.f, 1.f);
 			debug_lines_.push_back(line);
 		}
 

@@ -92,6 +92,8 @@ struct gpu_draw_push_constants
 struct debug_draw_push_constants
 {
 	glm::mat4 world_matrix;
+	glm::vec4 p1 = glm::vec4(0.f, 0.f, 0.f, 1.f);
+	glm::vec4 p2 = glm::vec4(1.f, 0.f, 0.f, 1.f);
 	glm::vec4 color;
 };
 
