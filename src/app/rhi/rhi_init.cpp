@@ -594,6 +594,7 @@ VkResult rhi::init_physical_device()
 	required_features.tessellationShader = VK_TRUE;
 	required_features.geometryShader = VK_TRUE;
 	required_features.fillModeNonSolid = VK_TRUE;
+	required_features.wideLines = VK_TRUE;
 	required_features_ = required_features;
 	if (!physical_device_.has_value()) return VK_NOT_READY;
 

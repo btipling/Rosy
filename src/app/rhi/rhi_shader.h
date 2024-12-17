@@ -27,6 +27,7 @@ public:
     std::vector<VkShaderEXT> shaders = {};
 	std::optional<VkPipelineLayout> pipeline_layout = {};
     void* shader_constants = nullptr;
+    VkPrimitiveTopology primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     uint32_t shader_constants_size = sizeof(gpu_draw_push_constants);
     std::vector<VkDescriptorSetLayout> layouts;
 

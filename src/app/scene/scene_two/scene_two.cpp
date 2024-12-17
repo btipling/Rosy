@@ -64,6 +64,13 @@ rh::result scene_two::build(const rh::ctx& ctx)
 		constexpr float label[4] = { 0.5f, 0.1f, 0.1f, 1.0f };
 		scene_graph_->name = "scene_two_lines";
 		std::ranges::copy(label, std::begin(scene_graph_->color));
+		{
+			debug_draw_push_constants line{};
+			line.world_matrix = glm::mat4(1.f);
+			line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+			debug_lines_.push_back(line);
+		}
+
 	}
 
 	return rh::result::ok;
@@ -204,7 +211,7 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
 		ImGui::Text("Camera orientation: (%f, %f)", camera_.pitch, camera_.yaw);
 		ImGui::SliderFloat3("Rotate", value_ptr(scene_rot_), 0, glm::pi<float>() * 2.0f);
-		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -1000.0f, 1000.0f);
+		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -100.0f, 100.0f);
 		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 100.0f);
 		ImGui::SliderFloat3("Sunlight direction", value_ptr(sunlight_direction_), -30.0f, 30.0f);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);

@@ -40,6 +40,7 @@ void debug_gfx::init(const rh::ctx& ctx)
 		sp.layouts = descriptor_layouts;
 		sp.name = std::format("scene {}", name);
 		sp.shader_constants_size = sizeof(debug_draw_push_constants);
+		sp.primitive = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
 		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shaders = sp;
@@ -71,6 +72,7 @@ rh::result debug_gfx::draw(debug_ctx ctx)
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
 		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 	}
+	vkCmdSetLineWidth(cmd, 3.f);
 
 	shader_pipeline m_shaders = shaders.value();
 	{
@@ -89,7 +91,7 @@ rh::result debug_gfx::draw(debug_ctx ctx)
 		m_shaders.shader_constants = &line;
 		m_shaders.shader_constants_size = sizeof(line);
 		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-		vkCmdDrawIndexed(cmd, 2, 1, 0, 0, 0);
+		vkCmdDraw(cmd, 2, 1, 0, 0);
 	}
 
 	vkCmdEndDebugUtilsLabelEXT(cmd);

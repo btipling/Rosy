@@ -32,5 +32,4 @@ void main() {
 
     gl_Position = sceneData.viewproj * PushConstants.worldMatrix * v;
     fragmentColor = PushConstants.color.xyz;
-	mat3 normalTransform = transpose(inverse(mat3(PushConstants.worldMatrix)));
 }

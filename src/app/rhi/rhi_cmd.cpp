@@ -2,11 +2,11 @@
 
 namespace rhi_cmd
 {
-	void set_rendering_defaults(const VkCommandBuffer cmd) {
+	void set_rendering_defaults(const VkCommandBuffer cmd, const VkPrimitiveTopology primitive) {
 
 		{
 			vkCmdSetRasterizerDiscardEnableEXT(cmd, VK_FALSE);
-			vkCmdSetPrimitiveTopologyEXT(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+			vkCmdSetPrimitiveTopologyEXT(cmd, primitive);
 			vkCmdSetPrimitiveRestartEnableEXT(cmd, VK_FALSE);
 			vkCmdSetRasterizationSamplesEXT(cmd, VK_SAMPLE_COUNT_1_BIT);
 		}
