@@ -83,7 +83,7 @@ rh::result scene_two::depth(rh::ctx ctx)
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
-	VkExtent2D frame_extent = ctx.rhi.frame_extent;
+	VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
 	update_scene(ctx, gpu_scene_buffer);
 
