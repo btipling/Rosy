@@ -61,6 +61,30 @@ void mesh_scene::init(const rh::ctx& ctx)
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shaders = sp;
 	}
+	{
+		debug_gfx db{};
+		debug = std::make_shared<debug_gfx>(std::move(db));
+		debug->init(ctx);
+		constexpr float label[4] = { 0.5f, 0.1f, 0.1f, 1.0f };
+		debug->name = std::format("{} debug", name);
+		std::ranges::copy(label, std::begin(color));
+		{
+			debug_draw_push_constants line{};
+			line.world_matrix = glm::mat4(1.f);
+			line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+			line.p1 = glm::vec4(0.f, 0.f, 0.f, 1.f);
+			line.p2 = glm::vec4(1.f, 0.f, 0.f, 1.f);
+			debug->lines.push_back(line);
+			line.p1 = glm::vec4(0.f, 0.f, 0.f, 1.f);
+			line.p2 = glm::vec4(0.f, 1.f, 0.f, 1.f);
+			line.color = glm::vec4(0.f, 1.f, 0.f, 1.f);
+			debug->lines.push_back(line);
+			line.p1 = glm::vec4(0.f, 0.f, 0.f, 1.f);
+			line.p2 = glm::vec4(0.f, 0.f, 1.f, 1.f);
+			line.color = glm::vec4(0.f, 0.f, 1.f, 1.f);
+			debug->lines.push_back(line);
+		}
+	}
 }
 
 void mesh_scene::init_shadows(const rh::ctx& ctx)
@@ -98,6 +122,9 @@ void mesh_scene::deinit(const rh::ctx& ctx)
 {
 	const auto buffer = ctx.rhi.data.value();
 	const VkDevice device = ctx.rhi.device;
+	{
+		debug->deinit(ctx);
+	}
 	for (std::shared_ptr<mesh_asset> mesh : meshes)
 	{
 		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
@@ -242,6 +269,18 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 	}
 
 	vkCmdEndDebugUtilsLabelEXT(cmd);
+
+
+	// Debug
+	{
+		/*	auto m = translate(glm::mat4(1.f), scene_pos_);
+			m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));*/
+	
+		if (const auto res = debug->draw(ctx); res != rh::result::ok) return res;
+	}
 	return rh::result::ok;
 };
 

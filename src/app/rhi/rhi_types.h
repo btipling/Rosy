@@ -149,6 +149,18 @@ struct vulkan_ctx
 	VkCommandPool cmd_pool;
 };
 
+struct mesh_ctx
+{
+	glm::mat4 world_transform = { 1.f };
+	size_t scene_index = 0;
+	bool wire_frame = false;
+	bool depth_enabled = true;
+	VkFrontFace front_face = VK_FRONT_FACE_CLOCKWISE;
+	VkCommandBuffer cmd;
+	VkExtent2D extent;
+	VkDescriptorSet* global_descriptor;
+};
+
 struct mesh_node
 {
 	std::vector<size_t>children;

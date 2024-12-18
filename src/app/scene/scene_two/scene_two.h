@@ -24,9 +24,6 @@ private:
 	std::shared_ptr<mesh_scene> scene_graph_;
 	std::shared_ptr<mesh_scene> skybox_;
 
-	std::vector<debug_draw_push_constants> debug_lines_;
-	std::shared_ptr<debug_gfx> debug_{};
-
 	// Scene
 	glm::vec3 scene_rot_ = glm::vec3(0.f);
 	glm::vec3 scene_pos_ = glm::vec3(0.f, 0.f, 0.f);

@@ -63,9 +63,9 @@ void debug_gfx::deinit(const rh::ctx& ctx)
 	}
 }
 
-rh::result debug_gfx::draw(debug_ctx ctx)
+rh::result debug_gfx::draw(mesh_ctx ctx)
 {
-	if (ctx.lines.size() == 0) return rh::result::ok;
+	if (lines.size() == 0) return rh::result::ok;
 	auto cmd = ctx.cmd;
 
 	{
@@ -86,7 +86,7 @@ rh::result debug_gfx::draw(debug_ctx ctx)
 	size_t last_material = 100'000;
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
-	for (auto line : ctx.lines) {
+	for (auto line : lines) {
 		gpu_draw_push_constants push_constants{};
 		m_shaders.shader_constants = &line;
 		m_shaders.shader_constants_size = sizeof(line);

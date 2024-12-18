@@ -1,16 +1,5 @@
 #pragma once
-
-struct mesh_ctx
-{
-	glm::mat4 world_transform = { 1.f };
-	size_t scene_index = 0;
-	bool wire_frame = false;
-	bool depth_enabled = true;
-	VkFrontFace front_face = VK_FRONT_FACE_CLOCKWISE;
-	VkCommandBuffer cmd;
-	VkExtent2D extent;
-	VkDescriptorSet* global_descriptor;
-};
+#include "rhi_types.h"
 
 class mesh_scene
 {
@@ -41,6 +30,8 @@ public:
 
 	VkDescriptorSetLayout data_layout{};
 	VkDescriptorSetLayout image_layout{};
+
+	std::shared_ptr<debug_gfx> debug{};
 
 	explicit mesh_scene() = default;
 	~mesh_scene() = default;

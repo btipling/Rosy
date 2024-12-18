@@ -1,16 +1,5 @@
 #pragma once
-
-struct debug_ctx
-{
-	std::vector<debug_draw_push_constants>& lines;
-	size_t scene_index = 0;
-	bool wire_frame = false;
-	bool depth_enabled = true;
-	VkFrontFace front_face = VK_FRONT_FACE_CLOCKWISE;
-	VkCommandBuffer cmd;
-	VkExtent2D extent;
-	VkDescriptorSet* global_descriptor;
-};
+#include "rhi_types.h"
 
 class debug_gfx
 {
@@ -24,6 +13,7 @@ public:
 
 	std::optional<shader_pipeline> shaders = std::nullopt;
 	std::optional<descriptor_allocator_growable> descriptor_allocator = std::nullopt;
+	std::vector<debug_draw_push_constants> lines;
 
 	VkDescriptorSetLayout data_layout{};
 
@@ -35,5 +25,5 @@ public:
 	debug_gfx& operator=(debug_gfx&&) noexcept = default;
 	void init(const rh::ctx& ctx);
 	void deinit(const rh::ctx& ctx);
-	[[nodiscard]] auto draw(debug_ctx ctx) -> rh::result;
+	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 };
