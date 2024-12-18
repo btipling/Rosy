@@ -87,14 +87,85 @@ rh::result debug_gfx::draw(mesh_ctx ctx)
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
 	for (auto line : lines) {
-		gpu_draw_push_constants push_constants{};
 		m_shaders.shader_constants = &line;
 		m_shaders.shader_constants_size = sizeof(line);
 		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 		vkCmdDraw(cmd, 2, 1, 0, 0);
+	}
+	if (shadow_frustum.has_value()) {
+		for (auto line : shadow_box_lines) {
+			auto shadow_line = line;
+			shadow_line.world_matrix = shadow_frustum.value();
+			m_shaders.shader_constants = &shadow_line;
+			m_shaders.shader_constants_size = sizeof(shadow_line);
+			if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
+			vkCmdDraw(cmd, 2, 1, 0, 0);
+		}
 	}
 
 	vkCmdEndDebugUtilsLabelEXT(cmd);
 	return rh::result::ok;
 };
 
+void debug_gfx::set_shadow_frustum(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z)
+{
+	{
+		shadow_box_lines.clear();
+		// Shadow box
+		debug_draw_push_constants line{};
+		auto m = glm::mat4(1.f);
+		m = glm::translate(m, glm::vec3(0.f, 0.f, 5.f));
+		line.world_matrix = m;
+		line.color = glm::vec4(1.f, 1.f, 0.f, 1.f);
+
+		line.p1 = glm::vec4(min_x, min_y, min_z, 1.f);
+		line.p2 = glm::vec4(max_x, min_y, min_z, 1.f);
+		shadow_box_lines.push_back(line);
+		line.p1 = glm::vec4(min_x, min_y, min_z, 1.f);
+		line.p2 = glm::vec4(min_x, max_y, min_z, 1.f);
+		shadow_box_lines.push_back(line);
+		line.p1 = glm::vec4(max_x, min_y, min_z, 1.f);
+		line.p2 = glm::vec4(max_x, max_y, min_z, 1.f);
+		shadow_box_lines.push_back(line);
+		line.p1 = glm::vec4(max_x, max_y, min_z, 1.f);
+		line.p2 = glm::vec4(min_x, max_y, min_z, 1.f);
+		shadow_box_lines.push_back(line);
+
+		line.p1 = glm::vec4(min_x, min_y, max_z, 1.f);
+		line.p2 = glm::vec4(max_x, min_y, max_z, 1.f);
+		shadow_box_lines.push_back(line);
+		line.p1 = glm::vec4(min_x, min_y, max_z, 1.f);
+		line.p2 = glm::vec4(min_x, max_y, max_z, 1.f);
+		shadow_box_lines.push_back(line);
+		line.p1 = glm::vec4(max_x, min_y, max_z, 1.f);
+		line.p2 = glm::vec4(max_x, max_y, max_z, 1.f);
+		shadow_box_lines.push_back(line);
+		line.p1 = glm::vec4(max_x, max_y, max_z, 1.f);
+		line.p2 = glm::vec4(min_x, max_y, max_z, 1.f);
+		shadow_box_lines.push_back(line);
+
+		line.p1 = glm::vec4(min_x, min_y, min_z, 1.f);
+		line.p2 = glm::vec4(min_x, min_y, max_z, 1.f);
+		shadow_box_lines.push_back(line);
+		line.p1 = glm::vec4(min_x, max_y, min_z, 1.f);
+		line.p2 = glm::vec4(min_x, max_y, max_z, 1.f);
+		shadow_box_lines.push_back(line);
+		line.p1 = glm::vec4(max_x, min_y, min_z, 1.f);
+		line.p2 = glm::vec4(max_x, min_y, max_z, 1.f);
+		shadow_box_lines.push_back(line);
+		line.p1 = glm::vec4(max_x, max_y, min_z, 1.f);
+		line.p2 = glm::vec4(max_x, max_y, max_z, 1.f);
+		shadow_box_lines.push_back(line);
+
+		// forward pointer
+		line.color = glm::vec4(0.f, 0.f, 1.f, 1.f);
+		line.p1 = glm::vec4(max_x, min_y, max_z, 1.f);
+		line.p2 = glm::vec4(max_x, min_y, max_z * 2.f, 1.f);
+		shadow_box_lines.push_back(line);
+		// up pointer
+		line.color = glm::vec4(0.f, 1.f, 0.f, 1.f);
+		line.p1 = glm::vec4(max_x, max_y, min_z, 1.f);
+		line.p2 = glm::vec4(max_x, max_y * 2.f, min_z, 1.f);
+		shadow_box_lines.push_back(line);
+	}
+}

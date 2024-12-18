@@ -69,6 +69,7 @@ void mesh_scene::init(const rh::ctx& ctx)
 		debug->name = std::format("{} debug", name);
 		std::ranges::copy(label, std::begin(color));
 		{
+			// Cross
 			debug_draw_push_constants line{};
 			line.world_matrix = glm::mat4(1.f);
 			line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);

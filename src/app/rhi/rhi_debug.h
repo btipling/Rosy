@@ -14,6 +14,9 @@ public:
 	std::optional<shader_pipeline> shaders = std::nullopt;
 	std::optional<descriptor_allocator_growable> descriptor_allocator = std::nullopt;
 	std::vector<debug_draw_push_constants> lines;
+	std::vector<debug_draw_push_constants> shadow_box_lines;
+
+	std::optional<glm::mat4>shadow_frustum = std::nullopt;
 
 	VkDescriptorSetLayout data_layout{};
 
@@ -25,5 +28,6 @@ public:
 	debug_gfx& operator=(debug_gfx&&) noexcept = default;
 	void init(const rh::ctx& ctx);
 	void deinit(const rh::ctx& ctx);
+	void set_shadow_frustum(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 };

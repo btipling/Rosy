@@ -16,7 +16,6 @@ public:
 	rh::result draw_ui(const rh::ctx& ctx) override;
 	rh::result deinit(rh::ctx& ctx) override;
 private:
-	void update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer);
 	gpu_scene_data scene_data_ = {};
 	camera camera_;
 
@@ -31,5 +30,13 @@ private:
 	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 2.593f, -1.362f);
 
 	bool toggle_wire_frame_ = false;
+	bool light_view_ = false;
 	int blend_mode_ = 0;
+	float near_plane_ = 50.f;
+
+	void update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer);
+	std::vector<glm::vec4> shadow_map_frustum(const glm::mat4& proj, const glm::mat4& view);
+	glm::mat4 shadow_map_view(const std::vector<glm::vec4>& shadow_frustum, const glm::vec3 light_direction);
+	glm::mat4 shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view);
+	glm::mat4 shadow_map_projection(const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view);
 };
