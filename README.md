@@ -2,7 +2,6 @@
 This is a hobby project to build a game engine and eventually a game in my spare time.
 
 ![image](https://github.com/user-attachments/assets/96deac49-17c2-4321-91e3-c9071fcd5d78)
-[skybox attribution](https://sketchfab.com/3d-models/free-skybox-blue-desert-fd952e60be9746e0872840e89fbf7370)
 
 ## Building
 This project will likely not build for anyone else at this time.
@@ -87,3 +86,5 @@ Apache License  2.0, January 2004<br/>
  MIT License<br/>
  Copyright (c) 2022-2024 Alexander Tretyakov<br/>
  For some of the ktx vma allocation logic.<br/>
+
+[skybox attribution](https://sketchfab.com/3d-models/free-skybox-blue-desert-fd952e60be9746e0872840e89fbf7370)
