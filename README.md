@@ -34,8 +34,8 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
  ## Open Source Code Dependencies
 
 ### Vulkan Tools and the Vulkan SDK
-https://github.com/LunarG/VulkanTools
-Apache License  2.0, January 2004
+https://github.com/LunarG/VulkanTools<br/>
+Apache License  2.0, January 2004<br/>
 
  ### KTX tools
  https://github.com/KhronosGroup/KTX-Software   <br/>
