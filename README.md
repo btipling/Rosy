@@ -1,7 +1,7 @@
 # Rosy
-
+This is a hobby project to build a game engine and eventually a game in my spare time.
 ## Building
-This hobby project won't build for anyone else but me and my PC and laptop.
+This project will likely not build for anyone else at this time.
 
 * [SDL3](https://github.com/libsdl-org/SDL) dll and lib needed
 * [KTX](https://github.com/KhronosGroup/KTX-Software/tree/main) dll and lib needed
