@@ -29,5 +29,6 @@ public:
 	void init(const rh::ctx& ctx);
 	void deinit(const rh::ctx& ctx);
 	void set_shadow_frustum(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z);
+	void set_shadow_frustum(glm::vec4 q0, glm::vec4 q1, glm::vec4 q2, glm::vec4 q3);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 };
