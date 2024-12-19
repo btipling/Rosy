@@ -1,5 +1,9 @@
 # Rosy
 This is a hobby project to build a game engine and eventually a game in my spare time.
+
+![image](https://github.com/user-attachments/assets/96deac49-17c2-4321-91e3-c9071fcd5d78)
+[skybox attribution](https://sketchfab.com/3d-models/free-skybox-blue-desert-fd952e60be9746e0872840e89fbf7370)
+
 ## Building
 This project will likely not build for anyone else at this time.
 
@@ -20,9 +24,6 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
 * [ ] read links in https://github.com/Darianopolis/Links/blob/main/Links.txt
 * [x] Do resize and draw in SDL resize callback for maximum responsiveness
 
-![image](https://github.com/user-attachments/assets/96deac49-17c2-4321-91e3-c9071fcd5d78)
-[skybox attribution](https://sketchfab.com/3d-models/free-skybox-blue-desert-fd952e60be9746e0872840e89fbf7370)
-
 ## Generating Cubemaps with ktx
 
 ```
@@ -31,6 +32,10 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
  Then have to open them up in Nvidia Texture Tools and save them to get the VkFormat correct
 
  ## Open Source Code Dependencies
+
+### Vulkan Tools and the Vulkan SDK
+https://github.com/LunarG/VulkanTools
+Apache License  2.0, January 2004
 
  ### KTX tools
  https://github.com/KhronosGroup/KTX-Software   <br/>
