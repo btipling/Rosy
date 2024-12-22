@@ -28,6 +28,8 @@ void mesh_scene::init(const rh::ctx& ctx)
 
 	const VkDevice device = ctx.rhi.device;
 	std::vector<descriptor_allocator_growable::pool_size_ratio> frame_sizes = {
+		{VK_DESCRIPTOR_TYPE_SAMPLER, 3},
+		{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 3},
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
 		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
