@@ -37,7 +37,7 @@ void mesh_scene::init(const rh::ctx& ctx)
 	};
 
 	descriptor_allocator = descriptor_allocator_growable{};
-	descriptor_allocator.value().init(device, 1000, frame_sizes);
+	descriptor_allocator.value().init(device, 10'000, frame_sizes);
 
 	{
 		descriptor_layout_builder layout_builder;
