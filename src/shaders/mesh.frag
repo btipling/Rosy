@@ -1,4 +1,5 @@
 #version 460
+#extension GL_EXT_nonuniform_qualifier : require
 
 layout (location = 0) in vec3 fragmentColor;
 layout (location = 1) in vec3 fragmentNormal;
@@ -18,7 +19,7 @@ layout(set = 0, binding = 0) uniform  SceneData{
 	vec4 sunlightColor;
 } sceneData;
 
-layout(set = 1, binding = 0) uniform sampler2D displayTexture;
+layout(set = 1, binding = 0) uniform sampler2D displayTexture[];
 
 void main() 
 {
@@ -33,5 +34,5 @@ void main()
     vec3 ambientLight = sceneData.ambientColor.xyz;
     vec3 sunLight = sceneData.sunlightColor.xyz * max(cosTheta, 0.0);
 
-	outFragColor = texture(displayTexture, textureCoordinates) * vec4(ambientLight + sunLight, 1.0);
+	outFragColor = texture(displayTexture[nonuniformEXT(0)], textureCoordinates) * vec4(ambientLight + sunLight, 1.0);
 }
