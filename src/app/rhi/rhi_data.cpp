@@ -178,7 +178,8 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 					if (image_set_result != VK_SUCCESS) continue;
 					{
 						descriptor_writer writer;
-						writer.write_image(0, img_view, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+						writer.write_sampled_image(0, img_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+						writer.write_sampler(1, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLER);
 						writer.update_set(renderer_->opt_device.value(), image_set);
 						gltf_mesh_scene.descriptor_sets.push_back(image_set);
 					}

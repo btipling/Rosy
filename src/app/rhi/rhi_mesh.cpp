@@ -33,7 +33,6 @@ void mesh_scene::init(const rh::ctx& ctx)
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
 		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
-		{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
 	};
 
 	descriptor_allocator = descriptor_allocator_growable{};
@@ -49,9 +48,8 @@ void mesh_scene::init(const rh::ctx& ctx)
 	}
 	{
 		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		layout_builder.add_binding(1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-		layout_builder.add_binding(2, VK_DESCRIPTOR_TYPE_SAMPLER);
+		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+		layout_builder.add_binding(1, VK_DESCRIPTOR_TYPE_SAMPLER);
 		auto [result, set_layout] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return;
 		image_layout = set_layout;
