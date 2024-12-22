@@ -139,6 +139,8 @@ struct material
 {
 	material_pass pass_type;
 	size_t descriptor_set_id = 0;
+	size_t image_set_id = 0;
+	size_t sampler_set_id = 0;
 };
 
 struct vulkan_ctx

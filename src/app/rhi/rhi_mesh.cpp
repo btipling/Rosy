@@ -255,7 +255,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 		if (ro.material_index != last_material)
 		{
 			last_material = ro.material_index;
-			auto [pass_type, descriptor_set_id] = materials[ro.material_index];
+			auto [pass_type, descriptor_set_id, image_set_id, sampler_set_id] = materials[ro.material_index];
 			VkDescriptorSet desc = descriptor_sets[descriptor_set_id];
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &desc, 0, nullptr);
