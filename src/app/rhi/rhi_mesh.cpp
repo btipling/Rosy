@@ -42,18 +42,20 @@ void mesh_scene::init(const rh::ctx& ctx)
 	{
 		descriptor_layout_builder layout_builder;
 		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		auto [result, set_layout] = layout_builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return;
-		data_layout = set;
-		descriptor_layouts.push_back(set);
+		data_layout = set_layout;
+		descriptor_layouts.push_back(set_layout);
 	}
 	{
 		descriptor_layout_builder layout_builder;
 		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
+		layout_builder.add_binding(1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+		layout_builder.add_binding(2, VK_DESCRIPTOR_TYPE_SAMPLER);
+		auto [result, set_layout] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return;
-		image_layout = set;
-		descriptor_layouts.push_back(set);
+		image_layout = set_layout;
+		descriptor_layouts.push_back(set_layout);
 	}
 	{
 		shader_pipeline sp = {};
