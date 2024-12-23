@@ -249,13 +249,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="compile.ps1" />
-    <None Include="shaders\mesh.vert">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
     <None Include="shaders\imgui.frag">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="shaders\mesh.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
     <None Include="shaders\skybox.vert">
@@ -280,6 +274,9 @@
       <Filter>Resource Files\shaders</Filter>
     </None>
     <None Include="shaders\mesh.slang">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="shaders\debug.slang">
       <Filter>Resource Files\shaders</Filter>
     </None>
   </ItemGroup>

@@ -45,12 +45,11 @@ struct PushConstant {
 [shader("vertex")]
 VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 {
-    VertexStageOutput output;
     InputVertex v = *(PushConstants.v + uiVertexId);
 
     float3x3 worldMat3 = (float3x3)PushConstants.worldMatrix;
 
-
+    VertexStageOutput output;
     output.coarseVertex.vertex = v.position;
     output.coarseVertex.color = v.color.xyz;
     output.coarseVertex.normal = mul(worldMat3, v.normal);

@@ -6,8 +6,8 @@ class debug_gfx
 public:
 	std::string name{ "debug" };
 	float color[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
-	std::string vertex_path{ "out/debug.vert.spv" };
-	std::string frag_path{ "out/debug.frag.spv" };
+	std::string vertex_path{ "out/debug.spv" };
+	std::string frag_path{ "out/debug.spv" };
 
 	std::vector<VkDescriptorSetLayout> descriptor_layouts;
 
