@@ -210,6 +210,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="compile.ps1" />
+    <None Include="shaders\data\data.slang" />
     <None Include="shaders\debug.slang" />
     <None Include="shaders\imgui.frag" />
     <None Include="shaders\mesh.slang" />

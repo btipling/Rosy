@@ -1,16 +1,4 @@
-
-struct CoarseVertex
-{
-    float3 color;
-    float3 normal;
-    float3 vertex;
-    float2 textureCoordinates;
-};
-
-struct Fragment
-{
-    float4 color;
-};
+import data.data;
 
 [[vk::binding(0, 1)]] texture2D imageTexture[];
 [[vk::binding(1, 1)]] SamplerState imageSampler[];
