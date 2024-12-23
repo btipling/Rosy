@@ -135,7 +135,6 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 	}
 
 	for (fastgltf::Sampler& sampler : gltf.samplers) {
-
 		VkSamplerCreateInfo sampler_create_info = { .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, .pNext = nullptr };
 		sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
 		sampler_create_info.minLod = 0;

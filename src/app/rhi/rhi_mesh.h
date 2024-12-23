@@ -8,8 +8,8 @@ public:
 	float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 	std::string vertex_path{ "out/mesh.spv" };
 	std::string frag_path{ "out/mesh.spv" };
-	std::string shadow_vertex_path{"out/shadow.vert.spv"};
-	std::string shadow_frag_path{ "out/shadow.frag.spv" };
+	std::string shadow_vertex_path{"out/shadow.spv"};
+	std::string shadow_frag_path{ "out/shadow.spv" };
 
 	size_t root_scene = 0;
 	std::vector<std::vector<size_t>>scenes;

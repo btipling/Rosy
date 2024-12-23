@@ -210,13 +210,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="compile.ps1" />
-    <None Include="shaders\debug.frag" />
     <None Include="shaders\debug.slang" />
-    <None Include="shaders\debug.vert" />
     <None Include="shaders\imgui.frag" />
     <None Include="shaders\mesh.slang" />
-    <None Include="shaders\shadow.frag" />
-    <None Include="shaders\shadow.vert" />
+    <None Include="shaders\shadow.slang" />
     <None Include="shaders\skybox.frag" />
     <None Include="shaders\skybox.slang" />
     <None Include="shaders\skybox.vert" />
