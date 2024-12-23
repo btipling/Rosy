@@ -25,15 +25,6 @@ struct SceneData
 };
 [[vk::binding(0, 0)]] ConstantBuffer<SceneData> sceneData;
 
-
-layout( push_constant ) uniform constants
-{
-	mat4 worldMatrix;
-	vec4 p1;
-	vec4 p2;
-	vec4 color;
-} PushConstants;
-
 struct DebugConstant {
     mat4 worldMatrix;
     float4 p1;
@@ -50,8 +41,8 @@ DebugVertexStageOutput debugVertMain(uint uiVertexId: SV_VertexID)
         v = DebugConstants.p2;
     }
     DebugVertexStageOutput output;
-    output.debugVertex.color = PushConstants.color.xyz;
-    output.sv_position = mul(mul(sceneData.viewproj, PushConstants.worldMatrix), v);
+    output.debugVertex.color = DebugConstants.color.xyz;
+    output.sv_position = mul(mul(sceneData.viewproj, DebugConstants.worldMatrix), v);
 
     return output;
 }

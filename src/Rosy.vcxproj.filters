@@ -279,6 +279,9 @@
     <None Include="shaders\debug.slang">
       <Filter>Resource Files\shaders</Filter>
     </None>
+    <None Include="shaders\skybox.slang">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\SDL3.lib">

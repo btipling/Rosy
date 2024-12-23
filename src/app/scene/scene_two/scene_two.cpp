@@ -46,7 +46,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	}
 	{
 		mesh_scene mesh_graph{};
-		mesh_graph.frag_path = "out/skybox_mesh.frag.spv";
+		mesh_graph.frag_path = "out/skybox.spv";
 		mesh_graph.init(ctx);
 		if (const auto res = data->load_gltf_meshes(ctx, "assets\\skybox_blue_desert.glb", mesh_graph); res != rh::result::ok)
 		{
