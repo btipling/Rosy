@@ -11,3 +11,6 @@ if (-not (Test-Path -Path "out")) {
 & "$env:VULKAN_SDK\Bin\glslc.exe" shaders/shadow.frag -o out/shadow.frag.spv
 & "$env:VULKAN_SDK\Bin\glslc.exe" shaders/debug.vert -o out/debug.vert.spv
 & "$env:VULKAN_SDK\Bin\glslc.exe" shaders/debug.frag -o out/debug.frag.spv
+& "slangc.exe" shaders/mesh.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/mesh.slang_vert.spv -entry vertexMain
+& "slangc.exe" shaders/mesh.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/mesh.slang_frag.spv -entry fragmentMain
+& "slangc.exe" shaders/mesh.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/mesh.spv 

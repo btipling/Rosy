@@ -595,6 +595,7 @@ VkResult rhi::init_physical_device()
 	required_features.geometryShader = VK_TRUE;
 	required_features.fillModeNonSolid = VK_TRUE;
 	required_features.wideLines = VK_TRUE;
+	required_features.shaderInt64 = VK_TRUE;
 	required_features_ = required_features;
 	if (!physical_device_.has_value()) return VK_NOT_READY;
 
@@ -678,9 +679,16 @@ VkResult rhi::init_device()
 	vulkan12_features.uniformBufferStandardLayout = true;
 	vulkan12_features.shaderSubgroupExtendedTypes = true;
 
+
+	VkPhysicalDeviceVulkan11Features vulkan11_features{};
+	vulkan11_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+	vulkan11_features.pNext = &vulkan12_features;
+	vulkan11_features.variablePointers = true;
+	vulkan11_features.variablePointersStorageBuffer = true;
+
 	VkPhysicalDeviceShaderObjectFeaturesEXT enable_shader_object = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
-		.pNext = &vulkan12_features,
+		.pNext = &vulkan11_features,
 		.shaderObject = VK_TRUE
 	};
 

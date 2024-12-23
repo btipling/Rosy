@@ -6,8 +6,8 @@ class mesh_scene
 public:
 	std::string name{ "mesh" };
 	float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-	std::string vertex_path{"out/mesh.vert.spv"};
-	std::string frag_path{"out/mesh.frag.spv"};
+	std::string vertex_path{ "out/mesh.spv" };
+	std::string frag_path{ "out/mesh.spv" };
 	std::string shadow_vertex_path{"out/shadow.vert.spv"};
 	std::string shadow_frag_path{ "out/shadow.frag.spv" };
 
