@@ -214,9 +214,8 @@
     <None Include="shaders\imgui.frag" />
     <None Include="shaders\mesh.slang" />
     <None Include="shaders\shadow.slang" />
-    <None Include="shaders\skybox.frag" />
     <None Include="shaders\skybox.slang" />
-    <None Include="shaders\skybox.vert" />
+    <None Include="shaders\skybox_cube.slang" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\ktx.lib" />

@@ -10,7 +10,6 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	const VkDevice device = ctx.rhi.device;
 	auto data = ctx.rhi.data.value();
 	std::vector<VkDescriptorSetLayout> earth_layouts;
-	std::vector<VkDescriptorSetLayout> skybox_layouts;
 	descriptor_allocator_growable descriptor_allocator = ctx.rhi.descriptor_allocator.value();
 	{
 		descriptor_layout_builder layout_builder;
@@ -19,7 +18,6 @@ rh::result scene_one::build(const rh::ctx& ctx)
 		if (result != VK_SUCCESS) return rh::result::error;
 		gpu_scene_data_descriptor_layout_ = set;
 		earth_layouts.push_back(set);
-		skybox_layouts.push_back(set);
 	}
 	{
 		descriptor_layout_builder layout_builder;
@@ -32,11 +30,11 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	}
 	{
 		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+		layout_builder.add_binding(1, VK_DESCRIPTOR_TYPE_SAMPLER);
 		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
 		if (result != VK_SUCCESS) return rh::result::error;
 		skybox_image_descriptor_layout_ = set;
-		skybox_layouts.push_back(set);
 	}
 	std::vector<char> earth_vertex_shader;
 	std::vector<char> earth_fragment_shader;
@@ -46,8 +44,8 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	{
 		earth_vertex_shader = read_file("out/mesh.spv");
 		earth_fragment_shader = read_file("out/mesh.spv");
-		skybox_vertex_shader = read_file("out/skybox.vert.spv");
-		skybox_fragment_shader = read_file("out/skybox.frag.spv");
+		skybox_vertex_shader = read_file("out/mesh.spv");
+		skybox_fragment_shader = read_file("out/skybox_cube.spv");
 	}
 	catch (const std::exception& e)
 	{
@@ -68,7 +66,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	{
 		// Skybox pipeline
 		shader_pipeline sp = {};
-		sp.layouts = skybox_layouts;
+		sp.layouts = earth_layouts;
 		sp.name = "skybox";
 		sp.with_shaders(skybox_vertex_shader, skybox_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
@@ -238,7 +236,8 @@ rh::result scene_one::build(const rh::ctx& ctx)
 			if (image_set_result != VK_SUCCESS) return  rh::result::error;
 			{
 				descriptor_writer writer;
-				writer.write_image(0, skybox_view_.value(), skybox_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				writer.write_sampled_image(0, skybox_view_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+				writer.write_sampler(1, skybox_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLER);
 				writer.update_set(device, image_set);
 				skybox_image_descriptor_set_ = image_set;
 			}
@@ -312,6 +311,7 @@ rh::result scene_one::draw(rh::ctx ctx)
 		// Skybox
 		{
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, skybox_sets.size(), skybox_sets.data(), 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 1, 1, &skybox_image_descriptor_set_.value(), 0, nullptr);
 			float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
