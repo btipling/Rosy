@@ -193,7 +193,6 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 	std::vector<uint32_t> indices;
 	std::vector<vertex> vertices;
 
-	size_t num_surfaces{ 0 };
 	for (fastgltf::Mesh& mesh : gltf.meshes) {
 		mesh_asset new_mesh;
 
@@ -270,7 +269,6 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 			}
 
 			new_mesh.surfaces.push_back(new_surface);
-			num_surfaces += 1;
 		}
 
 		if (constexpr bool override_colors = true) {
@@ -286,20 +284,38 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 		new_mesh.mesh_buffers = uploaded_mesh;
 		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
 	}
-	// TODO: num_surfaces is totally wrong as it's the count of surfaces per mesh in the scene * number of times it's in the scene;
-	auto [render_create_result, created_render_buffers] = create_render_data(num_surfaces);
-	if (render_create_result != VK_SUCCESS) {
-		rosy_utils::debug_print_a("failed to create render buffer: %d\n", render_create_result);
-		return rh::result::error;
-	}
-	gltf_mesh_scene.render_buffers = created_render_buffers;
 	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_mesh_scene.add_node(gltf_node);
 	for (fastgltf::Scene& gltf_scene : gltf.scenes) gltf_mesh_scene.add_scene(gltf_scene);
 	gltf_mesh_scene.root_scene = gltf.defaultScene.value_or(0);
+
+	{
+		// Need to count the primitives correctly for the scene to size the render buffer correctly.
+		size_t num_surfaces{ 0 };
+		std::queue<std::shared_ptr<mesh_node>> queue{};
+		for (const size_t node_index : gltf_mesh_scene.scenes[gltf_mesh_scene.root_scene]) queue.push(gltf_mesh_scene.nodes[node_index]);
+		size_t mesh_index = 0;
+		while (queue.size() > 0)
+		{
+			const auto current_node = queue.front();
+			queue.pop();
+			if (current_node->mesh_index.has_value())
+			{
+				const std::shared_ptr<mesh_asset> ma = gltf_mesh_scene.meshes[current_node->mesh_index.value()];
+				num_surfaces += ma->surfaces.size(); // All this just to count surfaces correctly.
+			}
+			for (const size_t child_index : current_node->children) queue.push(gltf_mesh_scene.nodes[child_index]);
+		}
+
+		auto [render_create_result, created_render_buffers] = create_render_data(num_surfaces);
+		if (render_create_result != VK_SUCCESS) {
+			rosy_utils::debug_print_a("failed to create render buffer: %d\n", render_create_result);
+			return rh::result::error;
+		}
+		gltf_mesh_scene.render_buffers = created_render_buffers;
+	}
+
 	return rh::result::ok;
 }
-
-
 
 gpu_render_buffers_result rhi_data::create_render_data(const size_t num_surfaces) const
 {
