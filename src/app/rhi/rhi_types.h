@@ -83,6 +83,13 @@ struct gpu_mesh_buffers_result
 	gpu_mesh_buffers buffers;
 };
 
+struct gpu_render_buffers_result
+{
+	VkResult result;
+	allocated_buffer render_buffer;
+	VkDeviceAddress render_buffer_address;
+};
+
 struct gpu_draw_push_constants
 {
 	glm::mat4 world_matrix;
@@ -118,6 +125,13 @@ struct bounds {
 	glm::vec3 extents;
 };
 
+struct render_data
+{
+	glm::mat4 transform;
+	glm::mat4 inverse;
+	glm::u32 material_data;
+};
+
 struct render_object {
 	uint32_t index_count;
 	uint32_t first_index;
@@ -127,6 +141,7 @@ struct render_object {
 	bounds bounds;
 	glm::mat4 transform;
 	VkDeviceAddress vertex_buffer_address;
+	VkDeviceAddress render_buffer_address;
 };
 
 enum class material_pass :uint8_t {
@@ -226,6 +241,8 @@ public:
 	explicit rhi_data(rhi* renderer);
 	rh::result load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path, mesh_scene& gltf_mesh_scene);
 	[[nodiscard]] auto upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_mesh_buffers_result;
+	[[nodiscard]] auto create_render_data(size_t num_surfaces) const->gpu_render_buffers_result;
+	[[nodiscard]] auto update_render_data(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_render_buffers_result;
 	allocated_buffer_result create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 
 

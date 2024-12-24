@@ -293,6 +293,79 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 
 
 
+gpu_render_buffers_result rhi_data::create_render_data(const size_t num_surfaces) const
+{
+	const size_t render_buffer_size = num_surfaces * sizeof(render_data);
+
+	auto [create_result, new_render_buffer] = create_buffer(
+		"vertexBuffer",
+		render_buffer_size,
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
+	if (create_result != VK_SUCCESS) {
+		gpu_render_buffers_result fail{};
+		fail.result = create_result;
+		return fail;
+	}
+
+	const allocated_buffer render_buffer = new_render_buffer;
+
+	VkBufferDeviceAddressInfo device_address_info{};
+	device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+	device_address_info.buffer = render_buffer.buffer;
+
+	const VkDeviceAddress render_buffer_address = vkGetBufferDeviceAddress(renderer_->opt_device.value(), &device_address_info);
+
+	gpu_render_buffers_result rv{};
+	rv.result = VK_SUCCESS;
+	rv.render_buffer = render_buffer;
+	rv.render_buffer_address = render_buffer_address;
+	return rv;
+}
+
+gpu_render_buffers_result rhi_data::update_render_data(std::span<uint32_t> indices, std::span<vertex> vertices) const
+{
+	//auto [result, new_staging_buffer] = create_buffer("staging", vertex_buffer_size + index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+	//if (result != VK_SUCCESS) {
+	//	gpu_mesh_buffers_result fail{};
+	//	fail.result = result;
+	//	return fail;
+	//}
+	//allocated_buffer staging = new_staging_buffer;
+
+	//void* data;
+	//vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &data);
+	//memcpy(data, vertices.data(), vertex_buffer_size);
+	//memcpy(static_cast<char*>(data) + vertex_buffer_size, indices.data(), index_buffer_size);
+	//vmaUnmapMemory(renderer_->opt_allocator.value(), staging.allocation);
+
+	//VkResult submit_result;
+	//submit_result = renderer_->immediate_submit([&](const VkCommandBuffer cmd) {
+	//	VkBufferCopy vertex_copy{ 0 };
+	//	vertex_copy.dstOffset = 0;
+	//	vertex_copy.srcOffset = 0;
+	//	vertex_copy.size = vertex_buffer_size;
+
+	//	vkCmdCopyBuffer(cmd, staging.buffer, vertex_buffer.buffer, 1, &vertex_copy);
+
+	//	VkBufferCopy index_copy{ 0 };
+	//	index_copy.dstOffset = 0;
+	//	index_copy.srcOffset = vertex_buffer_size;
+	//	index_copy.size = index_buffer_size;
+
+	//	vkCmdCopyBuffer(cmd, staging.buffer, index_buffer.buffer, 1, &index_copy);
+	//	});
+	//if (submit_result != VK_SUCCESS) {
+	//	gpu_render_buffers_result fail{};
+	//	fail.result = submit_result;
+	//	return fail;
+	//}
+	//destroy_buffer(staging);
+	gpu_render_buffers_result rv{};
+	rv.result = VK_SUCCESS;
+	return rv;
+}
+
 
 gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const
 {
