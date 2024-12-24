@@ -286,7 +286,7 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 		new_mesh.mesh_buffers = uploaded_mesh;
 		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
 	}
-
+	// TODO: num_surfaces is totally wrong as it's the count of surfaces per mesh in the scene * number of times it's in the scene;
 	auto [render_create_result, created_render_buffers] = create_render_data(num_surfaces);
 	if (render_create_result != VK_SUCCESS) {
 		rosy_utils::debug_print_a("failed to create render buffer: %d\n", render_create_result);

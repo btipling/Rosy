@@ -207,6 +207,7 @@ void mesh_scene::update(mesh_ctx ctx)
 		queue.push(draw_node);
 
 	}
+	size_t mesh_index = 0;
 	while (queue.size() > 0)
 	{
 		const auto current_node = queue.front();
@@ -233,7 +234,9 @@ void mesh_scene::update(mesh_ctx ctx)
 				ro.index_buffer = ma->mesh_buffers.index_buffer.buffer;
 				ro.vertex_buffer_address = ma->mesh_buffers.vertex_buffer_address;
 				ro.material_index = material;
+				ro.mesh_index = mesh_index;
 				draw_nodes_.push_back(ro);
+				mesh_index += 1;
 			}
 		}
 		for (const size_t child_index : current_node->children)
