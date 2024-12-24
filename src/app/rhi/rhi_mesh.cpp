@@ -198,7 +198,6 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	if (scene_index >= scenes.size()) return {};
 	std::queue<std::shared_ptr<mesh_node>> queue{};
 	std::vector<render_object> draw_nodes{};
-	std::vector<render_data> render_datas;
 	for (const size_t node_index : scenes[scene_index])
 	{
 		auto draw_node = nodes[node_index];
@@ -212,6 +211,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 		queue.pop();
 		if (current_node->mesh_index.has_value())
 		{
+			std::vector<render_data> render_datas;
 			for (
 				const std::shared_ptr<mesh_asset> ma = meshes[current_node->mesh_index.value()];
 				const auto [start_index, count, material] : ma->surfaces)
