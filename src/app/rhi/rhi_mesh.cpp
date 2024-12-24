@@ -212,9 +212,8 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 		if (current_node->mesh_index.has_value())
 		{
 			std::vector<render_data> render_datas;
-			for (
-				const std::shared_ptr<mesh_asset> ma = meshes[current_node->mesh_index.value()];
-				const auto [start_index, count, material] : ma->surfaces)
+			const std::shared_ptr<mesh_asset> ma = meshes[current_node->mesh_index.value()];
+			for (const auto [start_index, count, material] : ma->surfaces)
 			{
 				glm::mat4 world_transform = current_node->world_transform;
 
@@ -233,6 +232,8 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 				ro.material_index = material;
 				draw_nodes.push_back(ro);
 			}
+			auto [result, render_buffers] = ctx.ctx->rhi.data.value()->update_render_data(ma->render_buffers, render_datas);
+			assert(result == VK_SUCCESS);
 		}
 		for (const size_t child_index : current_node->children)
 		{
