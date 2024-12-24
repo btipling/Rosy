@@ -289,7 +289,6 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &desc, 0, nullptr);
 		}
 		gpu_draw_push_constants push_constants{};
-		push_constants.world_matrix = ro.transform;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;
 		push_constants.render_buffer = ro.render_buffer_address;
 		push_constants.mesh_index = ro.mesh_index;
@@ -331,7 +330,6 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
 	for (auto ro : draw_nodes_) {
 		gpu_draw_push_constants push_constants{};
-		push_constants.world_matrix = ro.transform;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;
 		push_constants.render_buffer = ro.render_buffer_address;
 		push_constants.mesh_index = ro.mesh_index;

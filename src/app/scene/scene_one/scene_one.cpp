@@ -319,13 +319,14 @@ rh::result scene_one::draw(rh::ctx ctx)
 			gpu_draw_push_constants push_constants{};
 			auto m = glm::mat4(1.0f);
 			m = translate(m, camera_.position);
-			push_constants.world_matrix = m;
 
 			if (scene_graph_->meshes.size() > 0)
 			{
 				size_t mesh_index = 1;
 				auto mesh = scene_graph_->meshes[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
+				push_constants.render_buffer = scene_graph_->render_buffers.value().render_buffer_address;
+				push_constants.mesh_index = mesh_index;
 				skybox_shaders.viewport_extent = frame_extent;
 				skybox_shaders.shader_constants = &push_constants;
 				skybox_shaders.shader_constants_size = sizeof(push_constants);
@@ -350,20 +351,15 @@ rh::result scene_one::draw(rh::ctx ctx)
 			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
 
 			gpu_draw_push_constants push_constants{};
-			auto m = glm::mat4(1.0f);
-			m = translate(m, earth_pos_);
-			m = rotate(m, earth_rot_[0], glm::vec3(1, 0, 0));
-			m = rotate(m, earth_rot_[1], glm::vec3(0, 1, 0));
-			m = rotate(m, earth_rot_[2], glm::vec3(0, 0, 1));
-			m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
-			m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
-			push_constants.world_matrix = m;
 
 			if (scene_graph_->meshes.size() > 0)
 			{
 				size_t mesh_index = 0;
 				auto mesh = scene_graph_->meshes[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
+				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
+				push_constants.render_buffer = scene_graph_->render_buffers.value().render_buffer_address;
+				push_constants.mesh_index = mesh_index;
 				earth_shaders.viewport_extent = frame_extent;
 				earth_shaders.shader_constants = &push_constants;
 				earth_shaders.shader_constants_size = sizeof(push_constants);
@@ -496,5 +492,19 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
 	scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
 	scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+	{
+
+		auto m = glm::mat4(1.0f);
+		m = translate(m, earth_pos_);
+		m = rotate(m, earth_rot_[0], glm::vec3(1, 0, 0));
+		m = rotate(m, earth_rot_[1], glm::vec3(0, 1, 0));
+		m = rotate(m, earth_rot_[2], glm::vec3(0, 0, 1));
+		m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
+		m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
+		mesh_ctx m_ctx{};
+		m_ctx.ctx = &ctx;
+		m_ctx.world_transform = m;
+		scene_graph_->update(m_ctx);
+	}
 }
 

@@ -104,7 +104,6 @@ struct gpu_render_buffers_result
 
 struct gpu_draw_push_constants
 {
-	glm::mat4 world_matrix;
 	VkDeviceAddress vertex_buffer;
 	VkDeviceAddress render_buffer;
 	glm::uint mesh_index{ 0 };
