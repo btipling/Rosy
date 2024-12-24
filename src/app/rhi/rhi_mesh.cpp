@@ -221,7 +221,7 @@ void mesh_scene::update(mesh_ctx ctx)
 			{
 				render_data rd{};
 				rd.transform = current_node->world_transform;
-				rd.inverse = glm::inverse(current_node->world_transform);
+				rd.normal_transform = glm::transpose(glm::inverse(static_cast<glm::mat3>(current_node->world_transform)));
 				rd.material_data = glm::uvec4(static_cast<glm::uint>(material), 0, 0, 0);
 				render_datas.push_back(rd);
 

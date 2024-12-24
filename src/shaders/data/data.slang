@@ -16,7 +16,7 @@ public struct InputVertex {
 
 public struct RenderData {
     public float4x4 transform;
-    public float4x4 inverse;
+    public float3x3 normalTransform;
     public uint4 material_data;
 };
 

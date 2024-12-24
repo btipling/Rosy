@@ -142,7 +142,7 @@ struct bounds {
 struct render_data
 {
 	glm::mat4 transform;
-	glm::mat4 inverse;
+	glm::mat3 normal_transform;
 	glm::uvec4 material_data;
 };
 
