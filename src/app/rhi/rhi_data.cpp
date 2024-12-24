@@ -316,10 +316,12 @@ gpu_render_buffers_result rhi_data::create_render_data(const size_t num_surfaces
 
 	const VkDeviceAddress render_buffer_address = vkGetBufferDeviceAddress(renderer_->opt_device.value(), &device_address_info);
 
+	gpu_render_buffers grb{};
+	grb.render_buffer = render_buffer;
+	grb.render_buffer_address = render_buffer_address;
 	gpu_render_buffers_result rv{};
 	rv.result = VK_SUCCESS;
-	rv.render_buffer = render_buffer;
-	rv.render_buffer_address = render_buffer_address;
+	rv.render_buffers = grb;
 	return rv;
 }
 

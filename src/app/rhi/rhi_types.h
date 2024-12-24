@@ -83,11 +83,16 @@ struct gpu_mesh_buffers_result
 	gpu_mesh_buffers buffers;
 };
 
+struct gpu_render_buffers
+{
+	allocated_buffer render_buffer;
+	VkDeviceAddress render_buffer_address;
+};
+
 struct gpu_render_buffers_result
 {
 	VkResult result;
-	allocated_buffer render_buffer;
-	VkDeviceAddress render_buffer_address;
+	gpu_render_buffers render_buffers;
 };
 
 struct gpu_draw_push_constants
