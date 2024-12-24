@@ -198,6 +198,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	if (scene_index >= scenes.size()) return {};
 	std::queue<std::shared_ptr<mesh_node>> queue{};
 	std::vector<render_object> draw_nodes{};
+	std::vector<render_data> render_datas;
 	for (const size_t node_index : scenes[scene_index])
 	{
 		auto draw_node = nodes[node_index];
@@ -215,8 +216,16 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 				const std::shared_ptr<mesh_asset> ma = meshes[current_node->mesh_index.value()];
 				const auto [start_index, count, material] : ma->surfaces)
 			{
+				glm::mat4 world_transform = current_node->world_transform;
+
+				render_data rd{};
+				rd.transform = current_node->world_transform;
+				rd.inverse = glm::inverse(world_transform);
+				rd.material_data = glm::u8vec4(material, 0, 0, 0);
+				render_datas.push_back(rd);
+
 				render_object ro{};
-				ro.transform = current_node->world_transform;
+				ro.transform = world_transform;
 				ro.first_index = start_index;
 				ro.index_count = count;
 				ro.index_buffer = ma->mesh_buffers.index_buffer.buffer;

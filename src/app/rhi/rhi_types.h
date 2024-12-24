@@ -136,7 +136,7 @@ struct render_data
 {
 	glm::mat4 transform;
 	glm::mat4 inverse;
-	glm::u32 material_data;
+	glm::u8vec4 material_data;
 };
 
 struct render_object {
