@@ -193,6 +193,7 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 	std::vector<uint32_t> indices;
 	std::vector<vertex> vertices;
 
+	size_t num_surfaces{ 0 };
 	for (fastgltf::Mesh& mesh : gltf.meshes) {
 		mesh_asset new_mesh;
 
@@ -269,6 +270,7 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 			}
 
 			new_mesh.surfaces.push_back(new_surface);
+			num_surfaces += 1;
 		}
 
 		if (constexpr bool override_colors = true) {
@@ -282,15 +284,15 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 			return rh::result::error;
 		}
 		new_mesh.mesh_buffers = uploaded_mesh;
-		auto [render_create_result, created_render_buffers] = create_render_data(new_mesh.surfaces.size());
-		if (render_create_result != VK_SUCCESS) {
-			rosy_utils::debug_print_a("failed to create render buffer: %d\n", render_create_result);
-			return rh::result::error;
-		}
-		new_mesh.render_buffers = created_render_buffers;
 		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
 	}
 
+	auto [render_create_result, created_render_buffers] = create_render_data(num_surfaces);
+	if (render_create_result != VK_SUCCESS) {
+		rosy_utils::debug_print_a("failed to create render buffer: %d\n", render_create_result);
+		return rh::result::error;
+	}
+	gltf_mesh_scene.render_buffers = created_render_buffers;
 	for (fastgltf::Node& gltf_node : gltf.nodes) gltf_mesh_scene.add_node(gltf_node);
 	for (fastgltf::Scene& gltf_scene : gltf.scenes) gltf_mesh_scene.add_scene(gltf_scene);
 	gltf_mesh_scene.root_scene = gltf.defaultScene.value_or(0);
@@ -302,9 +304,10 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 gpu_render_buffers_result rhi_data::create_render_data(const size_t num_surfaces) const
 {
 	const size_t render_buffer_size = num_surfaces * sizeof(render_data);
+	rosy_utils::debug_print_a("render_buffer_size: %d\n", render_buffer_size);
 
 	auto [create_result, new_render_buffer] = create_buffer(
-		"vertexBuffer",
+		"renderBuffer",
 		render_buffer_size,
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);

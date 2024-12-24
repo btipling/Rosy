@@ -15,6 +15,7 @@ public:
 	std::vector<std::vector<size_t>>scenes;
 	std::vector<std::shared_ptr<mesh_node>> nodes;
 	std::vector<std::shared_ptr<mesh_asset>> meshes;
+	std::optional <gpu_render_buffers> render_buffers;
 	std::vector<material> materials;
 
 	std::vector<ktx_auto_texture> ktx_textures;

@@ -97,13 +97,14 @@ void mesh_scene::deinit(const rh::ctx& ctx)
 	{
 		debug->deinit(ctx);
 	}
+	if (render_buffers.has_value()) {
+		buffer->destroy_buffer(render_buffers.value().render_buffer);
+	}
 	for (std::shared_ptr<mesh_asset> mesh : meshes)
 	{
 		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
 		buffer->destroy_buffer(rectangle.vertex_buffer);
 		buffer->destroy_buffer(rectangle.index_buffer);
-		gpu_render_buffers render_data = mesh.get()->render_buffers;
-		buffer->destroy_buffer(render_data.render_buffer);
 		mesh.reset();
 	}
 	for (ktx_auto_texture tx : ktx_textures)
@@ -198,6 +199,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	if (ctx.scene_index >= scenes.size()) return {};
 	std::queue<std::shared_ptr<mesh_node>> queue{};
 	std::vector<render_object> draw_nodes{};
+	std::vector<render_data> render_datas;
 	for (const size_t node_index : scenes[ctx.scene_index])
 	{
 		auto draw_node = nodes[node_index];
@@ -211,9 +213,10 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 		queue.pop();
 		if (current_node->mesh_index.has_value())
 		{
-			std::vector<render_data> render_datas;
-			const std::shared_ptr<mesh_asset> ma = meshes[current_node->mesh_index.value()];
-			for (const auto [start_index, count, material] : ma->surfaces)
+			for (
+				const std::shared_ptr<mesh_asset> ma = meshes[current_node->mesh_index.value()];
+				const auto [start_index, count, material] : ma->surfaces
+			)
 			{
 				glm::mat4 world_transform = current_node->world_transform;
 
@@ -232,14 +235,14 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 				ro.material_index = material;
 				draw_nodes.push_back(ro);
 			}
-			auto [result, render_buffers] = ctx.ctx->rhi.data.value()->update_render_data(ma->render_buffers, render_datas);
-			assert(result == VK_SUCCESS);
 		}
 		for (const size_t child_index : current_node->children)
 		{
 			queue.push(nodes[child_index]);
 		}
 	}
+	auto [result, rbs] = ctx.ctx->rhi.data.value()->update_render_data(render_buffers.value(), render_datas);
+	assert(result == VK_SUCCESS);
 	return draw_nodes;
 }
 
@@ -293,7 +296,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
 			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
 			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));*/
-	
+
 		if (const auto res = debug->draw(ctx); res != rh::result::ok) return res;
 	}
 	return rh::result::ok;
