@@ -48,5 +48,5 @@ public:
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx) -> rh::result;
 private:
 	VkExtent2D shadow_map_extent_{};
-	[[nodiscard]] std::vector<render_object> draw_queue(const size_t scene_index, const glm::mat4& m = { 1.f }) const;
+	[[nodiscard]] std::vector<render_object> draw_queue(mesh_ctx ctx) const;
 };

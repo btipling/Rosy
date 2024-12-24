@@ -7,6 +7,12 @@
 
 class shader_pipeline;
 
+namespace rh
+{
+	enum class result : std::uint8_t { ok, error };
+	struct ctx;
+}
+
 struct gpu_scene_data
 {
 	glm::mat4 view;
@@ -175,6 +181,7 @@ struct vulkan_ctx
 
 struct mesh_ctx
 {
+	const rh::ctx* ctx = nullptr;
 	glm::mat4 world_transform = { 1.f };
 	size_t scene_index = 0;
 	bool wire_frame = false;
@@ -212,13 +219,6 @@ struct texture_cache
 	std::unordered_map<std::string, texture_id> name_map;
 	texture_id add_texture(const VkImageView& image, VkSampler sampler);
 };
-
-
-namespace rh
-{
-	enum class result : std::uint8_t { ok, error };
-	struct ctx;
-}
 
 class mesh_scene;
 

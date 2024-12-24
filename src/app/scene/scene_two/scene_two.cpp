@@ -101,6 +101,7 @@ rh::result scene_two::depth(rh::ctx ctx)
 		m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
 		m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 		mesh_ctx m_ctx{};
+		m_ctx.ctx = &ctx;
 		m_ctx.wire_frame = toggle_wire_frame_;
 		m_ctx.cmd = cmd;
 		m_ctx.extent = frame_extent;
@@ -146,6 +147,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 			auto m = glm::mat4(1.0f);
 			m = translate(m, glm::vec3(-camera_.position[0], camera_.position[1], camera_.position[2]));
 			mesh_ctx m_ctx{};
+			m_ctx.ctx = &ctx;
 			m_ctx.wire_frame = toggle_wire_frame_;
 			m_ctx.depth_enabled = false;
 			m_ctx.cmd = cmd;
@@ -163,6 +165,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
 			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 			mesh_ctx m_ctx{};
+			m_ctx.ctx = &ctx;
 			m_ctx.wire_frame = toggle_wire_frame_;
 			m_ctx.cmd = cmd;
 			m_ctx.extent = frame_extent;

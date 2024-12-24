@@ -193,15 +193,15 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 };
 
-[[nodiscard]] std::vector<render_object> mesh_scene::draw_queue(const size_t scene_index, const glm::mat4& m) const
+[[nodiscard]] std::vector<render_object> mesh_scene::draw_queue(mesh_ctx ctx) const
 {
-	if (scene_index >= scenes.size()) return {};
+	if (ctx.scene_index >= scenes.size()) return {};
 	std::queue<std::shared_ptr<mesh_node>> queue{};
 	std::vector<render_object> draw_nodes{};
-	for (const size_t node_index : scenes[scene_index])
+	for (const size_t node_index : scenes[ctx.scene_index])
 	{
 		auto draw_node = nodes[node_index];
-		draw_node->update(m, nodes);
+		draw_node->update(ndc * ctx.world_transform, nodes);
 		queue.push(draw_node);
 
 	}
@@ -264,7 +264,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 
 	size_t last_material = 100'000;
 
-	for (auto ro : draw_queue(ctx.scene_index, ndc * ctx.world_transform)) {
+	for (auto ro : draw_queue(ctx)) {
 		if (ro.material_index != last_material)
 		{
 			last_material = ro.material_index;
@@ -318,7 +318,7 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 	}
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
-	for (auto ro : draw_queue(ctx.scene_index, ndc * ctx.world_transform)) {
+	for (auto ro : draw_queue(ctx)) {
 		gpu_draw_push_constants push_constants{};
 		push_constants.world_matrix = ro.transform;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;
