@@ -335,44 +335,6 @@ gpu_render_buffers_result rhi_data::create_render_data(const size_t num_surfaces
 	return rv;
 }
 
-gpu_render_buffers_result rhi_data::update_render_data(const gpu_render_buffers& render_buffers, const std::span<render_data> ro_data) const
-{
-	const size_t render_buffer_size = ro_data.size() * sizeof(render_data);
-	assert(render_buffer_size <= render_buffers.buffer_size);
-	auto [result, new_staging_buffer] = create_buffer("staging", render_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
-	if (result != VK_SUCCESS) {
-		gpu_render_buffers_result fail{};
-		fail.result = result;
-		return fail;
-	}
-	const allocated_buffer staging = new_staging_buffer;
-
-	void* data;
-	vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &data);
-	memcpy(data, ro_data.data(), render_buffer_size);
-	vmaUnmapMemory(renderer_->opt_allocator.value(), staging.allocation);
-
-	const VkResult submit_result = renderer_->immediate_submit([&](const VkCommandBuffer cmd)
-	{
-		VkBufferCopy data_copy{0};
-		data_copy.dstOffset = 0;
-		data_copy.srcOffset = 0;
-		data_copy.size = render_buffer_size;
-
-		vkCmdCopyBuffer(cmd, staging.buffer, render_buffers.render_buffer.buffer, 1, &data_copy);
-	});
-	if (submit_result != VK_SUCCESS) {
-		gpu_render_buffers_result fail{};
-		fail.result = submit_result;
-		return fail;
-	}
-	destroy_buffer(staging);
-	gpu_render_buffers_result rv{};
-	rv.result = VK_SUCCESS;
-	return rv;
-}
-
-
 gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const
 {
 	allocated_buffer index_buffer;

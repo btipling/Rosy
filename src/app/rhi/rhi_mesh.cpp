@@ -194,11 +194,11 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 };
 
-[[nodiscard]] std::vector<render_object> mesh_scene::draw_queue(mesh_ctx ctx) const
+void mesh_scene::update(mesh_ctx ctx)
 {
-	if (ctx.scene_index >= scenes.size()) return {};
+	if (ctx.scene_index >= scenes.size()) return;
 	std::queue<std::shared_ptr<mesh_node>> queue{};
-	std::vector<render_object> draw_nodes{};
+	draw_nodes_.clear();
 	std::vector<render_data> render_datas;
 	for (const size_t node_index : scenes[ctx.scene_index])
 	{
@@ -233,7 +233,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 				ro.index_buffer = ma->mesh_buffers.index_buffer.buffer;
 				ro.vertex_buffer_address = ma->mesh_buffers.vertex_buffer_address;
 				ro.material_index = material;
-				draw_nodes.push_back(ro);
+				draw_nodes_.push_back(ro);
 			}
 		}
 		for (const size_t child_index : current_node->children)
@@ -241,9 +241,18 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 			queue.push(nodes[child_index]);
 		}
 	}
-	auto [result, rbs] = ctx.ctx->rhi.data.value()->update_render_data(render_buffers.value(), render_datas);
-	assert(result == VK_SUCCESS);
-	return draw_nodes;
+	{
+		const gpu_render_buffers rb = render_buffers.value();
+		const VmaAllocator allocator = ctx.ctx->rhi.allocator;
+		const size_t render_buffer_size = render_datas.size() * sizeof(render_data);
+		assert(render_buffer_size <= rb.buffer_size);
+
+		void* data;
+		vmaMapMemory(allocator, rb.render_buffer.allocation, &data);
+		memcpy(data, render_datas.data(), render_buffer_size);
+		vmaUnmapMemory(allocator, rb.render_buffer.allocation);
+	}
+
 }
 
 rh::result mesh_scene::draw(mesh_ctx ctx)
@@ -268,7 +277,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 
 	size_t last_material = 100'000;
 
-	for (auto ro : draw_queue(ctx)) {
+	for (auto ro : draw_nodes_) {
 		if (ro.material_index != last_material)
 		{
 			last_material = ro.material_index;
@@ -322,7 +331,7 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 	}
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
-	for (auto ro : draw_queue(ctx)) {
+	for (auto ro : draw_nodes_) {
 		gpu_draw_push_constants push_constants{};
 		push_constants.world_matrix = ro.transform;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;

@@ -42,6 +42,7 @@ public:
 	mesh_scene& operator=(mesh_scene&&) noexcept = default;
 	void init(const rh::ctx& ctx);
 	void init_shadows(const rh::ctx& ctx);
+	void update(mesh_ctx ctx);
 	void deinit(const rh::ctx& ctx);
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
@@ -49,5 +50,5 @@ public:
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx) -> rh::result;
 private:
 	VkExtent2D shadow_map_extent_{};
-	[[nodiscard]] std::vector<render_object> draw_queue(mesh_ctx ctx) const;
+	std::vector<render_object> draw_nodes_{};
 };

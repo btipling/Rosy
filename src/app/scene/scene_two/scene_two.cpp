@@ -94,19 +94,12 @@ rh::result scene_two::depth(rh::ctx ctx)
 	}
 	// Scene
 	{
-
-		auto m = translate(glm::mat4(1.f), scene_pos_);
-		m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
-		m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
-		m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
-		m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;
 		m_ctx.wire_frame = toggle_wire_frame_;
 		m_ctx.cmd = cmd;
 		m_ctx.extent = frame_extent;
 		m_ctx.global_descriptor = &global_descriptor;
-		m_ctx.world_transform = m;
 		if (const auto res = scene_graph_->generate_shadows(m_ctx); res != rh::result::ok) return res;
 	}
 
@@ -159,18 +152,12 @@ rh::result scene_two::draw(rh::ctx ctx)
 		}
 		// Scene
 		{
-			auto m = translate(glm::mat4(1.f), scene_pos_);
-			m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
-			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
-			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
-			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 			mesh_ctx m_ctx{};
 			m_ctx.ctx = &ctx;
 			m_ctx.wire_frame = toggle_wire_frame_;
 			m_ctx.cmd = cmd;
 			m_ctx.extent = frame_extent;
 			m_ctx.global_descriptor = &global_descriptor;
-			m_ctx.world_transform = m;
 			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 	}
@@ -412,6 +399,26 @@ void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_sce
 		vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
 		memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
 		vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
+
+	}
+	{
+		auto m = glm::mat4(1.0f);
+		m = translate(m, glm::vec3(-camera_.position[0], camera_.position[1], camera_.position[2]));
+		mesh_ctx m_ctx{};
+		m_ctx.ctx = &ctx;;
+		m_ctx.world_transform = m;
+		skybox_->update(m_ctx);
+	}
+	{
+		auto m = translate(glm::mat4(1.f), scene_pos_);
+		m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+		m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+		m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+		m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
+		mesh_ctx m_ctx{};
+		m_ctx.ctx = &ctx;
+		m_ctx.world_transform = m;
+		scene_graph_->update(m_ctx);
 	}
 }
 
