@@ -87,6 +87,7 @@ struct gpu_render_buffers
 {
 	allocated_buffer render_buffer;
 	VkDeviceAddress render_buffer_address;
+	size_t buffer_size;
 };
 
 struct gpu_render_buffers_result
@@ -248,7 +249,7 @@ public:
 	rh::result load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path, mesh_scene& gltf_mesh_scene);
 	[[nodiscard]] auto upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_mesh_buffers_result;
 	[[nodiscard]] auto create_render_data(size_t num_surfaces) const->gpu_render_buffers_result;
-	[[nodiscard]] auto update_render_data(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_render_buffers_result;
+	[[nodiscard]] auto update_render_data(const gpu_render_buffers& render_buffers, std::span<render_data> ro_data) const->gpu_render_buffers_result;
 	allocated_buffer_result create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 
 
