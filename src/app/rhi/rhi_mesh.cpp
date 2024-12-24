@@ -219,16 +219,14 @@ void mesh_scene::update(mesh_ctx ctx)
 				const auto [start_index, count, material] : ma->surfaces
 			)
 			{
-				glm::mat4 world_transform = current_node->world_transform;
-
 				render_data rd{};
 				rd.transform = current_node->world_transform;
-				rd.inverse = glm::inverse(world_transform);
-				rd.material_data = glm::u8vec4(material, 0, 0, 0);
+				rd.inverse = glm::inverse(current_node->world_transform);
+				rd.material_data = glm::uvec4(static_cast<glm::uint>(material), 0, 0, 0);
 				render_datas.push_back(rd);
 
 				render_object ro{};
-				ro.transform = world_transform;
+				ro.transform = current_node->world_transform;
 				ro.first_index = start_index;
 				ro.index_count = count;
 				ro.index_buffer = ma->mesh_buffers.index_buffer.buffer;
@@ -305,12 +303,6 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 
 	// Debug
 	{
-		/*	auto m = translate(glm::mat4(1.f), scene_pos_);
-			m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
-			m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
-			m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
-			m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));*/
-
 		if (const auto res = debug->draw(ctx); res != rh::result::ok) return res;
 	}
 	return rh::result::ok;

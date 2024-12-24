@@ -142,7 +142,7 @@ struct render_data
 {
 	glm::mat4 transform;
 	glm::mat4 inverse;
-	glm::u8vec4 material_data;
+	glm::uvec4 material_data;
 };
 
 struct render_object {
