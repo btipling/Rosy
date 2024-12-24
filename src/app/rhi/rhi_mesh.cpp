@@ -292,6 +292,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 		push_constants.world_matrix = ro.transform;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;
 		push_constants.render_buffer = ro.render_buffer_address;
+		push_constants.mesh_index = ro.mesh_index;
 		m_shaders.shader_constants = &push_constants;
 		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 		vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -333,6 +334,7 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 		push_constants.world_matrix = ro.transform;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;
 		push_constants.render_buffer = ro.render_buffer_address;
+		push_constants.mesh_index = ro.mesh_index;
 		m_shaders.shader_constants = &push_constants;
 		m_shaders.shader_constants_size = sizeof(push_constants);
 		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;

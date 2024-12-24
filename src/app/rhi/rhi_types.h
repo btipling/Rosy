@@ -107,6 +107,7 @@ struct gpu_draw_push_constants
 	glm::mat4 world_matrix;
 	VkDeviceAddress vertex_buffer;
 	VkDeviceAddress render_buffer;
+	glm::uint mesh_index{ 0 };
 };
 
 struct debug_draw_push_constants
@@ -121,7 +122,7 @@ struct geo_surface
 {
 	uint32_t start_index;
 	uint32_t count;
-	size_t material = 0;
+	size_t material{ 0 };
 };
 
 struct mesh_asset
@@ -167,9 +168,9 @@ enum class material_pass :uint8_t {
 struct material
 {
 	material_pass pass_type;
-	size_t descriptor_set_id = 0;
-	size_t image_set_id = 0;
-	size_t sampler_set_id = 0;
+	size_t descriptor_set_id{ 0 };
+	size_t image_set_id{ 0 };
+	size_t sampler_set_id{ 0 };
 };
 
 struct vulkan_ctx
@@ -184,7 +185,7 @@ struct mesh_ctx
 {
 	const rh::ctx* ctx = nullptr;
 	glm::mat4 world_transform = { 1.f };
-	size_t scene_index = 0;
+	size_t scene_index{ 0 };
 	bool wire_frame = false;
 	bool depth_enabled = true;
 	VkFrontFace front_face = VK_FRONT_FACE_CLOCKWISE;

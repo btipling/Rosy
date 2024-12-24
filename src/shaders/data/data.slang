@@ -49,6 +49,7 @@ public struct PushConstant {
     public float4x4 worldMatrix;
     public InputVertex *v;
     public RenderData *rd;
+    public uint mesh_index;
 }
 
 public struct ShadowOutput
