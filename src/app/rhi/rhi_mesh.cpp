@@ -90,6 +90,49 @@ void mesh_scene::init(const rh::ctx& ctx)
 	}
 }
 
+void mesh_scene::deinit(const rh::ctx& ctx)
+{
+	const auto buffer = ctx.rhi.data.value();
+	const VkDevice device = ctx.rhi.device;
+	{
+		debug->deinit(ctx);
+	}
+	for (std::shared_ptr<mesh_asset> mesh : meshes)
+	{
+		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
+		buffer->destroy_buffer(rectangle.vertex_buffer);
+		buffer->destroy_buffer(rectangle.index_buffer);
+		gpu_render_buffers render_data = mesh.get()->render_buffers;
+		buffer->destroy_buffer(render_data.render_buffer);
+		mesh.reset();
+	}
+	for (ktx_auto_texture tx : ktx_textures)
+	{
+		ctx.rhi.data.value()->destroy_image(tx);
+	}
+	for (const VkImageView iv : image_views)
+	{
+		vkDestroyImageView(device, iv, nullptr);
+	}
+	for (const VkSampler smp : samplers)
+	{
+		vkDestroySampler(device, smp, nullptr);
+	}
+	for (const VkDescriptorSetLayout set : descriptor_layouts)
+	{
+		vkDestroyDescriptorSetLayout(device, set, nullptr);
+	}
+	if (descriptor_allocator.has_value()) {
+		descriptor_allocator.value().destroy_pools(device);
+	}
+	if (shadow_shaders.has_value()) {
+		shadow_shaders.value().deinit(device);
+	}
+	if (shaders.has_value()) {
+		shaders.value().deinit(device);
+	}
+}
+
 void mesh_scene::init_shadows(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
@@ -118,47 +161,6 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shadow_shaders = sp;
-	}
-}
-
-void mesh_scene::deinit(const rh::ctx& ctx)
-{
-	const auto buffer = ctx.rhi.data.value();
-	const VkDevice device = ctx.rhi.device;
-	{
-		debug->deinit(ctx);
-	}
-	for (std::shared_ptr<mesh_asset> mesh : meshes)
-	{
-		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
-		buffer->destroy_buffer(rectangle.vertex_buffer);
-		buffer->destroy_buffer(rectangle.index_buffer);
-		mesh.reset();
-	}
-	for (ktx_auto_texture tx : ktx_textures)
-	{
-		ctx.rhi.data.value()->destroy_image(tx);
-	}
-	for (const VkImageView iv : image_views)
-	{
-		vkDestroyImageView(device, iv, nullptr);
-	}
-	for (const VkSampler smp : samplers)
-	{
-		vkDestroySampler(device, smp, nullptr);
-	}
-	for (const VkDescriptorSetLayout set : descriptor_layouts)
-	{
-		vkDestroyDescriptorSetLayout(device, set, nullptr);
-	}
-	if (descriptor_allocator.has_value()) {
-		descriptor_allocator.value().destroy_pools(device);
-	}
-	if (shadow_shaders.has_value()) {
-		shadow_shaders.value().deinit(device);
-	}
-	if (shaders.has_value()) {
-		shaders.value().deinit(device);
 	}
 }
 

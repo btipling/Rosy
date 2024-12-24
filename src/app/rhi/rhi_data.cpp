@@ -276,12 +276,18 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 				vtx.color = glm::vec4(vtx.normal, 1.0);
 			}
 		}
-		auto [result, uploaded_mesh] = upload_mesh(indices, vertices);
-		if (result != VK_SUCCESS) {
-			rosy_utils::debug_print_a("failed to upload mesh: %d\n", result);
+		auto [mesh_result, uploaded_mesh] = upload_mesh(indices, vertices);
+		if (mesh_result != VK_SUCCESS) {
+			rosy_utils::debug_print_a("failed to upload mesh: %d\n", mesh_result);
 			return rh::result::error;
 		}
 		new_mesh.mesh_buffers = uploaded_mesh;
+		auto [render_create_result, created_render_buffers] = create_render_data(new_mesh.surfaces.size());
+		if (render_create_result != VK_SUCCESS) {
+			rosy_utils::debug_print_a("failed to create render buffer: %d\n", render_create_result);
+			return rh::result::error;
+		}
+		new_mesh.render_buffers = created_render_buffers;
 		gltf_mesh_scene.meshes.emplace_back(std::make_shared<mesh_asset>(std::move(new_mesh)));
 	}
 

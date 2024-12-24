@@ -122,6 +122,7 @@ struct mesh_asset
 
 	std::vector<geo_surface> surfaces;
 	gpu_mesh_buffers mesh_buffers;
+	gpu_render_buffers render_buffers;
 };
 
 struct bounds {
