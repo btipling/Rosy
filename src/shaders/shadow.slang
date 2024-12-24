@@ -13,11 +13,12 @@ ShadowOutput shadowVertexMain(uint uiVertexId: SV_VertexID)
 {
     InputVertex v = *(PushConstants.v + uiVertexId);
 
-    float3x3 worldMat3 = (float3x3)PushConstants.worldMatrix;
+    float4x4 worldMat = PushConstants.worldMatrix;
+    float3x3 worldMat3 = (float3x3)worldMat;
 
     ShadowOutput output;
     float4 posWorld = float4(v.position, 1.0);
-    output.sv_position = mul(mul(sceneData.viewproj, PushConstants.worldMatrix), posWorld);
+    output.sv_position = mul(mul(sceneData.viewproj, worldMat), posWorld);
 
     return output;
 }
