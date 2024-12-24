@@ -233,6 +233,7 @@ void mesh_scene::update(mesh_ctx ctx)
 				ro.index_count = count;
 				ro.index_buffer = ma->mesh_buffers.index_buffer.buffer;
 				ro.vertex_buffer_address = ma->mesh_buffers.vertex_buffer_address;
+				ro.render_buffer_address = render_buffers.value().render_buffer_address;
 				ro.material_index = material;
 				ro.mesh_index = mesh_index;
 				draw_nodes_.push_back(ro);
@@ -292,6 +293,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 		gpu_draw_push_constants push_constants{};
 		push_constants.world_matrix = ro.transform;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;
+		push_constants.render_buffer = ro.render_buffer_address;
 		m_shaders.shader_constants = &push_constants;
 		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 		vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -338,6 +340,7 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 		gpu_draw_push_constants push_constants{};
 		push_constants.world_matrix = ro.transform;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;
+		push_constants.render_buffer = ro.render_buffer_address;
 		m_shaders.shader_constants = &push_constants;
 		m_shaders.shader_constants_size = sizeof(push_constants);
 		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;

@@ -14,6 +14,12 @@ public struct InputVertex {
     public float4 color;
 };
 
+public struct RenderData {
+    public float4x4 transform;
+    public float4x4 inverse;
+    public uint4 material_data;
+};
+
 public struct CoarseVertex
 {
     public float3 color;
@@ -42,6 +48,7 @@ public struct Fragment
 public struct PushConstant {
     public float4x4 worldMatrix;
     public InputVertex *v;
+    public RenderData *rd;
 }
 
 public struct ShadowOutput
