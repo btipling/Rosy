@@ -62,9 +62,9 @@ rh::result scene_two::depth(rh::ctx ctx)
 	{
 		if (!opt_command_buffers.has_value()) return rh::result::error;
 	}
-	VkCommandBuffer cmd = opt_command_buffers.value();
-	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
-	VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
+	const VkCommandBuffer cmd = opt_command_buffers.value();
+	const allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
+	const VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
 	update_scene(ctx, gpu_scene_buffer);
 
@@ -91,11 +91,10 @@ rh::result scene_two::draw(rh::ctx ctx)
 	{
 		if (!opt_command_buffers.has_value()) return rh::result::error;
 	}
-	VkCommandBuffer cmd = opt_command_buffers.value();
-	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
-	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 
 	{
+		const VkCommandBuffer cmd = opt_command_buffers.value();
+		const VkExtent2D frame_extent = ctx.rhi.frame_extent;
 		// Anime skybox
 		{
 			auto m = glm::mat4(1.0f);

@@ -84,14 +84,13 @@ VkResult rhi::begin_frame()
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
 
-	VkCommandBuffer cmd = opt_command_buffers.value();
-	VkSemaphore image_available = opt_image_available_semaphores.value();
-	VkFence fence = opt_in_flight_fence.value();
+	const VkCommandBuffer cmd = opt_command_buffers.value();
+	const VkSemaphore image_available = opt_image_available_semaphores.value();
+	const VkFence fence = opt_in_flight_fence.value();
 
-	VkResult result;
-	VkDevice device = opt_device.value();
+	const VkDevice device = opt_device.value();
 
-	result = vkWaitForFences(device, 1, &fence, true, 1000000000);
+	VkResult result = vkWaitForFences(device, 1, &fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
 	if (opt_gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(opt_gpu_scene_buffer.value());
 	frame_datas_[current_frame_].gpu_scene_buffer = std::nullopt;
@@ -104,7 +103,7 @@ VkResult rhi::begin_frame()
 	VkImageView image_view = swap_chain_image_views_[image_index];
 	current_swapchain_image_index_ = image_index;
 
-	allocated_image draw_image = draw_image_.value();
+	const allocated_image draw_image = draw_image_.value();
 	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * render_scale_;
 	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * render_scale_;
 
@@ -148,8 +147,8 @@ VkResult rhi::shadow_pass()
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
 
-	VkCommandBuffer cmd = opt_command_buffers.value();
-	allocated_image shadow_map_image = shadow_map_image_.value();
+	const VkCommandBuffer cmd = opt_command_buffers.value();
+	const allocated_image shadow_map_image = shadow_map_image_.value();
 
 	const VkExtent2D shadow_map_extent = {
 		.width = shadow_map_image.image_extent.width,
@@ -157,8 +156,8 @@ VkResult rhi::shadow_pass()
 	};
 	transition_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 	{
-		VkRenderingAttachmentInfo depth_attachment = rhi_helpers::depth_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-		VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
+		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::depth_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
 		// begin shadow pass
 		vkCmdBeginRendering(cmd, &render_info);
 	}
