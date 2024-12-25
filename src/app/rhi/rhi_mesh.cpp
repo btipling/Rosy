@@ -268,7 +268,9 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 				ro.scene_buffer_address = scene_buffers.value().scene_buffer_address;
 				ro.vertex_buffer_address = ma->mesh_buffers.vertex_buffer_address;
 				ro.render_buffer_address = render_buffers.value().render_buffer_address;
-				ro.material_buffer_address = material_buffers.value().material_buffer_address;
+				if (material_buffers.has_value()) {
+					ro.material_buffer_address = material_buffers.value().material_buffer_address;
+				}
 				ro.material_index = material;
 				ro.mesh_index = mesh_index;
 				draw_nodes_.push_back(ro);
@@ -322,7 +324,6 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 			last_material = ro.material_index;
 			auto [pass_type, descriptor_set_id, image_set_id, sampler_set_id] = materials[ro.material_index];
 			VkDescriptorSet desc = descriptor_sets[descriptor_set_id];
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &desc, 0, nullptr);
 		}
 		gpu_draw_push_constants pc = push_constants(ro);
@@ -361,7 +362,6 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 	}
 
-	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
 	for (auto ro : draw_nodes_) {
 		gpu_draw_push_constants pc = push_constants(ro);
 		m_shaders.shader_constants = &pc;

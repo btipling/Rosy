@@ -194,13 +194,14 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 			materials.push_back(m_data);
 			gltf_mesh_scene.materials.push_back(m);
 		}
-
-		auto [material_create_result, created_material_buffers] = upload_materials(materials);
-		if (material_create_result != VK_SUCCESS) {
-			rosy_utils::debug_print_a("failed to create materials buffer: %d\n", material_create_result);
-			return rh::result::error;
+		if (materials.size() > 0) {
+			auto [material_create_result, created_material_buffers] = upload_materials(materials);
+			if (material_create_result != VK_SUCCESS) {
+				rosy_utils::debug_print_a("failed to create materials buffer: %d\n", material_create_result);
+				return rh::result::error;
+			}
+			gltf_mesh_scene.material_buffers = created_material_buffers;
 		}
-		gltf_mesh_scene.material_buffers = created_material_buffers;
 	}
 
 	std::vector<uint32_t> indices;

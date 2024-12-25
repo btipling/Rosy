@@ -326,7 +326,10 @@ rh::result scene_one::draw(rh::ctx ctx)
 				auto mesh = scene_graph_->meshes[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 				push_constants.render_buffer = scene_graph_->render_buffers.value().render_buffer_address;
-				push_constants.material_buffer = scene_graph_->material_buffers.value().material_buffer_address;
+				if (scene_graph_->material_buffers.has_value())
+				{
+					push_constants.material_buffer = scene_graph_->material_buffers.value().material_buffer_address;
+				}
 				skybox_shaders.viewport_extent = frame_extent;
 				skybox_shaders.shader_constants = &push_constants;
 				skybox_shaders.shader_constants_size = sizeof(push_constants);

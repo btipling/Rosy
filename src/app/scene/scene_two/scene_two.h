@@ -19,7 +19,6 @@ private:
 	gpu_scene_data scene_data_ = {};
 	camera camera_;
 
-	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
 	std::shared_ptr<mesh_scene> scene_graph_;
 	std::shared_ptr<mesh_scene> skybox_;
 

@@ -19,16 +19,6 @@ rh::result scene_two::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
 	const auto data = ctx.rhi.data.value();
-	descriptor_allocator_growable descriptor_allocator = ctx.rhi.descriptor_allocator.value();
-	{
-		std::vector<VkDescriptorSetLayout> layouts;
-		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return rh::result::error;
-		gpu_scene_data_descriptor_layout_ = set;
-		layouts.push_back(set);
-	}
 	{
 		mesh_scene mesh_graph{};
 		mesh_graph.init(ctx);
@@ -80,18 +70,6 @@ rh::result scene_two::depth(rh::ctx ctx)
 
 	update_scene(ctx, gpu_scene_buffer);
 
-	// Set descriptor sets
-	auto [desc_result, global_descriptor] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
-	if (desc_result != VK_SUCCESS) return rh::result::error;
-	{
-		// Global descriptor
-		{
-
-			descriptor_writer writer;
-			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, global_descriptor);
-		}
-	}
 	// Scene
 	{
 		mesh_ctx m_ctx{};
@@ -99,7 +77,6 @@ rh::result scene_two::depth(rh::ctx ctx)
 		m_ctx.wire_frame = toggle_wire_frame_;
 		m_ctx.cmd = cmd;
 		m_ctx.extent = frame_extent;
-		m_ctx.global_descriptor = &global_descriptor;
 		if (const auto res = scene_graph_->generate_shadows(m_ctx); res != rh::result::ok) return res;
 	}
 
@@ -122,18 +99,6 @@ rh::result scene_two::draw(rh::ctx ctx)
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 
-	// Set descriptor sets
-	auto [desc_result, global_descriptor] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
-	if (desc_result != VK_SUCCESS) return rh::result::error;
-	{
-		// Global descriptor
-		{
-
-			descriptor_writer writer;
-			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, global_descriptor);
-		}
-	}
 	{
 		// Anime skybox
 		{
@@ -146,7 +111,6 @@ rh::result scene_two::draw(rh::ctx ctx)
 			m_ctx.cmd = cmd;
 			m_ctx.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;;
 			m_ctx.extent = frame_extent;
-			m_ctx.global_descriptor = &global_descriptor;
 			m_ctx.world_transform = m;
 			m_ctx.view_proj = scene_data_.view_projection;
 			if (const auto res = skybox_->draw(m_ctx); res != rh::result::ok) return res;
@@ -158,7 +122,6 @@ rh::result scene_two::draw(rh::ctx ctx)
 			m_ctx.wire_frame = toggle_wire_frame_;
 			m_ctx.cmd = cmd;
 			m_ctx.extent = frame_extent;
-			m_ctx.global_descriptor = &global_descriptor;
 			m_ctx.view_proj = scene_data_.view_projection;
 			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
 		}
@@ -198,16 +161,11 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 	{
 		vkDeviceWaitIdle(device);
 	}
-	if (ctx.rhi.descriptor_allocator.has_value()) ctx.rhi.descriptor_allocator.value().clear_pools(device);
 	{
 		scene_graph_->deinit(ctx);
 	}
 	{
 		skybox_->deinit(ctx);
-	}
-	if (gpu_scene_data_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(device, gpu_scene_data_descriptor_layout_.value(), nullptr);
 	}
 
 	return rh::result::ok;

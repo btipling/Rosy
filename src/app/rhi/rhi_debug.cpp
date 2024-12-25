@@ -85,7 +85,6 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 
 	size_t last_material = 100'000;
 
-	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
 	for (auto line : lines) {
 		auto l = line;
 		l.world_matrix = ctx.view_proj * l.world_matrix;

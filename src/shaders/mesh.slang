@@ -34,7 +34,6 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
 {
 
-    MaterialData md = *PushConstants.md;
     SceneData sd = *PushConstants.sd;
 
     float3 color = coarseVertex.color;
@@ -49,8 +48,16 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
     float3 ambientLight = sd.ambientColor.xyz;
     float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
-    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(md.color_texture_index)];
-    SamplerState matSampler = imageSampler[NonUniformResourceIndex(md.color_sampler_index)];
+    uint cti = 0;
+    uint csi = 0;
+    if (PushConstants.md != nullptr) {
+        MaterialData md = *PushConstants.md;
+        cti = md.color_texture_index;
+        csi = md.color_sampler_index;
+    }
+
+    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
+    SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
     float4 imageTextureColor = matImageTexture.Sample(matSampler, coarseVertex.textureCoordinates);
 
     float4 outFragColor = imageTextureColor * float4(ambientLight + sunLight, 1.0);
