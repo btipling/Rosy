@@ -3,6 +3,7 @@ import data.data;
 StructuredBuffer<InputVertex, ScalarDataLayout> VertexBuffer;
 StructuredBuffer<RenderData, ScalarDataLayout> RenderDataBuffer;
 StructuredBuffer<MaterialData, ScalarDataLayout> MaterialDataBuffer;
+StructuredBuffer<SceneData, ScalarDataLayout> SceneDataBuffer;
 [[vk::binding(0, 0)]] ConstantBuffer<SceneData> sceneData;
 [[vk::binding(0, 1)]] texture2D imageTexture[];
 [[vk::binding(1, 1)]] SamplerState imageSampler[];
@@ -14,6 +15,7 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 {
     InputVertex v = *(PushConstants.v + uiVertexId);
     RenderData rd = *PushConstants.rd;
+    SceneData sd = *PushConstants.sd;
 
     float4x4 worldMat = rd.transform;
 
@@ -23,7 +25,7 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.coarseVertex.normal = mul(rd.normalTransform, v.normal);
     output.coarseVertex.textureCoordinates = float2(v.textureCoordinates_x, v.textureCoordinates_y);
     float4 posWorld = float4(v.position, 1.0);
-    output.sv_position = mul(mul(sceneData.viewproj, worldMat), posWorld);
+    output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
 
     return output;
 }
@@ -33,18 +35,19 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
 {
 
     MaterialData md = *PushConstants.md;
+    SceneData sd = *PushConstants.sd;
 
     float3 color = coarseVertex.color;
-    float3 V = normalize(sceneData.cameraPosition.xyz - coarseVertex.vertex);
-    float3 L = sceneData.sunlightDirection.xyz;
+    float3 V = normalize(sd.cameraPosition.xyz - coarseVertex.vertex);
+    float3 L = sd.sunlightDirection.xyz;
     float3 N = normalize(coarseVertex.normal);
     float3 H = normalize(L + V);
 
     float cosTheta = dot(L, N);
     float cosPhi = dot(H, N);
 
-    float3 ambientLight = sceneData.ambientColor.xyz;
-    float3 sunLight = sceneData.sunlightColor.xyz * max(cosTheta, 0.0);
+    float3 ambientLight = sd.ambientColor.xyz;
+    float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
     texture2D matImageTexture = imageTexture[NonUniformResourceIndex(md.color_texture_index)];
     SamplerState matSampler = imageSampler[NonUniformResourceIndex(md.color_sampler_index)];

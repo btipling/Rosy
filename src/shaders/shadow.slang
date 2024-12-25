@@ -2,6 +2,7 @@ import data.data;
 
 StructuredBuffer<InputVertex, ScalarDataLayout> VertexBuffer;
 StructuredBuffer<RenderData, ScalarDataLayout> RenderDataBuffer;
+StructuredBuffer<SceneData, ScalarDataLayout> SceneDataBuffer;
 [[vk::binding(0, 0)]] ConstantBuffer<SceneData> sceneData;
 
 [[vk::push_constant]] PushConstant PushConstants;
@@ -11,13 +12,14 @@ ShadowOutput shadowVertexMain(uint uiVertexId: SV_VertexID)
 {
     InputVertex v = *(PushConstants.v + uiVertexId);
     RenderData rd = *PushConstants.rd;
+    SceneData sd = *PushConstants.sd;
 
     float4x4 worldMat = rd.transform;
     float3x3 worldMat3 = (float3x3)worldMat;
 
     ShadowOutput output;
     float4 posWorld = float4(v.position, 1.0);
-    output.sv_position = mul(mul(sceneData.viewproj, worldMat), posWorld);
+    output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
 
     return output;
 }
