@@ -25,13 +25,11 @@ public:
 	std::vector<VkImageView> image_views;
 	std::vector<VkDescriptorSet> descriptor_sets;
 	std::vector<VkDescriptorSetLayout> descriptor_layouts;
-	std::vector<VkDescriptorSetLayout> shadow_descriptor_layouts;
 
 	std::optional<shader_pipeline> shaders;
 	std::optional<shader_pipeline> shadow_shaders;
 	std::optional<descriptor_allocator_growable> descriptor_allocator = std::nullopt;
 
-	VkDescriptorSetLayout data_layout{};
 	VkDescriptorSetLayout image_layout{};
 
 	std::shared_ptr<debug_gfx> debug{};

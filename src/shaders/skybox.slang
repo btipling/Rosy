@@ -1,7 +1,7 @@
 import data.data;
 
-[[vk::binding(0, 1)]] texture2D imageTexture[];
-[[vk::binding(1, 1)]] SamplerState imageSampler[];
+[[vk::binding(0, 0)]] texture2D imageTexture[];
+[[vk::binding(1, 0)]] SamplerState imageSampler[];
 
 [[vk::push_constant]] PushConstant PushConstants;
 

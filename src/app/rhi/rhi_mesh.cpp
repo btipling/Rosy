@@ -49,14 +49,6 @@ void mesh_scene::init(const rh::ctx& ctx)
 
 	{
 		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		auto [result, set_layout] = layout_builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return;
-		data_layout = set_layout;
-		descriptor_layouts.push_back(set_layout);
-	}
-	{
-		descriptor_layout_builder layout_builder;
 		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 		layout_builder.add_binding(1, VK_DESCRIPTOR_TYPE_SAMPLER);
 		auto [result, set_layout] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -176,12 +168,7 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 	}
 
 	{
-		shadow_descriptor_layouts.push_back(data_layout);
-	}
-
-	{
 		shader_pipeline sp = {};
-		sp.layouts = shadow_descriptor_layouts;
 		sp.name = std::format("shadows {}", name);
 		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
@@ -323,7 +310,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 			last_material = ro.material_index;
 			auto [pass_type, descriptor_set_id, image_set_id, sampler_set_id] = materials[ro.material_index];
 			VkDescriptorSet desc = descriptor_sets[descriptor_set_id];
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &desc, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, &desc, 0, nullptr);
 		}
 		gpu_draw_push_constants pc = push_constants(ro);
 		m_shaders.shader_constants = &pc;
