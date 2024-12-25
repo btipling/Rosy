@@ -444,6 +444,75 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	return rv;
 }
 
+auto rhi_data::materials(std::span<material_data> materials) const -> gpu_material_buffers_result
+{
+	allocated_buffer material_buffer;
+	VkDeviceAddress material_buffer_address;
+
+	const size_t material_buffer_size = materials.size() * sizeof(material_data);
+
+	auto [material_result, new_material_buffer] = create_buffer(
+		"materialBuffer",
+		material_buffer_size,
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
+	if (material_result != VK_SUCCESS) {
+		gpu_material_buffers_result fail{};
+		fail.result = material_result;
+		return fail;
+	}
+
+	// *** SETTING MATERIAL BUFFER *** //
+	material_buffer = new_material_buffer;
+
+	VkBufferDeviceAddressInfo device_address_info{};
+	device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+	device_address_info.buffer = material_buffer.buffer;
+
+	// *** SETTING MATERIAL BUFFER ADDRESS *** //
+	material_buffer_address = vkGetBufferDeviceAddress(renderer_->opt_device.value(), &device_address_info);
+
+
+	auto [result, new_staging_buffer] = create_buffer("staging", material_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+	if (result != VK_SUCCESS) {
+		gpu_material_buffers_result fail{};
+		fail.result = result;
+		return fail;
+	}
+	allocated_buffer staging = new_staging_buffer;
+
+	void* data;
+	vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &data);
+	memcpy(data, materials.data(), material_buffer_size);
+	vmaUnmapMemory(renderer_->opt_allocator.value(), staging.allocation);
+
+	VkResult submit_result;
+	submit_result = renderer_->immediate_submit([&](const VkCommandBuffer cmd) {
+		VkBufferCopy vertex_copy{ 0 };
+		vertex_copy.dstOffset = 0;
+		vertex_copy.srcOffset = 0;
+		vertex_copy.size = material_buffer_size;
+
+		vkCmdCopyBuffer(cmd, staging.buffer, material_buffer.buffer, 1, &vertex_copy);
+		});
+	if (submit_result != VK_SUCCESS) {
+		gpu_material_buffers_result fail{};
+		fail.result = submit_result;
+		return fail;
+	}
+	destroy_buffer(staging);
+
+	gpu_material_buffers buffers{};
+	buffers.material_buffer = material_buffer;
+	buffers.material_buffer_address = material_buffer_address;
+
+	gpu_material_buffers_result rv{};
+	rv.result = VK_SUCCESS;
+	rv.buffers = buffers;
+
+	return rv;
+}
+
 allocated_buffer_result rhi_data::create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const
 {
 	VkBufferCreateInfo buffer_info{};
