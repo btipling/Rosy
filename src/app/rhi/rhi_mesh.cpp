@@ -9,6 +9,15 @@ namespace {
 		glm::vec4(0.f, 0.f, 1.f, 0.f),
 		glm::vec4(0.f, 0.f, 0.f, 1.f)
 	);
+
+	gpu_draw_push_constants push_constants(const render_object& ro)
+	{
+		gpu_draw_push_constants push_constants{};
+		push_constants.vertex_buffer = ro.vertex_buffer_address;
+		push_constants.render_buffer = ro.render_buffer_address + (sizeof(render_data) * ro.mesh_index);
+		push_constants.material_buffer = ro.material_buffer_address + (sizeof(material_data) * ro.material_index);
+		return push_constants;
+	}
 }
 
 void mesh_scene::init(const rh::ctx& ctx)
@@ -235,6 +244,7 @@ void mesh_scene::update(mesh_ctx ctx)
 				ro.index_buffer = ma->mesh_buffers.index_buffer.buffer;
 				ro.vertex_buffer_address = ma->mesh_buffers.vertex_buffer_address;
 				ro.render_buffer_address = render_buffers.value().render_buffer_address;
+				ro.material_buffer_address = material_buffers.value().material_buffer_address;
 				ro.material_index = material;
 				ro.mesh_index = mesh_index;
 				draw_nodes_.push_back(ro);
@@ -291,10 +301,8 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 1, 1, &desc, 0, nullptr);
 		}
-		gpu_draw_push_constants push_constants{};
-		push_constants.vertex_buffer = ro.vertex_buffer_address;
-		push_constants.render_buffer = ro.render_buffer_address + (sizeof(render_data) * ro.mesh_index);
-		m_shaders.shader_constants = &push_constants;
+		gpu_draw_push_constants pc = push_constants(ro);
+		m_shaders.shader_constants = &pc;
 		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 		vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index, 0, 0);
@@ -331,11 +339,9 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
 	for (auto ro : draw_nodes_) {
-		gpu_draw_push_constants push_constants{};
-		push_constants.vertex_buffer = ro.vertex_buffer_address;
-		push_constants.render_buffer = ro.render_buffer_address;
-		m_shaders.shader_constants = &push_constants;
-		m_shaders.shader_constants_size = sizeof(push_constants);
+		gpu_draw_push_constants pc = push_constants(ro);
+		m_shaders.shader_constants = &pc;
+		m_shaders.shader_constants_size = sizeof(pc);
 		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 		vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index, 0, 0);

@@ -1,7 +1,8 @@
 import data.data;
 
-StructuredBuffer<InputVertex, Std430DataLayout> VertexBuffer;
-StructuredBuffer<RenderData, Std430DataLayout> RenderDataBuffer;
+StructuredBuffer<InputVertex, ScalarDataLayout> VertexBuffer;
+StructuredBuffer<RenderData, ScalarDataLayout> RenderDataBuffer;
+StructuredBuffer<MaterialData, ScalarDataLayout> MaterialDataBuffer;
 [[vk::binding(0, 0)]] ConstantBuffer<SceneData> sceneData;
 [[vk::binding(0, 1)]] texture2D imageTexture[];
 [[vk::binding(1, 1)]] SamplerState imageSampler[];
@@ -41,7 +42,12 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
 
     float3 ambientLight = sceneData.ambientColor.xyz;
     float3 sunLight = sceneData.sunlightColor.xyz * max(cosTheta, 0.0);
-    float4 outFragColor = imageTexture[NonUniformResourceIndex(0)].Sample(imageSampler[NonUniformResourceIndex(0)], coarseVertex.textureCoordinates) * float4(ambientLight + sunLight, 1.0);
+
+    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(0)];
+    SamplerState matSampler = imageSampler[NonUniformResourceIndex(0)];
+    float4 imageTextureColor = matImageTexture.Sample(matSampler, coarseVertex.textureCoordinates);
+
+    float4 outFragColor = imageTextureColor * float4(ambientLight + sunLight, 1.0);
 
     Fragment output;
     output.color = outFragColor;

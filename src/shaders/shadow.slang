@@ -1,10 +1,8 @@
 import data.data;
 
-StructuredBuffer<InputVertex, Std430DataLayout> VertexBuffer;
-StructuredBuffer<RenderData, Std430DataLayout> RenderDataBuffer;
+StructuredBuffer<InputVertex, ScalarDataLayout> VertexBuffer;
+StructuredBuffer<RenderData, ScalarDataLayout> RenderDataBuffer;
 [[vk::binding(0, 0)]] ConstantBuffer<SceneData> sceneData;
-[[vk::binding(0, 1)]] texture2D imageTexture[];
-[[vk::binding(1, 1)]] SamplerState imageSampler[];
 
 [[vk::push_constant]] PushConstant PushConstants;
 

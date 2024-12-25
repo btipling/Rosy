@@ -17,7 +17,12 @@ public struct InputVertex {
 public struct RenderData {
     public float4x4 transform;
     public float3x3 normalTransform;
-    public uint4 material_data;
+    public uint32_t4 material_data;
+};
+
+public struct MaterialData {
+    public uint32_t color_texture_index;
+    public uint32_t color_sampler_index;
 };
 
 public struct CoarseVertex
@@ -48,6 +53,7 @@ public struct Fragment
 public struct PushConstant {
     public InputVertex *v;
     public RenderData *rd;
+    public MaterialData *md;
 }
 
 public struct ShadowOutput

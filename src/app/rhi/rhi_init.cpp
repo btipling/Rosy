@@ -647,44 +647,44 @@ VkResult rhi::init_device()
 	VkPhysicalDeviceVulkan13Features vulkan13_features{};
 	vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
 	vulkan13_features.pNext = nullptr;
-	vulkan13_features.dynamicRendering = true;
-	vulkan13_features.synchronization2 = true;
-	vulkan13_features.maintenance4 = true;
+	vulkan13_features.dynamicRendering = VK_TRUE;
+	vulkan13_features.synchronization2 = VK_TRUE;
+	vulkan13_features.maintenance4 = VK_TRUE;
 
 	VkPhysicalDeviceVulkan12Features vulkan12_features{};
 	vulkan12_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	vulkan12_features.pNext = &vulkan13_features;
-	vulkan12_features.bufferDeviceAddress = true;
-	vulkan12_features.descriptorIndexing = true;
-	vulkan12_features.shaderInputAttachmentArrayDynamicIndexing = true;
-	vulkan12_features.shaderUniformTexelBufferArrayDynamicIndexing = true;
-	vulkan12_features.shaderStorageTexelBufferArrayDynamicIndexing = true;
-	vulkan12_features.shaderUniformBufferArrayNonUniformIndexing = true;
-	vulkan12_features.shaderSampledImageArrayNonUniformIndexing = true;
-	vulkan12_features.shaderStorageBufferArrayNonUniformIndexing = true;
-	vulkan12_features.shaderStorageImageArrayNonUniformIndexing = true;
-	vulkan12_features.shaderUniformTexelBufferArrayNonUniformIndexing = true;
-	vulkan12_features.shaderStorageTexelBufferArrayNonUniformIndexing = true;
-	vulkan12_features.descriptorBindingSampledImageUpdateAfterBind = true;
-	vulkan12_features.descriptorBindingStorageImageUpdateAfterBind = true;
-	vulkan12_features.descriptorBindingStorageBufferUpdateAfterBind = true;
-	vulkan12_features.descriptorBindingUniformTexelBufferUpdateAfterBind = true;
-	vulkan12_features.descriptorBindingUpdateUnusedWhilePending = true;
-	vulkan12_features.descriptorBindingPartiallyBound = true;
-	vulkan12_features.descriptorBindingVariableDescriptorCount = true;
-	vulkan12_features.runtimeDescriptorArray = true;
-	vulkan12_features.samplerFilterMinmax = true;
-	vulkan12_features.scalarBlockLayout = true;
-	vulkan12_features.imagelessFramebuffer = true;
-	vulkan12_features.uniformBufferStandardLayout = true;
-	vulkan12_features.shaderSubgroupExtendedTypes = true;
+	vulkan12_features.bufferDeviceAddress = VK_TRUE;
+	vulkan12_features.descriptorIndexing = VK_TRUE;
+	vulkan12_features.shaderInputAttachmentArrayDynamicIndexing = VK_TRUE;
+	vulkan12_features.shaderUniformTexelBufferArrayDynamicIndexing = VK_TRUE;
+	vulkan12_features.shaderStorageTexelBufferArrayDynamicIndexing = VK_TRUE;
+	vulkan12_features.shaderUniformBufferArrayNonUniformIndexing = VK_TRUE;
+	vulkan12_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	vulkan12_features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+	vulkan12_features.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
+	vulkan12_features.shaderUniformTexelBufferArrayNonUniformIndexing = VK_TRUE;
+	vulkan12_features.shaderStorageTexelBufferArrayNonUniformIndexing = VK_TRUE;
+	vulkan12_features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+	vulkan12_features.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+	vulkan12_features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+	vulkan12_features.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
+	vulkan12_features.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+	vulkan12_features.descriptorBindingPartiallyBound = VK_TRUE;
+	vulkan12_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+	vulkan12_features.runtimeDescriptorArray = VK_TRUE;
+	vulkan12_features.samplerFilterMinmax = VK_TRUE;
+	vulkan12_features.scalarBlockLayout = VK_TRUE;
+	vulkan12_features.imagelessFramebuffer = VK_TRUE;
+	vulkan12_features.uniformBufferStandardLayout = VK_TRUE;
+	vulkan12_features.shaderSubgroupExtendedTypes = VK_TRUE;
 
 
 	VkPhysicalDeviceVulkan11Features vulkan11_features{};
 	vulkan11_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
 	vulkan11_features.pNext = &vulkan12_features;
-	vulkan11_features.variablePointers = true;
-	vulkan11_features.variablePointersStorageBuffer = true;
+	vulkan11_features.variablePointers = VK_TRUE;
+	vulkan11_features.variablePointersStorageBuffer = VK_TRUE;
 
 	VkPhysicalDeviceShaderObjectFeaturesEXT enable_shader_object = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,

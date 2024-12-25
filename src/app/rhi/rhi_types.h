@@ -118,6 +118,7 @@ struct gpu_draw_push_constants
 {
 	VkDeviceAddress vertex_buffer;
 	VkDeviceAddress render_buffer;
+	VkDeviceAddress material_buffer;
 };
 
 struct debug_draw_push_constants
@@ -173,6 +174,7 @@ struct render_object {
 	glm::mat4 transform;
 	VkDeviceAddress vertex_buffer_address;
 	VkDeviceAddress render_buffer_address;
+	VkDeviceAddress material_buffer_address;
 };
 
 enum class material_pass :uint8_t {
