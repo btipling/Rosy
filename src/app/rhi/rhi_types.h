@@ -158,8 +158,8 @@ struct render_data
 
 struct material_data
 {
-	glm::uint color_texture_index;
-	glm::uint color_sampler_index;
+	glm::uint color_texture_index{0};
+	glm::uint color_sampler_index{0};
 };
 
 struct render_object {
@@ -266,7 +266,7 @@ public:
 	explicit rhi_data(rhi* renderer);
 	rh::result load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path, mesh_scene& gltf_mesh_scene);
 	[[nodiscard]] auto upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_mesh_buffers_result;
-	[[nodiscard]] auto materials(std::span<material_data> materials) const->gpu_material_buffers_result;
+	[[nodiscard]] auto upload_materials(std::span<material_data> materials) const->gpu_material_buffers_result;
 	[[nodiscard]] auto create_render_data(size_t num_surfaces) const->gpu_render_buffers_result;
 	allocated_buffer_result create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 

@@ -33,46 +33,47 @@ rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer }
 		ktx_sub_allocator::free_mem_c_wrapper
 	};
 }
-
-VkFilter extract_filter(const fastgltf::Filter filter)
-{
-	switch (filter) {
-	case fastgltf::Filter::Nearest:
-	case fastgltf::Filter::NearestMipMapNearest:
-	case fastgltf::Filter::NearestMipMapLinear:
-		return VK_FILTER_NEAREST;
-	case fastgltf::Filter::Linear:
-	case fastgltf::Filter::LinearMipMapNearest:
-	case fastgltf::Filter::LinearMipMapLinear:
-	default:
-		return VK_FILTER_LINEAR;
+namespace {
+	VkFilter extract_filter(const fastgltf::Filter filter)
+	{
+		switch (filter) {
+		case fastgltf::Filter::Nearest:
+		case fastgltf::Filter::NearestMipMapNearest:
+		case fastgltf::Filter::NearestMipMapLinear:
+			return VK_FILTER_NEAREST;
+		case fastgltf::Filter::Linear:
+		case fastgltf::Filter::LinearMipMapNearest:
+		case fastgltf::Filter::LinearMipMapLinear:
+		default:
+			return VK_FILTER_LINEAR;
+		}
 	}
-}
 
-VkSamplerMipmapMode extract_mipmap_mode(const fastgltf::Filter filter)
-{
-	switch (filter) {
-	case fastgltf::Filter::NearestMipMapNearest:
-	case fastgltf::Filter::LinearMipMapNearest:
-		return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	VkSamplerMipmapMode extract_mipmap_mode(const fastgltf::Filter filter)
+	{
+		switch (filter) {
+		case fastgltf::Filter::NearestMipMapNearest:
+		case fastgltf::Filter::LinearMipMapNearest:
+			return VK_SAMPLER_MIPMAP_MODE_NEAREST;
 
-	case fastgltf::Filter::NearestMipMapLinear:
-	case fastgltf::Filter::LinearMipMapLinear:
-	default:
-		return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		case fastgltf::Filter::NearestMipMapLinear:
+		case fastgltf::Filter::LinearMipMapLinear:
+		default:
+			return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		}
 	}
-}
 
-VkSamplerAddressMode extract_wrap_mode(const fastgltf::Wrap wrap)
-{
-	switch (wrap) {
-	case fastgltf::Wrap::ClampToEdge:
-		return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	case fastgltf::Wrap::MirroredRepeat:
-		return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-	case fastgltf::Wrap::Repeat:
-	default:
-		return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	VkSamplerAddressMode extract_wrap_mode(const fastgltf::Wrap wrap)
+	{
+		switch (wrap) {
+		case fastgltf::Wrap::ClampToEdge:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case fastgltf::Wrap::MirroredRepeat:
+			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case fastgltf::Wrap::Repeat:
+		default:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		}
 	}
 }
 
@@ -149,8 +150,10 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 
 	}
 	{
+		std::vector<material_data> materials;
 		size_t desc_index{ 0 };
 		for (fastgltf::Material& mat : gltf.materials) {
+			material_data m_data{};
 			material m{};
 			if (mat.pbrData.baseColorTexture.has_value()) {
 				auto image_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
@@ -181,13 +184,23 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 						writer.write_sampler(1, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLER);
 						writer.update_set(renderer_->opt_device.value(), image_set);
 						gltf_mesh_scene.descriptor_sets.push_back(image_set);
+						m_data.color_texture_index = 0;
+						m_data.color_sampler_index = 0;
 					}
 				}
 				m.descriptor_set_id = desc_index;
 				desc_index++;
 			}
+			materials.push_back(m_data);
 			gltf_mesh_scene.materials.push_back(m);
 		}
+
+		auto [material_create_result, created_material_buffers] = upload_materials(materials);
+		if (material_create_result != VK_SUCCESS) {
+			rosy_utils::debug_print_a("failed to create materials buffer: %d\n", material_create_result);
+			return rh::result::error;
+		}
+		gltf_mesh_scene.material_buffers = created_material_buffers;
 	}
 
 	std::vector<uint32_t> indices;
@@ -444,7 +457,7 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	return rv;
 }
 
-auto rhi_data::materials(std::span<material_data> materials) const -> gpu_material_buffers_result
+auto rhi_data::upload_materials(std::span<material_data> materials) const -> gpu_material_buffers_result
 {
 	allocated_buffer material_buffer;
 	VkDeviceAddress material_buffer_address;
