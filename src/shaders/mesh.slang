@@ -48,13 +48,9 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
     float3 ambientLight = sd.ambientColor.xyz;
     float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
-    uint cti = 0;
-    uint csi = 0;
-    if (PushConstants.md != nullptr) {
-        MaterialData md = *PushConstants.md;
-        cti = md.color_texture_index;
-        csi = md.color_sampler_index;
-    }
+    MaterialData md = *PushConstants.md;
+    uint cti = md.color_texture_index;
+    uint csi = md.color_sampler_index;
 
     texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
     SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];

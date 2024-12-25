@@ -325,17 +325,11 @@ void scene_one::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_sce
 		scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
 
 		glm::mat4 sv_cam = glm::inverse(shadow_map_view_);
-		//glm::mat4 sv_cam = glm::inverse(view);
 		glm::vec4 sv_x = sv_cam[0];
 		glm::vec4 sv_y = sv_cam[1];
 		glm::vec4 sv_z = sv_cam[2];
 		glm::vec4 sv_c = sv_cam[3];
 
-
-		/*glm::vec4 sv_x = glm::vec4(sv_cam[0][0], sv_cam[1][0], sv_cam[2][0], sv_cam[3][0]);
-		glm::vec4 sv_y = glm::vec4(sv_cam[0][1], sv_cam[1][1], sv_cam[2][1], sv_cam[3][1]);
-		glm::vec4 sv_z = glm::vec4(sv_cam[0][2], sv_cam[1][2], sv_cam[2][2], sv_cam[3][2]);
-		glm::vec4 sv_c = glm::vec4(sv_cam[0][3], sv_cam[1][3], sv_cam[2][3], sv_cam[3][3]);*/
 		const float sv_u = -distance_from_camera_;
 
 		glm::vec4 q0 = sv_c + (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
@@ -343,11 +337,6 @@ void scene_one::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_sce
 		glm::vec4 q2 = sv_c - (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
 		glm::vec4 q3 = sv_c - (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
 
-		/*rosy_utils::debug_print_a("sv_c: (%f, %f, %f)\n", sv_c.x, sv_c.y, sv_c.z);
-		rosy_utils::debug_print_a("q0: (%f, %f, %f)\n", q0.x, q0.y, q0.z);
-		rosy_utils::debug_print_a("q1: (%f, %f, %f)\n", q1.x, q1.y, q1.z);
-		rosy_utils::debug_print_a("q2: (%f, %f, %f)\n", q2.x, q2.y, q2.z);
-		rosy_utils::debug_print_a("q3: (%f, %f, %f)\n", q3.x, q3.y, q3.z);*/
 		scene_graph_->debug->set_shadow_frustum(q0, q1, q2, q3);
 		scene_graph_->debug->shadow_frustum = glm::mat4(1.f);
 	}
