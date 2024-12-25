@@ -28,7 +28,6 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 [shader("fragment")]
 Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
 {
-
     SceneData sd = *PushConstants.sd;
 
     float3 color = coarseVertex.color;

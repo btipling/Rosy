@@ -58,7 +58,6 @@ private:
 	VkPresentModeKHR swapchain_present_mode_ = {};
 	uint32_t swap_chain_image_count_ = 0;
 	swap_chain_support_details swapchain_details_ = {};
-	std::optional<descriptor_allocator> global_descriptor_allocator_ = std::nullopt;
 
 	// immediate submits
 	std::optional<VkFence> imm_fence_;

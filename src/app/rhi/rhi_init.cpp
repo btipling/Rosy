@@ -210,10 +210,6 @@ void rhi::deinit()
 				device, fd.render_finished_semaphore.value(), nullptr);
 		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
 	}
-	if (global_descriptor_allocator_.has_value())
-	{
-		global_descriptor_allocator_.value().destroy_pool(opt_device.value());
-	}
 
 	{
 		// Deinit draw images
@@ -929,7 +925,7 @@ VkResult rhi::init_draw_image()
 		shadow_map_image_ = shadow_map_image;
 		auto obj_name = "shadow_map_image";
 		const VkDebugUtilsObjectNameInfoEXT vert_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(shadow_map_image.image), obj_name);
-		if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &vert_name); result != VK_SUCCESS) return result;
+		if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &vert_name); debug_result != VK_SUCCESS) return debug_result;
 	}
 
 	return result;
@@ -937,18 +933,6 @@ VkResult rhi::init_draw_image()
 
 VkResult rhi::init_descriptors()
 {
-	std::vector<descriptor_allocator::pool_size_ratio> sizes = {
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3 },
-	};
-
-	{
-		const VkDevice device = opt_device.value();
-		descriptor_allocator allocator{};
-		allocator.init_pool(device, 10, sizes);
-		global_descriptor_allocator_ = allocator;
-	}
 	return VK_SUCCESS;
 }
 
