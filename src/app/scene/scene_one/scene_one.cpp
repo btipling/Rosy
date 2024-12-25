@@ -76,6 +76,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	{
 		mesh_scene mesh_graph{};
 		mesh_graph.init(ctx);
+		mesh_graph.init_scene_data(ctx);
 		if (auto res = data->load_gltf_meshes(ctx, "assets\\sphere.glb", mesh_graph); res != rh::result::ok)
 		{
 			return res;

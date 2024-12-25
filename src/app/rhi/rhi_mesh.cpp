@@ -99,12 +99,26 @@ void mesh_scene::init(const rh::ctx& ctx)
 	}
 }
 
+void mesh_scene::init_scene_data(const rh::ctx& ctx)
+{
+	const auto [ result,  new_scene_buffers] = ctx.rhi.data.value()->create_scene_data();
+	if (result != VK_SUCCESS)
+	{
+		rosy_utils::debug_print_a("Failed to init scene buffer %d\n", result);
+		return;
+	}
+	scene_buffers = new_scene_buffers;
+}
+
 void mesh_scene::deinit(const rh::ctx& ctx)
 {
 	const auto buffer = ctx.rhi.data.value();
 	const VkDevice device = ctx.rhi.device;
 	{
 		debug->deinit(ctx);
+	}
+	if (scene_buffers.has_value()) {
+		buffer->destroy_buffer(scene_buffers.value().scene_buffer);
 	}
 	if (render_buffers.has_value()) {
 		buffer->destroy_buffer(render_buffers.value().render_buffer);

@@ -17,6 +17,7 @@ public:
 	std::vector<std::shared_ptr<mesh_asset>> meshes;
 	std::optional <gpu_render_buffers> render_buffers;
 	std::optional <gpu_material_buffers> material_buffers;
+	std::optional <gpu_scene_buffers> scene_buffers;
 	std::vector<material> materials;
 
 	std::vector<ktx_auto_texture> ktx_textures;
@@ -42,6 +43,7 @@ public:
 	mesh_scene(mesh_scene&&) noexcept = default;
 	mesh_scene& operator=(mesh_scene&&) noexcept = default;
 	void init(const rh::ctx& ctx);
+	void init_scene_data(const rh::ctx& ctx);
 	void init_shadows(const rh::ctx& ctx);
 	void update(mesh_ctx ctx);
 	void deinit(const rh::ctx& ctx);

@@ -32,6 +32,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	{
 		mesh_scene mesh_graph{};
 		mesh_graph.init(ctx);
+		mesh_graph.init_scene_data(ctx);
 		mesh_graph.init_shadows(ctx);
 		// ReSharper disable once StringLiteralTypo
 		if (const auto res = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf", mesh_graph); res != rh::result::ok)
