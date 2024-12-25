@@ -100,6 +100,9 @@ void mesh_scene::deinit(const rh::ctx& ctx)
 	if (render_buffers.has_value()) {
 		buffer->destroy_buffer(render_buffers.value().render_buffer);
 	}
+	if (material_buffers.has_value()) {
+		buffer->destroy_buffer(material_buffers.value().material_buffer);
+	}
 	for (std::shared_ptr<mesh_asset> mesh : meshes)
 	{
 		gpu_mesh_buffers rectangle = mesh.get()->mesh_buffers;
