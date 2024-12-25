@@ -76,7 +76,6 @@ rh::result scene_one::build(const rh::ctx& ctx)
 	{
 		mesh_scene mesh_graph{};
 		mesh_graph.init(ctx);
-		mesh_graph.init_scene_data(ctx);
 		if (auto res = data->load_gltf_meshes(ctx, "assets\\sphere.glb", mesh_graph); res != rh::result::ok)
 		{
 			return res;
@@ -504,7 +503,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;
 		m_ctx.world_transform = m;
-		scene_graph_->update(m_ctx);
+		scene_graph_->update(m_ctx, scene_data_);
 	}
 }
 

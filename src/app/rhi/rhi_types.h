@@ -129,6 +129,7 @@ struct gpu_render_buffers_result
 
 struct gpu_draw_push_constants
 {
+	VkDeviceAddress scene_buffer;
 	VkDeviceAddress vertex_buffer;
 	VkDeviceAddress render_buffer;
 	VkDeviceAddress material_buffer;
@@ -185,6 +186,7 @@ struct render_object {
 	size_t mesh_index;
 	bounds bounds;
 	glm::mat4 transform;
+	VkDeviceAddress scene_buffer_address;
 	VkDeviceAddress vertex_buffer_address;
 	VkDeviceAddress render_buffer_address;
 	VkDeviceAddress material_buffer_address;

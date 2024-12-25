@@ -32,7 +32,6 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	{
 		mesh_scene mesh_graph{};
 		mesh_graph.init(ctx);
-		mesh_graph.init_scene_data(ctx);
 		mesh_graph.init_shadows(ctx);
 		// ReSharper disable once StringLiteralTypo
 		if (const auto res = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf", mesh_graph); res != rh::result::ok)
@@ -408,7 +407,7 @@ void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_sce
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;;
 		m_ctx.world_transform = m;
-		skybox_->update(m_ctx);
+		skybox_->update(m_ctx, scene_data_);
 	}
 	{
 		auto m = translate(glm::mat4(1.f), scene_pos_);
@@ -419,7 +418,7 @@ void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_sce
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;
 		m_ctx.world_transform = m;
-		scene_graph_->update(m_ctx);
+		scene_graph_->update(m_ctx, scene_data_);
 	}
 }
 

@@ -51,6 +51,7 @@ public struct Fragment
 };
 
 public struct PushConstant {
+    public SceneData *sd;
     public InputVertex *v;
     public RenderData *rd;
     public MaterialData *md;

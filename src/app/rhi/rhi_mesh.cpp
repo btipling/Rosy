@@ -13,6 +13,7 @@ namespace {
 	gpu_draw_push_constants push_constants(const render_object& ro)
 	{
 		gpu_draw_push_constants push_constants{};
+		push_constants.scene_buffer = ro.scene_buffer_address;
 		push_constants.vertex_buffer = ro.vertex_buffer_address;
 		push_constants.render_buffer = ro.render_buffer_address + (sizeof(render_data) * ro.mesh_index);
 		push_constants.material_buffer = ro.material_buffer_address + (sizeof(material_data) * ro.material_index);
@@ -97,17 +98,15 @@ void mesh_scene::init(const rh::ctx& ctx)
 			debug->lines.push_back(line);
 		}
 	}
-}
-
-void mesh_scene::init_scene_data(const rh::ctx& ctx)
-{
-	const auto [ result,  new_scene_buffers] = ctx.rhi.data.value()->create_scene_data();
-	if (result != VK_SUCCESS)
 	{
-		rosy_utils::debug_print_a("Failed to init scene buffer %d\n", result);
-		return;
+		const auto [result, new_scene_buffers] = ctx.rhi.data.value()->create_scene_data();
+		if (result != VK_SUCCESS)
+		{
+			rosy_utils::debug_print_a("Failed to init scene buffer %d\n", result);
+			return;
+		}
+		scene_buffers = new_scene_buffers;
 	}
-	scene_buffers = new_scene_buffers;
 }
 
 void mesh_scene::deinit(const rh::ctx& ctx)
@@ -220,9 +219,19 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 };
 
-void mesh_scene::update(mesh_ctx ctx)
+void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 {
 	if (ctx.scene_index >= scenes.size()) return;
+	if (scene_data.has_value() && scene_buffers.has_value()) {
+		gpu_scene_buffers sb = scene_buffers.value();
+		gpu_scene_data sd = scene_data.value();
+		const VmaAllocator allocator = ctx.ctx->rhi.allocator;
+		void* data_pointer;
+		vmaMapMemory(allocator, sb.scene_buffer.allocation, &data_pointer);
+		memcpy(data_pointer, &sd, sizeof(sd));
+		vmaUnmapMemory(allocator, sb.scene_buffer.allocation);
+	}
+
 	std::queue<std::shared_ptr<mesh_node>> queue{};
 	draw_nodes_.clear();
 	std::vector<render_data> render_datas;
@@ -256,6 +265,7 @@ void mesh_scene::update(mesh_ctx ctx)
 				ro.first_index = start_index;
 				ro.index_count = count;
 				ro.index_buffer = ma->mesh_buffers.index_buffer.buffer;
+				ro.scene_buffer_address = scene_buffers.value().scene_buffer_address;
 				ro.vertex_buffer_address = ma->mesh_buffers.vertex_buffer_address;
 				ro.render_buffer_address = render_buffers.value().render_buffer_address;
 				ro.material_buffer_address = material_buffers.value().material_buffer_address;
