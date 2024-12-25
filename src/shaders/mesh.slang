@@ -1,10 +1,5 @@
 import data.data;
 
-StructuredBuffer<InputVertex, ScalarDataLayout> VertexBuffer;
-StructuredBuffer<RenderData, ScalarDataLayout> RenderDataBuffer;
-StructuredBuffer<MaterialData, ScalarDataLayout> MaterialDataBuffer;
-StructuredBuffer<SceneData, ScalarDataLayout> SceneDataBuffer;
-[[vk::binding(0, 0)]] ConstantBuffer<SceneData> sceneData;
 [[vk::binding(0, 1)]] texture2D imageTexture[];
 [[vk::binding(1, 1)]] SamplerState imageSampler[];
 

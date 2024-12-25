@@ -1,9 +1,5 @@
 import data.data;
 
-StructuredBuffer<InputVertex, ScalarDataLayout> VertexBuffer;
-StructuredBuffer<RenderData, ScalarDataLayout> RenderDataBuffer;
-StructuredBuffer<SceneData, ScalarDataLayout> SceneDataBuffer;
-[[vk::binding(0, 0)]] ConstantBuffer<SceneData> sceneData;
 
 [[vk::push_constant]] PushConstant PushConstants;
 

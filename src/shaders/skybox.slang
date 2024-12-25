@@ -1,6 +1,5 @@
 import data.data;
 
-StructuredBuffer<MaterialData, ScalarDataLayout> MaterialDataBuffer;
 [[vk::binding(0, 1)]] texture2D imageTexture[];
 [[vk::binding(1, 1)]] SamplerState imageSampler[];
 

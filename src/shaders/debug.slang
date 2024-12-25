@@ -1,7 +1,5 @@
 import data.data;
 
-[[vk::binding(0, 0)]] ConstantBuffer<SceneData> sceneData;
-
 [[vk::push_constant]] DebugConstant DebugConstants;
 
 [shader("vertex")]
