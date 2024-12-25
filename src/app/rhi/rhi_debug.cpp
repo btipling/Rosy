@@ -63,7 +63,7 @@ void debug_gfx::deinit(const rh::ctx& ctx)
 	}
 }
 
-rh::result debug_gfx::draw(mesh_ctx ctx)
+rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 {
 	if (lines.size() == 0) return rh::result::ok;
 	auto cmd = ctx.cmd;
@@ -87,7 +87,9 @@ rh::result debug_gfx::draw(mesh_ctx ctx)
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, ctx.global_descriptor, 0, nullptr);
 	for (auto line : lines) {
-		m_shaders.shader_constants = &line;
+		auto l = line;
+		l.world_matrix = ctx.view_proj * l.world_matrix;
+		m_shaders.shader_constants = &l;
 		m_shaders.shader_constants_size = sizeof(line);
 		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
 		vkCmdDraw(cmd, 2, 1, 0, 0);
@@ -95,7 +97,7 @@ rh::result debug_gfx::draw(mesh_ctx ctx)
 	if (shadow_frustum.has_value()) {
 		for (auto line : shadow_box_lines) {
 			auto shadow_line = line;
-			shadow_line.world_matrix = shadow_frustum.value();
+			shadow_line.world_matrix = ctx.view_proj * shadow_frustum.value();
 			m_shaders.shader_constants = &shadow_line;
 			m_shaders.shader_constants_size = sizeof(shadow_line);
 			if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;

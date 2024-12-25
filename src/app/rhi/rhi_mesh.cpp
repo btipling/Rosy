@@ -336,8 +336,8 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 
 
 	// Debug
-	{
-		if (const auto res = debug->draw(ctx); res != rh::result::ok) return res;
+	if (scene_buffers.has_value()) {
+		if (const auto res = debug->draw(ctx, scene_buffers.value().scene_buffer_address); res != rh::result::ok) return res;
 	}
 	return rh::result::ok;
 };

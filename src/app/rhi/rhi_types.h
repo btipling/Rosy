@@ -218,6 +218,7 @@ struct mesh_ctx
 {
 	const rh::ctx* ctx = nullptr;
 	glm::mat4 world_transform = { 1.f };
+	glm::mat4 view_proj = { 1.f };
 	size_t scene_index{ 0 };
 	bool wire_frame = false;
 	bool depth_enabled = true;

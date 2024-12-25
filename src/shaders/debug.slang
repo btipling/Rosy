@@ -13,7 +13,7 @@ DebugVertexStageOutput debugVertMain(uint uiVertexId: SV_VertexID)
     }
     DebugVertexStageOutput output;
     output.debugVertex.color = DebugConstants.color.xyz;
-    output.sv_position = mul(mul(sceneData.viewproj, DebugConstants.worldMatrix), v);
+    output.sv_position = mul(DebugConstants.worldMatrix, v);
 
     return output;
 }

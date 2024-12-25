@@ -148,6 +148,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 			m_ctx.extent = frame_extent;
 			m_ctx.global_descriptor = &global_descriptor;
 			m_ctx.world_transform = m;
+			m_ctx.view_proj = scene_data_.view_projection;
 			if (const auto res = skybox_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 		// Scene
@@ -158,6 +159,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 			m_ctx.cmd = cmd;
 			m_ctx.extent = frame_extent;
 			m_ctx.global_descriptor = &global_descriptor;
+			m_ctx.view_proj = scene_data_.view_projection;
 			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 	}
