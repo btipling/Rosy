@@ -210,14 +210,6 @@ void rhi::deinit()
 				device, fd.render_finished_semaphore.value(), nullptr);
 		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
 	}
-	if (gpu_scene_data_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(opt_device.value(), gpu_scene_data_descriptor_layout_.value(), nullptr);
-	}
-	if (scene_descriptor_allocator.has_value())
-	{
-		scene_descriptor_allocator.value().destroy_pools(opt_device.value());
-	}
 	if (global_descriptor_allocator_.has_value())
 	{
 		global_descriptor_allocator_.value().destroy_pool(opt_device.value());
@@ -951,22 +943,11 @@ VkResult rhi::init_descriptors()
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3 },
 	};
 
-	const VkDevice device = opt_device.value();
-
 	{
+		const VkDevice device = opt_device.value();
 		descriptor_allocator allocator{};
 		allocator.init_pool(device, 10, sizes);
 		global_descriptor_allocator_ = allocator;
-	}
-	{
-		std::vector<descriptor_allocator_growable::pool_size_ratio> scene_sizes = {
-			{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
-			{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
-			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
-			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
-		};
-		scene_descriptor_allocator = descriptor_allocator_growable{};
-		scene_descriptor_allocator.value().init(device, 1000, scene_sizes);
 	}
 	return VK_SUCCESS;
 }
