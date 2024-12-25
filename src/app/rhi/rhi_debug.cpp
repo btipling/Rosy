@@ -20,24 +20,9 @@ void debug_gfx::init(const rh::ctx& ctx)
 	std::vector<descriptor_allocator_growable::pool_size_ratio> frame_sizes = {
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
 		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
-		{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
 	};
-
-	descriptor_allocator = descriptor_allocator_growable{};
-	descriptor_allocator.value().init(device, 1000, frame_sizes);
-
-	{
-		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return;
-		data_layout = set;
-		descriptor_layouts.push_back(set);
-	}
 	{
 		shader_pipeline sp = {};
-		sp.layouts = descriptor_layouts;
 		sp.name = std::format("scene {}", name);
 		sp.shader_constants_size = sizeof(debug_draw_push_constants);
 		sp.primitive = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
@@ -47,17 +32,9 @@ void debug_gfx::init(const rh::ctx& ctx)
 	}
 }
 
-void debug_gfx::deinit(const rh::ctx& ctx)
+void debug_gfx::deinit(const rh::ctx& ctx) const
 {
-	const auto buffer = ctx.rhi.data.value();
 	const VkDevice device = ctx.rhi.device;
-	for (const VkDescriptorSetLayout set : descriptor_layouts)
-	{
-		vkDestroyDescriptorSetLayout(device, set, nullptr);
-	}
-	if (descriptor_allocator.has_value()) {
-		descriptor_allocator.value().destroy_pools(device);
-	}
 	if (shaders.has_value()) {
 		shaders.value().deinit(device);
 	}
@@ -82,8 +59,6 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 		m_shaders.front_face = ctx.front_face;
 		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 	}
-
-	size_t last_material = 100'000;
 
 	for (auto line : lines) {
 		auto l = line;

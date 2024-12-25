@@ -42,7 +42,6 @@ void mesh_scene::init(const rh::ctx& ctx)
 		{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 3},
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
 		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
 	};
 
 	descriptor_allocator = descriptor_allocator_growable{};
