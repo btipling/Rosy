@@ -15,7 +15,6 @@ struct frame_data
 	std::optional<VkSemaphore> render_finished_semaphore;
 	std::optional<VkFence> in_flight_fence;
 	std::optional<VkCommandPool> command_pool;
-	std::optional<descriptor_allocator_growable> frame_descriptors;
 
 	std::optional<allocated_buffer> gpu_scene_buffer = std::nullopt;
 };
@@ -30,7 +29,6 @@ namespace rh
 		std::optional<rhi_data*> data = std::nullopt;
 		VkExtent2D frame_extent{};
 		VkExtent2D shadow_map_extent{};
-		std::optional <descriptor_allocator_growable> descriptor_allocator;
 	};
 
 	struct ctx

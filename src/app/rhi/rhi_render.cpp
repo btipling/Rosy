@@ -59,10 +59,6 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 	{
 		rhi_ctx.data = buffer.value().get();
 	}
-	if (global_descriptor_allocator_.has_value())
-	{
-		rhi_ctx.descriptor_allocator = scene_descriptor_allocator;
-	}
 	SDL_Time ticks = 0;
 	if (!SDL_GetCurrentTime(&ticks))
 	{
@@ -79,7 +75,7 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 VkResult rhi::begin_frame()
 {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+		opt_command_pool, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
 	{
 		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
@@ -91,14 +87,12 @@ VkResult rhi::begin_frame()
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	VkSemaphore image_available = opt_image_available_semaphores.value();
 	VkFence fence = opt_in_flight_fence.value();
-	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 
 	VkResult result;
 	VkDevice device = opt_device.value();
 
 	result = vkWaitForFences(device, 1, &fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
-	frame_descriptors.clear_pools(device);
 	if (opt_gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(opt_gpu_scene_buffer.value());
 	frame_datas_[current_frame_].gpu_scene_buffer = std::nullopt;
 
@@ -145,7 +139,7 @@ VkResult rhi::begin_frame()
 VkResult rhi::shadow_pass()
 {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+		opt_command_pool, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
 	{
 		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
@@ -155,7 +149,6 @@ VkResult rhi::shadow_pass()
 	}
 
 	VkCommandBuffer cmd = opt_command_buffers.value();
-	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_image shadow_map_image = shadow_map_image_.value();
 
 	const VkExtent2D shadow_map_extent = {
@@ -178,7 +171,7 @@ VkResult rhi::render_pass()
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depth_image = depth_image_.value();
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+		opt_command_pool, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
 	{
 		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
@@ -188,7 +181,6 @@ VkResult rhi::render_pass()
 	}
 
 	VkCommandBuffer cmd = opt_command_buffers.value();
-	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 
 
 	// end shadow pass
@@ -227,7 +219,7 @@ VkResult rhi::render_pass()
 VkResult rhi::end_frame()
 {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+		opt_command_pool, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
 	{
 		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
@@ -240,7 +232,6 @@ VkResult rhi::end_frame()
 	VkSemaphore image_available = opt_image_available_semaphores.value();
 	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
 	VkFence fence = opt_in_flight_fence.value();
-	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	uint32_t image_index = current_swapchain_image_index_;
 	VkImage image = swap_chain_images_[image_index];
 	VkImageView image_view = swap_chain_image_views_[image_index];

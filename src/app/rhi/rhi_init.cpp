@@ -209,9 +209,6 @@ void rhi::deinit()
 			vkDestroySemaphore(
 				device, fd.render_finished_semaphore.value(), nullptr);
 		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
-		if (fd.frame_descriptors.has_value()) {
-			fd.frame_descriptors.value().destroy_pools(device);
-		}
 		if (fd.gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(fd.gpu_scene_buffer.value());
 	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
@@ -961,19 +958,6 @@ VkResult rhi::init_descriptors()
 		descriptor_allocator allocator{};
 		allocator.init_pool(device, 10, sizes);
 		global_descriptor_allocator_ = allocator;
-	}
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		std::vector<descriptor_allocator_growable::pool_size_ratio> frame_sizes = {
-			{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
-			{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
-			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
-			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
-		};
-
-		frame_datas_[i].frame_descriptors = descriptor_allocator_growable{};
-		frame_datas_[i].frame_descriptors.value().init(device, 1000, frame_sizes);
 	}
 	{
 		std::vector<descriptor_allocator_growable::pool_size_ratio> scene_sizes = {

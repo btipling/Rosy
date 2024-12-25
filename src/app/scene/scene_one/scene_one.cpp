@@ -58,13 +58,11 @@ rh::result scene_one::depth(rh::ctx ctx)
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
+		opt_command_pool, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
 	{
 		if (!opt_command_buffers.has_value()) return rh::result::error;
-		if (!opt_frame_descriptors.has_value()) return rh::result::error;
 	}
 	VkCommandBuffer cmd = opt_command_buffers.value();
-	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
 	VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
@@ -89,13 +87,11 @@ rh::result scene_one::draw(rh::ctx ctx)
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
+		opt_command_pool, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
 	{
 		if (!opt_command_buffers.has_value()) return rh::result::error;
-		if (!opt_frame_descriptors.has_value()) return rh::result::error;
 	}
 	VkCommandBuffer cmd = opt_command_buffers.value();
-	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
 	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 
