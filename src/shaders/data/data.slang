@@ -48,7 +48,6 @@ public struct Fragment
 public struct PushConstant {
     public InputVertex *v;
     public RenderData *rd;
-    public uint mesh_index;
 }
 
 public struct ShadowOutput

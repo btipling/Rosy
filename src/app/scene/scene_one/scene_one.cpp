@@ -326,7 +326,6 @@ rh::result scene_one::draw(rh::ctx ctx)
 				auto mesh = scene_graph_->meshes[mesh_index];
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 				push_constants.render_buffer = scene_graph_->render_buffers.value().render_buffer_address;
-				push_constants.mesh_index = mesh_index;
 				skybox_shaders.viewport_extent = frame_extent;
 				skybox_shaders.shader_constants = &push_constants;
 				skybox_shaders.shader_constants_size = sizeof(push_constants);
@@ -359,7 +358,6 @@ rh::result scene_one::draw(rh::ctx ctx)
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
 				push_constants.render_buffer = scene_graph_->render_buffers.value().render_buffer_address;
-				push_constants.mesh_index = mesh_index;
 				earth_shaders.viewport_extent = frame_extent;
 				earth_shaders.shader_constants = &push_constants;
 				earth_shaders.shader_constants_size = sizeof(push_constants);

@@ -106,7 +106,6 @@ struct gpu_draw_push_constants
 {
 	VkDeviceAddress vertex_buffer;
 	VkDeviceAddress render_buffer;
-	glm::uint mesh_index{ 0 };
 };
 
 struct debug_draw_push_constants

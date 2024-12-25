@@ -12,7 +12,7 @@ StructuredBuffer<RenderData, Std430DataLayout> RenderDataBuffer;
 ShadowOutput shadowVertexMain(uint uiVertexId: SV_VertexID)
 {
     InputVertex v = *(PushConstants.v + uiVertexId);
-    RenderData rd = *(PushConstants.rd + PushConstants.mesh_index);
+    RenderData rd = *PushConstants.rd;
 
     float4x4 worldMat = rd.transform;
     float3x3 worldMat3 = (float3x3)worldMat;
