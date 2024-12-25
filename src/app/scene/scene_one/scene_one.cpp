@@ -1,266 +1,62 @@
 #include "scene_one.h"
 #include "imgui.h"
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtx/quaternion.hpp"
 #include <glm/gtc/type_ptr.hpp>
+#include <numbers>
 #include "../../utils/utils.h"
 #include "../../loader/loader.h"
 
 
+scene_one::scene_one() :  // NOLINT(modernize-use-equals-default)
+	camera_(glm::vec3{ 10.2f, 0.6f, -13.3f })
+{
+	camera_.pitch = 0.36f;
+	camera_.yaw = 1.f;
+}
+
 rh::result scene_one::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
-	auto data = ctx.rhi.data.value();
-	std::vector<VkDescriptorSetLayout> earth_layouts;
-	descriptor_allocator_growable descriptor_allocator = ctx.rhi.descriptor_allocator.value();
-	{
-		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return rh::result::error;
-		gpu_scene_data_descriptor_layout_ = set;
-		earth_layouts.push_back(set);
-	}
-	{
-		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-		layout_builder.add_binding(1, VK_DESCRIPTOR_TYPE_SAMPLER);
-		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return rh::result::error;
-		earth_image_descriptor_layout_ = set;
-		earth_layouts.push_back(set);
-	}
-	{
-		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-		layout_builder.add_binding(1, VK_DESCRIPTOR_TYPE_SAMPLER);
-		auto [result, set] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return rh::result::error;
-		skybox_image_descriptor_layout_ = set;
-	}
-	std::vector<char> earth_vertex_shader;
-	std::vector<char> earth_fragment_shader;
-	std::vector<char> skybox_vertex_shader;
-	std::vector<char> skybox_fragment_shader;
-	try
-	{
-		earth_vertex_shader = read_file("out/mesh.spv");
-		earth_fragment_shader = read_file("out/mesh.spv");
-		skybox_vertex_shader = read_file("out/mesh.spv");
-		skybox_fragment_shader = read_file("out/skybox_cube.spv");
-	}
-	catch (const std::exception& e)
-	{
-		rosy_utils::debug_print_a("error reading shader files! %s", e.what());
-		return rh::result::error;
-	}
-
-	{
-		// Earth pipeline
-		shader_pipeline sp = {};
-		sp.layouts = earth_layouts;
-		sp.name = "earth";
-		sp.with_shaders(earth_vertex_shader, earth_fragment_shader);
-		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
-		earth_pipeline_ = sp;
-	}
-
-	{
-		// Skybox pipeline
-		shader_pipeline sp = {};
-		sp.layouts = earth_layouts;
-		sp.name = "skybox";
-		sp.with_shaders(skybox_vertex_shader, skybox_fragment_shader);
-		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return rh::result::error;
-		skybox_pipeline_ = sp;
-	}
-
+	const auto data = ctx.rhi.data.value();
 	{
 		mesh_scene mesh_graph{};
 		mesh_graph.init(ctx);
-		if (auto res = data->load_gltf_meshes(ctx, "assets\\sphere.glb", mesh_graph); res != rh::result::ok)
+		mesh_graph.init_shadows(ctx);
+		// ReSharper disable once StringLiteralTypo
+		if (const auto res = data->load_gltf_meshes(ctx, "assets\\sphere.glb", mesh_graph); res != rh::result::ok)
 		{
 			return res;
 		}
 		scene_graph_ = std::make_shared<mesh_scene>(std::move(mesh_graph));
 		constexpr float label[4] = { 0.5f, 0.1f, 0.1f, 1.0f };
-		scene_graph_->name = "earth";
+		// ReSharper disable once StringLiteralTypo
+		scene_graph_->name = "deccer's cubes";
 		std::ranges::copy(label, std::begin(scene_graph_->color));
 	}
-
-	const uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
-	const uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
-
 	{
-		ktx_auto_texture earth_txt{};
-		// Earth texture and sampler
+		mesh_scene mesh_graph{};
+		mesh_graph.frag_path = "out/skybox.spv";
+		mesh_graph.init(ctx);
+		if (const auto res = data->load_gltf_meshes(ctx, "assets\\skybox_blue_desert.glb", mesh_graph); res != rh::result::ok)
 		{
-
-			ktxTexture* k_texture;
-			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/earth_4k.ktx2",
-				KTX_TEXTURE_CREATE_NO_FLAGS,
-				&k_texture);
-			if (ktx_result != KTX_SUCCESS) {
-				rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
-				return rh::result::error;
-			}
-			earth_txt.texture = k_texture;
-			if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
-			{
-				earth_txt.vk_texture = res.value();;
-				earth_texture_ = earth_txt;
-			}
-			else
-			{
-				rosy_utils::debug_print_a("ktx upload failure: %d\n", res.error());
-				ktxTexture_Destroy(k_texture);
-				return rh::result::error;
-			}
-
-
-			VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
-
-			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(earth_txt.vk_texture.imageFormat, earth_txt.vk_texture.image, aspect_flag);
-			view_info.subresourceRange.levelCount = earth_txt.vk_texture.levelCount;
-			view_info.subresourceRange.layerCount = earth_txt.vk_texture.layerCount;
-			VkImageView img_view{};
-			if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
-				VK_SUCCESS)
-			{
-				return rh::result::error;
-			}
-			earth_view_ = img_view;
+			return res;
 		}
-		{
-			VkSamplerCreateInfo sample = {};
-			sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			sample.maxLod = earth_txt.vk_texture.levelCount;
-			sample.minLod = 0;
-
-			sample.magFilter = VK_FILTER_LINEAR;
-			sample.minFilter = VK_FILTER_LINEAR;
-
-			sample.anisotropyEnable = VK_FALSE;
-			sample.maxAnisotropy = 0.f;
-
-			// Set proper address modes for spherical mapping
-			sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-			// Linear mipmap mode instead of NEAREST
-			sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			VkSampler sampler{};
-			if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
-			image_sampler_ = sampler;
-		}
-		{
-			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, earth_image_descriptor_layout_.value());
-			if (image_set_result != VK_SUCCESS) return  rh::result::error;
-			{
-				descriptor_writer writer;
-				writer.write_sampled_image(0, earth_view_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-				writer.write_sampler(1, image_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLER);
-				writer.update_set(device, image_set);
-				earth_image_descriptor_set_ = image_set;
-			}
-		}
+		skybox_ = std::make_shared<mesh_scene>(std::move(mesh_graph));
+		constexpr float label[4] = { 0.5f, 0.1f, 1.f, 1.0f };
+		skybox_->name = "anime skybox";
+		std::ranges::copy(label, std::begin(skybox_->color));
 	}
-
-	{
-		// Skybox texture and sampler
-		{
-			ktx_auto_texture skybox_txt{};
-			ktxTexture* k_texture;
-			ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile("assets/skybox_milky_way.ktx2",
-				KTX_TEXTURE_CREATE_NO_FLAGS,
-				&k_texture);
-			if (ktx_result != KTX_SUCCESS) {
-				rosy_utils::debug_print_a("ktx read failure: %d\n", ktx_result);
-				return rh::result::error;
-			}
-
-			skybox_txt.texture = k_texture;
-			if (std::expected<ktxVulkanTexture, ktx_error_code_e> res = data->create_image(k_texture, VK_IMAGE_USAGE_SAMPLED_BIT); res.has_value())
-			{
-				skybox_txt.vk_texture = res.value();;
-				skybox_texture_ = skybox_txt;
-			}
-			else
-			{
-				rosy_utils::debug_print_a("ktx upload failure: %d\n", res.error());
-				ktxTexture_Destroy(k_texture);
-				return rh::result::error;
-			}
-
-
-			VkImageAspectFlags aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
-
-			VkImageViewCreateInfo view_info = rhi_helpers::img_view_create_info(skybox_txt.vk_texture.imageFormat, skybox_txt.vk_texture.image, aspect_flag);
-			view_info.subresourceRange.levelCount = skybox_txt.vk_texture.levelCount;
-			view_info.subresourceRange.layerCount = skybox_txt.vk_texture.layerCount;
-			view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-			VkImageView img_view{};
-			if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
-				VK_SUCCESS)
-			{
-				return rh::result::error;
-			}
-			skybox_view_ = img_view;
-		}
-		{
-			VkSamplerCreateInfo sample = {};
-			sample.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			sample.maxLod = skybox_texture_.value().vk_texture.levelCount;
-			sample.minLod = 0;
-
-			sample.magFilter = VK_FILTER_LINEAR;
-			sample.minFilter = VK_FILTER_LINEAR;
-
-			sample.anisotropyEnable = VK_FALSE;
-			sample.maxAnisotropy = 0.f;
-			sample.mipLodBias = 0.0f;
-			sample.compareOp = VK_COMPARE_OP_NEVER;
-
-			// Set proper address modes for spherical mapping
-			sample.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			sample.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			sample.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-			// Linear mipmap mode instead of NEAREST
-			sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			VkSampler sampler{};
-			if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) return rh::result::error;
-			skybox_sampler_ = sampler;
-		}
-		{
-			auto [image_set_result, image_set] = descriptor_allocator.allocate(device, skybox_image_descriptor_layout_.value());
-			if (image_set_result != VK_SUCCESS) return  rh::result::error;
-			{
-				descriptor_writer writer;
-				writer.write_sampled_image(0, skybox_view_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-				writer.write_sampler(1, skybox_sampler_.value(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLER);
-				writer.update_set(device, image_set);
-				skybox_image_descriptor_set_ = image_set;
-			}
-		}
-	}
-
-
-
 	return rh::result::ok;
 }
+
+
 
 rh::result scene_one::depth(rh::ctx ctx)
 {
-	return rh::result::ok;
-}
-
-rh::result scene_one::draw(rh::ctx ctx)
-{
-	update_scene(ctx);
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
-	auto data = ctx.rhi.data.value();
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
 		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
 	{
@@ -270,111 +66,64 @@ rh::result scene_one::draw(rh::ctx ctx)
 	VkCommandBuffer cmd = opt_command_buffers.value();
 	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
 	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
-	shader_pipeline earth_shaders = earth_pipeline_.value();
-	shader_pipeline skybox_shaders = skybox_pipeline_.value();
-	VkExtent2D frame_extent = ctx.rhi.frame_extent;
-	VmaAllocator allocator = ctx.rhi.allocator;
+	VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
-	// Set descriptor sets
-	std::vector<VkDescriptorSet> earth_sets;
-	std::vector<VkDescriptorSet> skybox_sets;
+	update_scene(ctx, gpu_scene_buffer);
+
+	// Scene
 	{
-		// Global descriptor
-		auto [desc_result, desc_set] = frame_descriptors.allocate(device, gpu_scene_data_descriptor_layout_.value());
-		if (desc_result != VK_SUCCESS) return rh::result::error;
-		void* data_pointer;
-		vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
-		memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
-		vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
-
-		{
-			VkDescriptorSet earth_descriptor = desc_set;
-			// Earth
-			descriptor_writer writer;
-			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, earth_descriptor);
-			earth_sets.push_back(desc_set);
-		}
-		{
-			VkDescriptorSet skybox_descriptor = desc_set;
-			// Skybox
-			descriptor_writer writer;
-			writer.write_buffer(0, gpu_scene_buffer.buffer, sizeof(gpu_scene_data), 0,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			writer.update_set(device, skybox_descriptor);
-			skybox_sets.push_back(desc_set);
-			skybox_sets.push_back(skybox_image_descriptor_set_.value());
-		}
+		mesh_ctx m_ctx{};
+		m_ctx.ctx = &ctx;
+		m_ctx.wire_frame = toggle_wire_frame_;
+		m_ctx.cmd = cmd;
+		m_ctx.extent = frame_extent;
+		if (const auto res = scene_graph_->generate_shadows(m_ctx); res != rh::result::ok) return res;
 	}
+
+	return rh::result::ok;
+}
+
+rh::result scene_one::draw(rh::ctx ctx)
+{
+	VkDevice device = ctx.rhi.device;
+	if (!ctx.rhi.data.has_value()) return rh::result::error;
+	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
+	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
+		opt_command_pool, opt_frame_descriptors, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
 	{
-		// Skybox
-		{
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 0, skybox_sets.size(), skybox_sets.data(), 0, nullptr);
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, skybox_shaders.pipeline_layout.value(), 1, 1, &skybox_image_descriptor_set_.value(), 0, nullptr);
-			float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
-			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("skybox", color);
-			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
+		if (!opt_command_buffers.has_value()) return rh::result::error;
+		if (!opt_frame_descriptors.has_value()) return rh::result::error;
+	}
+	VkCommandBuffer cmd = opt_command_buffers.value();
+	descriptor_allocator_growable frame_descriptors = opt_frame_descriptors.value();
+	allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
+	VkExtent2D frame_extent = ctx.rhi.frame_extent;
 
-			gpu_draw_push_constants push_constants{};
+	{
+		// Anime skybox
+		{
 			auto m = glm::mat4(1.0f);
-			m = translate(m, camera_.position);
-
-			if (scene_graph_->meshes.size() > 0)
-			{
-				size_t mesh_index = 1;
-				auto mesh = scene_graph_->meshes[mesh_index];
-				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
-				push_constants.render_buffer = scene_graph_->render_buffers.value().render_buffer_address;
-				if (scene_graph_->material_buffers.has_value())
-				{
-					push_constants.material_buffer = scene_graph_->material_buffers.value().material_buffer_address;
-				}
-				skybox_shaders.viewport_extent = frame_extent;
-				skybox_shaders.shader_constants = &push_constants;
-				skybox_shaders.shader_constants_size = sizeof(push_constants);
-				skybox_shaders.wire_frames_enabled = toggle_wire_frame_;
-				skybox_shaders.depth_enabled = false;
-				skybox_shaders.front_face = VK_FRONT_FACE_CLOCKWISE;
-				skybox_shaders.blending = static_cast<shader_blending>(blend_mode_);
-				if (VkResult result = skybox_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
-				if (VkResult result = skybox_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
-					0, 0);
-			}
-			vkCmdEndDebugUtilsLabelEXT(cmd);
+			m = translate(m, glm::vec3(-camera_.position[0], camera_.position[1], camera_.position[2]));
+			mesh_ctx m_ctx{};
+			m_ctx.ctx = &ctx;
+			m_ctx.wire_frame = toggle_wire_frame_;
+			m_ctx.depth_enabled = false;
+			m_ctx.cmd = cmd;
+			m_ctx.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;;
+			m_ctx.extent = frame_extent;
+			m_ctx.world_transform = m;
+			m_ctx.view_proj = scene_data_.view_projection;
+			if (const auto res = skybox_->draw(m_ctx); res != rh::result::ok) return res;
 		}
-		// Earth
+		// Scene
 		{
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, earth_shaders.pipeline_layout.value(), 0, earth_sets.size(), earth_sets.data(), 0, nullptr);
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, earth_shaders.pipeline_layout.value(), 1, 1, &earth_image_descriptor_set_.value(), 0, nullptr);
-			float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("earth", color);
-			vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
-
-			gpu_draw_push_constants push_constants{};
-
-			if (scene_graph_->meshes.size() > 0)
-			{
-				size_t mesh_index = 0;
-				auto mesh = scene_graph_->meshes[mesh_index];
-				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
-				push_constants.vertex_buffer = mesh->mesh_buffers.vertex_buffer_address;
-				push_constants.render_buffer = scene_graph_->render_buffers.value().render_buffer_address;
-				earth_shaders.viewport_extent = frame_extent;
-				earth_shaders.shader_constants = &push_constants;
-				earth_shaders.shader_constants_size = sizeof(push_constants);
-				earth_shaders.wire_frames_enabled = toggle_wire_frame_;
-				earth_shaders.depth_enabled = true;
-				earth_shaders.blending = static_cast<shader_blending>(blend_mode_);
-				if (VkResult result = earth_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
-				if (VkResult result = earth_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-				vkCmdBindIndexBuffer(cmd, mesh->mesh_buffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDrawIndexed(cmd, mesh->surfaces[0].count, 1, mesh->surfaces[0].start_index,
-					0, 0);
-			}
-			vkCmdEndDebugUtilsLabelEXT(cmd);
+			mesh_ctx m_ctx{};
+			m_ctx.ctx = &ctx;
+			m_ctx.wire_frame = toggle_wire_frame_;
+			m_ctx.cmd = cmd;
+			m_ctx.extent = frame_extent;
+			m_ctx.view_proj = scene_data_.view_projection;
+			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 	}
 
@@ -382,14 +131,19 @@ rh::result scene_one::draw(rh::ctx ctx)
 }
 
 rh::result scene_one::draw_ui(const rh::ctx& ctx) {
-	ImGui::Begin("Solar System");
+	ImGui::Begin("Scene Graph");
 	{
 		ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
-		ImGui::SliderFloat3("Rotate", value_ptr(earth_rot_), 0, glm::pi<float>() * 2.0f);
-		ImGui::SliderFloat3("Translate", value_ptr(earth_pos_), -100.0f, 100.0f);
-		ImGui::SliderFloat("Scale", &earth_scale_, 0.1f, 10.0f);
-		ImGui::SliderFloat3("Sunlight direction", value_ptr(sunlight_direction_), -30.0f, 30.0f);
+		ImGui::Text("Camera orientation: (%f, %f)", camera_.pitch, camera_.yaw);
+		ImGui::SliderFloat3("Rotate", value_ptr(scene_rot_), 0, glm::pi<float>() * 2.0f);
+		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -100.0f, 100.0f);
+		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 100.0f);
+		ImGui::SliderFloat3("Sunlight direction", value_ptr(sunlight_direction_), -1.0f, 1.0f);
+		sunlight_direction_ = glm::normalize(sunlight_direction_);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
+		ImGui::Checkbox("Light view", &light_view_);
+		ImGui::SliderFloat("Near plane", &near_plane_, 1.0f, 50.0f);
+		ImGui::SliderFloat("distance from light camera", &distance_from_camera_, 0.f, 1.0f);
 		ImGui::Text("Blending");
 		ImGui::RadioButton("disabled", &blend_mode_, 0); ImGui::SameLine();
 		ImGui::RadioButton("additive", &blend_mode_, 1); ImGui::SameLine();
@@ -407,50 +161,11 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 	{
 		vkDeviceWaitIdle(device);
 	}
-	if (earth_view_.has_value())
 	{
-		vkDestroyImageView(device, earth_view_.value(), nullptr);
-	}
-	if (earth_texture_.has_value())
-	{
-		ctx.rhi.data.value()->destroy_image(earth_texture_.value());
-	}
-	if (skybox_view_.has_value())
-	{
-		vkDestroyImageView(device, skybox_view_.value(), nullptr);
-	}
-	if (skybox_texture_.has_value())
-	{
-		ctx.rhi.data.value()->destroy_image(skybox_texture_.value());
-	}
-	{
-		if (ctx.rhi.descriptor_allocator.has_value())
-		{
-			ctx.rhi.descriptor_allocator.value().clear_pools(device);
-		}
-		if (image_sampler_.has_value()) vkDestroySampler(device, image_sampler_.value(), nullptr);
-		if (skybox_sampler_.has_value()) vkDestroySampler(device, skybox_sampler_.value(), nullptr);
-	}
-	if (scene_graph_ != nullptr) {
 		scene_graph_->deinit(ctx);
 	}
-	if (earth_pipeline_.has_value()) {
-		earth_pipeline_.value().deinit(device);
-	}
-	if (skybox_pipeline_.has_value()) {
-		skybox_pipeline_.value().deinit(device);
-	}
-	if (gpu_scene_data_descriptor_layout_.has_value())
 	{
-		vkDestroyDescriptorSetLayout(device, gpu_scene_data_descriptor_layout_.value(), nullptr);
-	}
-	if (earth_image_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(device, earth_image_descriptor_layout_.value(), nullptr);
-	}
-	if (skybox_image_descriptor_layout_.has_value())
-	{
-		vkDestroyDescriptorSetLayout(device, skybox_image_descriptor_layout_.value(), nullptr);
+		skybox_->deinit(ctx);
 	}
 
 	return rh::result::ok;
@@ -462,47 +177,204 @@ rh::result scene_one::update(const rh::ctx& ctx)
 	return rh::result::ok;
 }
 
-void scene_one::update_scene(const rh::ctx& ctx)
+std::vector<glm::vec4> scene_one::shadow_map_frustum(const glm::mat4& proj, const glm::mat4& view)
+{
+	constexpr auto fix = glm::mat4(
+		glm::vec4(1.f, 0.f, 0.f, 0.f),
+		glm::vec4(0.f, 1.f, 0.f, 0.f),
+		glm::vec4(0.f, 0.f, 1.f, 0.f),
+		glm::vec4(0.f, 0.f, 0.f, 1.f)
+	);
+	const auto inv = inverse(proj * view * fix);
+
+	std::vector<glm::vec4> corners;
+	for (unsigned int x = 0; x < 2; ++x)
+	{
+		for (unsigned int y = 0; y < 2; ++y)
+		{
+			for (unsigned int z = 0; z < 2; ++z)
+			{
+				const glm::vec4 point = inv * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
+				//rosy_utils::debug_print_a("\tcorner: (%f, %f, %f)\n", point.x, point.y, point.z);
+				corners.push_back(point / point.w);
+			}
+		}
+	}
+
+	return corners;
+}
+
+glm::mat4 scene_one::shadow_map_view(const std::vector<glm::vec4>& shadow_frustum, const glm::vec3 light_direction)
+{
+	auto center = glm::vec3(0, 0, 0);
+	for (const auto& v : shadow_frustum) center += glm::vec3(v);
+	center /= shadow_frustum.size();
+	return lookAt(center + light_direction, center, glm::vec3(0.0f, 1.0f, 0.0f));
+}
+
+glm::mat4 scene_one::shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view)
+{
+	float min_x = std::numeric_limits<float>::max();
+	float max_x = std::numeric_limits<float>::lowest();
+	float min_y = std::numeric_limits<float>::max();
+	float max_y = std::numeric_limits<float>::lowest();
+	float min_z = std::numeric_limits<float>::max();
+	float max_z = std::numeric_limits<float>::lowest();
+
+	for (const auto& v : shadow_frustum)
+	{
+		//rosy_utils::debug_print_a("\tcorner: (%f, %f, %f)\n", v.x, v.y, v.z);
+		//rosy_utils::debug_print_a("\t bef point.z: %f min_z: %f max_z: %f\n\n", v.z, min_z, max_z);
+		const auto point = shadow_map_view * v;
+		min_x = std::min(min_x, point.x);
+		max_x = std::max(max_x, point.x);
+		min_y = std::min(min_y, point.y);
+		max_y = std::max(max_y, point.y);
+		min_z = std::min(min_z, point.z);
+		max_z = std::max(max_z, point.z);
+		//rosy_utils::debug_print_a("\t after point.z: %f min_z: %f max_z: %f\n\n", point.z,  min_z, max_z);
+	}
+
+	constexpr float z_offset = 10.0f;
+	if (min_z < 0) min_z *= z_offset;
+	else min_z /= z_offset;
+	if (max_z < 0) max_z /= z_offset;
+	else max_z *= z_offset;
+
+	auto m = shadow_map_view;
+	auto extent = glm::mat4(1.f);
+	extent[0][0] = min_x;
+	extent[1][1] = min_y;
+	extent[2][2] = min_z;
+	extent = glm::translate(extent, glm::vec3(max_x, max_y, max_z));
+
+	//rosy_utils::debug_print_a("min_x: %f max_x: %f min_y: %f, max_y: %f min_z: %f max_z: %f\n\n", min_x, max_x, min_y, max_y, min_z, max_z);
+
+	shadow_map_view_ = shadow_map_view;
+
+	const glm::mat4 p = glm::ortho(
+		min_x, max_x,
+		min_y, max_y,
+		-1 * min_z, -1 * max_z);
+
+
+	const auto rv = p * shadow_map_view;
+
+
+
+	return rv;
+}
+
+glm::mat4 scene_one::shadow_map_projection(const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view)
+{
+	const auto frustum = shadow_map_frustum(p, world_view);
+	const auto shadow_view = shadow_map_view(frustum, glm::normalize(light_direction));
+	return shadow_map_projection(frustum, shadow_view);
+}
+
+void scene_one::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer)
 {
 	camera_.process_sdl_event(ctx);
 	camera_.update(ctx);
-	const auto [width, height] = ctx.rhi.frame_extent;
 
-	constexpr float z_near = 0.1f;
-	constexpr float z_far = 1000.0f;
-	const float aspect = static_cast<float>(width) / static_cast<float>(height);
-	constexpr float fov = glm::radians(70.0f);
-	const float h = 1.0 / tan(fov * 0.5);
-	const float w = h / aspect;
-	constexpr float a = -z_near / (z_far - z_near);
-	constexpr float b = (z_near * z_far) / (z_far - z_near);
-
-	glm::mat4 proj(0.0f);
-
-	proj[0][0] = w;
-	proj[1][1] = -h;
-
-	proj[2][2] = a;
-	proj[3][2] = b;
-	proj[2][3] = 1.0f;
-
-	const glm::mat4 view = camera_.get_view_matrix();
-	scene_data_.view = view;
-	scene_data_.proj = proj;
-	scene_data_.view_projection = proj * view;
-	scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
-	scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
-	scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
-	scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
 	{
+		const auto [width, height] = ctx.rhi.frame_extent;
+		glm::mat4 proj(0.0f);
+		constexpr float z_near = 0.1f;
+		constexpr float z_far = 1000.0f;
+		const float aspect = static_cast<float>(width) / static_cast<float>(height);
+		constexpr float fov = glm::radians(70.0f);
+		const float h = 1.0 / tan(fov * 0.5);
+		const float w = h / aspect;
+		constexpr float a = -z_near / (z_far - z_near);
+		constexpr float b = (z_near * z_far) / (z_far - z_near);
 
+
+		proj[0][0] = w;
+		proj[1][1] = -h;
+
+		proj[2][2] = a;
+		proj[3][2] = b;
+		proj[2][3] = 1.0f;
+
+		const auto s = (static_cast<float>(width) / static_cast<float>(height));
+		const float g = 0.1f;
+		auto shadow_proj = glm::mat4(1.f);
+		if (s > 0) {
+			shadow_proj = glm::perspective(
+				fov,
+				s,
+				g,
+				-250.f / near_plane_
+			);
+		}
+		const glm::mat4 view = camera_.get_view_matrix();
+		glm::mat4 sp = shadow_map_projection(sunlight_direction_, shadow_proj, view);
+		glm::mat4 p = proj * view;
+		if (light_view_)
+		{
+			p = sp;
+		}
+		scene_data_.view = view;
+		scene_data_.proj = proj;
+		scene_data_.view_projection = p;
+		scene_data_.shadow_projection = sp;
+		scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
+		scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+		scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
+		scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+
+		glm::mat4 sv_cam = glm::inverse(shadow_map_view_);
+		//glm::mat4 sv_cam = glm::inverse(view);
+		glm::vec4 sv_x = sv_cam[0];
+		glm::vec4 sv_y = sv_cam[1];
+		glm::vec4 sv_z = sv_cam[2];
+		glm::vec4 sv_c = sv_cam[3];
+
+
+		/*glm::vec4 sv_x = glm::vec4(sv_cam[0][0], sv_cam[1][0], sv_cam[2][0], sv_cam[3][0]);
+		glm::vec4 sv_y = glm::vec4(sv_cam[0][1], sv_cam[1][1], sv_cam[2][1], sv_cam[3][1]);
+		glm::vec4 sv_z = glm::vec4(sv_cam[0][2], sv_cam[1][2], sv_cam[2][2], sv_cam[3][2]);
+		glm::vec4 sv_c = glm::vec4(sv_cam[0][3], sv_cam[1][3], sv_cam[2][3], sv_cam[3][3]);*/
+		const float sv_u = -distance_from_camera_;
+
+		glm::vec4 q0 = sv_c + (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
+		glm::vec4 q1 = sv_c + (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
+		glm::vec4 q2 = sv_c - (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
+		glm::vec4 q3 = sv_c - (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
+
+		/*rosy_utils::debug_print_a("sv_c: (%f, %f, %f)\n", sv_c.x, sv_c.y, sv_c.z);
+		rosy_utils::debug_print_a("q0: (%f, %f, %f)\n", q0.x, q0.y, q0.z);
+		rosy_utils::debug_print_a("q1: (%f, %f, %f)\n", q1.x, q1.y, q1.z);
+		rosy_utils::debug_print_a("q2: (%f, %f, %f)\n", q2.x, q2.y, q2.z);
+		rosy_utils::debug_print_a("q3: (%f, %f, %f)\n", q3.x, q3.y, q3.z);*/
+		scene_graph_->debug->set_shadow_frustum(q0, q1, q2, q3);
+		scene_graph_->debug->shadow_frustum = glm::mat4(1.f);
+	}
+
+	{
+		const VmaAllocator allocator = ctx.rhi.allocator;
+		// copy memory
+		void* data_pointer;
+		vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
+		memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
+		vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
+
+	}
+	{
 		auto m = glm::mat4(1.0f);
-		m = translate(m, earth_pos_);
-		m = rotate(m, earth_rot_[0], glm::vec3(1, 0, 0));
-		m = rotate(m, earth_rot_[1], glm::vec3(0, 1, 0));
-		m = rotate(m, earth_rot_[2], glm::vec3(0, 0, 1));
-		m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
-		m = scale(m, glm::vec3(earth_scale_, earth_scale_, earth_scale_));
+		m = translate(m, glm::vec3(-camera_.position[0], camera_.position[1], camera_.position[2]));
+		mesh_ctx m_ctx{};
+		m_ctx.ctx = &ctx;;
+		m_ctx.world_transform = m;
+		skybox_->update(m_ctx, scene_data_);
+	}
+	{
+		auto m = translate(glm::mat4(1.f), scene_pos_);
+		m = rotate(m, scene_rot_[0], glm::vec3(1, 0, 0));
+		m = rotate(m, scene_rot_[1], glm::vec3(0, 1, 0));
+		m = rotate(m, scene_rot_[2], glm::vec3(0, 0, 1));
+		m = scale(m, glm::vec3(scene_scale_, scene_scale_, scene_scale_));
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;
 		m_ctx.world_transform = m;

@@ -319,7 +319,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 	size_t last_material = 100'000;
 
 	for (auto ro : draw_nodes_) {
-		if (ro.material_index != last_material)
+		if (materials.size() > 0 && ro.material_index != last_material)
 		{
 			last_material = ro.material_index;
 			auto [pass_type, descriptor_set_id, image_set_id, sampler_set_id] = materials[ro.material_index];

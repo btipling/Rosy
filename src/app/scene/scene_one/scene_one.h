@@ -8,8 +8,7 @@
 class scene_one final : public scene
 {
 public:
-	scene_one() :
-	camera_(glm::vec3{ .0f, 0.0f, -20.0f }){}
+	scene_one();
 	rh::result build(const rh::ctx& ctx) override;
 	rh::result update(const rh::ctx& ctx) override;
 	rh::result depth(rh::ctx ctx) override;
@@ -17,36 +16,28 @@ public:
 	rh::result draw_ui(const rh::ctx& ctx) override;
 	rh::result deinit(rh::ctx& ctx) override;
 private:
-	void update_scene(const rh::ctx& ctx);
 	gpu_scene_data scene_data_ = {};
 	camera camera_;
 
-	std::optional<VkSampler> image_sampler_ = std::nullopt;
-	std::optional<VkSampler> skybox_sampler_ = std::nullopt;
+	std::shared_ptr<mesh_scene> scene_graph_;
+	std::shared_ptr<mesh_scene> skybox_;
 
-	std::optional<VkDescriptorSetLayout> gpu_scene_data_descriptor_layout_ = std::nullopt;
-
-	std::shared_ptr<mesh_scene> scene_graph_ = nullptr;
-
-	// Earth
-	std::optional<VkDescriptorSetLayout> earth_image_descriptor_layout_ = std::nullopt;
-	std::optional<VkDescriptorSet> earth_image_descriptor_set_ = std::nullopt;
-	std::optional<shader_pipeline> earth_pipeline_ = std::nullopt;
-	std::optional<ktx_auto_texture> earth_texture_ = std::nullopt;
-	std::optional<VkImageView> earth_view_ = std::nullopt;
-	glm::vec3 earth_rot_ = glm::vec3(0.f);
-	glm::vec3 earth_pos_ = glm::vec3(0.f, 0.f, -15.f);
-	float earth_scale_ = 1.0f;
-
-	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 1.f, 0.f);
-
-	// Skybox
-	std::optional <VkDescriptorSetLayout> skybox_image_descriptor_layout_ = std::nullopt;
-	std::optional<VkDescriptorSet> skybox_image_descriptor_set_ = std::nullopt;
-	std::optional<shader_pipeline> skybox_pipeline_ = std::nullopt;
-	std::optional<ktx_auto_texture> skybox_texture_ = std::nullopt;
-	std::optional<VkImageView> skybox_view_ = std::nullopt;
+	// Scene
+	glm::vec3 scene_rot_ = glm::vec3(0.f);
+	glm::vec3 scene_pos_ = glm::vec3(0.f, 2.5f, 2.5f);
+	float scene_scale_ = 0.1f;
+	glm::vec3 sunlight_direction_ = glm::vec3(2.f, 2.593f, -1.362f);
+	glm::mat4 shadow_map_view_{ 1.f };
 
 	bool toggle_wire_frame_ = false;
+	bool light_view_ = false;
 	int blend_mode_ = 0;
+	float near_plane_ = 50.f;
+	float distance_from_camera_ = 0.02f;
+
+	void update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer);
+	std::vector<glm::vec4> shadow_map_frustum(const glm::mat4& proj, const glm::mat4& view);
+	glm::mat4 shadow_map_view(const std::vector<glm::vec4>& shadow_frustum, const glm::vec3 light_direction);
+	glm::mat4 shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view);
+	glm::mat4 shadow_map_projection(const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view);
 };

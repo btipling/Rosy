@@ -264,12 +264,17 @@
     <None Include="shaders\skybox.slang">
       <Filter>Resource Files\shaders</Filter>
     </None>
-    <None Include="shaders\skybox_cube.slang" />
     <None Include="shaders\shadow.slang">
       <Filter>Resource Files\shaders</Filter>
     </None>
     <None Include="shaders\data\data.slang">
       <Filter>Resource Files\shaders\data</Filter>
+    </None>
+    <None Include="shaders\dev.slang">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="shaders\skybox_cube.slang">
+      <Filter>Resource Files\shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
