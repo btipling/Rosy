@@ -58,15 +58,14 @@ rh::result scene_two::depth(rh::ctx ctx)
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
+		opt_command_pool] = ctx.rhi.frame_data.value();
 	{
 		if (!opt_command_buffers.has_value()) return rh::result::error;
 	}
 	const VkCommandBuffer cmd = opt_command_buffers.value();
-	const allocated_buffer gpu_scene_buffer = opt_gpu_scene_buffer.value();
 	const VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
-	update_scene(ctx, gpu_scene_buffer);
+	update_scene(ctx);
 
 	// Scene
 	{
@@ -87,7 +86,7 @@ rh::result scene_two::draw(rh::ctx ctx)
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_gpu_scene_buffer] = ctx.rhi.frame_data.value();
+		opt_command_pool] = ctx.rhi.frame_data.value();
 	{
 		if (!opt_command_buffers.has_value()) return rh::result::error;
 	}
@@ -267,7 +266,7 @@ glm::mat4 scene_two::shadow_map_projection(const glm::vec3 light_direction, cons
 	return shadow_map_projection(frustum, shadow_view);
 }
 
-void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer)
+void scene_two::update_scene(const rh::ctx& ctx)
 {
 	camera_.process_sdl_event(ctx);
 	camera_.update(ctx);
@@ -345,16 +344,6 @@ void scene_two::update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_sce
 		rosy_utils::debug_print_a("q3: (%f, %f, %f)\n", q3.x, q3.y, q3.z);*/
 		scene_graph_->debug->set_shadow_frustum(q0, q1, q2, q3);
 		scene_graph_->debug->shadow_frustum = glm::mat4(1.f);
-	}
-
-	{
-		const VmaAllocator allocator = ctx.rhi.allocator;
-		// copy memory
-		void* data_pointer;
-		vmaMapMemory(allocator, gpu_scene_buffer.allocation, &data_pointer);
-		memcpy(data_pointer, &scene_data_, sizeof(scene_data_));
-		vmaUnmapMemory(allocator, gpu_scene_buffer.allocation);
-
 	}
 	{
 		auto m = glm::mat4(1.0f);

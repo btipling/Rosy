@@ -209,7 +209,6 @@ void rhi::deinit()
 			vkDestroySemaphore(
 				device, fd.render_finished_semaphore.value(), nullptr);
 		if (fd.command_pool.has_value()) vkDestroyCommandPool(device, fd.command_pool.value(), nullptr);
-		if (fd.gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(fd.gpu_scene_buffer.value());
 	}
 	if (gpu_scene_data_descriptor_layout_.has_value())
 	{

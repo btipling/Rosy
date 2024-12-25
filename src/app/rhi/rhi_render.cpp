@@ -75,7 +75,7 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 VkResult rhi::begin_frame()
 {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+		opt_command_pool] = frame_datas_[current_frame_];
 	{
 		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
@@ -92,8 +92,6 @@ VkResult rhi::begin_frame()
 
 	VkResult result = vkWaitForFences(device, 1, &fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
-	if (opt_gpu_scene_buffer.has_value()) buffer.value()->destroy_buffer(opt_gpu_scene_buffer.value());
-	frame_datas_[current_frame_].gpu_scene_buffer = std::nullopt;
 
 	uint32_t image_index;
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
@@ -123,14 +121,6 @@ VkResult rhi::begin_frame()
 		result = vkBeginCommandBuffer(cmd, &begin_info);
 		if (result != VK_SUCCESS) return result;
 	}
-	{
-		//allocate a new uniform data for the scene data
-		auto [result, created_buffer] = buffer.value()->create_buffer("gpu_scene_data", sizeof(gpu_scene_data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VMA_MEMORY_USAGE_AUTO);
-		if (result != VK_SUCCESS) return result;
-		allocated_buffer gpu_scene_buffer = created_buffer;
-		frame_datas_[current_frame_].gpu_scene_buffer = gpu_scene_buffer;
-	}
 	return VK_SUCCESS;
 }
 
@@ -138,7 +128,7 @@ VkResult rhi::begin_frame()
 VkResult rhi::shadow_pass()
 {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+		opt_command_pool] = frame_datas_[current_frame_];
 	{
 		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
@@ -170,7 +160,7 @@ VkResult rhi::render_pass()
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depth_image = depth_image_.value();
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+		opt_command_pool] = frame_datas_[current_frame_];
 	{
 		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
@@ -218,7 +208,7 @@ VkResult rhi::render_pass()
 VkResult rhi::end_frame()
 {
 	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool, opt_gpu_scene_buffer] = frame_datas_[current_frame_];
+		opt_command_pool] = frame_datas_[current_frame_];
 	{
 		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;

@@ -35,7 +35,7 @@ private:
 	float near_plane_ = 50.f;
 	float distance_from_camera_ = 0.02f;
 
-	void update_scene(const rh::ctx& ctx, const allocated_buffer& gpu_scene_buffer);
+	void update_scene(const rh::ctx& ctx);
 	std::vector<glm::vec4> shadow_map_frustum(const glm::mat4& proj, const glm::mat4& view);
 	glm::mat4 shadow_map_view(const std::vector<glm::vec4>& shadow_frustum, const glm::vec3 light_direction);
 	glm::mat4 shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view);

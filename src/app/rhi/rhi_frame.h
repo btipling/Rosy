@@ -15,8 +15,6 @@ struct frame_data
 	std::optional<VkSemaphore> render_finished_semaphore;
 	std::optional<VkFence> in_flight_fence;
 	std::optional<VkCommandPool> command_pool;
-
-	std::optional<allocated_buffer> gpu_scene_buffer = std::nullopt;
 };
 
 namespace rh
