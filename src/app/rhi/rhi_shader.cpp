@@ -12,7 +12,7 @@ VkResult shader_pipeline::build(const VkDevice device)
 {
 
 	VkPushConstantRange push_constant_range = rhi_helpers::create_push_constant(VK_SHADER_STAGE_VERTEX_BIT, shader_constants_size);
-	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	push_constant_range.stageFlags = VK_SHADER_STAGE_ALL;
 	for (VkShaderCreateInfoEXT& create_info : shaders_create_info_)
 	{
 		create_info.setLayoutCount = layouts.size();
@@ -80,7 +80,7 @@ VkResult shader_pipeline::shade(const VkCommandBuffer cmd) const
 
 VkResult shader_pipeline::push(const VkCommandBuffer cmd) const
 {
-	vkCmdPushConstants(cmd, pipeline_layout.value(), VK_SHADER_STAGE_VERTEX_BIT, 0, shader_constants_size, shader_constants);
+	vkCmdPushConstants(cmd, pipeline_layout.value(), VK_SHADER_STAGE_ALL, 0, shader_constants_size, shader_constants);
 	return VK_SUCCESS;
 }
 

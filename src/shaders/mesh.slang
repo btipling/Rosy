@@ -31,6 +31,9 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 [shader("fragment")]
 Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
 {
+
+    MaterialData md = *PushConstants.md;
+
     float3 color = coarseVertex.color;
     float3 V = normalize(sceneData.cameraPosition.xyz - coarseVertex.vertex);
     float3 L = sceneData.sunlightDirection.xyz;
@@ -43,8 +46,8 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
     float3 ambientLight = sceneData.ambientColor.xyz;
     float3 sunLight = sceneData.sunlightColor.xyz * max(cosTheta, 0.0);
 
-    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(0)];
-    SamplerState matSampler = imageSampler[NonUniformResourceIndex(0)];
+    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(md.color_texture_index)];
+    SamplerState matSampler = imageSampler[NonUniformResourceIndex(md.color_sampler_index)];
     float4 imageTextureColor = matImageTexture.Sample(matSampler, coarseVertex.textureCoordinates);
 
     float4 outFragColor = imageTextureColor * float4(ambientLight + sunLight, 1.0);
