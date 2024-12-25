@@ -333,12 +333,11 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 gpu_render_buffers_result rhi_data::create_render_data(const size_t num_surfaces) const
 {
 	const size_t render_buffer_size = num_surfaces * sizeof(render_data);
-	rosy_utils::debug_print_a("render_buffer_size: %d\n", render_buffer_size);
 
 	auto [create_result, new_render_buffer] = create_buffer(
 		"renderBuffer",
 		render_buffer_size,
-		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
 	if (create_result != VK_SUCCESS) {
 		gpu_render_buffers_result fail{};
@@ -361,6 +360,39 @@ gpu_render_buffers_result rhi_data::create_render_data(const size_t num_surfaces
 	gpu_render_buffers_result rv{};
 	rv.result = VK_SUCCESS;
 	rv.render_buffers = grb;
+	return rv;
+}
+
+auto rhi_data::create_scene_data() const -> gpu_scene_buffers_result
+{
+	constexpr size_t render_buffer_size = sizeof(gpu_scene_data);
+
+	auto [create_result, new_scene_buffer] = create_buffer(
+		"sceneBuffer",
+		render_buffer_size,
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VMA_MEMORY_USAGE_AUTO);
+	if (create_result != VK_SUCCESS) {
+		gpu_scene_buffers_result fail{};
+		fail.result = create_result;
+		return fail;
+	}
+
+	const allocated_buffer scene_buffer = new_scene_buffer;
+
+	VkBufferDeviceAddressInfo device_address_info{};
+	device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+	device_address_info.buffer = scene_buffer.buffer;
+
+	const VkDeviceAddress scene_buffer_address = vkGetBufferDeviceAddress(renderer_->opt_device.value(), &device_address_info);
+
+	gpu_scene_buffers gsb{};
+	gsb.scene_buffer = scene_buffer;
+	gsb.scene_buffer_address = scene_buffer_address;
+	gsb.buffer_size = render_buffer_size;
+	gpu_scene_buffers_result rv{};
+	rv.result = VK_SUCCESS;
+	rv.scene_buffers = gsb;
 	return rv;
 }
 

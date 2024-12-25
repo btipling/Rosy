@@ -76,6 +76,19 @@ struct vertex
 	glm::vec4 color;
 };
 
+struct gpu_scene_buffers
+{
+	allocated_buffer scene_buffer;
+	VkDeviceAddress scene_buffer_address;
+	size_t buffer_size;
+};
+
+struct gpu_scene_buffers_result
+{
+	VkResult result;
+	gpu_scene_buffers scene_buffers;
+};
+
 struct gpu_material_buffers
 {
 	allocated_buffer material_buffer;
@@ -270,6 +283,7 @@ public:
 	[[nodiscard]] auto upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_mesh_buffers_result;
 	[[nodiscard]] auto upload_materials(std::span<material_data> materials) const->gpu_material_buffers_result;
 	[[nodiscard]] auto create_render_data(size_t num_surfaces) const->gpu_render_buffers_result;
+	[[nodiscard]] auto create_scene_data() const->gpu_scene_buffers_result;
 	allocated_buffer_result create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 
 
