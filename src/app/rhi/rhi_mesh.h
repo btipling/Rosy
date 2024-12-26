@@ -23,12 +23,9 @@ public:
 	std::vector<ktx_auto_texture> ktx_textures;
 	std::vector<VkSampler> samplers;
 	std::vector<VkImageView> image_views;
-	std::vector<VkDescriptorSet> descriptor_sets;
-	std::vector<VkDescriptorSetLayout> descriptor_layouts;
 
 	std::optional<shader_pipeline> shaders;
 	std::optional<shader_pipeline> shadow_shaders;
-	std::optional<descriptor_allocator_growable> descriptor_allocator = std::nullopt;
 
 	VkDescriptorSetLayout image_layout{};
 

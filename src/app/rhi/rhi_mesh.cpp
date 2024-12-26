@@ -36,29 +36,12 @@ void mesh_scene::init(const rh::ctx& ctx)
 		return;
 	}
 
+	std::vector<VkDescriptorSetLayout>layouts{};
 	const VkDevice device = ctx.rhi.device;
-	std::vector<descriptor_allocator_growable::pool_size_ratio> frame_sizes = {
-		{VK_DESCRIPTOR_TYPE_SAMPLER, 3},
-		{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 3},
-		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
-		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
-	};
-
-	descriptor_allocator = descriptor_allocator_growable{};
-	descriptor_allocator.value().init(device, 10'000, frame_sizes);
-
 	{
-		descriptor_layout_builder layout_builder;
-		layout_builder.add_binding(0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-		layout_builder.add_binding(1, VK_DESCRIPTOR_TYPE_SAMPLER);
-		auto [result, set_layout] = layout_builder.build(device, VK_SHADER_STAGE_FRAGMENT_BIT);
-		if (result != VK_SUCCESS) return;
-		image_layout = set_layout;
-		descriptor_layouts.push_back(set_layout);
-	}
-	{
+		layouts.push_back(ctx.rhi.descriptor_sets.value()->descriptor_set_layout.value());
 		shader_pipeline sp = {};
-		sp.layouts = descriptor_layouts;
+		sp.layouts = layouts;
 		sp.name = std::format("scene {}", name);
 		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
@@ -134,13 +117,6 @@ void mesh_scene::deinit(const rh::ctx& ctx)
 	for (const VkSampler smp : samplers)
 	{
 		vkDestroySampler(device, smp, nullptr);
-	}
-	for (const VkDescriptorSetLayout set : descriptor_layouts)
-	{
-		vkDestroyDescriptorSetLayout(device, set, nullptr);
-	}
-	if (descriptor_allocator.has_value()) {
-		descriptor_allocator.value().destroy_pools(device);
 	}
 	if (shadow_shaders.has_value()) {
 		shadow_shaders.value().deinit(device);
@@ -309,7 +285,8 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 		{
 			last_material = ro.material_index;
 			auto [pass_type, descriptor_set_id, image_set_id, sampler_set_id] = materials[ro.material_index];
-			VkDescriptorSet desc = descriptor_sets[descriptor_set_id];
+			//VkDescriptorSet desc = descriptor_sets[descriptor_set_id];
+			VkDescriptorSet desc = ctx.ctx->rhi.descriptor_sets.value()->descriptor_set.value();
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, &desc, 0, nullptr);
 		}
 		gpu_draw_push_constants pc = push_constants(ro);

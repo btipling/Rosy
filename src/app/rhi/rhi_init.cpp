@@ -937,7 +937,7 @@ VkResult rhi::init_draw_image()
 VkResult rhi::init_descriptors()
 {
 	auto dsm = std::make_unique<descriptor_sets_manager>(descriptor_sets_manager{});
-	if (const VkResult result = dsm->init(opt_device.value()); result != VK_SUCCESS) return result;
+	if (const VkResult result = dsm->init_pool(opt_device.value()); result != VK_SUCCESS) return result;
 	descriptor_sets = std::move(dsm);
 	return VK_SUCCESS;
 }

@@ -40,13 +40,13 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	const auto data = ctx.rhi.data.value();
 	{
 		mesh_scene mesh_graph{};
-		mesh_graph.init(ctx);
-		mesh_graph.init_shadows(ctx);
 		// ReSharper disable once StringLiteralTypo
 		if (const auto res = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf", mesh_graph); res != rh::result::ok)
 		{
 			return res;
 		}
+		mesh_graph.init(ctx);
+		mesh_graph.init_shadows(ctx);
 		scene_graph_ = std::make_shared<mesh_scene>(std::move(mesh_graph));
 		constexpr float label[4] = { 0.5f, 0.1f, 0.1f, 1.0f };
 		// ReSharper disable once StringLiteralTypo
@@ -55,12 +55,12 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	}
 	{
 		mesh_scene mesh_graph{};
-		mesh_graph.frag_path = "out/skybox.spv";
-		mesh_graph.init(ctx);
 		if (const auto res = data->load_gltf_meshes(ctx, "assets\\skybox_blue_desert.glb", mesh_graph); res != rh::result::ok)
 		{
 			return res;
 		}
+		mesh_graph.frag_path = "out/skybox.spv";
+		mesh_graph.init(ctx);
 		skybox_ = std::make_shared<mesh_scene>(std::move(mesh_graph));
 		constexpr float label[4] = { 0.5f, 0.1f, 1.f, 1.0f };
 		skybox_->name = "anime skybox";
