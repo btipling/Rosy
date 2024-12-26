@@ -432,11 +432,8 @@ gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::
 	}
 	allocated_buffer staging = new_staging_buffer;
 
-	void* data;
-	vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &data);
-	memcpy(data, vertices.data(), vertex_buffer_size);
-	memcpy(static_cast<char*>(data) + vertex_buffer_size, indices.data(), index_buffer_size);
-	vmaUnmapMemory(renderer_->opt_allocator.value(), staging.allocation);
+	memcpy(staging.info.pMappedData, vertices.data(), vertex_buffer_size);
+	memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, indices.data(), index_buffer_size);
 
 	VkResult submit_result;
 	submit_result = renderer_->immediate_submit([&](const VkCommandBuffer cmd) {
@@ -510,10 +507,7 @@ auto rhi_data::upload_materials(std::span<material_data> materials) const -> gpu
 	}
 	allocated_buffer staging = new_staging_buffer;
 
-	void* data;
-	vmaMapMemory(renderer_->opt_allocator.value(), staging.allocation, &data);
-	memcpy(data, materials.data(), material_buffer_size);
-	vmaUnmapMemory(renderer_->opt_allocator.value(), staging.allocation);
+	memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
 
 	VkResult submit_result;
 	submit_result = renderer_->immediate_submit([&](const VkCommandBuffer cmd) {

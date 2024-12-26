@@ -187,11 +187,7 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 	if (scene_data.has_value() && scene_buffers.has_value()) {
 		gpu_scene_buffers sb = scene_buffers.value();
 		gpu_scene_data sd = scene_data.value();
-		const VmaAllocator allocator = ctx.ctx->rhi.allocator;
-		void* data_pointer;
-		vmaMapMemory(allocator, sb.scene_buffer.allocation, &data_pointer);
-		memcpy(data_pointer, &sd, sizeof(sd));
-		vmaUnmapMemory(allocator, sb.scene_buffer.allocation);
+		memcpy(sb.scene_buffer.info.pMappedData, &sd, sizeof(sd));
 	}
 
 	std::queue<std::shared_ptr<mesh_node>> queue{};
@@ -246,14 +242,9 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 	}
 	{
 		const gpu_render_buffers rb = render_buffers.value();
-		const VmaAllocator allocator = ctx.ctx->rhi.allocator;
 		const size_t render_buffer_size = render_datas.size() * sizeof(render_data);
 		assert(render_buffer_size <= rb.buffer_size);
-
-		void* data;
-		vmaMapMemory(allocator, rb.render_buffer.allocation, &data);
-		memcpy(data, render_datas.data(), render_buffer_size);
-		vmaUnmapMemory(allocator, rb.render_buffer.allocation);
+		memcpy(rb.render_buffer.info.pMappedData, render_datas.data(), render_buffer_size);
 	}
 
 }
