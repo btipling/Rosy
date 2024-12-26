@@ -2,6 +2,7 @@
 #include "rhi.h"
 #include "../loader/loader.h"
 #include "rhi_utils.h"
+#include "../../rhi/descriptor.h"
 
 namespace {
 	const char* instance_layers[] = {
@@ -933,6 +934,8 @@ VkResult rhi::init_draw_image()
 
 VkResult rhi::init_descriptors()
 {
+	descriptor::allocator image{ 100 };
+	rosy_utils::debug_print_a("Allocating a descriptor index! %d\n", image.allocate().value_or(-1));
 	return VK_SUCCESS;
 }
 

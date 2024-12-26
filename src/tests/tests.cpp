@@ -50,6 +50,7 @@ namespace unit_test
 			Assert::AreEqual(expected, last_allocation.value());
 
 		}
+
 		TEST_METHOD(test_limit_allocations)
 		{
 			constexpr uint32_t max_indices{ 2 };
