@@ -29,7 +29,7 @@ rh::result scene_one::deinit(rh::ctx& ctx)
 	{
 		skybox_->deinit(ctx);
 	}
-	ctx.rhi.descriptor_sets.value()->reset(device);
+	if (ctx.rhi.descriptor_sets.value()->reset(device) != VK_SUCCESS) return rh::result::error;
 
 	return rh::result::ok;
 }

@@ -333,9 +333,9 @@ void descriptor_writer::update_set(const VkDevice device, const VkDescriptorSet 
 }
 
 descriptor_sets_manager::descriptor_sets_manager() :
-	storage_images(descriptor_sampled_image_binding, descriptor_max_storage_image_descriptors),
-	sampled_images(descriptor_sampled_image_binding, descriptor_max_sampled_image_descriptors),
-	samples(descriptor_sample_binding, descriptor_max_sample_descriptors)
+	storage_images(descriptor_max_storage_image_descriptors, descriptor_storage_image_binding),
+	sampled_images(descriptor_max_sampled_image_descriptors, descriptor_sampled_image_binding),
+	samples(descriptor_max_sample_descriptors, descriptor_sample_binding)
 {
 }
 
@@ -405,15 +405,26 @@ VkResult descriptor_sets_manager::init(const VkDevice device)
 	return VK_SUCCESS;
 }
 
-void descriptor_sets_manager::reset(const VkDevice device)
+VkResult descriptor_sets_manager::reset(const VkDevice device)
 {
 	if (descriptor_set_.has_value())
 	{
 		vkResetDescriptorPool(device, descriptor_pool_.value(), 0);
 	}
+
+	VkDescriptorSetAllocateInfo set_create_info{};
+	set_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		set_create_info.descriptorPool = descriptor_pool_.value();
+	set_create_info.descriptorSetCount = 1;
+	set_create_info.pSetLayouts = &descriptor_set_layout_.value();
+
+	VkDescriptorSet set;
+	if (const VkResult result = vkAllocateDescriptorSets(device, &set_create_info, &set); result != VK_SUCCESS) return result;
+	descriptor_set_ = set;
 	storage_images.allocator.reset();
 	sampled_images.allocator.reset();
 	samples.allocator.reset();
+	return VK_SUCCESS;
 }
 
 void descriptor_sets_manager::deinit(const VkDevice device)
@@ -432,17 +443,17 @@ void descriptor_sets_manager::deinit(const VkDevice device)
 	}
 }
 
-uint32_t descriptor_sets_manager::write_sampled_image(const VkDevice device, const VkImageView image, const VkImageLayout layout,
-	const VkDescriptorType type)
+uint32_t descriptor_sets_manager::write_sampled_image(const VkDevice device, const VkImageView image, const VkImageLayout layout)
 {
 	uint32_t descriptor_index{ 0 };
-	if (const auto res = sampled_images.allocator.allocate();  res.has_value())
+	const auto res = sampled_images.allocator.allocate();
+	if (res.has_value())
 	{
 		descriptor_index = res.value();
 	}
 	else
 	{
-		rosy_utils::debug_print_a("Unable to allocate sampled image descriptors\n");
+		rosy_utils::debug_print_a("Unable to allocate sampled image descriptors max: %d\n", sampled_images.allocator.max_indexes);
 		return 0;
 	}
 
@@ -457,24 +468,24 @@ uint32_t descriptor_sets_manager::write_sampled_image(const VkDevice device, con
 	write.dstArrayElement = descriptor_index;
 	write.dstSet = descriptor_set_.value();
 	write.descriptorCount = 1;
-	write.descriptorType = type;
+	write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	write.pImageInfo = &info;
 
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 	return descriptor_index;
 }
 
-uint32_t descriptor_sets_manager::write_sampler(const VkDevice device, const VkSampler sampler, const VkImageLayout layout,
-	const VkDescriptorType type)
+uint32_t descriptor_sets_manager::write_sampler(const VkDevice device, const VkSampler sampler, const VkImageLayout layout)
 {
 	uint32_t descriptor_index{ 0 };
-	if (const auto res = samples.allocator.allocate();  res.has_value())
+	const auto res = samples.allocator.allocate();
+	if (res.has_value())
 	{
 		descriptor_index = res.value();
 	}
 	else
 	{
-		rosy_utils::debug_print_a("Unable to allocate sample descriptors\n");
+		rosy_utils::debug_print_a("Unable to allocate sample descriptors max: %d\n", samples.allocator.max_indexes);
 		return 0;
 	}
 
@@ -490,7 +501,7 @@ uint32_t descriptor_sets_manager::write_sampler(const VkDevice device, const VkS
 	write.dstArrayElement = descriptor_index;
 	write.dstSet = descriptor_set_.value();
 	write.descriptorCount = 1;
-	write.descriptorType = type;
+	write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 	write.pImageInfo = &info;
 
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);

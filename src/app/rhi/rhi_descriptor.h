@@ -91,12 +91,10 @@ public:
 	descriptor::set samples;
 	explicit descriptor_sets_manager();
 	VkResult init(VkDevice device);
-	void reset(VkDevice device);
+	VkResult reset(VkDevice device);
 	void deinit(VkDevice device);
-	uint32_t write_sampled_image(VkDevice device, const VkImageView image, const VkImageLayout layout,
-		const VkDescriptorType type);
-	uint32_t write_sampler(VkDevice device, const VkSampler sampler, const VkImageLayout layout,
-		const VkDescriptorType type);
+	uint32_t write_sampled_image(VkDevice device, const VkImageView image, const VkImageLayout layout);
+	uint32_t write_sampler(VkDevice device, const VkSampler sampler, const VkImageLayout layout);
 private:
 	std::optional<VkDescriptorPool> descriptor_pool_;
 	std::optional<VkDescriptorSetLayout> descriptor_set_layout_;

@@ -79,6 +79,7 @@ namespace {
 
 rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path, mesh_scene& gltf_mesh_scene)
 {
+	VkDevice device = renderer_->opt_device.value();
 	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
 		fastgltf::Options::AllowDouble |
 		fastgltf::Options::LoadExternalBuffers |
@@ -122,7 +123,7 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 				view_info.subresourceRange.levelCount = ktx_vk_texture.levelCount;
 				view_info.subresourceRange.layerCount = ktx_vk_texture.layerCount;
 				view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-				if (VkResult result = vkCreateImageView(renderer_->opt_device.value(), &view_info, nullptr, &img_view); result !=
+				if (VkResult result = vkCreateImageView(device, &view_info, nullptr, &img_view); result !=
 					VK_SUCCESS)
 				{
 					continue;
@@ -172,7 +173,7 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 
 					sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 					sampler_create_infos.push_back(sample);
-					if (VkResult result = vkCreateSampler(renderer_->opt_device.value(), &sample, nullptr, &sampler); result != VK_SUCCESS) continue;
+					if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) continue;
 					gltf_mesh_scene.samplers.push_back(sampler);
 				}
 				{
@@ -182,11 +183,19 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 						descriptor_writer writer;
 						writer.write_sampled_image(0, img_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 						writer.write_sampler(1, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_SAMPLER);
-						writer.update_set(renderer_->opt_device.value(), image_set);
+						writer.update_set(device, image_set);
 						gltf_mesh_scene.descriptor_sets.push_back(image_set);
 						m_data.color_texture_index = 0;
 						m_data.color_sampler_index = 0;
 					}
+				}
+				{
+					descriptor_sets_manager* dsm = renderer_->descriptor_sets.value().get();
+					uint32_t sampled_image_desc_index = dsm->write_sampled_image(device, img_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+					uint32_t sampler_desc_index = dsm->write_sampler(device, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+					rosy_utils::debug_print_a("mega desc sampled_image_index: %d sampler index: %d\n", sampled_image_desc_index, sampler_desc_index);
+					/*m_data.color_texture_index = sampled_image_desc_index;
+					m_data.color_sampler_index = sampler_desc_index;*/
 				}
 				m.descriptor_set_id = desc_index;
 				desc_index++;

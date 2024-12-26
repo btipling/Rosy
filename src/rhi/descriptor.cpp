@@ -3,7 +3,7 @@
 
 namespace descriptor
 {
-	allocator::allocator(const uint32_t max_indexes) : max_indexes_{ max_indexes }
+	allocator::allocator(const uint32_t max_indexes) : max_indexes{ max_indexes }
 	{
 	}
 
@@ -12,7 +12,7 @@ namespace descriptor
 		uint32_t new_index = num_allocated_;
 		if (recycled_indexes_.empty())
 		{
-			if (num_allocated_ >= max_indexes_)
+			if (num_allocated_ >= max_indexes)
 				return std::unexpected(rhi_lib::result::limit_reached);
 			num_allocated_ += 1;
 		} else
