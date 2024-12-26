@@ -201,7 +201,6 @@ enum class material_pass :uint8_t {
 struct material
 {
 	material_pass pass_type;
-	size_t descriptor_set_id{ 0 };
 	size_t image_set_id{ 0 };
 	size_t sampler_set_id{ 0 };
 };
@@ -225,7 +224,6 @@ struct mesh_ctx
 	VkFrontFace front_face = VK_FRONT_FACE_CLOCKWISE;
 	VkCommandBuffer cmd;
 	VkExtent2D extent;
-	VkDescriptorSet* global_descriptor;
 };
 
 struct mesh_node
@@ -243,17 +241,6 @@ struct mesh_node
 			meshes[i]->update(world_transform, meshes);
 		}
 	}
-};
-
-struct texture_id {
-	uint32_t index;
-};
-
-struct texture_cache
-{
-	std::vector<VkDescriptorImageInfo> cache;
-	std::unordered_map<std::string, texture_id> name_map;
-	texture_id add_texture(const VkImageView& image, VkSampler sampler);
 };
 
 class mesh_scene;
@@ -304,6 +291,5 @@ public:
 
 private:
 	rhi* renderer_;
-	texture_cache texture_cache_{};
 	ktxVulkanTexture_subAllocatorCallbacks sub_allocator_callbacks_{};
 };

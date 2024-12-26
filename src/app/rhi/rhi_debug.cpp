@@ -17,10 +17,6 @@ void debug_gfx::init(const rh::ctx& ctx)
 	}
 
 	const VkDevice device = ctx.rhi.device;
-	std::vector<descriptor_allocator_growable::pool_size_ratio> frame_sizes = {
-		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3},
-		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3},
-	};
 	{
 		shader_pipeline sp = {};
 		sp.name = std::format("scene {}", name);

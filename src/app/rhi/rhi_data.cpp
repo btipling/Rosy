@@ -9,18 +9,6 @@
 #include <fastgltf/tools.hpp>
 #include <stb_image.h>
 
-texture_id texture_cache::add_texture(const VkImageView& image, const VkSampler sampler)
-{
-	for (unsigned int i = 0; i < cache.size(); i++) {
-		if (cache[i].imageView == image && cache[i].sampler == sampler) {
-			return texture_id{ i };
-		}
-	}
-	const uint32_t idx = cache.size();
-	cache.push_back(VkDescriptorImageInfo{ .sampler = sampler,.imageView = image, .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
-	return texture_id{ idx };
-}
-
 rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer }
 {
 	ktx_sub_allocator::init_vma(renderer->opt_allocator.value());
@@ -152,7 +140,6 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 	}
 	{
 		std::vector<material_data> materials;
-		size_t desc_index{ 0 };
 		for (fastgltf::Material& mat : gltf.materials) {
 			material_data m_data{};
 			material m{};
@@ -184,8 +171,6 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 					m_data.color_texture_index = sampled_image_desc_index;
 					m_data.color_sampler_index = sampler_desc_index;
 				}
-				m.descriptor_set_id = desc_index;
-				desc_index++;
 			}
 			materials.push_back(m_data);
 			gltf_mesh_scene.materials.push_back(m);
