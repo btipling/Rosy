@@ -13,6 +13,7 @@ public:
 	VkExtent2D swapchain_extent = {};
 	std::optional<ktxVulkanDeviceInfo> vdi = std::nullopt;
 	rosy_config::config* app_cfg;
+	std::optional<descriptor_sets_manager> descriptor_sets;
 
 	explicit rhi(rosy_config::config* cfg);
 	VkResult init(SDL_Window* window);

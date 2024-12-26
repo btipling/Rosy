@@ -16,7 +16,7 @@ void descriptor_layout_builder::clear()
 }
 
 descriptor_set_layout_result descriptor_layout_builder::build(const VkDevice device, const VkShaderStageFlags shader_stages,
-                                                              const void* p_next, const VkDescriptorSetLayoutCreateFlags flags)
+	const void* p_next, const VkDescriptorSetLayoutCreateFlags flags)
 {
 	for (auto& b : bindings)
 	{
@@ -54,7 +54,7 @@ void descriptor_allocator::init_pool(const VkDevice device, const uint32_t max_s
 		pool_sizes.push_back(VkDescriptorPoolSize{
 			.type = type,
 			.descriptorCount = static_cast<uint32_t>(ratio * max_sets)
-		});
+			});
 	}
 
 	VkDescriptorPoolCreateInfo pool_info{};
@@ -102,7 +102,7 @@ descriptor_set_result descriptor_allocator::allocate(const VkDevice device, cons
 }
 
 void descriptor_allocator_growable::init(const VkDevice device, const uint32_t max_sets,
-                                         const std::span<pool_size_ratio> pool_ratios)
+	const std::span<pool_size_ratio> pool_ratios)
 {
 	ratios_.clear();
 
@@ -147,7 +147,7 @@ void descriptor_allocator_growable::destroy_pools(const VkDevice device)
 }
 
 descriptor_set_result descriptor_allocator_growable::allocate(const VkDevice device, const VkDescriptorSetLayout layout,
-                                                              const void* p_next)
+	const void* p_next)
 {
 	VkDescriptorPool pool_to_use = get_pool(device);
 
@@ -213,7 +213,7 @@ VkDescriptorPool descriptor_allocator_growable::get_pool(const VkDevice device)
 }
 
 VkDescriptorPool descriptor_allocator_growable::create_pool(const VkDevice device, const uint32_t set_count,
-                                                            const std::span<pool_size_ratio> pool_ratios)
+	const std::span<pool_size_ratio> pool_ratios)
 {
 	std::vector<VkDescriptorPoolSize> pool_sizes;
 	for (auto [type, ratio] : pool_ratios)
@@ -221,7 +221,7 @@ VkDescriptorPool descriptor_allocator_growable::create_pool(const VkDevice devic
 		pool_sizes.push_back(VkDescriptorPoolSize{
 			.type = type,
 			.descriptorCount = static_cast<uint32_t>(ratio * set_count)
-		});
+			});
 	}
 
 	VkDescriptorPoolCreateInfo pool_info{};
@@ -237,13 +237,13 @@ VkDescriptorPool descriptor_allocator_growable::create_pool(const VkDevice devic
 }
 
 void descriptor_writer::write_image(const int binding, const VkImageView image, const VkSampler sampler, const VkImageLayout layout,
-                                    const VkDescriptorType type)
+	const VkDescriptorType type)
 {
 	const VkDescriptorImageInfo& info = image_infos.emplace_back(VkDescriptorImageInfo{
 		.sampler = sampler,
 		.imageView = image,
 		.imageLayout = layout
-	});
+		});
 
 	VkWriteDescriptorSet write{};
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -297,13 +297,13 @@ void descriptor_writer::write_sampler(const int binding, const VkSampler sampler
 }
 
 void descriptor_writer::write_buffer(const int binding, const VkBuffer buffer, const size_t size, const size_t offset,
-                                     const VkDescriptorType type)
+	const VkDescriptorType type)
 {
 	const VkDescriptorBufferInfo& info = buffer_infos.emplace_back(VkDescriptorBufferInfo{
 		.buffer = buffer,
 		.offset = offset,
 		.range = size
-	});
+		});
 
 	VkWriteDescriptorSet write{};
 	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -331,3 +331,93 @@ void descriptor_writer::update_set(const VkDevice device, const VkDescriptorSet 
 
 	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
+
+descriptor_sets_manager::descriptor_sets_manager() :
+	storage_images(descriptor_sampled_image_binding, descriptor_max_storage_image_descriptors),
+	sampled_images(descriptor_sampled_image_binding, descriptor_max_sampled_image_descriptors),
+	samples(descriptor_sample_binding, descriptor_max_sample_descriptors)
+{
+}
+
+VkResult descriptor_sets_manager::init(const VkDevice device)
+{
+
+	const auto pool_sizes = std::vector<VkDescriptorPoolSize>({
+	  {.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, .descriptorCount = descriptor_max_storage_image_descriptors},
+	  {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .descriptorCount = descriptor_max_sampled_image_descriptors},
+	  {.type = VK_DESCRIPTOR_TYPE_SAMPLER, .descriptorCount = descriptor_max_sample_descriptors},
+		});
+	VkDescriptorPoolCreateInfo pool_create_info{};
+	pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+	pool_create_info.maxSets = 1;
+	pool_create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
+	pool_create_info.pPoolSizes = pool_sizes.data();
+
+	VkDescriptorPool desc_pool;
+	VkResult result = vkCreateDescriptorPool(device, &pool_create_info, nullptr, &desc_pool);
+	if (result != VK_SUCCESS) return result;
+	descriptor_pool_ = desc_pool;
+
+
+	const auto bindings = std::vector<VkDescriptorSetLayoutBinding>({
+	  {descriptor_storage_image_binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, descriptor_max_storage_image_descriptors, VK_SHADER_STAGE_ALL},
+	  {descriptor_sampled_image_binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptor_max_sampled_image_descriptors, VK_SHADER_STAGE_ALL},
+	  {descriptor_sample_binding, VK_DESCRIPTOR_TYPE_SAMPLER, descriptor_max_sample_descriptors, VK_SHADER_STAGE_ALL},
+	});
+
+	const auto bindings_flags = std::vector<VkDescriptorBindingFlags>({
+	  {VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+	  {VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+	  {VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+	});
+
+	assert(bindings.size() == bindings_flags.size());
+	assert(pool_sizes.size() == bindings_flags.size());
+
+	VkDescriptorSetLayoutBindingFlagsCreateInfo layout_flags{};
+	layout_flags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+	layout_flags.bindingCount = static_cast<uint32_t>(bindings_flags.size());
+	layout_flags.pBindingFlags = bindings_flags.data();
+
+	VkDescriptorSetLayoutCreateInfo layout_create_info{};
+	layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layout_create_info.pNext = &layout_flags;
+	layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+	layout_create_info.bindingCount = static_cast<uint32_t>(bindings.size());
+	layout_create_info.pBindings = bindings.data();
+
+	VkDescriptorSetLayout set_layout{};
+	result = vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &set_layout);
+	if (result != VK_SUCCESS) return result;
+	descriptor_set_layout_ = set_layout;
+
+	VkDescriptorSetAllocateInfo set_create_info{};
+	set_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+	set_create_info.descriptorPool = desc_pool;
+	set_create_info.descriptorSetCount = 1;
+	set_create_info.pSetLayouts = &set_layout;
+
+	VkDescriptorSet set;
+	result = vkAllocateDescriptorSets(device, &set_create_info, &set);
+	if (result != VK_SUCCESS) return result;
+	descriptor_set_ = set;
+	return VK_SUCCESS;
+}
+
+void descriptor_sets_manager::deinit(const VkDevice device)
+{
+	if (descriptor_set_.has_value())
+	{
+		vkResetDescriptorPool(device, descriptor_pool_.value(), 0);
+	}
+	if (descriptor_set_layout_.has_value())
+	{
+		vkDestroyDescriptorSetLayout(device, descriptor_set_layout_.value(), nullptr);
+	}
+	if (descriptor_pool_.has_value())
+	{
+		vkDestroyDescriptorPool(device, descriptor_pool_.value(), nullptr);
+	}
+}
+

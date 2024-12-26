@@ -198,7 +198,10 @@ void rhi::deinit()
 	{
 		vkDestroyCommandPool(opt_device.value(), imm_command_pool_.value(), nullptr);
 	}
-
+	if (descriptor_sets.has_value())
+	{
+		descriptor_sets.value().deinit(opt_device.value());
+	}
 	for (frame_data fd : frame_datas_)
 	{
 		const VkDevice device = opt_device.value();
@@ -934,8 +937,9 @@ VkResult rhi::init_draw_image()
 
 VkResult rhi::init_descriptors()
 {
-	descriptor::allocator image{ 100 };
-	rosy_utils::debug_print_a("Allocating a descriptor index! %d\n", image.allocate().value_or(-1));
+	descriptor_sets_manager dsm{};
+	if (const VkResult result = dsm.init(opt_device.value()); result != VK_SUCCESS) return result;
+	descriptor_sets = dsm;
 	return VK_SUCCESS;
 }
 

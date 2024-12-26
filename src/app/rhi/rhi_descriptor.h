@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Rosy.h"
+#include "../../rhi/descriptor.h"
 
 struct descriptor_set_layout_result {
 	VkResult result;
@@ -72,4 +73,27 @@ struct descriptor_writer {
 
 	void clear();
 	void update_set(VkDevice device, VkDescriptorSet set);
+};
+
+constexpr uint32_t descriptor_storage_image_binding{ 2 };
+constexpr uint32_t descriptor_sampled_image_binding{ 0 };
+constexpr uint32_t descriptor_sample_binding{ 1 };
+
+constexpr uint32_t descriptor_max_storage_image_descriptors{ 100'000 };
+constexpr uint32_t descriptor_max_sampled_image_descriptors{ 100'000 };
+constexpr uint32_t descriptor_max_sample_descriptors{ 1000 };
+
+class descriptor_sets_manager
+{
+public:
+	descriptor::set storage_images;
+	descriptor::set sampled_images;
+	descriptor::set samples;
+	explicit descriptor_sets_manager();
+	VkResult init(VkDevice device);
+	void deinit(VkDevice device);
+private:
+	std::optional<VkDescriptorPool> descriptor_pool_;
+	std::optional<VkDescriptorSetLayout> descriptor_set_layout_;
+	std::optional<VkDescriptorSet> descriptor_set_;
 };

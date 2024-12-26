@@ -27,4 +27,8 @@ namespace descriptor
 	{
 		recycled_indexes_.push(index);
 	}
+
+	set::set(const uint32_t max_indexes, const uint32_t binding) : binding{ binding }, allocator(max_indexes)
+	{
+	}
 }

@@ -17,4 +17,12 @@ namespace descriptor
 		uint32_t max_indexes_{ 0 };
 		uint32_t num_allocated_{ 0 };
 	};
+
+	class set
+	{
+	public:
+		uint32_t binding{ 0 };
+		allocator allocator;
+		explicit set(uint32_t max_indexes, uint32_t binding);
+	};
 }
