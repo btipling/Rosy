@@ -66,5 +66,24 @@ namespace unit_test
 			const rhi_lib::result result = last_allocation.error();
 			Assert::IsTrue(expected == result);
 		}
+
+		TEST_METHOD(test_reset_allocations)
+		{
+			constexpr uint32_t max_indices{ 1000 };
+			descriptor::allocator images{ max_indices };
+
+			for (uint32_t i = 0; i < max_indices; i++)
+			{
+				const std::expected<uint32_t, rhi_lib::result> result = images.allocate();
+				Assert::IsTrue(result.has_value());
+			}
+			images.reset();
+			{
+				constexpr uint32_t expected = 0;
+				const std::expected<uint32_t, rhi_lib::result> result = images.allocate();
+				Assert::IsTrue(result.has_value());
+				Assert::AreEqual(expected, result.value());
+			}
+		}
 	};
 }

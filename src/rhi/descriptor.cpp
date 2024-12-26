@@ -28,6 +28,12 @@ namespace descriptor
 		recycled_indexes_.push(index);
 	}
 
+	void allocator::reset()
+	{
+		while (!recycled_indexes_.empty()) recycled_indexes_.pop();
+		num_allocated_ = 0;
+	}
+
 	set::set(const uint32_t max_indexes, const uint32_t binding) : binding{ binding }, allocator(max_indexes)
 	{
 	}

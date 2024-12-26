@@ -12,6 +12,7 @@ namespace descriptor
 		explicit allocator(uint32_t max_indexes);
 		std::expected<uint32_t,rhi_lib::result> allocate();
 		void free(uint32_t index);
+		void reset();
 	private:
 		std::stack<uint32_t> recycled_indexes_;
 		uint32_t max_indexes_{ 0 };

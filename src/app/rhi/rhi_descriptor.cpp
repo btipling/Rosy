@@ -361,16 +361,16 @@ VkResult descriptor_sets_manager::init(const VkDevice device)
 
 
 	const auto bindings = std::vector<VkDescriptorSetLayoutBinding>({
-	  {descriptor_storage_image_binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, descriptor_max_storage_image_descriptors, VK_SHADER_STAGE_ALL},
-	  {descriptor_sampled_image_binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptor_max_sampled_image_descriptors, VK_SHADER_STAGE_ALL},
-	  {descriptor_sample_binding, VK_DESCRIPTOR_TYPE_SAMPLER, descriptor_max_sample_descriptors, VK_SHADER_STAGE_ALL},
+	  {storage_images.binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, descriptor_max_storage_image_descriptors, VK_SHADER_STAGE_ALL},
+	  {sampled_images.binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptor_max_sampled_image_descriptors, VK_SHADER_STAGE_ALL},
+	  {samples.binding, VK_DESCRIPTOR_TYPE_SAMPLER, descriptor_max_sample_descriptors, VK_SHADER_STAGE_ALL},
 	});
 
 	const auto bindings_flags = std::vector<VkDescriptorBindingFlags>({
 	  {VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
 	  {VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
 	  {VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
-	});
+		});
 
 	assert(bindings.size() == bindings_flags.size());
 	assert(pool_sizes.size() == bindings_flags.size());
@@ -394,7 +394,7 @@ VkResult descriptor_sets_manager::init(const VkDevice device)
 
 	VkDescriptorSetAllocateInfo set_create_info{};
 	set_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-	set_create_info.descriptorPool = desc_pool;
+		set_create_info.descriptorPool = desc_pool;
 	set_create_info.descriptorSetCount = 1;
 	set_create_info.pSetLayouts = &set_layout;
 
@@ -421,3 +421,67 @@ void descriptor_sets_manager::deinit(const VkDevice device)
 	}
 }
 
+uint32_t descriptor_sets_manager::write_sampled_image(const VkDevice device, const VkImageView image, const VkImageLayout layout,
+	const VkDescriptorType type)
+{
+	uint32_t descriptor_index{ 0 };
+	if (const auto res = sampled_images.allocator.allocate();  res.has_value())
+	{
+		descriptor_index = res.value();
+	}
+	else
+	{
+		rosy_utils::debug_print_a("Unable to allocate sampled image descriptors\n");
+		return 0;
+	}
+
+	VkDescriptorImageInfo info{};
+	info.sampler = nullptr;
+	info.imageView = image;
+	info.imageLayout = layout;
+
+	VkWriteDescriptorSet write{};
+	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write.dstBinding = sampled_images.binding;
+	write.dstArrayElement = descriptor_index;
+	write.dstSet = descriptor_set_.value();
+	write.descriptorCount = 1;
+	write.descriptorType = type;
+	write.pImageInfo = &info;
+
+	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+	return descriptor_index;
+}
+
+uint32_t descriptor_sets_manager::write_sampler(const VkDevice device, const VkSampler sampler, const VkImageLayout layout,
+	const VkDescriptorType type)
+{
+	uint32_t descriptor_index{ 0 };
+	if (const auto res = samples.allocator.allocate();  res.has_value())
+	{
+		descriptor_index = res.value();
+	}
+	else
+	{
+		rosy_utils::debug_print_a("Unable to allocate sample descriptors\n");
+		return 0;
+	}
+
+	VkDescriptorImageInfo info{};
+	info.sampler = sampler;
+	info.imageView = nullptr;
+	info.imageLayout = layout;
+
+
+	VkWriteDescriptorSet write{};
+	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write.dstBinding = samples.binding;
+	write.dstArrayElement = descriptor_index;
+	write.dstSet = descriptor_set_.value();
+	write.descriptorCount = 1;
+	write.descriptorType = type;
+	write.pImageInfo = &info;
+
+	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+	return descriptor_index;
+}
