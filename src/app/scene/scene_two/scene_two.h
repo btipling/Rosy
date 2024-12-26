@@ -9,12 +9,12 @@ class scene_two final : public scene
 {
 public:
 	scene_two();
+	rh::result deinit(rh::ctx& ctx) override;
 	rh::result build(const rh::ctx& ctx) override;
 	rh::result update(const rh::ctx& ctx) override;
 	rh::result depth(rh::ctx ctx) override;
 	rh::result draw(rh::ctx ctx) override;
 	rh::result draw_ui(const rh::ctx& ctx) override;
-	rh::result deinit(rh::ctx& ctx) override;
 private:
 	gpu_scene_data scene_data_ = {};
 	camera camera_;

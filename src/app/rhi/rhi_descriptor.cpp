@@ -405,6 +405,17 @@ VkResult descriptor_sets_manager::init(const VkDevice device)
 	return VK_SUCCESS;
 }
 
+void descriptor_sets_manager::reset(const VkDevice device)
+{
+	if (descriptor_set_.has_value())
+	{
+		vkResetDescriptorPool(device, descriptor_pool_.value(), 0);
+	}
+	storage_images.allocator.reset();
+	sampled_images.allocator.reset();
+	samples.allocator.reset();
+}
+
 void descriptor_sets_manager::deinit(const VkDevice device)
 {
 	if (descriptor_set_.has_value())

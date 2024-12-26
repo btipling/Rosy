@@ -15,6 +15,25 @@ scene_one::scene_one() :  // NOLINT(modernize-use-equals-default)
 	camera_.yaw = 1.f;
 }
 
+rh::result scene_one::deinit(rh::ctx& ctx)
+{
+	const VkDevice device = ctx.rhi.device;
+	const VmaAllocator allocator = ctx.rhi.allocator;
+	const auto buffer = ctx.rhi.data.value();
+	{
+		vkDeviceWaitIdle(device);
+	}
+	{
+		scene_graph_->deinit(ctx);
+	}
+	{
+		skybox_->deinit(ctx);
+	}
+	ctx.rhi.descriptor_sets.value()->reset(device);
+
+	return rh::result::ok;
+}
+
 rh::result scene_one::build(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
@@ -133,24 +152,6 @@ rh::result scene_one::draw_ui(const rh::ctx& ctx) {
 		ImGui::RadioButton("alpha blend", &blend_mode_, 2);
 	}
 	ImGui::End();
-	return rh::result::ok;
-}
-
-rh::result scene_one::deinit(rh::ctx& ctx)
-{
-	const VkDevice device = ctx.rhi.device;
-	const VmaAllocator allocator = ctx.rhi.allocator;
-	const auto buffer = ctx.rhi.data.value();
-	{
-		vkDeviceWaitIdle(device);
-	}
-	{
-		scene_graph_->deinit(ctx);
-	}
-	{
-		skybox_->deinit(ctx);
-	}
-
 	return rh::result::ok;
 }
 
