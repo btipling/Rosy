@@ -23,8 +23,9 @@ namespace rh
 	{
 		VkDevice device{};
 		VmaAllocator allocator{};
-		std::optional<frame_data> frame_data = std::nullopt;
+		std::optional<VkCommandBuffer> command_buffer;
 		std::optional<rhi_data*> data = std::nullopt;
+		std::optional<descriptor_sets_manager*> descriptor_sets = std::nullopt;
 		VkExtent2D frame_extent{};
 		VkExtent2D shadow_map_extent{};
 	};

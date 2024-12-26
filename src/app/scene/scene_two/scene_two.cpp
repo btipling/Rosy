@@ -52,17 +52,12 @@ rh::result scene_two::build(const rh::ctx& ctx)
 
 
 
-rh::result scene_two::depth(rh::ctx ctx)
+rh::result scene_two::depth(const rh::ctx ctx)
 {
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
-	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
-	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool] = ctx.rhi.frame_data.value();
-	{
-		if (!opt_command_buffers.has_value()) return rh::result::error;
-	}
-	const VkCommandBuffer cmd = opt_command_buffers.value();
+	if (!ctx.rhi.command_buffer.has_value()) return rh::result::error;
+	const VkCommandBuffer cmd = ctx.rhi.command_buffer.value();
 	const VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
 	update_scene(ctx);
@@ -80,19 +75,14 @@ rh::result scene_two::depth(rh::ctx ctx)
 	return rh::result::ok;
 }
 
-rh::result scene_two::draw(rh::ctx ctx)
+rh::result scene_two::draw(const rh::ctx ctx)
 {
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
-	if (!ctx.rhi.frame_data.has_value()) return rh::result::error;
-	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool] = ctx.rhi.frame_data.value();
-	{
-		if (!opt_command_buffers.has_value()) return rh::result::error;
-	}
+	if (!ctx.rhi.command_buffer.has_value()) return rh::result::error;
 
 	{
-		const VkCommandBuffer cmd = opt_command_buffers.value();
+		const VkCommandBuffer cmd = ctx.rhi.command_buffer.value();
 		const VkExtent2D frame_extent = ctx.rhi.frame_extent;
 		// Anime skybox
 		{

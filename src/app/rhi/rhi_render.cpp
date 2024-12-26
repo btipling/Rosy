@@ -53,7 +53,10 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 		.shadow_map_extent = shadow_map_extent,
 	};
 	if (frame_datas_.size() > 0) {
-		rhi_ctx.frame_data = frame_datas_[current_frame_];
+		rhi_ctx.command_buffer = frame_datas_[current_frame_].command_buffer;
+	}
+	if (descriptor_sets.has_value()) {
+		rhi_ctx.descriptor_sets = descriptor_sets.value().get();
 	}
 	if (buffer.has_value())
 	{

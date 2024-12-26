@@ -193,14 +193,13 @@ void rhi::deinit()
 	{
 		vkDestroyFence(opt_device.value(), imm_fence_.value(), nullptr);
 	}
-
 	if (imm_command_pool_.has_value())
 	{
 		vkDestroyCommandPool(opt_device.value(), imm_command_pool_.value(), nullptr);
 	}
 	if (descriptor_sets.has_value())
 	{
-		descriptor_sets.value().deinit(opt_device.value());
+		descriptor_sets.value()->deinit(opt_device.value());
 	}
 	for (frame_data fd : frame_datas_)
 	{
@@ -937,9 +936,9 @@ VkResult rhi::init_draw_image()
 
 VkResult rhi::init_descriptors()
 {
-	descriptor_sets_manager dsm{};
-	if (const VkResult result = dsm.init(opt_device.value()); result != VK_SUCCESS) return result;
-	descriptor_sets = dsm;
+	auto dsm = std::make_unique<descriptor_sets_manager>(descriptor_sets_manager{});
+	if (const VkResult result = dsm->init(opt_device.value()); result != VK_SUCCESS) return result;
+	descriptor_sets = std::move(dsm);
 	return VK_SUCCESS;
 }
 
