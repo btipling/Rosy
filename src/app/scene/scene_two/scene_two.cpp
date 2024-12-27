@@ -9,7 +9,7 @@
 
 
 scene_two::scene_two() :  // NOLINT(modernize-use-equals-default)
-	camera_(glm::vec3{ 10.2f, 0.6f, -13.3f })
+	camera_(glm::vec3{ 3.75f, 4.32f, 2.84f })
 {
 	camera_.pitch = 0.36f;
 	camera_.yaw = 1.f;
