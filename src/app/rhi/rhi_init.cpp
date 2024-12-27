@@ -672,6 +672,7 @@ VkResult rhi::init_device()
 	vulkan11_features.pNext = &vulkan12_features;
 	vulkan11_features.variablePointers = VK_TRUE;
 	vulkan11_features.variablePointersStorageBuffer = VK_TRUE;
+	vulkan11_features.multiview = VK_TRUE;
 
 	VkPhysicalDeviceShaderObjectFeaturesEXT enable_shader_object = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
@@ -913,14 +914,14 @@ VkResult rhi::init_draw_image()
 		shadow_map_image.image_format = VK_FORMAT_D32_SFLOAT;
 		shadow_map_image.image_extent = shadow_map_image_extent;
 		VkImageUsageFlags depth_image_usages{};
-		depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		VkImageCreateInfo depth_info = rhi_helpers::img_create_info(shadow_map_image.image_format, depth_image_usages, shadow_map_image_extent);
+		VkImageCreateInfo depth_info = rhi_helpers::shadow_img_create_info(shadow_map_image.image_format, depth_image_usages, shadow_map_image_extent);
 
 		vmaCreateImage(opt_allocator.value(), &depth_info, &r_img_alloc_info, &shadow_map_image.image, &shadow_map_image.allocation,
 			nullptr);
 
-		VkImageViewCreateInfo d_view_info = rhi_helpers::img_view_create_info(shadow_map_image.image_format, shadow_map_image.image,
+		VkImageViewCreateInfo d_view_info = rhi_helpers::shadow_img_view_create_info(shadow_map_image.image_format, shadow_map_image.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT);
 
 		result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view);

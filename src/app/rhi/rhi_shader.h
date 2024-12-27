@@ -18,6 +18,7 @@ public:
     void deinit(const VkDevice device) const;
 
     void with_shaders(const std::vector<char>& vert, const std::vector<char>& frag);
+    void with_shaders(const std::vector<char>& vert);
     VkResult build(VkDevice device);
     VkResult shade(VkCommandBuffer cmd) const;
     VkResult push(VkCommandBuffer cmd) const;

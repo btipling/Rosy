@@ -29,6 +29,8 @@ public:
 	// Rendering
 	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
 		VkImageLayout new_layout);
+	static void transition_shadow_map_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
+		VkImageLayout new_layout);
 	void debug() const;
 	~rhi();
 	rhi(const rhi&) = delete;

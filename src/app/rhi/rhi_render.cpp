@@ -33,6 +33,37 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 	vkCmdPipelineBarrier2(cmd, &dependency_info);
 }
 
+void rhi::transition_shadow_map_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
+	const VkImageLayout new_layout)
+{
+	const VkImageAspectFlags aspect_mask = (new_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+		? VK_IMAGE_ASPECT_DEPTH_BIT
+		: VK_IMAGE_ASPECT_COLOR_BIT;
+	VkImageSubresourceRange subresource_range = rhi_helpers::create_shadow_img_subresource_range(aspect_mask);
+	subresource_range.layerCount = 2;
+
+	VkImageMemoryBarrier2 image_barrier = {};
+	image_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+	image_barrier.pNext = nullptr;
+	image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+	image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+	image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+	image_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
+	image_barrier.oldLayout = current_layout;
+	image_barrier.newLayout = new_layout;
+	image_barrier.subresourceRange = subresource_range;
+	image_barrier.image = image;
+
+	VkDependencyInfo dependency_info{};
+	dependency_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependency_info.pNext = nullptr;
+
+	dependency_info.imageMemoryBarrierCount = 1;
+	dependency_info.pImageMemoryBarriers = &image_barrier;
+
+	vkCmdPipelineBarrier2(cmd, &dependency_info);
+}
+
 VkResult rhi::draw_ui()
 {
 	// Draw some FPS statistics or something
@@ -147,7 +178,7 @@ VkResult rhi::shadow_pass()
 		.width = shadow_map_image.image_extent.width,
 		.height = shadow_map_image.image_extent.height,
 	};
-	transition_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+	transition_shadow_map_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 	{
 		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::depth_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);

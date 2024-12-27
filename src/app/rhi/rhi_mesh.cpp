@@ -130,12 +130,10 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
 	std::vector<char> scene_vertex_shader;
-	std::vector<char> scene_fragment_shader;
 	shadow_map_extent_ = ctx.rhi.shadow_map_extent;
 	try
 	{
 		scene_vertex_shader = read_file(shadow_vertex_path);
-		scene_fragment_shader = read_file(shadow_frag_path);
 	}
 	catch (const std::exception& e)
 	{
@@ -146,7 +144,7 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 	{
 		shader_pipeline sp = {};
 		sp.name = std::format("shadows {}", name);
-		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
+		sp.with_shaders(scene_vertex_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shadow_shaders = sp;
 	}

@@ -19,8 +19,7 @@ namespace rhi_helpers {
 		return info;
 	}
 
-	VkImageViewCreateInfo img_view_create_info(const VkFormat format, const VkImage image,
-		const VkImageAspectFlags aspect_flags)
+	VkImageViewCreateInfo img_view_create_info(const VkFormat format, const VkImage image, const VkImageAspectFlags aspect_flags)
 	{
 		VkImageViewCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -63,6 +62,39 @@ namespace rhi_helpers {
 		return depth_attachment;
 	}
 
+	VkImageCreateInfo shadow_img_create_info(const VkFormat format, const VkImageUsageFlags usage_flags,
+		const VkExtent3D extent)
+	{
+		VkImageCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		info.pNext = nullptr;
+		info.imageType = VK_IMAGE_TYPE_2D;
+		info.format = format;
+		info.extent = extent;
+		info.mipLevels = 1;
+		info.arrayLayers = 2;
+		info.samples = VK_SAMPLE_COUNT_1_BIT;
+		info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		info.usage = usage_flags;
+		return info;
+	}
+
+	VkImageViewCreateInfo shadow_img_view_create_info(const VkFormat format, const VkImage image, const VkImageAspectFlags aspect_flags)
+	{
+		VkImageViewCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		info.pNext = nullptr;
+		info.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+		info.image = image;
+		info.format = format;
+		info.subresourceRange.baseMipLevel = 0;
+		info.subresourceRange.levelCount = 1;
+		info.subresourceRange.baseArrayLayer = 0;
+		info.subresourceRange.layerCount = 2;
+		info.subresourceRange.aspectMask = aspect_flags;
+		return info;
+	}
+
 	VkRenderingInfo shadow_map_rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& depth_attachment)
 	{
 		const auto render_area = VkRect2D{ VkOffset2D{0, 0}, render_extent };
@@ -71,11 +103,23 @@ namespace rhi_helpers {
 		render_info.pNext = nullptr;
 		render_info.renderArea = render_area;
 		render_info.layerCount = 1;
+		render_info.viewMask = 0b00000011;
 		render_info.colorAttachmentCount = 0;
 		render_info.pColorAttachments = nullptr;
 		render_info.pDepthAttachment = &depth_attachment;
 		render_info.pStencilAttachment = nullptr;
 		return render_info;
+	}
+
+	VkImageSubresourceRange create_shadow_img_subresource_range(const VkImageAspectFlags aspect_mask)
+	{
+		VkImageSubresourceRange subresource_range{};
+		subresource_range.aspectMask = aspect_mask;
+		subresource_range.baseMipLevel = 0;
+		subresource_range.levelCount = 1;
+		subresource_range.baseArrayLayer = 0;
+		subresource_range.layerCount = 2;
+		return subresource_range;
 	}
 
 	VkRenderingInfo rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& color_attachment,

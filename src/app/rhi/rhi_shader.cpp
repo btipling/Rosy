@@ -8,6 +8,13 @@ void shader_pipeline::with_shaders(const std::vector<char>& vert, const std::vec
 	shaders_create_info_.push_back(frag_object);
 }
 
+void shader_pipeline::with_shaders(const std::vector<char>& vert)
+{
+	const VkShaderCreateInfoEXT vert_object = rhi_helpers::create_shader_info(vert, VK_SHADER_STAGE_VERTEX_BIT, 0);
+	shaders_create_info_.push_back(vert_object);
+}
+
+
 VkResult shader_pipeline::build(const VkDevice device)
 {
 
@@ -20,14 +27,14 @@ VkResult shader_pipeline::build(const VkDevice device)
 		create_info.pushConstantRangeCount = 1;
 		create_info.pPushConstantRanges = &push_constant_range;
 	}
-	shaders.resize(2);
+	shaders.resize(shaders_create_info_.size());
 	if (const VkResult result = vkCreateShadersEXT(device, shaders_create_info_.size(), shaders_create_info_.data(), nullptr, shaders.data()); result != VK_SUCCESS) return result;
 	{
 		const auto obj_name = std::format("{}_vert", name);
 		const VkDebugUtilsObjectNameInfoEXT vert_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders.data()[0]), obj_name.c_str());
 		if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &vert_name); result != VK_SUCCESS) return result;
 	}
-	{
+	if (shaders.size() > 1) {
 		const auto obj_name = std::format("{}_frag", name);
 		const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SHADER_EXT, reinterpret_cast<uint64_t>(shaders.data()[1]), obj_name.c_str());
 		if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
@@ -61,20 +68,38 @@ VkResult shader_pipeline::shade(const VkCommandBuffer cmd) const
 		rhi_cmd::enable_blending_alpha_blend(cmd);
 		break;
 	}
-	constexpr VkShaderStageFlagBits stages[2] =
-	{
-		VK_SHADER_STAGE_VERTEX_BIT,
-		VK_SHADER_STAGE_FRAGMENT_BIT
-	};
-	vkCmdBindShadersEXT(cmd, 2, stages, shaders.data());
+	if (shaders.size() == 2) {
+		constexpr VkShaderStageFlagBits stages[2] =
+		{
+			VK_SHADER_STAGE_VERTEX_BIT,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		};
+		vkCmdBindShadersEXT(cmd, 2, stages, shaders.data());
 
-	constexpr VkShaderStageFlagBits unused_stages[3] =
+		constexpr VkShaderStageFlagBits unused_stages[3] =
+		{
+			VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+			VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+			VK_SHADER_STAGE_GEOMETRY_BIT
+		};
+		vkCmdBindShadersEXT(cmd, 3, unused_stages, nullptr);
+	} else
 	{
-		VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-		VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-		VK_SHADER_STAGE_GEOMETRY_BIT
-	};
-	vkCmdBindShadersEXT(cmd, 3, unused_stages, nullptr);
+		constexpr VkShaderStageFlagBits stages[1] =
+		{
+			VK_SHADER_STAGE_VERTEX_BIT,
+		};
+		vkCmdBindShadersEXT(cmd, 1, stages, shaders.data());
+
+		constexpr VkShaderStageFlagBits unused_stages[4] =
+		{
+			VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+			VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+			VK_SHADER_STAGE_GEOMETRY_BIT,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		};
+		vkCmdBindShadersEXT(cmd, 4, unused_stages, nullptr);
+	}
 	return VK_SUCCESS;
 }
 
