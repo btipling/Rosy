@@ -11,6 +11,7 @@ namespace ktx_sub_allocator
     struct allocation_info
     {
         VmaAllocation allocation;
+        VmaAllocationInfo info;
         VkDeviceSize map_size;
     };
 
@@ -45,13 +46,16 @@ namespace ktx_sub_allocator
             p_create_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         }
+        p_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
         p_create_info.memoryTypeBits = mem_req->memoryTypeBits;
         VmaAllocation allocation;
-        if (const VkResult result = vmaAllocateMemory(vma_allocator, mem_req, &p_create_info, &allocation, nullptr); result != VK_SUCCESS)
+        VmaAllocationInfo info;
+        if (const VkResult result = vmaAllocateMemory(vma_allocator, mem_req, &p_create_info, &allocation, &info); result != VK_SUCCESS)
         {
             return 0ull;
         }
         alloc_mem_c_wrapper_directory[alloc_id].allocation = allocation;
+        alloc_mem_c_wrapper_directory[alloc_id].info = info;
         alloc_mem_c_wrapper_directory[alloc_id].map_size = mem_req->size;
         *num_pages = 1ull;
 
