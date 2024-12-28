@@ -22,7 +22,7 @@ ShadowOutput shadowVertexMain(uint uiVertexId: SV_VertexID, int ViewIndex: SV_Vi
 
     ShadowOutput output;
     float4 posWorld = float4(v.position, 1.0);
-    output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
+    output.sv_position = mul(mul(sd.shadowproj, worldMat), posWorld);
     output.view_index = ViewIndex;
 
     return output;
