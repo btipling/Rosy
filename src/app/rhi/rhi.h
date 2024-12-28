@@ -30,7 +30,7 @@ public:
 	static void transition_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
 		VkImageLayout new_layout);
 	static void transition_shadow_map_image(VkCommandBuffer cmd, VkImage image, VkImageLayout current_layout,
-		VkImageLayout new_layout);
+		VkImageLayout new_layout, VkPipelineStageFlags2 src_stage_flags, VkPipelineStageFlags2 dst_stage_flags);
 	void debug() const;
 	~rhi();
 	rhi(const rhi&) = delete;

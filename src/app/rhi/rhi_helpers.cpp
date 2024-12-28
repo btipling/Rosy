@@ -48,6 +48,20 @@ namespace rhi_helpers {
 		return color_attachment;
 	}
 
+	VkRenderingAttachmentInfo shadow_attachment_info(const VkImageView view, const VkImageLayout layout)
+	{
+		VkRenderingAttachmentInfo depth_attachment{};
+		depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		depth_attachment.pNext = nullptr;
+		depth_attachment.imageView = view;
+		depth_attachment.imageLayout = layout;
+		depth_attachment.resolveMode = VK_RESOLVE_MODE_NONE;
+		depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depth_attachment.clearValue.depthStencil.depth = 0.0f;
+		return depth_attachment;
+	}
+
 	VkRenderingAttachmentInfo depth_attachment_info(const VkImageView view, const VkImageLayout layout)
 	{
 		VkRenderingAttachmentInfo depth_attachment{};
@@ -293,5 +307,57 @@ namespace rhi_helpers {
 		pl_info.setLayoutCount = sl_count;
 		pl_info.pSetLayouts = set_layouts;
 		return pl_info;
+	}
+
+	VkClearAttachment create_clear_attachment()
+	{
+		VkClearColorValue clear_color_value{};
+		clear_color_value.float32[0] = 1.f;
+		clear_color_value.float32[1] = 0.f;
+		clear_color_value.float32[2] = 0.f;
+		clear_color_value.float32[3] = 0.f;
+		clear_color_value.int32[0] = 1;
+		clear_color_value.int32[1] = 0;
+		clear_color_value.int32[2] = 0;
+		clear_color_value.int32[3] = 0;
+		clear_color_value.uint32[0] = 1;
+		clear_color_value.uint32[1] = 0;
+		clear_color_value.uint32[2] = 0;
+		clear_color_value.uint32[3] = 0;
+
+		VkClearDepthStencilValue clear_depth_stencil_value{};
+		clear_depth_stencil_value.depth = 0.f;
+		clear_depth_stencil_value.stencil = 0;
+
+		VkClearValue clear_value{};
+		clear_value.color = clear_color_value;
+		clear_value.depthStencil = clear_depth_stencil_value;
+
+		VkClearAttachment attachment{};
+		attachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		attachment.colorAttachment = 0;
+		attachment.clearValue = clear_value;
+		return attachment;
+	}
+
+	VkClearRect create_clear_rectangle(const VkExtent3D img_extent)
+	{
+		VkOffset2D offset{};
+		offset.x = 0;
+		offset.y = 0;
+
+		VkExtent2D extent{};
+		extent.width = img_extent.width;
+		extent.height = img_extent.height;
+
+		VkRect2D rect{};
+		rect.offset = offset;
+		rect.extent = extent;
+
+		VkClearRect clear_rect{};
+		clear_rect.rect = rect;
+		clear_rect.baseArrayLayer = 0;
+		clear_rect.layerCount = 1;
+		return clear_rect;
 	}
 }

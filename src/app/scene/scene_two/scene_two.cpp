@@ -75,8 +75,8 @@ rh::result scene_two::depth(const rh::ctx ctx)
 {
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
-	if (!ctx.rhi.command_buffer.has_value()) return rh::result::error;
-	const VkCommandBuffer cmd = ctx.rhi.command_buffer.value();
+	if (!ctx.rhi.render_command_buffer.has_value()) return rh::result::error;
+	const VkCommandBuffer cmd = ctx.rhi.render_command_buffer.value();
 	const VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
 	update_scene(ctx);
@@ -98,10 +98,10 @@ rh::result scene_two::draw(const rh::ctx ctx)
 {
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
-	if (!ctx.rhi.command_buffer.has_value()) return rh::result::error;
+	if (!ctx.rhi.render_command_buffer.has_value()) return rh::result::error;
 
 	{
-		const VkCommandBuffer cmd = ctx.rhi.command_buffer.value();
+		const VkCommandBuffer cmd = ctx.rhi.render_command_buffer.value();
 		const VkExtent2D frame_extent = ctx.rhi.frame_extent;
 		// Anime skybox
 		{

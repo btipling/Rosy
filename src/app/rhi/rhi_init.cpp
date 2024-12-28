@@ -205,10 +205,14 @@ void rhi::deinit()
 	for (frame_data fd : frame_datas_)
 	{
 		const VkDevice device = opt_device.value();
+		if (fd.multiview_fence.has_value()) vkDestroyFence(device, fd.multiview_fence.value(), nullptr);
 		if (fd.in_flight_fence.has_value()) vkDestroyFence(device, fd.in_flight_fence.value(), nullptr);
 		if (fd.image_available_semaphore.has_value())
 			vkDestroySemaphore(
 				device, fd.image_available_semaphore.value(), nullptr);
+		if (fd.multiview_semaphore.has_value())
+			vkDestroySemaphore(
+				device, fd.multiview_semaphore.value(), nullptr);
 		if (fd.render_finished_semaphore.has_value())
 			vkDestroySemaphore(
 				device, fd.render_finished_semaphore.value(), nullptr);
@@ -998,17 +1002,36 @@ VkResult rhi::init_command_buffers()
 {
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		VkCommandBufferAllocateInfo alloc_info{};
-		alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		alloc_info.commandPool = frame_datas_[i].command_pool.value();
-		alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		alloc_info.commandBufferCount = 1;
+		{
+			// multi view command buffer
+			// render command buffer
+			VkCommandBufferAllocateInfo alloc_info{};
+			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			alloc_info.commandPool = frame_datas_[i].command_pool.value();
+			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+			alloc_info.commandBufferCount = 1;
 
-		VkCommandBuffer command_buffer{};
-		if (const VkResult result = vkAllocateCommandBuffers(opt_device.value(), &alloc_info, &command_buffer); result !=
-			VK_SUCCESS)
-			return result;
-		frame_datas_[i].command_buffer = command_buffer;
+			VkCommandBuffer command_buffer{};
+			if (const VkResult result = vkAllocateCommandBuffers(opt_device.value(), &alloc_info, &command_buffer); result !=
+				VK_SUCCESS)
+				return result;
+			frame_datas_[i].multiview_command_buffer = command_buffer;
+		}
+
+		{
+			// render command buffer
+			VkCommandBufferAllocateInfo alloc_info{};
+			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			alloc_info.commandPool = frame_datas_[i].command_pool.value();
+			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+			alloc_info.commandBufferCount = 1;
+
+			VkCommandBuffer command_buffer{};
+			if (const VkResult result = vkAllocateCommandBuffers(opt_device.value(), &alloc_info, &command_buffer); result !=
+				VK_SUCCESS)
+				return result;
+			frame_datas_[i].render_command_buffer = command_buffer;
+		}
 	}
 	return VK_SUCCESS;
 }
@@ -1038,10 +1061,24 @@ VkResult rhi::init_sync_objects()
 			if (result != VK_SUCCESS) return result;
 			frame_datas_[i].render_finished_semaphore = semaphore;
 		}
-		VkFence fence;
-		result = vkCreateFence(device, &fence_info, nullptr, &fence);
-		if (result != VK_SUCCESS) return result;
-		frame_datas_[i].in_flight_fence = fence;
+		{
+			VkSemaphore semaphore;
+			result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
+			if (result != VK_SUCCESS) return result;
+			frame_datas_[i].multiview_semaphore = semaphore;
+		}
+		{
+			VkFence fence;
+			result = vkCreateFence(device, &fence_info, nullptr, &fence);
+			if (result != VK_SUCCESS) return result;
+			frame_datas_[i].multiview_fence = fence;
+		}
+		{
+			VkFence fence;
+			result = vkCreateFence(device, &fence_info, nullptr, &fence);
+			if (result != VK_SUCCESS) return result;
+			frame_datas_[i].in_flight_fence = fence;
+		}
 	}
 	{
 		VkFence fence;
