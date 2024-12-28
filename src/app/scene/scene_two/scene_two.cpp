@@ -75,8 +75,8 @@ rh::result scene_two::depth(const rh::ctx ctx)
 {
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
-	if (!ctx.rhi.render_command_buffer.has_value()) return rh::result::error;
-	const VkCommandBuffer cmd = ctx.rhi.render_command_buffer.value();
+	if (!ctx.rhi.multiview_command_buffer.has_value()) return rh::result::error;
+	const VkCommandBuffer mv_cmd = ctx.rhi.multiview_command_buffer.value();
 	const VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
 	update_scene(ctx);
@@ -86,7 +86,7 @@ rh::result scene_two::depth(const rh::ctx ctx)
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;
 		m_ctx.wire_frame = toggle_wire_frame_;
-		m_ctx.cmd = cmd;
+		m_ctx.multiview_cmd = mv_cmd;
 		m_ctx.extent = frame_extent;
 		if (const auto res = scene_graph_->generate_shadows(m_ctx); res != rh::result::ok) return res;
 	}
@@ -101,7 +101,7 @@ rh::result scene_two::draw(const rh::ctx ctx)
 	if (!ctx.rhi.render_command_buffer.has_value()) return rh::result::error;
 
 	{
-		const VkCommandBuffer cmd = ctx.rhi.render_command_buffer.value();
+		const VkCommandBuffer render_cmd = ctx.rhi.render_command_buffer.value();
 		const VkExtent2D frame_extent = ctx.rhi.frame_extent;
 		// Anime skybox
 		{
@@ -111,7 +111,7 @@ rh::result scene_two::draw(const rh::ctx ctx)
 			m_ctx.ctx = &ctx;
 			m_ctx.wire_frame = toggle_wire_frame_;
 			m_ctx.depth_enabled = false;
-			m_ctx.cmd = cmd;
+			m_ctx.render_cmd = render_cmd;
 			m_ctx.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;;
 			m_ctx.extent = frame_extent;
 			m_ctx.world_transform = m;
@@ -123,7 +123,7 @@ rh::result scene_two::draw(const rh::ctx ctx)
 			mesh_ctx m_ctx{};
 			m_ctx.ctx = &ctx;
 			m_ctx.wire_frame = toggle_wire_frame_;
-			m_ctx.cmd = cmd;
+			m_ctx.render_cmd = render_cmd;
 			m_ctx.extent = frame_extent;
 			m_ctx.view_proj = scene_data_.view_projection;
 			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;

@@ -69,7 +69,7 @@ VkResult rhi::draw_ui()
 	return VK_SUCCESS;
 }
 
-std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
+std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event)
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
 	const VkExtent2D shadow_map_extent = {
@@ -84,6 +84,44 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 	};
 	if (frame_datas_.size() > 0) {
 		rhi_ctx.render_command_buffer = frame_datas_[current_frame_].render_command_buffer;
+		rhi_ctx.multiview_command_buffer = std::nullopt;
+	}
+	if (descriptor_sets.has_value()) {
+		rhi_ctx.descriptor_sets = descriptor_sets.value().get();
+	}
+	if (buffer.has_value())
+	{
+		rhi_ctx.data = buffer.value().get();
+	}
+	SDL_Time ticks = 0;
+	if (!SDL_GetCurrentTime(&ticks))
+	{
+		rosy_utils::debug_print_a("failed to get current ticks!\n");
+	}
+	const rh::ctx ctx = {
+		.rhi = rhi_ctx,
+		.sdl_event = event,
+		.current_time = static_cast<double>(ticks),
+	};
+	return ctx;
+}
+
+std::expected<rh::ctx, VkResult> rhi::current_multiview_ctx(const SDL_Event* event)
+{
+	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
+	const VkExtent2D shadow_map_extent = {
+		.width = shadow_map_image_.value().image_extent.width,
+		.height = shadow_map_image_.value().image_extent.height,
+	};
+	rh::rhi rhi_ctx = {
+		.device = opt_device.value(),
+		.allocator = opt_allocator.value(),
+		.frame_extent = swapchain_extent,
+		.shadow_map_extent = shadow_map_extent,
+	};
+	if (frame_datas_.size() > 0) {
+		rhi_ctx.render_command_buffer = std::nullopt;
+		rhi_ctx.multiview_command_buffer = frame_datas_[current_frame_].multiview_command_buffer;
 	}
 	if (descriptor_sets.has_value()) {
 		rhi_ctx.descriptor_sets = descriptor_sets.value().get();
@@ -111,6 +149,7 @@ VkResult rhi::begin_frame()
 		opt_multiview_semaphore, opt_render_finished_semaphore, opt_multiview_fence, 
 		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
+		if (!opt_multiview_command_buffer.has_value()) return VK_NOT_READY;
 		if (!opt_render_command_buffer.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
 		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
@@ -118,7 +157,8 @@ VkResult rhi::begin_frame()
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
 
-	const VkCommandBuffer cmd = opt_render_command_buffer.value();
+	const VkCommandBuffer mv_cmd = opt_multiview_command_buffer.value();
+	const VkCommandBuffer render_cmd = opt_render_command_buffer.value();
 	const VkSemaphore image_available = opt_image_available_semaphore.value();
 	const VkFence fence = opt_in_flight_fence.value();
 
@@ -146,13 +186,17 @@ VkResult rhi::begin_frame()
 		// 1. The submit queue call has been made but also
 		// 2. The wait semaphore given to the submit queue has been signaled, which
 		// 3. Doesn't happen until the image we requested with vkAcquireNextImageKHR has been made available
-		result = vkResetCommandBuffer(cmd, 0);
+		result = vkResetCommandBuffer(mv_cmd, 0);
+		if (result != VK_SUCCESS) return result;
+		result = vkResetCommandBuffer(render_cmd, 0);
 		if (result != VK_SUCCESS) return result;
 
 		VkCommandBufferBeginInfo begin_info{};
 		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		result = vkBeginCommandBuffer(cmd, &begin_info);
+		result = vkBeginCommandBuffer(mv_cmd, &begin_info);
+		if (result != VK_SUCCESS) return result;
+		result = vkBeginCommandBuffer(render_cmd, &begin_info);
 		if (result != VK_SUCCESS) return result;
 	}
 	return VK_SUCCESS;
@@ -165,36 +209,36 @@ VkResult rhi::shadow_pass()
 		opt_multiview_semaphore, opt_render_finished_semaphore, opt_multiview_fence,
 		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
-		if (!opt_render_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_multiview_command_buffer.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
 		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
 		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
 
-	const VkCommandBuffer cmd = opt_render_command_buffer.value();
+	const VkCommandBuffer mv_cmd = opt_multiview_command_buffer.value();
 	const allocated_image shadow_map_image = shadow_map_image_.value();
 
 	const VkExtent2D shadow_map_extent = {
 		.width = shadow_map_image.image_extent.width,
 		.height = shadow_map_image.image_extent.height,
 	};
-	transition_shadow_map_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
+	transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
 	{
 		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::shadow_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
 		 //begin clearing
-		vkCmdBeginRendering(cmd, &render_info);
+		vkCmdBeginRendering(mv_cmd, &render_info);
 		const VkClearAttachment clear_attachment = rhi_helpers::create_clear_attachment();
 		const VkClearRect clear_rect = rhi_helpers::create_clear_rectangle(shadow_map_image.image_extent);
-		vkCmdClearAttachments(cmd, 1, &clear_attachment, 1, &clear_rect);
-		vkCmdEndRendering(cmd);
+		vkCmdClearAttachments(mv_cmd, 1, &clear_attachment, 1, &clear_rect);
+		vkCmdEndRendering(mv_cmd);
 //  = 
-		transition_shadow_map_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+		transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, 
 			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT);
 		// begin shadow pass
-		vkCmdBeginRendering(cmd, &render_info);
+		vkCmdBeginRendering(mv_cmd, &render_info);
 	}
 	return VK_SUCCESS;
 }
@@ -208,6 +252,7 @@ VkResult rhi::render_pass()
 		opt_multiview_semaphore, opt_render_finished_semaphore, opt_multiview_fence,
 		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
+		if (!opt_multiview_command_buffer.has_value()) return VK_NOT_READY;
 		if (!opt_render_command_buffer.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
 		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
@@ -215,30 +260,31 @@ VkResult rhi::render_pass()
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
 
-	VkCommandBuffer cmd = opt_render_command_buffer.value();
+	VkCommandBuffer mv_cmd = opt_multiview_command_buffer.value();
+	VkCommandBuffer render_cmd = opt_render_command_buffer.value();
 
 
 	// end shadow pass 
-	vkCmdEndRendering(cmd);
+	vkCmdEndRendering(mv_cmd);
 	const allocated_image shadow_map_image = shadow_map_image_.value();
-	transition_shadow_map_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+	transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 		VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
 
 	{
 		// Clear image. This transition means that all the commands recorded before now happen before
 		// any calls after. The calls themselves before this may have executed in any order up until this point.
-		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+		transition_image(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 		// vkCmdClearColorImage is guaranteed to happen after previous calls.
 		VkClearColorValue clear_value;
 		clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
 		VkImageSubresourceRange subresource_range = rhi_helpers::create_img_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
-		vkCmdClearColorImage(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
+		vkCmdClearColorImage(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
 	}
 	{
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
-		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		transition_image(cmd, depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		transition_image(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		transition_image(render_cmd, depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
 			VkRenderingAttachmentInfo color_attachment = rhi_helpers::attachment_info(
@@ -247,7 +293,7 @@ VkResult rhi::render_pass()
 				depth_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 			VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent, color_attachment, depth_attachment);
 			// begin render pass
-			vkCmdBeginRendering(cmd, &render_info);
+			vkCmdBeginRendering(render_cmd, &render_info);
 		}
 	}
 

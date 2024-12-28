@@ -6,7 +6,8 @@
 class rhi
 {
 public:
-	std::expected<rh::ctx, VkResult> current_frame_data(const SDL_Event* event);
+	std::expected<rh::ctx, VkResult> current_render_ctx(const SDL_Event* event);
+	std::expected<rh::ctx, VkResult> current_multiview_ctx(const SDL_Event* event);
 	std::optional<VkDevice> opt_device = std::nullopt;
 	std::optional<VmaAllocator> opt_allocator = std::nullopt;
 	std::optional<std::unique_ptr<rhi_data>> buffer;

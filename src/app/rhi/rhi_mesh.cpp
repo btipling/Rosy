@@ -250,11 +250,11 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 rh::result mesh_scene::draw(mesh_ctx ctx)
 {
 	if (meshes.size() == 0) return rh::result::ok;
-	auto cmd = ctx.cmd;
+	auto render_cmd = ctx.render_cmd;
 
 	{
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
-		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
+		vkCmdBeginDebugUtilsLabelEXT(render_cmd, &mesh_draw_label);
 	}
 
 	shader_pipeline m_shaders = shaders.value();
@@ -264,23 +264,23 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 		m_shaders.depth_enabled = ctx.depth_enabled;
 		m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
 		m_shaders.front_face = ctx.front_face;
-		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+		if (VkResult result = m_shaders.shade(render_cmd); result != VK_SUCCESS) return rh::result::error;
 	}
 
 	{
 		VkDescriptorSet desc = ctx.ctx->rhi.descriptor_sets.value()->descriptor_set.value();
-		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, &desc, 0, nullptr);
+		vkCmdBindDescriptorSets(render_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, &desc, 0, nullptr);
 	}
 
 	for (auto ro : draw_nodes_) {
 		gpu_draw_push_constants pc = push_constants(ro);
 		m_shaders.shader_constants = &pc;
-		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-		vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index, 0, 0);
+		if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;
+		vkCmdBindIndexBuffer(render_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(render_cmd, ro.index_count, 1, ro.first_index, 0, 0);
 	}
 
-	vkCmdEndDebugUtilsLabelEXT(cmd);
+	vkCmdEndDebugUtilsLabelEXT(render_cmd);
 
 
 	// Debug
@@ -293,11 +293,11 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 {
 	if (meshes.size() == 0) return rh::result::ok;
-	auto cmd = ctx.cmd;
+	auto mv_cmd = ctx.multiview_cmd;
 
 	{
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
-		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
+		vkCmdBeginDebugUtilsLabelEXT(mv_cmd, &mesh_draw_label);
 	}
 
 	shader_pipeline m_shaders = shadow_shaders.value();
@@ -307,19 +307,19 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 		m_shaders.depth_enabled = true;
 		m_shaders.culling_enabled = false;
 		m_shaders.front_face = ctx.front_face;
-		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+		if (VkResult result = m_shaders.shade(mv_cmd); result != VK_SUCCESS) return rh::result::error;
 	}
 
 	for (auto ro : draw_nodes_) {
 		gpu_draw_push_constants pc = push_constants(ro);
 		m_shaders.shader_constants = &pc;
 		m_shaders.shader_constants_size = sizeof(pc);
-		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-		vkCmdBindIndexBuffer(cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmd, ro.index_count, 1, ro.first_index, 0, 0);
+		if (VkResult result = m_shaders.push(mv_cmd); result != VK_SUCCESS) return rh::result::error;
+		vkCmdBindIndexBuffer(mv_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(mv_cmd, ro.index_count, 1, ro.first_index, 0, 0);
 	}
 
-	vkCmdEndDebugUtilsLabelEXT(cmd);
+	vkCmdEndDebugUtilsLabelEXT(mv_cmd);
 	return rh::result::ok;
 };
 

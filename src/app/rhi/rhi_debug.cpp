@@ -39,13 +39,13 @@ void debug_gfx::deinit(const rh::ctx& ctx) const
 rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 {
 	if (lines.size() == 0) return rh::result::ok;
-	auto cmd = ctx.cmd;
+	auto render_cmd = ctx.render_cmd;
 
 	{
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
-		vkCmdBeginDebugUtilsLabelEXT(cmd, &mesh_draw_label);
+		vkCmdBeginDebugUtilsLabelEXT(render_cmd, &mesh_draw_label);
 	}
-	vkCmdSetLineWidth(cmd, 5.f);
+	vkCmdSetLineWidth(render_cmd, 5.f);
 
 	shader_pipeline m_shaders = shaders.value();
 	{
@@ -53,7 +53,7 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 		m_shaders.wire_frames_enabled = ctx.wire_frame;
 		m_shaders.depth_enabled = ctx.depth_enabled;
 		m_shaders.front_face = ctx.front_face;
-		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
+		if (VkResult result = m_shaders.shade(render_cmd); result != VK_SUCCESS) return rh::result::error;
 	}
 
 	for (auto line : lines) {
@@ -61,8 +61,8 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 		l.world_matrix = ctx.view_proj * l.world_matrix;
 		m_shaders.shader_constants = &l;
 		m_shaders.shader_constants_size = sizeof(line);
-		if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-		vkCmdDraw(cmd, 2, 1, 0, 0);
+		if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;
+		vkCmdDraw(render_cmd, 2, 1, 0, 0);
 	}
 	if (shadow_frustum.has_value()) {
 		for (auto line : shadow_box_lines) {
@@ -70,12 +70,12 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 			shadow_line.world_matrix = ctx.view_proj * shadow_frustum.value();
 			m_shaders.shader_constants = &shadow_line;
 			m_shaders.shader_constants_size = sizeof(shadow_line);
-			if (VkResult result = m_shaders.push(cmd); result != VK_SUCCESS) return rh::result::error;
-			vkCmdDraw(cmd, 2, 1, 0, 0);
+			if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;
+			vkCmdDraw(render_cmd, 2, 1, 0, 0);
 		}
 	}
 
-	vkCmdEndDebugUtilsLabelEXT(cmd);
+	vkCmdEndDebugUtilsLabelEXT(render_cmd);
 	return rh::result::ok;
 };
 

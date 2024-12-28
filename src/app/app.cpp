@@ -77,7 +77,7 @@ int app::deinit()
 	{
 		// Deinit scene_
 		rh::ctx ctx;
-		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(nullptr); opt_ctx.has_value())
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_render_ctx(nullptr); opt_ctx.has_value())
 			ctx = opt_ctx.value();
 		else rosy_utils::debug_print_a("no available frame data\n");
 		if (scene_ != nullptr) {
@@ -101,7 +101,7 @@ void app::change_scene()
 	{
 		// Deinit current scene_
 		rh::ctx ctx;
-		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(nullptr); opt_ctx.has_value())
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_render_ctx(nullptr); opt_ctx.has_value())
 		{
 			ctx = opt_ctx.value();
 		}
@@ -197,7 +197,7 @@ void app::render_ui(const SDL_Event* event)
 	if (const VkResult result = renderer.draw_ui(); result != VK_SUCCESS) return end_rendering("rhi draw ui failed\n");
 	{
 		rh::ctx ctx;
-		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value()) ctx = opt_ctx.value();
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_render_ctx(event); opt_ctx.has_value()) ctx = opt_ctx.value();
 		else return end_rendering("no available frame data\n");
 		if (scene_ != nullptr)
 		{
@@ -224,7 +224,7 @@ void app::render_scene(const SDL_Event* event)
 	rh::ctx ctx;
 	{
 		// Init render context
-		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_frame_data(event); opt_ctx.has_value()) ctx = opt_ctx.value();
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_multiview_ctx(event); opt_ctx.has_value()) ctx = opt_ctx.value();
 		else return end_rendering("no available frame data\n");
 		ctx.mouse_enabled = !show_cursor_.state;
 	}
@@ -249,6 +249,12 @@ void app::render_scene(const SDL_Event* event)
 	}
 	if (const auto scene_result = scene_->depth(ctx); scene_result != rh::result::ok) return end_rendering("scene_ depth failed\n");
 
+	{
+		// Init render context
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_render_ctx(event); opt_ctx.has_value()) ctx = opt_ctx.value();
+		else return end_rendering("no available frame data\n");
+		ctx.mouse_enabled = !show_cursor_.state;
+	}
 	// Render Scene
 	if (const VkResult result = renderer.render_pass();  result != VK_SUCCESS) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
