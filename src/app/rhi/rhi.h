@@ -78,6 +78,7 @@ private:
 	std::optional<allocated_image> draw_image_;
 	std::optional<allocated_image> depth_image_;
 	std::optional<allocated_image> shadow_map_image_;
+	std::optional<allocated_image> shadow_map_color_image_;
 	VkExtent2D draw_extent_ = {};
 	float render_scale_ = 1.f;
 

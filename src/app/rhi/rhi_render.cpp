@@ -116,8 +116,8 @@ std::expected<rh::ctx, VkResult> rhi::current_multiview_ctx(const SDL_Event* eve
 	rh::rhi rhi_ctx = {
 		.device = opt_device.value(),
 		.allocator = opt_allocator.value(),
-		.frame_extent = swapchain_extent,
-		.shadow_map_extent = shadow_map_extent,
+		.frame_extent = draw_extent_,
+		.shadow_map_extent = draw_extent_,
 	};
 	if (frame_datas_.size() > 0) {
 		rhi_ctx.render_command_buffer = std::nullopt;
@@ -216,15 +216,23 @@ VkResult rhi::shadow_pass()
 
 	const VkCommandBuffer mv_cmd = opt_multiview_command_buffer.value();
 	const allocated_image shadow_map_image = shadow_map_image_.value();
+	const allocated_image shadow_map_color_image = shadow_map_color_image_.value();
 
 	const VkExtent2D shadow_map_extent = {
 		.width = shadow_map_image.image_extent.width,
 		.height = shadow_map_image.image_extent.height,
 	};
+
+	transition_image(mv_cmd, shadow_map_color_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 	transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
 	{
+		VkRenderingAttachmentInfo color_attachment = rhi_helpers::attachment_info(shadow_map_color_image.image_view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::shadow_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
+		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, color_attachment, depth_attachment);
+		VkImageSubresourceRange subresource_range = rhi_helpers::create_img_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
+		VkClearColorValue clear_value;
+		clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
+		vkCmdClearColorImage(mv_cmd, shadow_map_color_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
 		 //begin clearing
 		vkCmdBeginRendering(mv_cmd, &render_info);
 		const VkClearAttachment clear_attachment = rhi_helpers::create_clear_attachment();
@@ -232,9 +240,8 @@ VkResult rhi::shadow_pass()
 		vkCmdClearAttachments(mv_cmd, 1, &clear_attachment, 1, &clear_rect);
 		vkCmdEndRendering(mv_cmd);
 //  = 
-		transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, 
-			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT);
+		transition_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		transition_image(mv_cmd, shadow_map_color_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		// begin shadow pass
 		vkCmdBeginRendering(mv_cmd, &render_info);
 	}
@@ -379,38 +386,41 @@ VkResult rhi::end_frame()
 		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
-	VkCommandBuffer render_cmd = opt_render_command_buffer.value();
+	VkCommandBuffer mv_cmd = opt_multiview_command_buffer.value();
 	VkSemaphore multiview_pass = opt_multiview_semaphore.value();
-	VkSemaphore rendered_finished = opt_render_finished_semaphore.value();
-	VkFence render_fence = opt_in_flight_fence.value();
+	VkSemaphore image_available = opt_image_available_semaphore.value();
+	//VkSemaphore rendered_finished = opt_render_finished_semaphore.value();
+	//VkFence render_fence = opt_in_flight_fence.value();
+	VkFence multiview_fence = opt_multiview_fence.value();
 	uint32_t image_index = current_swapchain_image_index_;
 	VkImage image = swap_chain_images_[image_index];
 	VkImageView image_view = swap_chain_image_views_[image_index];
 	current_swapchain_image_index_ = image_index;
 
-	allocated_image draw_image = draw_image_.value();
+	//allocated_image draw_image = draw_image_.value();
+	allocated_image shadow_map_color_image = shadow_map_color_image_.value();
 	{
 		VkResult result;
 		// end render pass
-		vkCmdEndRendering(render_cmd);
+		vkCmdEndRendering(mv_cmd);
 		{
 			// blit the draw image to the swapchain image
-			transition_image(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			transition_image(mv_cmd, shadow_map_color_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			rhi_helpers::blit_images(render_cmd, draw_image.image, image, draw_extent_, swapchain_extent);
+			transition_image(mv_cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			rhi_helpers::blit_images(mv_cmd, shadow_map_color_image.image, image, draw_extent_, swapchain_extent);
 		}
 		{
 			// draw ui onto swapchain image
-			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			transition_image(mv_cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			result = render_ui(render_cmd, image_view);
+			result = render_ui(mv_cmd, image_view);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
 			// Transition swapchain image for presentation
-			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-			result = vkEndCommandBuffer(render_cmd);
+			transition_image(mv_cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			result = vkEndCommandBuffer(mv_cmd);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
@@ -418,13 +428,13 @@ VkResult rhi::end_frame()
 			VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
 			cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
 			cmd_buffer_submit_info.pNext = nullptr;
-			cmd_buffer_submit_info.commandBuffer = render_cmd;
+			cmd_buffer_submit_info.commandBuffer = mv_cmd;
 			cmd_buffer_submit_info.deviceMask = 0;
 
 			VkSemaphoreSubmitInfo wait_info{};
 			wait_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			wait_info.pNext = nullptr;
-			wait_info.semaphore = multiview_pass;
+			wait_info.semaphore = image_available;
 			wait_info.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
 			wait_info.deviceIndex = 0;
 			wait_info.value = 1;
@@ -432,7 +442,7 @@ VkResult rhi::end_frame()
 			VkSemaphoreSubmitInfo signal_info{};
 			signal_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			signal_info.pNext = nullptr;
-			signal_info.semaphore = rendered_finished;
+			signal_info.semaphore = multiview_pass;
 			signal_info.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
 			signal_info.deviceIndex = 0;
 			signal_info.value = 1;
@@ -456,7 +466,7 @@ VkResult rhi::end_frame()
 			submit_info.pSignalSemaphoreInfos = &signal_info;
 			submit_info.commandBufferInfoCount = 1;
 			submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
-			result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, render_fence);
+			result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, multiview_fence);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
@@ -466,7 +476,7 @@ VkResult rhi::end_frame()
 			present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 			present_info.waitSemaphoreCount = 1;
 			// Present is waiting for the submit queue above to signal `rendered_finished`
-			present_info.pWaitSemaphores = &rendered_finished;
+			present_info.pWaitSemaphores = &multiview_pass;
 			present_info.swapchainCount = 1;
 			present_info.pSwapchains = swap_chains;
 			present_info.pImageIndices = &image_index;

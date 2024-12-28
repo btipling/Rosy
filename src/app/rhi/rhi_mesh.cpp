@@ -130,10 +130,12 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
 	std::vector<char> scene_vertex_shader;
+	std::vector<char> scene_fragment_shader;
 	shadow_map_extent_ = ctx.rhi.shadow_map_extent;
 	try
 	{
 		scene_vertex_shader = read_file(shadow_vertex_path);
+		scene_fragment_shader = read_file(shadow_vertex_path);
 	}
 	catch (const std::exception& e)
 	{
@@ -144,7 +146,7 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 	{
 		shader_pipeline sp = {};
 		sp.name = std::format("shadows {}", name);
-		sp.with_shaders(scene_vertex_shader);
+		sp.with_shaders(scene_vertex_shader, scene_fragment_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shadow_shaders = sp;
 	}
@@ -292,13 +294,20 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 
 rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 {
-	if (meshes.size() == 0) return rh::result::ok;
+	//if (meshes.size() == 0) return rh::result::ok;
 	auto mv_cmd = ctx.multiview_cmd;
 
 	{
-		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
+		float label_color[4] = { 1.0f, 0.0f, 1.0f, 1.0f };
+		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label("triangle", label_color);
 		vkCmdBeginDebugUtilsLabelEXT(mv_cmd, &mesh_draw_label);
 	}
+	//rhi_cmd::set_rendering_defaults(mv_cmd);
+	//rhi_cmd::toggle_culling(mv_cmd, false, VK_FRONT_FACE_CLOCKWISE);
+	//rhi_cmd::toggle_wire_frame(mv_cmd, false);
+	//rhi_cmd::set_view_port(mv_cmd, ctx.extent);
+	//rhi_cmd::toggle_depth(mv_cmd, true);
+	//rhi_cmd::disable_blending(mv_cmd);
 
 	shader_pipeline m_shaders = shadow_shaders.value();
 	{
@@ -310,14 +319,16 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 		if (VkResult result = m_shaders.shade(mv_cmd); result != VK_SUCCESS) return rh::result::error;
 	}
 
-	for (auto ro : draw_nodes_) {
-		gpu_draw_push_constants pc = push_constants(ro);
-		m_shaders.shader_constants = &pc;
-		m_shaders.shader_constants_size = sizeof(pc);
-		if (VkResult result = m_shaders.push(mv_cmd); result != VK_SUCCESS) return rh::result::error;
-		vkCmdBindIndexBuffer(mv_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(mv_cmd, ro.index_count, 1, ro.first_index, 0, 0);
-	}
+	//for (auto ro : draw_nodes_) {
+	//	gpu_draw_push_constants pc = push_constants(ro);
+	//	m_shaders.shader_constants = &pc;
+	//	m_shaders.shader_constants_size = sizeof(pc);
+	//	if (VkResult result = m_shaders.push(mv_cmd); result != VK_SUCCESS) return rh::result::error;
+	//	vkCmdBindIndexBuffer(mv_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+	//	vkCmdDrawIndexed(mv_cmd, ro.index_count, 1, ro.first_index, 0, 0);
+	//}
+
+	vkCmdDraw(mv_cmd, 3, 1, 0, 0);
 
 	vkCmdEndDebugUtilsLabelEXT(mv_cmd);
 	return rh::result::ok;

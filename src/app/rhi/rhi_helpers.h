@@ -12,7 +12,8 @@ namespace rhi_helpers {
 
 	VkImageCreateInfo shadow_img_create_info(VkFormat format, VkImageUsageFlags usage_flags, VkExtent3D extent);
 	VkImageViewCreateInfo shadow_img_view_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspect_flags);
-	VkRenderingInfo shadow_map_rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& depth_attachment);
+	VkRenderingInfo shadow_map_rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& color_attachment,
+		const VkRenderingAttachmentInfo& depth_attachment);
 	VkImageSubresourceRange create_shadow_img_subresource_range(VkImageAspectFlags aspect_mask);
 
 	void blit_images(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent2D src_size,

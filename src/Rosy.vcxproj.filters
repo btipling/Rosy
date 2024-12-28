@@ -276,6 +276,9 @@
     <None Include="shaders\skybox_cube.slang">
       <Filter>Resource Files\shaders</Filter>
     </None>
+    <None Include="shaders\triangle.slang">
+      <Filter>Resource Files\shaders\data</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\SDL3.lib">

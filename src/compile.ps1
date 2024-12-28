@@ -7,3 +7,4 @@ if (-not (Test-Path -Path "out")) {
 & "slangc.exe" shaders/skybox.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/skybox.spv 
 & "slangc.exe" shaders/mesh.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/mesh.spv 
 & "slangc.exe" shaders/debug.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/debug.spv 
+& "slangc.exe" shaders/triangle.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/triangle.spv 

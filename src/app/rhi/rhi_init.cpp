@@ -227,13 +227,18 @@ void rhi::deinit()
 			vkDestroyImageView(opt_device.value(), depth_image.image_view, nullptr);
 			vmaDestroyImage(opt_allocator.value(), depth_image.image, depth_image.allocation);
 		}
+		if (shadow_map_color_image_.has_value())
+		{
+			const allocated_image draw_image = shadow_map_color_image_.value();
+			vkDestroyImageView(opt_device.value(), draw_image.image_view, nullptr);
+			vmaDestroyImage(opt_allocator.value(), draw_image.image, draw_image.allocation);
+		}
 		if (depth_image_.has_value())
 		{
 			const allocated_image depth_image = depth_image_.value();
 			vkDestroyImageView(opt_device.value(), depth_image.image_view, nullptr);
 			vmaDestroyImage(opt_allocator.value(), depth_image.image, depth_image.allocation);
 		}
-
 		if (draw_image_.has_value())
 		{
 			const allocated_image draw_image = draw_image_.value();
@@ -920,21 +925,52 @@ VkResult rhi::init_draw_image()
 		if (result != VK_SUCCESS) return result;
 		depth_image_ = depth_image;
 	}
+	//VkExtent3D shadow_map_image_extent = {
+	//	.width = 1024,
+	//	.height = 1024,
+	//	.depth = 1
+	//};
+	{
+		// Multiview image creation.
+		allocated_image draw_image{};
+		draw_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		//draw_image.image_extent = shadow_map_image_extent;
+		draw_image.image_extent = draw_image_extent;
+
+		VkImageUsageFlags draw_image_usages{};
+		draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+		draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+		//VkImageCreateInfo draw_info = rhi_helpers::shadow_img_create_info(draw_image.image_format, draw_image_usages, shadow_map_image_extent);
+		VkImageCreateInfo draw_info = rhi_helpers::shadow_img_create_info(draw_image.image_format, draw_image_usages, draw_image_extent);
+
+		vmaCreateImage(opt_allocator.value(), &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation,
+			nullptr);
+
+		VkImageViewCreateInfo r_view_info = rhi_helpers::shadow_img_view_create_info(draw_image.image_format, draw_image.image,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+
+		result = vkCreateImageView(device, &r_view_info, nullptr, &draw_image.image_view);
+		if (result != VK_SUCCESS) return result;
+		shadow_map_color_image_ = draw_image;
+		auto obj_name = "multiview_image";
+		const VkDebugUtilsObjectNameInfoEXT vert_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(draw_image.image), obj_name);
+		if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &vert_name); debug_result != VK_SUCCESS) return debug_result;
+	}
 	{
 		// Shadow map image creation.
-		VkExtent3D shadow_map_image_extent = {
-			.width = 1024,
-			.height = 1024,
-			.depth = 1
-		};
 		allocated_image shadow_map_image{};
 		shadow_map_image.image_format = VK_FORMAT_D32_SFLOAT;
-		shadow_map_image.image_extent = shadow_map_image_extent;
+		//shadow_map_image.image_extent = shadow_map_image_extent;
+		shadow_map_image.image_extent = draw_image_extent;
 		VkImageUsageFlags depth_image_usages{};
 
-		depth_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-		VkImageCreateInfo depth_info = rhi_helpers::shadow_img_create_info(shadow_map_image.image_format, depth_image_usages, shadow_map_image_extent);
+		//VkImageCreateInfo depth_info = rhi_helpers::shadow_img_create_info(shadow_map_image.image_format, depth_image_usages, shadow_map_image_extent);
+		VkImageCreateInfo depth_info = rhi_helpers::shadow_img_create_info(shadow_map_image.image_format, depth_image_usages, draw_image_extent);
 
 		vmaCreateImage(opt_allocator.value(), &depth_info, &r_img_alloc_info, &shadow_map_image.image, &shadow_map_image.allocation,
 			nullptr);

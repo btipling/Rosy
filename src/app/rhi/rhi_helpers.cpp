@@ -86,7 +86,7 @@ namespace rhi_helpers {
 		info.format = format;
 		info.extent = extent;
 		info.mipLevels = 1;
-		info.arrayLayers = 3;
+		info.arrayLayers = 32;
 		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		info.samples = VK_SAMPLE_COUNT_1_BIT;
 		info.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -110,7 +110,7 @@ namespace rhi_helpers {
 		return info;
 	}
 
-	VkRenderingInfo shadow_map_rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& depth_attachment)
+	VkRenderingInfo shadow_map_rendering_info(const VkExtent2D render_extent, const VkRenderingAttachmentInfo& color_attachment, const VkRenderingAttachmentInfo& depth_attachment)
 	{
 		const auto render_area = VkRect2D{ VkOffset2D{0, 0}, render_extent };
 		VkRenderingInfo render_info{};
@@ -118,9 +118,9 @@ namespace rhi_helpers {
 		render_info.pNext = nullptr;
 		render_info.renderArea = render_area;
 		render_info.layerCount = 1;
-		render_info.viewMask = 0b00000111;
-		render_info.colorAttachmentCount = 0;
-		render_info.pColorAttachments = nullptr;
+		render_info.viewMask = 0b00000000000000000000000000000001;
+		render_info.colorAttachmentCount = 1;
+		render_info.pColorAttachments = &color_attachment;
 		render_info.pDepthAttachment = &depth_attachment;
 		render_info.pStencilAttachment = nullptr;
 		return render_info;
