@@ -75,7 +75,7 @@ rh::result scene_one::depth(const rh::ctx ctx)
 {
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
-	if (!ctx.rhi.render_command_buffer.has_value()) return rh::result::error;
+	if (!ctx.rhi.multiview_command_buffer.has_value()) return rh::result::error;
 	const VkCommandBuffer mv_cmd = ctx.rhi.multiview_command_buffer.value();
 	const VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
