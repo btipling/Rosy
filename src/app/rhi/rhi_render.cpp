@@ -152,19 +152,18 @@ VkResult rhi::begin_frame()
 		if (!opt_multiview_command_buffer.has_value()) return VK_NOT_READY;
 		if (!opt_render_command_buffer.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
-		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
-		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
+		if (!opt_multiview_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
 
 	const VkCommandBuffer mv_cmd = opt_multiview_command_buffer.value();
 	const VkCommandBuffer render_cmd = opt_render_command_buffer.value();
 	const VkSemaphore image_available = opt_image_available_semaphore.value();
-	const VkFence fence = opt_in_flight_fence.value();
+	const VkFence multiview_fence = opt_multiview_fence.value();
 
 	const VkDevice device = opt_device.value();
 
-	VkResult result = vkWaitForFences(device, 1, &fence, true, 1000000000);
+	VkResult result = vkWaitForFences(device, 1, &multiview_fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
 
 	uint32_t image_index;
@@ -179,7 +178,7 @@ VkResult rhi::begin_frame()
 	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * render_scale_;
 	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * render_scale_;
 
-	vkResetFences(device, 1, &fence);
+	vkResetFences(device, 1, &multiview_fence);
 
 	{
 		// Start recording commands. This records commands that aren't actually submitted to a queue to do anything with until 
@@ -188,16 +187,15 @@ VkResult rhi::begin_frame()
 		// 3. Doesn't happen until the image we requested with vkAcquireNextImageKHR has been made available
 		result = vkResetCommandBuffer(mv_cmd, 0);
 		if (result != VK_SUCCESS) return result;
-		result = vkResetCommandBuffer(render_cmd, 0);
-		if (result != VK_SUCCESS) return result;
 
-		VkCommandBufferBeginInfo begin_info{};
-		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		result = vkBeginCommandBuffer(mv_cmd, &begin_info);
-		if (result != VK_SUCCESS) return result;
-		result = vkBeginCommandBuffer(render_cmd, &begin_info);
-		if (result != VK_SUCCESS) return result;
+		{
+			VkCommandBufferBeginInfo begin_info{};
+			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			result = vkBeginCommandBuffer(mv_cmd, &begin_info);
+			if (result != VK_SUCCESS) return result;
+		}
+
 	}
 	return VK_SUCCESS;
 }
@@ -258,19 +256,84 @@ VkResult rhi::render_pass()
 		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
 		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
+		if (!opt_multiview_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_multiview_fence.has_value()) return VK_NOT_READY;
 	}
 
+	VkDevice device = opt_device.value();
+	VkSemaphore multiview_pass = opt_multiview_semaphore.value();
 	VkCommandBuffer mv_cmd = opt_multiview_command_buffer.value();
+	VkSemaphore image_available = opt_image_available_semaphore.value();
+	VkFence multiview_fence = opt_multiview_fence.value();
+	VkFence render_fence = opt_in_flight_fence.value();
 	VkCommandBuffer render_cmd = opt_render_command_buffer.value();
 
 
-	// end shadow pass 
-	vkCmdEndRendering(mv_cmd);
-	const allocated_image shadow_map_image = shadow_map_image_.value();
-	transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-		VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-		VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
+	VkResult result;
+	// end shadow pass
+	{
+		vkCmdEndRendering(mv_cmd);
+		const allocated_image shadow_map_image = shadow_map_image_.value();
+		transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+			VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
+	}
+	{
+		result = vkEndCommandBuffer(mv_cmd);
+		if (result != VK_SUCCESS) return result;
+	}
+	{
+		// submit recorded multiview commands to the queue
+		VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
+		cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+		cmd_buffer_submit_info.pNext = nullptr;
+		cmd_buffer_submit_info.commandBuffer = mv_cmd;
+		cmd_buffer_submit_info.deviceMask = 0;
 
+		VkSemaphoreSubmitInfo wait_info{};
+		wait_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+		wait_info.pNext = nullptr;
+		wait_info.semaphore = image_available;
+		wait_info.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+		wait_info.deviceIndex = 0;
+		wait_info.value = 1;
+
+		VkSemaphoreSubmitInfo signal_info{};
+		signal_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+		signal_info.pNext = nullptr;
+		signal_info.semaphore = multiview_pass;
+		signal_info.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+		signal_info.deviceIndex = 0;
+		signal_info.value = 1;
+
+		VkSubmitInfo2 submit_info{};
+		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+		submit_info.pNext = nullptr;
+		// This multiview submit waits for image available and signals multiview pass 
+		submit_info.waitSemaphoreInfoCount = 1;
+		submit_info.pWaitSemaphoreInfos = &wait_info;
+		submit_info.signalSemaphoreInfoCount = 1;
+		// When submit is done it signals this `signalInfo` semaphore and unblocks anything which is waiting for it.
+		submit_info.pSignalSemaphoreInfos = &signal_info;
+		submit_info.commandBufferInfoCount = 1;
+		submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
+		result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, multiview_fence);
+		if (result != VK_SUCCESS) return result;
+	}
+	{
+		result = vkWaitForFences(device, 1, &render_fence, true, 1000000000);
+		if (result != VK_SUCCESS) return result;
+		vkResetFences(device, 1, &render_fence);
+		result = vkResetCommandBuffer(render_cmd, 0);
+		if (result != VK_SUCCESS) return result;
+	}
+	{
+		VkCommandBufferBeginInfo begin_info{};
+		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		result = vkBeginCommandBuffer(render_cmd, &begin_info);
+		if (result != VK_SUCCESS) return result;
+	}
 	{
 		// Clear image. This transition means that all the commands recorded before now happen before
 		// any calls after. The calls themselves before this may have executed in any order up until this point.
@@ -307,17 +370,19 @@ VkResult rhi::end_frame()
 		opt_multiview_semaphore, opt_render_finished_semaphore, opt_multiview_fence,
 		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
+		if (!opt_multiview_command_buffer.has_value()) return VK_NOT_READY;
 		if (!opt_render_command_buffer.has_value()) return VK_NOT_READY;
 		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_multiview_semaphore.has_value()) return VK_NOT_READY;
 		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_multiview_fence.has_value()) return VK_NOT_READY;
 		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
-
-	VkCommandBuffer cmd = opt_render_command_buffer.value();
-	VkSemaphore image_available = opt_image_available_semaphore.value();
+	VkCommandBuffer render_cmd = opt_render_command_buffer.value();
+	VkSemaphore multiview_pass = opt_multiview_semaphore.value();
 	VkSemaphore rendered_finished = opt_render_finished_semaphore.value();
-	VkFence fence = opt_in_flight_fence.value();
+	VkFence render_fence = opt_in_flight_fence.value();
 	uint32_t image_index = current_swapchain_image_index_;
 	VkImage image = swap_chain_images_[image_index];
 	VkImageView image_view = swap_chain_image_views_[image_index];
@@ -327,39 +392,39 @@ VkResult rhi::end_frame()
 	{
 		VkResult result;
 		// end render pass
-		vkCmdEndRendering(cmd);
+		vkCmdEndRendering(render_cmd);
 		{
 			// blit the draw image to the swapchain image
-			transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			transition_image(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-			transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			rhi_helpers::blit_images(cmd, draw_image.image, image, draw_extent_, swapchain_extent);
+			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			rhi_helpers::blit_images(render_cmd, draw_image.image, image, draw_extent_, swapchain_extent);
 		}
 		{
 			// draw ui onto swapchain image
-			transition_image(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			result = render_ui(cmd, image_view);
+			result = render_ui(render_cmd, image_view);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
 			// Transition swapchain image for presentation
-			transition_image(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-			result = vkEndCommandBuffer(cmd);
+			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			result = vkEndCommandBuffer(render_cmd);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
-			// submit recorded commands to the queue
+			// submit recorded render commands to the queue
 			VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
 			cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
 			cmd_buffer_submit_info.pNext = nullptr;
-			cmd_buffer_submit_info.commandBuffer = cmd;
+			cmd_buffer_submit_info.commandBuffer = render_cmd;
 			cmd_buffer_submit_info.deviceMask = 0;
 
 			VkSemaphoreSubmitInfo wait_info{};
 			wait_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			wait_info.pNext = nullptr;
-			wait_info.semaphore = image_available;
+			wait_info.semaphore = multiview_pass;
 			wait_info.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
 			wait_info.deviceIndex = 0;
 			wait_info.value = 1;
@@ -377,7 +442,8 @@ VkResult rhi::end_frame()
 			submit_info.pNext = nullptr;
 			// This should be obvious, but it wasn't for me. Wait blocks this submit until the semaphore assigned to it is signaled.
 			// To state again, wait semaphores means the submit waits for the semaphore in wait info to be signaled before it begins
-			// in this case we're waiting for the image we requested at the beginning of render frame to be available.
+			// in the case of multiview we're waiting for the image we requested at the beginning of render frame to be available.
+			// In this submit case we're waiting for multiview to finish.
 			// What we have to remember is that up until this point we've only *recorded* the commands we want to execute
 			// on to the command data. This submit will actually start the process of telling the GPU to do the commands.
 			// None of that has happened yet. We're declaring future work there. Up until this point the only actual work we've done
@@ -390,7 +456,7 @@ VkResult rhi::end_frame()
 			submit_info.pSignalSemaphoreInfos = &signal_info;
 			submit_info.commandBufferInfoCount = 1;
 			submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
-			result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, fence);
+			result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, render_fence);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
