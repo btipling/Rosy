@@ -1,7 +1,6 @@
 #include "imgui.h"
 #include "rhi.h"
 
-
 void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
 	const VkImageLayout new_layout)
 {
@@ -45,9 +44,9 @@ void rhi::transition_shadow_map_image(const VkCommandBuffer cmd, const VkImage i
 	VkImageMemoryBarrier2 image_barrier = {};
 	image_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 	image_barrier.pNext = nullptr;
-	image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-	image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-	image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+	image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+	image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
+	image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
 	image_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
 	image_barrier.oldLayout = current_layout;
 	image_barrier.newLayout = new_layout;
@@ -285,7 +284,6 @@ VkResult rhi::end_frame()
 			result = vkEndCommandBuffer(cmd);
 			if (result != VK_SUCCESS) return result;
 		}
-
 		{
 			// submit recorded commands to the queue
 			VkCommandBufferSubmitInfo cmd_buffer_submit_info{};

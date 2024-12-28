@@ -73,6 +73,7 @@ namespace rhi_helpers {
 		info.extent = extent;
 		info.mipLevels = 1;
 		info.arrayLayers = 2;
+		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		info.samples = VK_SAMPLE_COUNT_1_BIT;
 		info.tiling = VK_IMAGE_TILING_OPTIMAL;
 		info.usage = usage_flags;
@@ -198,12 +199,12 @@ namespace rhi_helpers {
 
 
 	VkShaderCreateInfoEXT create_shader_info(const std::vector<char>& shader_src, const VkShaderStageFlagBits stage,
-		const VkShaderStageFlags next_stage)
+		const VkShaderStageFlags next_stage, const VkShaderCreateFlagsEXT shader_flags)
 	{
 		VkShaderCreateInfoEXT info{};
 		info.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
 		info.pNext = nullptr;
-		info.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT;
+		info.flags = shader_flags;
 		info.stage = stage;
 		info.nextStage = next_stage;
 		info.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;

@@ -305,6 +305,7 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 		m_shaders.viewport_extent = shadow_map_extent_;
 		m_shaders.wire_frames_enabled = false;
 		m_shaders.depth_enabled = true;
+		m_shaders.culling_enabled = false;
 		m_shaders.front_face = ctx.front_face;
 		if (VkResult result = m_shaders.shade(cmd); result != VK_SUCCESS) return rh::result::error;
 	}

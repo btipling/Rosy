@@ -24,6 +24,7 @@ namespace {
 	const char* device_extensions[] = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 		VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
+		VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
 		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 	};
 }
@@ -510,9 +511,13 @@ VkResult rhi::init_physical_device()
 		shader_object_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
 		shader_object_features.pNext = nullptr;
 
+		VkPhysicalDeviceDepthClipEnableFeaturesEXT  depth_clip_features{};
+		depth_clip_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT;
+		depth_clip_features.pNext = &shader_object_features;
+
 		VkPhysicalDeviceFeatures2 device_features2{};
 		device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		device_features2.pNext = &shader_object_features;
+		device_features2.pNext = &depth_clip_features;
 		vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
 
 		if (!shader_object_features.shaderObject) continue;
@@ -680,8 +685,14 @@ VkResult rhi::init_device()
 		.shaderObject = VK_TRUE
 	};
 
+	VkPhysicalDeviceDepthClipEnableFeaturesEXT  enable_depth_clip_object = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
+		.pNext = &enable_shader_object,
+		.depthClipEnable = VK_TRUE
+	};
+
 	device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	device_create_info.pNext = &enable_shader_object;
+	device_create_info.pNext = &enable_depth_clip_object;
 	device_create_info.flags = 0;
 	device_create_info.queueCreateInfoCount = 1;
 	device_create_info.pQueueCreateInfos = &device_queue_create_info;
@@ -914,7 +925,8 @@ VkResult rhi::init_draw_image()
 		shadow_map_image.image_format = VK_FORMAT_D32_SFLOAT;
 		shadow_map_image.image_extent = shadow_map_image_extent;
 		VkImageUsageFlags depth_image_usages{};
-		depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+		depth_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		VkImageCreateInfo depth_info = rhi_helpers::shadow_img_create_info(shadow_map_image.image_format, depth_image_usages, shadow_map_image_extent);
 

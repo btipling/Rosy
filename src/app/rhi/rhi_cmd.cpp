@@ -7,6 +7,7 @@ namespace rhi_cmd
 		{
 			vkCmdSetRasterizerDiscardEnableEXT(cmd, VK_FALSE);
 			vkCmdSetPrimitiveTopologyEXT(cmd, primitive);
+			vkCmdSetDepthClipEnableEXT(cmd, VK_TRUE);
 			vkCmdSetPrimitiveRestartEnableEXT(cmd, VK_FALSE);
 			vkCmdSetRasterizationSamplesEXT(cmd, VK_SAMPLE_COUNT_1_BIT);
 		}
@@ -32,7 +33,7 @@ namespace rhi_cmd
 		vkCmdSetDepthBoundsTestEnableEXT(cmd, VK_FALSE);
 		vkCmdSetDepthBiasEnableEXT(cmd, VK_FALSE);
 		vkCmdSetStencilTestEnableEXT(cmd, VK_FALSE);
-		vkCmdSetLogicOpEnableEXT(cmd, VK_FALSE);
+		//vkCmdSetLogicOpEnableEXT(cmd, VK_TRUE);
 		vkCmdSetDepthBounds(cmd, 0.0f, 1.0f);
 		vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
 		return;
