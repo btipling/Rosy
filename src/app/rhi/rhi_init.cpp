@@ -682,6 +682,8 @@ VkResult rhi::init_device()
 	vulkan11_features.variablePointers = VK_TRUE;
 	vulkan11_features.variablePointersStorageBuffer = VK_TRUE;
 	vulkan11_features.multiview = VK_TRUE;
+	vulkan11_features.multiviewGeometryShader = VK_TRUE;
+	vulkan11_features.multiviewTessellationShader = VK_TRUE;
 
 	VkPhysicalDeviceShaderObjectFeaturesEXT enable_shader_object = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,

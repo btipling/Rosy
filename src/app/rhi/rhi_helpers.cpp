@@ -86,7 +86,7 @@ namespace rhi_helpers {
 		info.format = format;
 		info.extent = extent;
 		info.mipLevels = 1;
-		info.arrayLayers = 2;
+		info.arrayLayers = 3;
 		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		info.samples = VK_SAMPLE_COUNT_1_BIT;
 		info.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -105,7 +105,7 @@ namespace rhi_helpers {
 		info.subresourceRange.baseMipLevel = 0;
 		info.subresourceRange.levelCount = 1;
 		info.subresourceRange.baseArrayLayer = 0;
-		info.subresourceRange.layerCount = 2;
+		info.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 		info.subresourceRange.aspectMask = aspect_flags;
 		return info;
 	}
@@ -118,7 +118,7 @@ namespace rhi_helpers {
 		render_info.pNext = nullptr;
 		render_info.renderArea = render_area;
 		render_info.layerCount = 1;
-		render_info.viewMask = 0b00000011;
+		render_info.viewMask = 0b00000111;
 		render_info.colorAttachmentCount = 0;
 		render_info.pColorAttachments = nullptr;
 		render_info.pDepthAttachment = &depth_attachment;
@@ -133,7 +133,7 @@ namespace rhi_helpers {
 		subresource_range.baseMipLevel = 0;
 		subresource_range.levelCount = 1;
 		subresource_range.baseArrayLayer = 0;
-		subresource_range.layerCount = 2;
+		subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 		return subresource_range;
 	}
 

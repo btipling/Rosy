@@ -29,6 +29,9 @@ ShadowOutput shadowVertexMain(uint uiVertexId: SV_VertexID, int ViewIndex: SV_Vi
 }
 
 [shader("fragment")]
-void shadowFragmentMain() : SV_Target
+Fragment shadowFragmentMain() : SV_Target
 {
+    Fragment output;
+    output.color = float4(1.0, 0.0, 0.0, 1.0);
+    return output;
 }
