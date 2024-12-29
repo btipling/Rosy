@@ -83,7 +83,7 @@ void mesh_scene::init(const rh::ctx& ctx)
 	}
 }
 
-void mesh_scene::deinit(const rh::ctx& ctx)
+void mesh_scene::deinit(const rh::ctx& ctx) const
 {
 	const auto buffer = ctx.rhi.data.value();
 	const VkDevice device = ctx.rhi.device;
@@ -293,7 +293,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 {
 	if (meshes.size() == 0) return rh::result::ok;
-	auto mv_cmd = ctx.multiview_cmd;
+	auto mv_cmd = ctx.shadow_pass_cmd;
 
 	{
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);

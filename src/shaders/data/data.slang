@@ -60,7 +60,6 @@ public struct PushConstant {
 public struct ShadowOutput
 {
     public float4 sv_position : SV_Position;
-    public int view_index;
 };
 
 public struct DebugVertex

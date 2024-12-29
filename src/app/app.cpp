@@ -224,7 +224,7 @@ void app::render_scene(const SDL_Event* event)
 	rh::ctx ctx;
 	{
 		// Init render context
-		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_multiview_ctx(event); opt_ctx.has_value()) ctx = opt_ctx.value();
+		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_shadow_pass_ctx(event); opt_ctx.has_value()) ctx = opt_ctx.value();
 		else return end_rendering("no available frame data\n");
 		ctx.mouse_enabled = !show_cursor_.state;
 	}

@@ -118,7 +118,7 @@ namespace rhi_helpers {
 		render_info.pNext = nullptr;
 		render_info.renderArea = render_area;
 		render_info.layerCount = 1;
-		render_info.viewMask = 0b00000111;
+		render_info.viewMask = 0;
 		render_info.colorAttachmentCount = 0;
 		render_info.pColorAttachments = nullptr;
 		render_info.pDepthAttachment = &depth_attachment;

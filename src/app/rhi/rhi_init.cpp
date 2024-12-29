@@ -205,14 +205,14 @@ void rhi::deinit()
 	for (frame_data fd : frame_datas_)
 	{
 		const VkDevice device = opt_device.value();
-		if (fd.multiview_fence.has_value()) vkDestroyFence(device, fd.multiview_fence.value(), nullptr);
+		if (fd.shadow_pass_fence.has_value()) vkDestroyFence(device, fd.shadow_pass_fence.value(), nullptr);
 		if (fd.in_flight_fence.has_value()) vkDestroyFence(device, fd.in_flight_fence.value(), nullptr);
 		if (fd.image_available_semaphore.has_value())
 			vkDestroySemaphore(
 				device, fd.image_available_semaphore.value(), nullptr);
-		if (fd.multiview_semaphore.has_value())
+		if (fd.shadow_pass_semaphore.has_value())
 			vkDestroySemaphore(
-				device, fd.multiview_semaphore.value(), nullptr);
+				device, fd.shadow_pass_semaphore.value(), nullptr);
 		if (fd.render_finished_semaphore.has_value())
 			vkDestroySemaphore(
 				device, fd.render_finished_semaphore.value(), nullptr);
@@ -681,9 +681,9 @@ VkResult rhi::init_device()
 	vulkan11_features.pNext = &vulkan12_features;
 	vulkan11_features.variablePointers = VK_TRUE;
 	vulkan11_features.variablePointersStorageBuffer = VK_TRUE;
-	vulkan11_features.multiview = VK_TRUE;
-	vulkan11_features.multiviewGeometryShader = VK_TRUE;
-	vulkan11_features.multiviewTessellationShader = VK_TRUE;
+	vulkan11_features.multiview = VK_FALSE;
+	vulkan11_features.multiviewGeometryShader = VK_FALSE;
+	vulkan11_features.multiviewTessellationShader = VK_FALSE;
 
 	VkPhysicalDeviceShaderObjectFeaturesEXT enable_shader_object = {
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
@@ -1017,7 +1017,7 @@ VkResult rhi::init_command_buffers()
 			if (const VkResult result = vkAllocateCommandBuffers(opt_device.value(), &alloc_info, &command_buffer); result !=
 				VK_SUCCESS)
 				return result;
-			frame_datas_[i].multiview_command_buffer = command_buffer;
+			frame_datas_[i].shadow_pass_command_buffer = command_buffer;
 		}
 
 		{
@@ -1067,13 +1067,13 @@ VkResult rhi::init_sync_objects()
 			VkSemaphore semaphore;
 			result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
 			if (result != VK_SUCCESS) return result;
-			frame_datas_[i].multiview_semaphore = semaphore;
+			frame_datas_[i].shadow_pass_semaphore = semaphore;
 		}
 		{
 			VkFence fence;
 			result = vkCreateFence(device, &fence_info, nullptr, &fence);
 			if (result != VK_SUCCESS) return result;
-			frame_datas_[i].multiview_fence = fence;
+			frame_datas_[i].shadow_pass_fence = fence;
 		}
 		{
 			VkFence fence;

@@ -7,7 +7,7 @@ class rhi
 {
 public:
 	std::expected<rh::ctx, VkResult> current_render_ctx(const SDL_Event* event);
-	std::expected<rh::ctx, VkResult> current_multiview_ctx(const SDL_Event* event);
+	std::expected<rh::ctx, VkResult> current_shadow_pass_ctx(const SDL_Event* event);
 	std::optional<VkDevice> opt_device = std::nullopt;
 	std::optional<VmaAllocator> opt_allocator = std::nullopt;
 	std::optional<std::unique_ptr<rhi_data>> buffer;
@@ -90,7 +90,7 @@ private:
 	std::optional<VkDebugUtilsMessengerEXT> debug_messenger_ = std::nullopt;
 
 	VkResult query_instance_layers();
-	VkResult query_device_layers() const;
+	[[nodiscard]] VkResult query_device_layers() const;
 	VkResult query_instance_extensions();
 	VkResult query_device_extensions();
 	VkResult create_debug_callback();

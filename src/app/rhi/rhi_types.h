@@ -222,7 +222,7 @@ struct mesh_ctx
 	bool wire_frame = false;
 	bool depth_enabled = true;
 	VkFrontFace front_face = VK_FRONT_FACE_CLOCKWISE;
-	VkCommandBuffer multiview_cmd;
+	VkCommandBuffer shadow_pass_cmd;
 	VkCommandBuffer render_cmd;
 	VkExtent2D extent;
 };
