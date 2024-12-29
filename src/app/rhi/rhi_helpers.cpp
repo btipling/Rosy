@@ -56,7 +56,7 @@ namespace rhi_helpers {
 		depth_attachment.imageView = view;
 		depth_attachment.imageLayout = layout;
 		depth_attachment.resolveMode = VK_RESOLVE_MODE_NONE;
-		depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		depth_attachment.clearValue.depthStencil.depth = 0.0f;
 		return depth_attachment;
