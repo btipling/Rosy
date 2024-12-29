@@ -38,7 +38,9 @@ public struct SceneData
     public float4x4 view;
     public float4x4 proj;
     public float4x4 viewproj;
-    public float4x4 shadowproj;
+    public float4x4 shadowproj_near;
+    public float4x4 shadowproj_middle;
+    public float4x4 shadowproj_far;
     public float4 cameraPosition;
     public float4 ambientColor;
     public float4 sunlightDirection;

@@ -1,6 +1,12 @@
 #pragma once
 #include "rhi_types.h"
 
+struct shadow_map
+{
+	glm::mat4 view;
+	glm::mat4 projection;
+};
+
 class mesh_scene
 {
 public:
@@ -45,6 +51,10 @@ public:
 	void add_scene(fastgltf::Scene& gltf_scene);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;
+	std::vector<glm::vec4> shadow_map_frustum(const glm::mat4& proj, const glm::mat4& view);
+	glm::mat4 shadow_map_view(const std::vector<glm::vec4>& shadow_frustum, const glm::vec3 light_direction);
+	shadow_map shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view);
+	shadow_map shadow_map_projection(const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view);
 private:
 	VkExtent2D shadow_map_extent_{};
 	std::vector<render_object> draw_nodes_{};

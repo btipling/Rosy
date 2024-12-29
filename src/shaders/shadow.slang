@@ -14,7 +14,7 @@ ShadowOutput shadowVertexMain(uint uiVertexId: SV_VertexID)
 
     ShadowOutput output;
     float4 posWorld = float4(v.position, 1.0);
-    output.sv_position = mul(mul(sd.shadowproj, worldMat), posWorld);
+    output.sv_position = mul(mul(sd.shadowproj_near, worldMat), posWorld);
 
     return output;
 }

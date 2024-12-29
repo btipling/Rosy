@@ -149,7 +149,7 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		sunlight_direction_ = glm::normalize(sunlight_direction_);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 		ImGui::Checkbox("Light view", &light_view_);
-		ImGui::SliderFloat("Near plane", &near_plane_, 1.0f, 50.0f);
+		ImGui::SliderFloat("Near plane", &near_plane_, 1.0f, 100.0f);
 		ImGui::SliderFloat("distance from light camera", &distance_from_camera_, 0.f, 1.0f);
 		ImGui::Text("Blending");
 		ImGui::RadioButton("disabled", &blend_mode_, 0); ImGui::SameLine();
@@ -166,100 +166,6 @@ rh::result scene_two::update(const rh::ctx& ctx)
 	return rh::result::ok;
 }
 
-std::vector<glm::vec4> scene_two::shadow_map_frustum(const glm::mat4& proj, const glm::mat4& view)
-{
-	constexpr auto fix = glm::mat4(
-		glm::vec4(1.f, 0.f, 0.f, 0.f),
-		glm::vec4(0.f, 1.f, 0.f, 0.f),
-		glm::vec4(0.f, 0.f, 1.f, 0.f),
-		glm::vec4(0.f, 0.f, 0.f, 1.f)
-	);
-	const auto inv = inverse(proj * view * fix);
-
-	std::vector<glm::vec4> corners;
-	for (unsigned int x = 0; x < 2; ++x)
-	{
-		for (unsigned int y = 0; y < 2; ++y)
-		{
-			for (unsigned int z = 0; z < 2; ++z)
-			{
-				const glm::vec4 point = inv * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
-				//rosy_utils::debug_print_a("\tcorner: (%f, %f, %f)\n", point.x, point.y, point.z);
-				corners.push_back(point / point.w);
-			}
-		}
-	}
-
-	return corners;
-}
-
-glm::mat4 scene_two::shadow_map_view(const std::vector<glm::vec4>& shadow_frustum, const glm::vec3 light_direction)
-{
-	auto center = glm::vec3(0, 0, 0);
-	for (const auto& v : shadow_frustum) center += glm::vec3(v);
-	center /= shadow_frustum.size();
-	return lookAt(center + light_direction, center, glm::vec3(0.0f, 1.0f, 0.0f));
-}
-
-glm::mat4 scene_two::shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view)
-{
-	float min_x = std::numeric_limits<float>::max();
-	float max_x = std::numeric_limits<float>::lowest();
-	float min_y = std::numeric_limits<float>::max();
-	float max_y = std::numeric_limits<float>::lowest();
-	float min_z = std::numeric_limits<float>::max();
-	float max_z = std::numeric_limits<float>::lowest();
-
-	for (const auto& v : shadow_frustum)
-	{
-		//rosy_utils::debug_print_a("\tcorner: (%f, %f, %f)\n", v.x, v.y, v.z);
-		//rosy_utils::debug_print_a("\t bef point.z: %f min_z: %f max_z: %f\n\n", v.z, min_z, max_z);
-		const auto point = shadow_map_view * v;
-		min_x = std::min(min_x, point.x);
-		max_x = std::max(max_x, point.x);
-		min_y = std::min(min_y, point.y);
-		max_y = std::max(max_y, point.y);
-		min_z = std::min(min_z, point.z);
-		max_z = std::max(max_z, point.z);
-		//rosy_utils::debug_print_a("\t after point.z: %f min_z: %f max_z: %f\n\n", point.z,  min_z, max_z);
-	}
-
-	constexpr float z_offset = 10.0f;
-	if (min_z < 0) min_z *= z_offset;
-	else min_z /= z_offset;
-	if (max_z < 0) max_z /= z_offset;
-	else max_z *= z_offset;
-
-	auto m = shadow_map_view;
-	auto extent = glm::mat4(1.f);
-	extent[0][0] = min_x;
-	extent[1][1] = min_y;
-	extent[2][2] = min_z;
-	extent = glm::translate(extent, glm::vec3(max_x, max_y, max_z));
-
-	//rosy_utils::debug_print_a("min_x: %f max_x: %f min_y: %f, max_y: %f min_z: %f max_z: %f\n\n", min_x, max_x, min_y, max_y, min_z, max_z);
-
-	shadow_map_view_ = shadow_map_view;
-
-	const glm::mat4 p = glm::ortho(
-		min_x, max_x,
-		  min_y,   max_y,
-		  -1 * min_z,   -1 * max_z);
-
-
-	const auto rv = p * shadow_map_view;
-
-	
-
-	return rv;
-}
-
-glm::mat4 scene_two::shadow_map_projection(const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view)
-{
-	const auto frustum = shadow_map_frustum(p, world_view);
-	const auto shadow_view = shadow_map_view(frustum, glm::normalize(light_direction));
-	return shadow_map_projection(frustum, shadow_view);
-}
 
 void scene_two::update_scene(const rh::ctx& ctx)
 {
@@ -289,25 +195,33 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		const auto s = (static_cast<float>(width) / static_cast<float>(height));
 		const float g = 0.1f;
 		auto shadow_proj = glm::mat4(1.f);
-		if (s > 0) {
-			shadow_proj = glm::perspective(
-				fov,
-				s,
-				g,
-				-250.f / near_plane_
-			);
-		}
+		assert(s > 0);
 		const glm::mat4 view = camera_.get_view_matrix();
-		glm::mat4 sp = shadow_map_projection(sunlight_direction_, shadow_proj, view);
+
+		shadow_proj = glm::perspective( fov, s, g, -500.f / 100);
+		auto [sm_view_near, sm_projection_near] = scene_graph_->shadow_map_projection(sunlight_direction_, shadow_proj, view);
+
+		shadow_proj = glm::perspective(fov, s, g, -500.f / 100);
+		auto [sm_view_middle, sm_projection_middle] = scene_graph_->shadow_map_projection(sunlight_direction_, shadow_proj, view);
+
+		shadow_proj = glm::perspective(fov, s, g, -500.f / 100);
+		auto [sm_view_far, sm_projection_far] = scene_graph_->shadow_map_projection(sunlight_direction_, shadow_proj, view);
+
 		glm::mat4 p = proj * view;
 		if (light_view_)
 		{
-			p = sp;
+			p = sm_projection_near * sm_view_near;;
 		}
+		shadow_map_view_ = sm_view_near;
+
 		scene_data_.view = view;
 		scene_data_.proj = proj;
 		scene_data_.view_projection = p;
-		scene_data_.shadow_projection = sp;
+
+		scene_data_.shadow_projection_near = sm_projection_near * sm_view_near;
+		scene_data_.shadow_projection_middle = sm_projection_middle * sm_view_middle;
+		scene_data_.shadow_projection_far = sm_projection_far * sm_view_far;
+
 		scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
 		scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
 		scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
@@ -321,10 +235,6 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		glm::vec4 sv_c = sv_cam[3];
 
 
-		/*glm::vec4 sv_x = glm::vec4(sv_cam[0][0], sv_cam[1][0], sv_cam[2][0], sv_cam[3][0]);
-		glm::vec4 sv_y = glm::vec4(sv_cam[0][1], sv_cam[1][1], sv_cam[2][1], sv_cam[3][1]);
-		glm::vec4 sv_z = glm::vec4(sv_cam[0][2], sv_cam[1][2], sv_cam[2][2], sv_cam[3][2]);
-		glm::vec4 sv_c = glm::vec4(sv_cam[0][3], sv_cam[1][3], sv_cam[2][3], sv_cam[3][3]);*/
 		const float sv_u = -distance_from_camera_;
 
 		glm::vec4 q0 = sv_c + (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
@@ -332,11 +242,6 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		glm::vec4 q2 = sv_c - (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
 		glm::vec4 q3 = sv_c - (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
 
-		/*rosy_utils::debug_print_a("sv_c: (%f, %f, %f)\n", sv_c.x, sv_c.y, sv_c.z);
-		rosy_utils::debug_print_a("q0: (%f, %f, %f)\n", q0.x, q0.y, q0.z);
-		rosy_utils::debug_print_a("q1: (%f, %f, %f)\n", q1.x, q1.y, q1.z);
-		rosy_utils::debug_print_a("q2: (%f, %f, %f)\n", q2.x, q2.y, q2.z);
-		rosy_utils::debug_print_a("q3: (%f, %f, %f)\n", q3.x, q3.y, q3.z);*/
 		scene_graph_->debug->set_shadow_frustum(q0, q1, q2, q3);
 		scene_graph_->debug->shadow_frustum = glm::mat4(1.f);
 	}
