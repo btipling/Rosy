@@ -71,7 +71,7 @@ rh::result scene_one::build(const rh::ctx& ctx)
 
 
 
-rh::result scene_one::depth(const rh::ctx ctx)
+rh::result scene_one::depth(const rh::ctx ctx, int pass_number)
 {
 	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
@@ -79,7 +79,7 @@ rh::result scene_one::depth(const rh::ctx ctx)
 	const VkCommandBuffer mv_cmd = ctx.rhi.shadow_pass_command_buffer.value();
 	const VkExtent2D frame_extent = ctx.rhi.shadow_map_extent;
 
-	update_scene(ctx);
+	if (pass_number == 0) update_scene(ctx);
 
 	// Scene
 	{
@@ -88,7 +88,7 @@ rh::result scene_one::depth(const rh::ctx ctx)
 		m_ctx.wire_frame = toggle_wire_frame_;
 		m_ctx.shadow_pass_cmd = mv_cmd;
 		m_ctx.extent = frame_extent;
-		if (const auto res = scene_graph_->generate_shadows(m_ctx); res != rh::result::ok) return res;
+		if (const auto res = scene_graph_->generate_shadows(m_ctx, pass_number); res != rh::result::ok) return res;
 	}
 
 	return rh::result::ok;

@@ -44,7 +44,7 @@ public:
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
-	[[nodiscard]] auto generate_shadows(mesh_ctx ctx) -> rh::result;
+	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;
 private:
 	VkExtent2D shadow_map_extent_{};
 	std::vector<render_object> draw_nodes_{};

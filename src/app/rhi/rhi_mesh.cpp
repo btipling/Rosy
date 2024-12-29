@@ -290,18 +290,17 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 	return rh::result::ok;
 };
 
-rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
+rh::result mesh_scene::generate_shadows(mesh_ctx ctx, int pass_number)
 {
 	if (meshes.size() == 0) return rh::result::ok;
 	auto mv_cmd = ctx.shadow_pass_cmd;
 
-	{
+	shader_pipeline m_shaders = shadow_shaders.value();
+	if (pass_number == 0) {
+
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
 		vkCmdBeginDebugUtilsLabelEXT(mv_cmd, &mesh_draw_label);
-	}
 
-	shader_pipeline m_shaders = shadow_shaders.value();
-	{
 		m_shaders.viewport_extent = shadow_map_extent_;
 		m_shaders.wire_frames_enabled = false;
 		m_shaders.depth_enabled = true;
@@ -319,7 +318,7 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx)
 		vkCmdDrawIndexed(mv_cmd, ro.index_count, 1, ro.first_index, 0, 0);
 	}
 
-	vkCmdEndDebugUtilsLabelEXT(mv_cmd);
+	if (pass_number == 2) vkCmdEndDebugUtilsLabelEXT(mv_cmd);
 	return rh::result::ok;
 };
 

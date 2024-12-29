@@ -1002,11 +1002,11 @@ VkResult rhi::init_command_pool()
 
 VkResult rhi::init_command_buffers()
 {
+	const VkDevice device = opt_device.value();
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		{
-			// multi view command buffer
-			// render command buffer
+			// shadow pass command buffer
 			VkCommandBufferAllocateInfo alloc_info{};
 			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 			alloc_info.commandPool = frame_datas_[i].command_pool.value();
@@ -1014,10 +1014,13 @@ VkResult rhi::init_command_buffers()
 			alloc_info.commandBufferCount = 1;
 
 			VkCommandBuffer command_buffer{};
-			if (const VkResult result = vkAllocateCommandBuffers(opt_device.value(), &alloc_info, &command_buffer); result !=
+			if (const VkResult result = vkAllocateCommandBuffers(device, &alloc_info, &command_buffer); result !=
 				VK_SUCCESS)
 				return result;
 			frame_datas_[i].shadow_pass_command_buffer = command_buffer;
+			const auto obj_name = std::format("{}_shadow_pass_cmd", i);
+			const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<uint64_t>(command_buffer), obj_name.c_str());
+			if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 		}
 
 		{
@@ -1029,10 +1032,13 @@ VkResult rhi::init_command_buffers()
 			alloc_info.commandBufferCount = 1;
 
 			VkCommandBuffer command_buffer{};
-			if (const VkResult result = vkAllocateCommandBuffers(opt_device.value(), &alloc_info, &command_buffer); result !=
+			if (const VkResult result = vkAllocateCommandBuffers(device, &alloc_info, &command_buffer); result !=
 				VK_SUCCESS)
 				return result;
 			frame_datas_[i].render_command_buffer = command_buffer;
+			const auto obj_name = std::format("{}_render_cmd", i);
+			const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<uint64_t>(command_buffer), obj_name.c_str());
+			if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 		}
 	}
 	return VK_SUCCESS;
@@ -1056,30 +1062,45 @@ VkResult rhi::init_sync_objects()
 			result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
 			if (result != VK_SUCCESS) return result;
 			frame_datas_[i].image_available_semaphore = semaphore;
+			const auto obj_name = std::format("{}_image_available_semaphore", i);
+			const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SEMAPHORE, reinterpret_cast<uint64_t>(semaphore), obj_name.c_str());
+			if (result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 		}
 		{
 			VkSemaphore semaphore;
 			result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
 			if (result != VK_SUCCESS) return result;
 			frame_datas_[i].render_finished_semaphore = semaphore;
+			const auto obj_name = std::format("{}render_finished_semaphore", i);
+			const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SEMAPHORE, reinterpret_cast<uint64_t>(semaphore), obj_name.c_str());
+			if (result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 		}
 		{
 			VkSemaphore semaphore;
 			result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
 			if (result != VK_SUCCESS) return result;
 			frame_datas_[i].shadow_pass_semaphore = semaphore;
+			const auto obj_name = std::format("{}shadow_pass_semaphore", i);
+			const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SEMAPHORE, reinterpret_cast<uint64_t>(semaphore), obj_name.c_str());
+			if (result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 		}
 		{
 			VkFence fence;
 			result = vkCreateFence(device, &fence_info, nullptr, &fence);
 			if (result != VK_SUCCESS) return result;
 			frame_datas_[i].shadow_pass_fence = fence;
+			const auto obj_name = std::format("{}shadow_pass_fence", i);
+			const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SEMAPHORE, reinterpret_cast<uint64_t>(fence), obj_name.c_str());
+			if (result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 		}
 		{
 			VkFence fence;
 			result = vkCreateFence(device, &fence_info, nullptr, &fence);
 			if (result != VK_SUCCESS) return result;
 			frame_datas_[i].in_flight_fence = fence;
+			const auto obj_name = std::format("{}in_flight_fence", i);
+			const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_FENCE, reinterpret_cast<uint64_t>(fence), obj_name.c_str());
+			if (result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 		}
 	}
 	{
@@ -1087,6 +1108,9 @@ VkResult rhi::init_sync_objects()
 		result = vkCreateFence(device, &fence_info, nullptr, &fence);
 		if (result != VK_SUCCESS) return result;
 		imm_fence_ = fence;
+		const auto obj_name = std::format("immediate_fence");
+		const VkDebugUtilsObjectNameInfoEXT frag_name = rhi_helpers::add_name(VK_OBJECT_TYPE_FENCE, reinterpret_cast<uint64_t>(fence), obj_name.c_str());
+		if (result = vkSetDebugUtilsObjectNameEXT(device, &frag_name); result != VK_SUCCESS) return result;
 	}
 	return VK_SUCCESS;
 }
@@ -1122,7 +1146,7 @@ VkResult rhi::init_commands()
 
 VkResult rhi::init_data()
 {
-	buffer = std::make_unique<rhi_data>(rhi_data{this});
+	buffer = std::make_unique<rhi_data>(rhi_data{ this });
 	return VK_SUCCESS;
 }
 

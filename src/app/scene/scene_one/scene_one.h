@@ -12,7 +12,7 @@ public:
 	rh::result deinit(rh::ctx& ctx) override;
 	rh::result build(const rh::ctx& ctx) override;
 	rh::result update(const rh::ctx& ctx) override;
-	rh::result depth(rh::ctx ctx) override;
+	rh::result depth(rh::ctx ctx, int pass_number) override;
 	rh::result draw(rh::ctx ctx) override;
 	rh::result draw_ui(const rh::ctx& ctx) override;
 private:

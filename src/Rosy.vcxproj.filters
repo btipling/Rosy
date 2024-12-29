@@ -129,9 +129,6 @@
     <ClInclude Include="app\scene\scene_one\scene_one.h">
       <Filter>scene\scene_one</Filter>
     </ClInclude>
-    <ClInclude Include="app\scene\scene.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="app\scene\scene_two\scene_two.h">
       <Filter>scene\scene_two</Filter>
     </ClInclude>
@@ -143,6 +140,9 @@
     </ClInclude>
     <ClInclude Include="app\rhi\rhi_debug.h">
       <Filter>Header Files\rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="app\scene\scene.h">
+      <Filter>scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

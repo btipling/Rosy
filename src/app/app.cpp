@@ -237,9 +237,9 @@ void app::render_scene(const SDL_Event* event)
 		// Update scene
 		if (const auto scene_result = scene_->update(ctx); scene_result != rh::result::ok) return end_rendering("scene_ update failed\n");
 	}
-
 	// Generate shadows
-	if (const VkResult result = renderer.shadow_pass();  result != VK_SUCCESS) {
+
+	if (const VkResult result = renderer.init_shadow_pass();  result != VK_SUCCESS) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			rosy_utils::debug_print_a("swapchain out of date\n");
 			resize_requested_ = true;
@@ -247,7 +247,27 @@ void app::render_scene(const SDL_Event* event)
 		}
 		return end_rendering("rhi shadow pass failed\n");
 	}
-	if (const auto scene_result = scene_->depth(ctx); scene_result != rh::result::ok) return end_rendering("scene_ depth failed\n");
+
+	constexpr int num_shadow_passes = 3;
+	for (int i = 0; i < num_shadow_passes; i++) {
+		if (const VkResult result = renderer.begin_shadow_pass(i);  result != VK_SUCCESS) {
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+				rosy_utils::debug_print_a("swapchain out of date\n");
+				resize_requested_ = true;
+				return;
+			}
+			return end_rendering("rhi shadow pass failed\n");
+		}
+		if (const auto scene_result = scene_->depth(ctx, i); scene_result != rh::result::ok) return end_rendering("scene_ depth failed %d\n");
+		if (const VkResult result = renderer.end_shadow_pass();  result != VK_SUCCESS) {
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+				rosy_utils::debug_print_a("swapchain out of date\n");
+				resize_requested_ = true;
+				return;
+			}
+			return end_rendering("rhi shadow pass failed\n");
+		}
+	}
 
 	{
 		// Init render context

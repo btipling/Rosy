@@ -51,24 +51,8 @@ VkResult shader_pipeline::build(const VkDevice device)
 
 VkResult shader_pipeline::shade(const VkCommandBuffer cmd) const
 {
-	rhi_cmd::set_rendering_defaults(cmd, primitive);
-	rhi_cmd::toggle_culling(cmd, culling_enabled, front_face);
-	rhi_cmd::toggle_wire_frame(cmd, wire_frames_enabled);
-	rhi_cmd::set_view_port(cmd, viewport_extent);
-	rhi_cmd::toggle_depth(cmd, depth_enabled);
 	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
-	switch (blending)
-	{
-	case shader_blending::blending_disabled:
-		rhi_cmd::disable_blending(cmd);
-		break;
-	case shader_blending::blending_additive:
-		rhi_cmd::enable_blending_additive(cmd);
-		break;
-	case shader_blending::blending_alpha_blend:
-		rhi_cmd::enable_blending_alpha_blend(cmd);
-		break;
-	}
+
 	if (shaders.size() == 2) {
 		constexpr VkShaderStageFlagBits stages[2] =
 		{

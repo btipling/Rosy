@@ -200,8 +200,7 @@ VkResult rhi::begin_frame()
 	return VK_SUCCESS;
 }
 
-
-VkResult rhi::shadow_pass()
+VkResult rhi::init_shadow_pass()
 {
 	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
 		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
@@ -225,7 +224,7 @@ VkResult rhi::shadow_pass()
 	{
 		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::shadow_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
-		 //begin clearing
+		//begin clearing
 		vkCmdBeginRendering(mv_cmd, &render_info);
 		const VkClearAttachment clear_attachment = rhi_helpers::create_clear_attachment();
 		const VkClearRect clear_rect = rhi_helpers::create_clear_rectangle(shadow_map_image.image_extent);
@@ -233,13 +232,63 @@ VkResult rhi::shadow_pass()
 		vkCmdEndRendering(mv_cmd);
 
 		transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, 
+			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
 			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT);
-		// begin shadow pass
 		vkCmdBeginRendering(mv_cmd, &render_info);
+
+		rhi_cmd::set_rendering_defaults(mv_cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+		rhi_cmd::toggle_culling(mv_cmd, false, VK_FRONT_FACE_CLOCKWISE);
+		rhi_cmd::toggle_wire_frame(mv_cmd, false);
+		rhi_cmd::set_view_port(mv_cmd, shadow_map_extent);
+		rhi_cmd::toggle_depth(mv_cmd, true);
+		rhi_cmd::disable_blending(mv_cmd);
 	}
 	return VK_SUCCESS;
 }
+
+VkResult rhi::begin_shadow_pass(int pass_number)
+{
+	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
+		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
+		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
+	{
+		if (!opt_shadow_pass_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
+		if (!opt_command_pool.has_value()) return VK_NOT_READY;
+	}
+
+	const VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
+	const allocated_image shadow_map_image = shadow_map_image_.value();
+
+	const VkExtent2D shadow_map_extent = {
+		.width = shadow_map_image.image_extent.width,
+		.height = shadow_map_image.image_extent.height,
+	};
+	{
+		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::shadow_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
+
+	}
+	return VK_SUCCESS;
+}
+
+VkResult rhi::end_shadow_pass()
+{
+
+	allocated_image draw_image = draw_image_.value();
+	allocated_image depth_image = depth_image_.value();
+	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
+		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
+		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
+	{
+		if (!opt_shadow_pass_command_buffer.has_value()) return VK_NOT_READY;
+	}
+	const VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
+	return VK_SUCCESS;
+}
+
 
 
 VkResult rhi::render_pass()
@@ -357,6 +406,12 @@ VkResult rhi::render_pass()
 			VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent, color_attachment, depth_attachment);
 			// begin render pass
 			vkCmdBeginRendering(render_cmd, &render_info);
+			rhi_cmd::set_rendering_defaults(render_cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+			rhi_cmd::toggle_culling(render_cmd, true, VK_FRONT_FACE_CLOCKWISE);
+			rhi_cmd::toggle_wire_frame(render_cmd, false);
+			rhi_cmd::set_view_port(render_cmd, swapchain_extent);
+			rhi_cmd::toggle_depth(render_cmd, true);
+			rhi_cmd::disable_blending(render_cmd);
 		}
 	}
 
