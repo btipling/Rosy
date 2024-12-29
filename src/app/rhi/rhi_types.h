@@ -41,6 +41,17 @@ struct allocated_image
 	VkFormat image_format;
 };
 
+struct allocated_csm
+{
+	VkImage image;
+	VkImageView image_view_near;
+	VkImageView image_view_middle;
+	VkImageView image_view_far;
+	VmaAllocation allocation;
+	VkExtent3D image_extent;
+	VkFormat image_format;
+};
+
 struct allocated_ktx_image
 {
 	VkImage image;

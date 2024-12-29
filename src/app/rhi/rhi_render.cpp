@@ -214,7 +214,7 @@ VkResult rhi::init_shadow_pass()
 	}
 
 	const VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
-	const allocated_image shadow_map_image = shadow_map_image_.value();
+	const allocated_csm shadow_map_image = shadow_map_image_.value();
 
 	const VkExtent2D shadow_map_extent = {
 		.width = shadow_map_image.image_extent.width,
@@ -222,7 +222,7 @@ VkResult rhi::init_shadow_pass()
 	};
 	transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
 	{
-		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::shadow_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::shadow_attachment_info(shadow_map_image.image_view_near, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
 		//begin clearing
 		vkCmdBeginRendering(mv_cmd, &render_info);
@@ -260,14 +260,14 @@ VkResult rhi::begin_shadow_pass(int pass_number)
 	}
 
 	const VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
-	const allocated_image shadow_map_image = shadow_map_image_.value();
+	const allocated_csm shadow_map_image = shadow_map_image_.value();
 
 	const VkExtent2D shadow_map_extent = {
 		.width = shadow_map_image.image_extent.width,
 		.height = shadow_map_image.image_extent.height,
 	};
 	{
-		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::shadow_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::shadow_attachment_info(shadow_map_image.image_view_near, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
 
 	}
@@ -322,7 +322,7 @@ VkResult rhi::render_pass()
 	// end shadow pass
 	{
 		vkCmdEndRendering(mv_cmd);
-		const allocated_image shadow_map_image = shadow_map_image_.value();
+		const allocated_csm shadow_map_image = shadow_map_image_.value();
 		transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 			VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 			VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);

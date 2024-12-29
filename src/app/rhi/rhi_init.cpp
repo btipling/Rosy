@@ -223,8 +223,10 @@ void rhi::deinit()
 		// Deinit draw images
 		if (shadow_map_image_.has_value())
 		{
-			const allocated_image depth_image = shadow_map_image_.value();
-			vkDestroyImageView(opt_device.value(), depth_image.image_view, nullptr);
+			const allocated_csm depth_image = shadow_map_image_.value();
+			vkDestroyImageView(opt_device.value(), depth_image.image_view_far, nullptr);
+			vkDestroyImageView(opt_device.value(), depth_image.image_view_middle, nullptr);
+			vkDestroyImageView(opt_device.value(), depth_image.image_view_near, nullptr);
 			vmaDestroyImage(opt_allocator.value(), depth_image.image, depth_image.allocation);
 		}
 		if (depth_image_.has_value())
@@ -927,7 +929,7 @@ VkResult rhi::init_draw_image()
 			.height = 1024,
 			.depth = 1
 		};
-		allocated_image shadow_map_image{};
+		allocated_csm shadow_map_image{};
 		shadow_map_image.image_format = VK_FORMAT_D32_SFLOAT;
 		shadow_map_image.image_extent = shadow_map_image_extent;
 		VkImageUsageFlags depth_image_usages{};
@@ -942,8 +944,15 @@ VkResult rhi::init_draw_image()
 		VkImageViewCreateInfo d_view_info = rhi_helpers::shadow_img_view_create_info(shadow_map_image.image_format, shadow_map_image.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT);
 
-		result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view);
+		result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_near);
 		if (result != VK_SUCCESS) return result;
+		d_view_info.subresourceRange.baseArrayLayer = 1;
+		result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_middle);
+		if (result != VK_SUCCESS) return result;
+		d_view_info.subresourceRange.baseArrayLayer = 2;
+		result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_far);
+		if (result != VK_SUCCESS) return result;
+
 		shadow_map_image_ = shadow_map_image;
 		auto obj_name = "shadow_map_image";
 		const VkDebugUtilsObjectNameInfoEXT vert_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(shadow_map_image.image), obj_name);
