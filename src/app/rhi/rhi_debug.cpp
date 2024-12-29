@@ -56,6 +56,7 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 		if (VkResult result = m_shaders.shade(render_cmd); result != VK_SUCCESS) return rh::result::error;
 	}
 
+	vkCmdSetPrimitiveTopologyEXT(render_cmd, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
 	for (auto line : lines) {
 		auto l = line;
 		l.world_matrix = ctx.view_proj * l.world_matrix;
@@ -74,6 +75,7 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 			vkCmdDraw(render_cmd, 2, 1, 0, 0);
 		}
 	}
+	vkCmdSetPrimitiveTopologyEXT(render_cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
 	vkCmdEndDebugUtilsLabelEXT(render_cmd);
 	return rh::result::ok;
