@@ -33,7 +33,7 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 }
 
 void rhi::transition_shadow_map_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
-	const VkImageLayout new_layout, VkPipelineStageFlags2 src_stage_flags, VkPipelineStageFlags2 dst_stage_flags)
+	const VkImageLayout new_layout, const VkPipelineStageFlags2 src_stage_flags, const VkPipelineStageFlags2 dst_stage_flags)
 {
 	const VkImageAspectFlags aspect_mask = (new_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
 		? VK_IMAGE_ASPECT_DEPTH_BIT
@@ -69,7 +69,7 @@ VkResult rhi::draw_ui()
 	return VK_SUCCESS;
 }
 
-std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event)
+std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event) const
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
 	const VkExtent2D shadow_map_extent = {
@@ -106,7 +106,7 @@ std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event)
 	return ctx;
 }
 
-std::expected<rh::ctx, VkResult> rhi::current_shadow_pass_ctx(const SDL_Event* event)
+std::expected<rh::ctx, VkResult> rhi::current_shadow_pass_ctx(const SDL_Event* event) const
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
 	const VkExtent2D shadow_map_extent = {
@@ -231,7 +231,7 @@ VkResult rhi::shadow_pass()
 		const VkClearRect clear_rect = rhi_helpers::create_clear_rectangle(shadow_map_image.image_extent);
 		vkCmdClearAttachments(mv_cmd, 1, &clear_attachment, 1, &clear_rect);
 		vkCmdEndRendering(mv_cmd);
-//  = 
+
 		transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, 
 			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT);

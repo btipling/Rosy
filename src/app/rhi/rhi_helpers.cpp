@@ -86,7 +86,7 @@ namespace rhi_helpers {
 		info.format = format;
 		info.extent = extent;
 		info.mipLevels = 1;
-		info.arrayLayers = 3;
+		info.arrayLayers = 4;
 		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		info.samples = VK_SAMPLE_COUNT_1_BIT;
 		info.tiling = VK_IMAGE_TILING_OPTIMAL;
