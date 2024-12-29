@@ -33,20 +33,20 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 }
 
 void rhi::transition_shadow_map_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
-	const VkImageLayout new_layout)
+	const VkImageLayout new_layout, VkPipelineStageFlags2 src_stage_flags, VkPipelineStageFlags2 dst_stage_flags)
 {
 	const VkImageAspectFlags aspect_mask = (new_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
 		? VK_IMAGE_ASPECT_DEPTH_BIT
 		: VK_IMAGE_ASPECT_COLOR_BIT;
 	VkImageSubresourceRange subresource_range = rhi_helpers::create_shadow_img_subresource_range(aspect_mask);
-	subresource_range.layerCount = 2;
+	subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
 	VkImageMemoryBarrier2 image_barrier = {};
 	image_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 	image_barrier.pNext = nullptr;
-	image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-	image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
-	image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+	image_barrier.srcStageMask = src_stage_flags;
+	image_barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+	image_barrier.dstStageMask = dst_stage_flags;
 	image_barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
 	image_barrier.oldLayout = current_layout;
 	image_barrier.newLayout = new_layout;
@@ -69,7 +69,7 @@ VkResult rhi::draw_ui()
 	return VK_SUCCESS;
 }
 
-std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
+std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event)
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
 	const VkExtent2D shadow_map_extent = {
@@ -83,7 +83,45 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 		.shadow_map_extent = shadow_map_extent,
 	};
 	if (frame_datas_.size() > 0) {
-		rhi_ctx.command_buffer = frame_datas_[current_frame_].command_buffer;
+		rhi_ctx.render_command_buffer = frame_datas_[current_frame_].render_command_buffer;
+		rhi_ctx.shadow_pass_command_buffer = std::nullopt;
+	}
+	if (descriptor_sets.has_value()) {
+		rhi_ctx.descriptor_sets = descriptor_sets.value().get();
+	}
+	if (buffer.has_value())
+	{
+		rhi_ctx.data = buffer.value().get();
+	}
+	SDL_Time ticks = 0;
+	if (!SDL_GetCurrentTime(&ticks))
+	{
+		rosy_utils::debug_print_a("failed to get current ticks!\n");
+	}
+	const rh::ctx ctx = {
+		.rhi = rhi_ctx,
+		.sdl_event = event,
+		.current_time = static_cast<double>(ticks),
+	};
+	return ctx;
+}
+
+std::expected<rh::ctx, VkResult> rhi::current_shadow_pass_ctx(const SDL_Event* event)
+{
+	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
+	const VkExtent2D shadow_map_extent = {
+		.width = shadow_map_image_.value().image_extent.width,
+		.height = shadow_map_image_.value().image_extent.height,
+	};
+	rh::rhi rhi_ctx = {
+		.device = opt_device.value(),
+		.allocator = opt_allocator.value(),
+		.frame_extent = swapchain_extent,
+		.shadow_map_extent = shadow_map_extent,
+	};
+	if (frame_datas_.size() > 0) {
+		rhi_ctx.render_command_buffer = std::nullopt;
+		rhi_ctx.shadow_pass_command_buffer = frame_datas_[current_frame_].shadow_pass_command_buffer;
 	}
 	if (descriptor_sets.has_value()) {
 		rhi_ctx.descriptor_sets = descriptor_sets.value().get();
@@ -107,23 +145,25 @@ std::expected<rh::ctx, VkResult> rhi::current_frame_data(const SDL_Event* event)
 
 VkResult rhi::begin_frame()
 {
-	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool] = frame_datas_[current_frame_];
+	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore, 
+		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence, 
+		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
-		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
-		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
-		if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
-		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_render_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
 
-	const VkCommandBuffer cmd = opt_command_buffers.value();
-	const VkSemaphore image_available = opt_image_available_semaphores.value();
-	const VkFence fence = opt_in_flight_fence.value();
+	const VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
+	const VkCommandBuffer render_cmd = opt_render_command_buffer.value();
+	const VkSemaphore image_available = opt_image_available_semaphore.value();
+	const VkFence shadow_pass_fence = opt_shadow_pass_fence.value();
 
 	const VkDevice device = opt_device.value();
 
-	VkResult result = vkWaitForFences(device, 1, &fence, true, 1000000000);
+	VkResult result = vkWaitForFences(device, 1, &shadow_pass_fence, true, 1000000000);
 	if (result != VK_SUCCESS) return result;
 
 	uint32_t image_index;
@@ -138,21 +178,24 @@ VkResult rhi::begin_frame()
 	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * render_scale_;
 	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * render_scale_;
 
-	vkResetFences(device, 1, &fence);
+	vkResetFences(device, 1, &shadow_pass_fence);
 
 	{
 		// Start recording commands. This records commands that aren't actually submitted to a queue to do anything with until 
 		// 1. The submit queue call has been made but also
 		// 2. The wait semaphore given to the submit queue has been signaled, which
 		// 3. Doesn't happen until the image we requested with vkAcquireNextImageKHR has been made available
-		result = vkResetCommandBuffer(cmd, 0);
+		result = vkResetCommandBuffer(mv_cmd, 0);
 		if (result != VK_SUCCESS) return result;
 
-		VkCommandBufferBeginInfo begin_info{};
-		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		result = vkBeginCommandBuffer(cmd, &begin_info);
-		if (result != VK_SUCCESS) return result;
+		{
+			VkCommandBufferBeginInfo begin_info{};
+			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			result = vkBeginCommandBuffer(mv_cmd, &begin_info);
+			if (result != VK_SUCCESS) return result;
+		}
+
 	}
 	return VK_SUCCESS;
 }
@@ -160,29 +203,40 @@ VkResult rhi::begin_frame()
 
 VkResult rhi::shadow_pass()
 {
-	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool] = frame_datas_[current_frame_];
+	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
+		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
+		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
-		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
-		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
-		if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
 		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
 
-	const VkCommandBuffer cmd = opt_command_buffers.value();
+	const VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
 	const allocated_image shadow_map_image = shadow_map_image_.value();
 
 	const VkExtent2D shadow_map_extent = {
 		.width = shadow_map_image.image_extent.width,
 		.height = shadow_map_image.image_extent.height,
 	};
-	transition_shadow_map_image(cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+	transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
 	{
-		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::depth_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		const VkRenderingAttachmentInfo depth_attachment = rhi_helpers::shadow_attachment_info(shadow_map_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
+		 //begin clearing
+		vkCmdBeginRendering(mv_cmd, &render_info);
+		const VkClearAttachment clear_attachment = rhi_helpers::create_clear_attachment();
+		const VkClearRect clear_rect = rhi_helpers::create_clear_rectangle(shadow_map_image.image_extent);
+		vkCmdClearAttachments(mv_cmd, 1, &clear_attachment, 1, &clear_rect);
+		vkCmdEndRendering(mv_cmd);
+//  = 
+		transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, 
+			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT);
 		// begin shadow pass
-		vkCmdBeginRendering(cmd, &render_info);
+		vkCmdBeginRendering(mv_cmd, &render_info);
 	}
 	return VK_SUCCESS;
 }
@@ -192,36 +246,108 @@ VkResult rhi::render_pass()
 {
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depth_image = depth_image_.value();
-	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool] = frame_datas_[current_frame_];
+	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
+		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
+		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
-		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
-		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
-		if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_render_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
 		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_fence.has_value()) return VK_NOT_READY;
 	}
 
-	VkCommandBuffer cmd = opt_command_buffers.value();
+	VkDevice device = opt_device.value();
+	VkSemaphore shadow_pass_pass = opt_shadow_pass_semaphore.value();
+	VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
+	VkSemaphore image_available = opt_image_available_semaphore.value();
+	VkFence shadow_pass_fence = opt_shadow_pass_fence.value();
+	VkFence render_fence = opt_in_flight_fence.value();
+	VkCommandBuffer render_cmd = opt_render_command_buffer.value();
 
 
+	VkResult result;
 	// end shadow pass
-	vkCmdEndRendering(cmd);
+	{
+		vkCmdEndRendering(mv_cmd);
+		const allocated_image shadow_map_image = shadow_map_image_.value();
+		transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+			VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
+	}
+	{
+		result = vkEndCommandBuffer(mv_cmd);
+		if (result != VK_SUCCESS) return result;
+	}
+	{
+		// submit recorded shadow_pass commands to the queue
+		VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
+		cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+		cmd_buffer_submit_info.pNext = nullptr;
+		cmd_buffer_submit_info.commandBuffer = mv_cmd;
+		cmd_buffer_submit_info.deviceMask = 0;
 
+		VkSemaphoreSubmitInfo wait_info{};
+		wait_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+		wait_info.pNext = nullptr;
+		wait_info.semaphore = image_available;
+		wait_info.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+		wait_info.deviceIndex = 0;
+		wait_info.value = 1;
+
+		VkSemaphoreSubmitInfo signal_info{};
+		signal_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+		signal_info.pNext = nullptr;
+		signal_info.semaphore = shadow_pass_pass;
+		signal_info.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+		signal_info.deviceIndex = 0;
+		signal_info.value = 1;
+
+		VkSubmitInfo2 submit_info{};
+		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+		submit_info.pNext = nullptr;
+		// This shadow_pass submit waits for image available and signals shadow_pass pass 
+		submit_info.waitSemaphoreInfoCount = 1;
+		submit_info.pWaitSemaphoreInfos = &wait_info;
+		submit_info.signalSemaphoreInfoCount = 1;
+		// When submit is done it signals this `signalInfo` semaphore and unblocks anything which is waiting for it.
+		submit_info.pSignalSemaphoreInfos = &signal_info;
+		submit_info.commandBufferInfoCount = 1;
+		submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
+		result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, shadow_pass_fence);
+		if (result != VK_SUCCESS) return result;
+	}
+	{
+		result = vkWaitForFences(device, 1, &render_fence, true, 1000000000);
+		if (result != VK_SUCCESS) return result;
+		vkResetFences(device, 1, &render_fence);
+		result = vkResetCommandBuffer(render_cmd, 0);
+		if (result != VK_SUCCESS) return result;
+	}
+	{
+		VkCommandBufferBeginInfo begin_info{};
+		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		result = vkBeginCommandBuffer(render_cmd, &begin_info);
+		if (result != VK_SUCCESS) return result;
+	}
 	{
 		// Clear image. This transition means that all the commands recorded before now happen before
 		// any calls after. The calls themselves before this may have executed in any order up until this point.
-		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+		transition_image(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 		// vkCmdClearColorImage is guaranteed to happen after previous calls.
 		VkClearColorValue clear_value;
 		clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
 		VkImageSubresourceRange subresource_range = rhi_helpers::create_img_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
-		vkCmdClearColorImage(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
+		vkCmdClearColorImage(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
 	}
 	{
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
-		transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		transition_image(cmd, depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+		transition_image(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		transition_image(render_cmd, depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 		//  and the subsequent happening between vkCmdBeginRendering and vkCmdEndRendering happen after this, but may happen out of order
 		{
 			VkRenderingAttachmentInfo color_attachment = rhi_helpers::attachment_info(
@@ -230,7 +356,7 @@ VkResult rhi::render_pass()
 				depth_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 			VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent, color_attachment, depth_attachment);
 			// begin render pass
-			vkCmdBeginRendering(cmd, &render_info);
+			vkCmdBeginRendering(render_cmd, &render_info);
 		}
 	}
 
@@ -240,20 +366,23 @@ VkResult rhi::render_pass()
 
 VkResult rhi::end_frame()
 {
-	auto [opt_command_buffers, opt_image_available_semaphores, opt_render_finished_semaphores, opt_in_flight_fence,
-		opt_command_pool] = frame_datas_[current_frame_];
+	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
+		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
+		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
-		if (!opt_command_buffers.has_value()) return VK_NOT_READY;
-		if (!opt_image_available_semaphores.has_value()) return VK_NOT_READY;
-		if (!opt_render_finished_semaphores.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_render_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_fence.has_value()) return VK_NOT_READY;
 		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
-
-	VkCommandBuffer cmd = opt_command_buffers.value();
-	VkSemaphore image_available = opt_image_available_semaphores.value();
-	VkSemaphore rendered_finished = opt_render_finished_semaphores.value();
-	VkFence fence = opt_in_flight_fence.value();
+	VkCommandBuffer render_cmd = opt_render_command_buffer.value();
+	VkSemaphore shadow_pass_pass = opt_shadow_pass_semaphore.value();
+	VkSemaphore rendered_finished = opt_render_finished_semaphore.value();
+	VkFence render_fence = opt_in_flight_fence.value();
 	uint32_t image_index = current_swapchain_image_index_;
 	VkImage image = swap_chain_images_[image_index];
 	VkImageView image_view = swap_chain_image_views_[image_index];
@@ -263,39 +392,39 @@ VkResult rhi::end_frame()
 	{
 		VkResult result;
 		// end render pass
-		vkCmdEndRendering(cmd);
+		vkCmdEndRendering(render_cmd);
 		{
 			// blit the draw image to the swapchain image
-			transition_image(cmd, draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			transition_image(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-			transition_image(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			rhi_helpers::blit_images(cmd, draw_image.image, image, draw_extent_, swapchain_extent);
+			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			rhi_helpers::blit_images(render_cmd, draw_image.image, image, draw_extent_, swapchain_extent);
 		}
 		{
 			// draw ui onto swapchain image
-			transition_image(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			result = render_ui(cmd, image_view);
+			result = render_ui(render_cmd, image_view);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
 			// Transition swapchain image for presentation
-			transition_image(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-			result = vkEndCommandBuffer(cmd);
+			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			result = vkEndCommandBuffer(render_cmd);
 			if (result != VK_SUCCESS) return result;
 		}
 		{
-			// submit recorded commands to the queue
+			// submit recorded render commands to the queue
 			VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
 			cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
 			cmd_buffer_submit_info.pNext = nullptr;
-			cmd_buffer_submit_info.commandBuffer = cmd;
+			cmd_buffer_submit_info.commandBuffer = render_cmd;
 			cmd_buffer_submit_info.deviceMask = 0;
 
 			VkSemaphoreSubmitInfo wait_info{};
 			wait_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 			wait_info.pNext = nullptr;
-			wait_info.semaphore = image_available;
+			wait_info.semaphore = shadow_pass_pass;
 			wait_info.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
 			wait_info.deviceIndex = 0;
 			wait_info.value = 1;
@@ -313,7 +442,8 @@ VkResult rhi::end_frame()
 			submit_info.pNext = nullptr;
 			// This should be obvious, but it wasn't for me. Wait blocks this submit until the semaphore assigned to it is signaled.
 			// To state again, wait semaphores means the submit waits for the semaphore in wait info to be signaled before it begins
-			// in this case we're waiting for the image we requested at the beginning of render frame to be available.
+			// in the case of shadow_pass we're waiting for the image we requested at the beginning of render frame to be available.
+			// In this submit case we're waiting for shadow_pass to finish.
 			// What we have to remember is that up until this point we've only *recorded* the commands we want to execute
 			// on to the command data. This submit will actually start the process of telling the GPU to do the commands.
 			// None of that has happened yet. We're declaring future work there. Up until this point the only actual work we've done
@@ -326,7 +456,7 @@ VkResult rhi::end_frame()
 			submit_info.pSignalSemaphoreInfos = &signal_info;
 			submit_info.commandBufferInfoCount = 1;
 			submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
-			result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, fence);
+			result = vkQueueSubmit2(present_queue_.value(), 1, &submit_info, render_fence);
 			if (result != VK_SUCCESS) return result;
 		}
 		{

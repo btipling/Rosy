@@ -40,7 +40,7 @@ public:
 	void init(const rh::ctx& ctx);
 	void init_shadows(const rh::ctx& ctx);
 	void update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data = std::nullopt);
-	void deinit(const rh::ctx& ctx);
+	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
