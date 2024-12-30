@@ -439,8 +439,8 @@ shadow_map mesh_scene::shadow_map_projection(const std::vector<glm::vec4>& shado
 
 
 	const glm::mat4 p = glm::ortho(
-		min_x, max_x,
-		min_y, max_y,
+		max_x, min_x,
+		max_y, min_y,
 		-1 * min_z, -1 * max_z);
 
 
