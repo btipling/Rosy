@@ -53,10 +53,10 @@ public struct SceneData
     public float4 ambientColor;
     public float4 sunlightDirection;
     public float4 sunlightColor;
-    uint csm_index_sampler;
-    uint csm_index_near;
-    uint csm_index_middle;
-    uint csm_index_far;
+    public uint csm_index_sampler;
+    public uint csm_index_near;
+    public uint csm_index_middle;
+    public uint csm_index_far;
 };
 
 public struct Fragment

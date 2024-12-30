@@ -33,7 +33,7 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 }
 
 [shader("fragment")]
-Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM: csm : CSM) : SV_Target
+Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) : SV_Target
 {
     SceneData sd = *PushConstants.sd;
 
@@ -56,6 +56,18 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM: csm : CSM) 
     texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
     SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
     float4 imageTextureColor = matImageTexture.Sample(matSampler, coarseVertex.textureCoordinates);
+
+    uint csm_sampler_i = sd.csm_index_sampler;
+    uint csm_near_i = sd.csm_index_near;
+    uint csm_middle_i = sd.csm_index_middle;
+    uint csm_far_i = sd.csm_index_far;
+
+    SamplerState shadowSampler = imageSampler[NonUniformResourceIndex(csm_sampler_i)];
+    texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csm_middle_i)];
+    bool InShadow = shadowNearImage.Sample(shadowSampler, csm.near.xy).z < csm.near.z;
+    if (InShadow) {
+        sunLight = float3(0);
+    }
 
     float4 outFragColor = imageTextureColor * float4(ambientLight + sunLight, 1.0);
 
