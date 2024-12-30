@@ -35,9 +35,7 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 void rhi::transition_shadow_map_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
 	const VkImageLayout new_layout, const VkPipelineStageFlags2 src_stage_flags, const VkPipelineStageFlags2 dst_stage_flags)
 {
-	const VkImageAspectFlags aspect_mask = (new_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
-		? VK_IMAGE_ASPECT_DEPTH_BIT
-		: VK_IMAGE_ASPECT_COLOR_BIT;
+	const VkImageAspectFlags aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	VkImageSubresourceRange subresource_range = rhi_helpers::create_shadow_img_subresource_range(aspect_mask);
 	subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
@@ -68,6 +66,13 @@ VkResult rhi::draw_ui()
 	// Draw some FPS statistics or something
 	ImGui::Begin("Shadow maps");
 	ImGui::Text("Hello shadow maps!");
+	ImVec2 pos = ImGui::GetCursorScreenPos();
+	constexpr auto uv_min = ImVec2(0.0f, 0.0f);
+	constexpr auto uv_max = ImVec2(1.0f, 1.0f);
+	constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+	const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
+	const ImVec2 content_area = ImGui::GetContentRegionAvail();
+	ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
 	ImGui::End();
 	return VK_SUCCESS;
 }
@@ -223,7 +228,7 @@ VkResult rhi::init_shadow_pass()
 		.width = shadow_map_image.image_extent.width,
 		.height = shadow_map_image.image_extent.height,
 	};
-	transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+	transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
 		VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT);
 	{
@@ -303,12 +308,6 @@ VkResult rhi::render_pass()
 
 	VkResult result;
 	// end shadow pass
-	{
-		const allocated_csm shadow_map_image = shadow_map_image_.value();
-		transition_shadow_map_image(mv_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-			VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-			VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
-	}
 	{
 		result = vkEndCommandBuffer(mv_cmd);
 		if (result != VK_SUCCESS) return result;
@@ -416,6 +415,7 @@ VkResult rhi::end_frame()
 		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
+	const VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
 	VkCommandBuffer render_cmd = opt_render_command_buffer.value();
 	VkSemaphore shadow_pass_pass = opt_shadow_pass_semaphore.value();
 	VkSemaphore rendered_finished = opt_render_finished_semaphore.value();
@@ -441,6 +441,13 @@ VkResult rhi::end_frame()
 			// draw ui onto swapchain image
 			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+			{
+				const allocated_csm shadow_map_image = shadow_map_image_.value();
+				transition_shadow_map_image(render_cmd, shadow_map_image.image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+					VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+					VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
+			}
 			result = render_ui(render_cmd, image_view);
 			if (result != VK_SUCCESS) return result;
 		}

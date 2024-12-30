@@ -189,8 +189,18 @@ void rhi::deinit()
 			vkDeviceWaitIdle(opt_device.value());
 		}
 	}
-
 	// Deinit begin in the reverse order from how it was created.
+	if (shadow_map_image_.has_value())
+	{
+		const VkDevice device = opt_device.value();
+		const allocated_csm csm_image = shadow_map_image_.value();
+		vkDestroySampler(device, csm_image.viewer_sampler, nullptr);
+		vkDestroyImageView(device, csm_image.image_view_far, nullptr);
+		vkDestroyImageView(device, csm_image.image_view_middle, nullptr);
+		vkDestroyImageView(device, csm_image.image_view_near, nullptr);
+		vmaDestroyImage(opt_allocator.value(), csm_image.image, csm_image.allocation);
+		ImGui_ImplVulkan_RemoveTexture(csm_image.imgui_ds_near);
+	}
 	deinit_ui();
 
 	if (vdi.has_value())
@@ -228,16 +238,6 @@ void rhi::deinit()
 
 	{
 		// Deinit draw images
-		if (shadow_map_image_.has_value())
-		{
-			const VkDevice device = opt_device.value();
-			const allocated_csm depth_image = shadow_map_image_.value();
-			vkDestroySampler(device, depth_image.viewer_sampler, nullptr);
-			vkDestroyImageView(device, depth_image.image_view_far, nullptr);
-			vkDestroyImageView(device, depth_image.image_view_middle, nullptr);
-			vkDestroyImageView(device, depth_image.image_view_near, nullptr);
-			vmaDestroyImage(opt_allocator.value(), depth_image.image, depth_image.allocation);
-		}
 		if (depth_image_.has_value())
 		{
 			const allocated_image depth_image = depth_image_.value();
@@ -1041,7 +1041,7 @@ VkResult rhi::init_csm_image()
 			}
 		}
 		{
-			shadow_map_image.imgui_ds_near = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_near, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			shadow_map_image.imgui_ds_near = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_near, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 		}
 
 		shadow_map_image_ = shadow_map_image;

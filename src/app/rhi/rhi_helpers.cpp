@@ -99,7 +99,7 @@ namespace rhi_helpers {
 		VkImageViewCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		info.pNext = nullptr;
-		info.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+		info.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		info.image = image;
 		info.format = format;
 		info.subresourceRange.baseMipLevel = 0;

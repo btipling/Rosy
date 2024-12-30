@@ -185,7 +185,6 @@ void app::end_rendering(const char* message)
 
 void app::render(const SDL_Event* event)
 {
-	render_ui(event);
 	render_scene(event);
 }
 
@@ -269,7 +268,6 @@ void app::render_scene(const SDL_Event* event)
 			return end_rendering("rhi shadow pass failed\n");
 		}
 	}
-
 	{
 		// Init render context
 		if (const std::expected<rh::ctx, VkResult> opt_ctx = renderer.current_render_ctx(event); opt_ctx.has_value()) ctx = opt_ctx.value();
@@ -286,7 +284,7 @@ void app::render_scene(const SDL_Event* event)
 		return end_rendering("rhi render pass failed\n");
 	}
 	if (const auto scene_result = scene_->draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
-
+	render_ui(event);
 	if (const VkResult result = renderer.end_frame(); result != VK_SUCCESS) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			rosy_utils::debug_print_a("swapchain out of date\n");

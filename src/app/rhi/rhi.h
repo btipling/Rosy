@@ -26,7 +26,7 @@ public:
 	VkResult end_shadow_pass() const;
 	VkResult render_pass();
 	VkResult end_frame();
-	static VkResult draw_ui();
+	VkResult draw_ui();
 	// Buffer read write
 	VkResult immediate_submit(std::function<void(VkCommandBuffer cmd)>&& record_func) const;
 	// Rendering
@@ -105,7 +105,6 @@ private:
 	VkResult init_swap_chain(SDL_Window* window);
 	VkResult create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain);
 	VkResult init_draw_image();
-	VkResult init_csm_image();
 	VkResult init_descriptors();
 	VkResult init_command_pool();
 	VkResult init_command_buffers();
@@ -113,6 +112,7 @@ private:
 	VkResult init_commands();
 	VkResult init_data();
 	VkResult init_ktx();
+	VkResult init_csm_image();
 
 	// Utils
 	swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device) const;
