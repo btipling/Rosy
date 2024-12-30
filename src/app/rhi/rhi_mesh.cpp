@@ -195,6 +195,10 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 	if (scene_data.has_value() && scene_buffers.has_value()) {
 		gpu_scene_buffers sb = scene_buffers.value();
 		gpu_scene_data sd = scene_data.value();
+		sd.csm_index_sampler = ctx.ctx->rhi.csm_index_sampler;
+		sd.csm_index_near = ctx.ctx->rhi.csm_index_near;
+		sd.csm_index_middle = ctx.ctx->rhi.csm_index_middle;
+		sd.csm_index_far = ctx.ctx->rhi.csm_index_far;
 		memcpy(sb.scene_buffer.info.pMappedData, &sd, sizeof(sd));
 	}
 

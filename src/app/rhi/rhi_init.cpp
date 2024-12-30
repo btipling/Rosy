@@ -198,6 +198,7 @@ void rhi::deinit()
 		ImGui_ImplVulkan_RemoveTexture(csm_image.imgui_ds_middle);
 		ImGui_ImplVulkan_RemoveTexture(csm_image.imgui_ds_far);
 		vkDestroySampler(device, csm_image.viewer_sampler, nullptr);
+		vkDestroySampler(device, csm_image.shadow_sampler, nullptr);
 		vkDestroyImageView(device, csm_image.image_view_far, nullptr);
 		vkDestroyImageView(device, csm_image.image_view_middle, nullptr);
 		vkDestroyImageView(device, csm_image.image_view_near, nullptr);
@@ -1030,14 +1031,26 @@ VkResult rhi::init_csm_image()
 				if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &object_name); debug_result != VK_SUCCESS) return debug_result;
 			}
 		}
-
 		{
 			VkSamplerCreateInfo sampler_create_info = rhi_helpers::create_sampler_create_info();
 			VkSampler sampler;
 			if (result = vkCreateSampler(device, &sampler_create_info, nullptr, &sampler); result != VK_SUCCESS) return result;
 			shadow_map_image.viewer_sampler = sampler;
 			{
-				const auto obj_name = "shadow_map_sampler";
+				const auto obj_name = "csm_view_sampler";
+				const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>(sampler), obj_name);
+				if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &object_name); debug_result != VK_SUCCESS) return debug_result;
+			}
+		}
+		{
+			VkSamplerCreateInfo sampler_create_info = rhi_helpers::create_sampler_create_info();
+			sampler_create_info.compareEnable = VK_TRUE;
+			sampler_create_info.compareOp = VK_COMPARE_OP_GREATER;
+			VkSampler sampler;
+			if (result = vkCreateSampler(device, &sampler_create_info, nullptr, &sampler); result != VK_SUCCESS) return result;
+			shadow_map_image.shadow_sampler = sampler;
+			{
+				const auto obj_name = "csm_shadow_sampler";
 				const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>(sampler), obj_name);
 				if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &object_name); debug_result != VK_SUCCESS) return debug_result;
 			}
@@ -1049,7 +1062,7 @@ VkResult rhi::init_csm_image()
 		}
 		{
 			descriptor_sets_manager* dsm = descriptor_sets.value().get();
-			shadow_map_image.ds_index_sampler = dsm->write_sampler(device, shadow_map_image.viewer_sampler, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+			shadow_map_image.ds_index_sampler = dsm->write_sampler(device, shadow_map_image.shadow_sampler, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 			shadow_map_image.ds_index_near = dsm->write_sampled_image(device, shadow_map_image.image_view_near, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 			shadow_map_image.ds_index_middle = dsm->write_sampled_image(device, shadow_map_image.image_view_middle, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 			shadow_map_image.ds_index_far = dsm->write_sampled_image(device, shadow_map_image.image_view_far, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);

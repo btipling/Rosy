@@ -15,18 +15,25 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float4x4 worldMat = rd.transform;
 
     VertexStageOutput output;
+
     output.coarseVertex.vertex = v.position;
     output.coarseVertex.color = v.color.xyz;
     output.coarseVertex.normal = mul(rd.normalTransform, v.normal);
     output.coarseVertex.textureCoordinates = float2(v.textureCoordinates_x, v.textureCoordinates_y);
+
     float4 posWorld = float4(v.position, 1.0);
+
+    output.csm.near = mul(mul(sd.shadowproj_near, worldMat), posWorld);
+    output.csm.middle = mul(mul(sd.shadowproj_middle, worldMat), posWorld);
+    output.csm.far = mul(mul(sd.shadowproj_far, worldMat), posWorld);
+
     output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
 
     return output;
 }
 
 [shader("fragment")]
-Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
+Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM: csm : CSM) : SV_Target
 {
     SceneData sd = *PushConstants.sd;
 

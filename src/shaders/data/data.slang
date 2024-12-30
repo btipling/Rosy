@@ -3,6 +3,7 @@ module data;
 public struct VertexStageOutput
 {
     public CoarseVertex coarseVertex : CoarseVertex;
+    public CSM csm : CSM;
     public float4 sv_position : SV_Position;
 };
 
@@ -31,6 +32,13 @@ public struct CoarseVertex
     public float3 normal;
     public float3 vertex;
     public float2 textureCoordinates;
+};
+
+public struct CSM
+{
+    public float4 near;
+    public float4 middle;
+    public float4 far;
 };
 
 public struct SceneData
