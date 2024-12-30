@@ -65,14 +65,39 @@ VkResult rhi::draw_ui()
 {
 	// Draw some FPS statistics or something
 	ImGui::Begin("Shadow maps");
-	ImGui::Text("Hello shadow maps!");
+	static const char* options[] =
+	{
+	   "Near Shadow Map",
+		"Middle Shadow Map",
+		"Far Shadow Map",
+	};
+
+	if (ImGui::BeginCombo("Select Shadow Map", options[current_viewed_shadow_map_]))
+	{
+		for (int n = 0; n < IM_ARRAYSIZE(options); n++) {
+			if (ImGui::Selectable(options[n], current_viewed_shadow_map_ == n)) current_viewed_shadow_map_ = n;
+		}
+		ImGui::EndCombo();
+	}
 	ImVec2 pos = ImGui::GetCursorScreenPos();
 	constexpr auto uv_min = ImVec2(0.0f, 0.0f);
 	constexpr auto uv_max = ImVec2(1.0f, 1.0f);
 	constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 	const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
 	const ImVec2 content_area = ImGui::GetContentRegionAvail();
-	ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
+	switch (current_viewed_shadow_map_)
+	{
+	case 1:
+		ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_middle), content_area, uv_min, uv_max, tint_col, border_col);
+		break;
+	case 2:
+		ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_far), content_area, uv_min, uv_max, tint_col, border_col);
+		break;
+	case 0:
+	default:
+		ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
+		break;
+	}
 	ImGui::End();
 	return VK_SUCCESS;
 }
@@ -153,8 +178,8 @@ std::expected<rh::ctx, VkResult> rhi::current_shadow_pass_ctx(const SDL_Event* e
 
 VkResult rhi::begin_frame()
 {
-	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore, 
-		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence, 
+	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
+		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
 		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
 		if (!opt_shadow_pass_command_buffer.has_value()) return VK_NOT_READY;

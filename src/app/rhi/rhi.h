@@ -72,6 +72,7 @@ private:
 
 	// ui
 	std::optional<VkDescriptorPool> ui_pool_ = std::nullopt;
+	size_t current_viewed_shadow_map_ = 0;
 
 	size_t current_frame_ = 0;
 	uint32_t current_swapchain_image_index_ = 0;
