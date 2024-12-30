@@ -149,7 +149,9 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		sunlight_direction_ = glm::normalize(sunlight_direction_);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 		ImGui::Checkbox("Light view", &light_view_);
-		ImGui::SliderFloat("Near plane", &near_plane_, 1.0f, 100.0f);
+		ImGui::RadioButton("near", &near_plane_, 0); ImGui::SameLine();
+		ImGui::RadioButton("middle", &near_plane_, 1); ImGui::SameLine();
+		ImGui::RadioButton("far", &near_plane_, 2);
 		ImGui::SliderFloat("distance from light camera", &distance_from_camera_, 0.f, 1.0f);
 		ImGui::Text("Blending");
 		ImGui::RadioButton("disabled", &blend_mode_, 0); ImGui::SameLine();
@@ -201,18 +203,34 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		shadow_proj = glm::perspective( fov, s, g, -500.f / 100);
 		auto [sm_view_near, sm_projection_near] = scene_graph_->shadow_map_projection(sunlight_direction_, shadow_proj, view);
 
-		shadow_proj = glm::perspective(fov, s, g, -500.f / 100);
+		shadow_proj = glm::perspective(fov, s, g, -500.f / 50);
 		auto [sm_view_middle, sm_projection_middle] = scene_graph_->shadow_map_projection(sunlight_direction_, shadow_proj, view);
 
-		shadow_proj = glm::perspective(fov, s, g, -500.f / 100);
+		shadow_proj = glm::perspective(fov, s, g, -500.f / 25);
 		auto [sm_view_far, sm_projection_far] = scene_graph_->shadow_map_projection(sunlight_direction_, shadow_proj, view);
 
 		glm::mat4 p = proj * view;
+		glm::mat4 light_view_p = p;
+		switch (near_plane_)
+		{
+		case 0:
+			shadow_map_view_ = sm_view_near;
+			light_view_p = sm_projection_near;
+			break;
+		case 1:
+			shadow_map_view_ = sm_view_middle;
+			light_view_p = sm_projection_middle;
+			break;
+		case 2:
+		default:
+			shadow_map_view_ = sm_view_far;
+			light_view_p = sm_projection_far;
+			break;
+		}
 		if (light_view_)
 		{
-			p = sm_projection_near * sm_view_near;;
+			p = light_view_p * shadow_map_view_;
 		}
-		shadow_map_view_ = sm_view_near;
 
 		scene_data_.view = view;
 		scene_data_.proj = proj;

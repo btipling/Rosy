@@ -32,4 +32,5 @@ namespace rhi_helpers {
 		const VkDescriptorSetLayout* set_layouts, uint32_t sl_count);
 	VkClearAttachment create_clear_attachment();
 	VkClearRect create_clear_rectangle(const VkExtent3D img_extent);
+	VkSamplerCreateInfo create_sampler_create_info(VkFilter filter = VK_FILTER_NEAREST, VkSamplerAddressMode address_mode = VK_SAMPLER_ADDRESS_MODE_REPEAT);
 }

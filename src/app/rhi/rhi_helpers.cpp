@@ -360,4 +360,35 @@ namespace rhi_helpers {
 		clear_rect.layerCount = 1;
 		return clear_rect;
 	}
+
+	VkSamplerCreateInfo create_color_sampler_create_info(const VkFilter filter, const VkSamplerAddressMode address_mode)
+	{
+		VkSamplerCreateInfo sampler_create_info{};
+		sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		sampler_create_info.pNext = nullptr;
+
+		sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
+		sampler_create_info.minLod = 0;
+
+		sampler_create_info.mipLodBias = 0.f;
+		sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		sampler_create_info.anisotropyEnable = VK_FALSE;
+		sampler_create_info.maxAnisotropy = 0.f;
+
+		sampler_create_info.addressModeU = address_mode;
+		sampler_create_info.addressModeV = address_mode;
+		sampler_create_info.addressModeW = address_mode;
+		sampler_create_info.compareOp = VK_COMPARE_OP_NEVER;
+		sampler_create_info.compareEnable = VK_FALSE;
+
+		sampler_create_info.magFilter = filter;
+		sampler_create_info.minFilter = filter;
+
+		sampler_create_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+		sampler_create_info.unnormalizedCoordinates = VK_FALSE;
+		sampler_create_info.flags = 0;
+
+		return sampler_create_info;
+
+	}
 }

@@ -120,6 +120,12 @@ VkResult rhi::init(SDL_Window* window)
 		rosy_utils::debug_print_w(L"Failed to init draw image! %d\n", result);
 		return result;
 	}
+	result = this->init_csm_image();
+	if (result != VK_SUCCESS)
+	{
+		rosy_utils::debug_print_w(L"Failed to init csm! %d\n", result);
+		return result;
+	}
 	result = this->init_descriptors();
 	if (result != VK_SUCCESS)
 	{
@@ -868,7 +874,7 @@ VkResult rhi::init_draw_image()
 {
 	VkResult result;
 	const VkDevice device = opt_device.value();
-	VkExtent3D draw_image_extent = {
+	const VkExtent3D draw_image_extent = {
 		.width = static_cast<uint32_t>(app_cfg->max_window_width),
 		.height = static_cast<uint32_t>(app_cfg->max_window_height),
 		.depth = 1
@@ -922,9 +928,27 @@ VkResult rhi::init_draw_image()
 		if (result != VK_SUCCESS) return result;
 		depth_image_ = depth_image;
 	}
+
+	return result;
+}
+
+VkResult rhi::init_csm_image()
+{
+	VkResult result;
+	const VkDevice device = opt_device.value();
+	VkExtent3D draw_image_extent = {
+		.width = static_cast<uint32_t>(app_cfg->max_window_width),
+		.height = static_cast<uint32_t>(app_cfg->max_window_height),
+		.depth = 1
+	};
+
+	VmaAllocationCreateInfo r_img_alloc_info{};
+	r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
 	{
 		// Shadow map image creation.
-		VkExtent3D shadow_map_image_extent = {
+		constexpr VkExtent3D shadow_map_image_extent = {
 			.width = 1024,
 			.height = 1024,
 			.depth = 1
@@ -936,7 +960,7 @@ VkResult rhi::init_draw_image()
 
 		depth_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		VkImageCreateInfo depth_info = rhi_helpers::shadow_img_create_info(shadow_map_image.image_format, depth_image_usages, shadow_map_image_extent);
+		const VkImageCreateInfo depth_info = rhi_helpers::shadow_img_create_info(shadow_map_image.image_format, depth_image_usages, shadow_map_image_extent);
 
 		vmaCreateImage(opt_allocator.value(), &depth_info, &r_img_alloc_info, &shadow_map_image.image, &shadow_map_image.allocation,
 			nullptr);
@@ -954,7 +978,7 @@ VkResult rhi::init_draw_image()
 		if (result != VK_SUCCESS) return result;
 
 		shadow_map_image_ = shadow_map_image;
-		auto obj_name = "shadow_map_image";
+		const auto obj_name = "shadow_map_image";
 		const VkDebugUtilsObjectNameInfoEXT vert_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(shadow_map_image.image), obj_name);
 		if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &vert_name); debug_result != VK_SUCCESS) return debug_result;
 	}

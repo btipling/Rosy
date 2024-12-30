@@ -76,7 +76,6 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 		}
 	}
 	vkCmdSetPrimitiveTopologyEXT(render_cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-
 	vkCmdEndDebugUtilsLabelEXT(render_cmd);
 	return rh::result::ok;
 };

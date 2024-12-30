@@ -59,6 +59,13 @@ public struct PushConstant {
     public MaterialData *md;
 }
 
+public struct ShadowConstant {
+    public SceneData *sd;
+    public InputVertex *v;
+    public RenderData *rd;
+    public uint pass_number;
+}
+
 public struct ShadowOutput
 {
     public float4 sv_position : SV_Position;

@@ -19,6 +19,16 @@ namespace {
 		push_constants.material_buffer = ro.material_buffer_address + (sizeof(material_data) * ro.material_index);
 		return push_constants;
 	}
+
+	gpu_shadow_push_constants shadow_constants(const render_object& ro, const int pass_number)
+	{
+		gpu_shadow_push_constants shadow_constants{};
+		shadow_constants.scene_buffer = ro.scene_buffer_address;
+		shadow_constants.vertex_buffer = ro.vertex_buffer_address;
+		shadow_constants.render_buffer = ro.render_buffer_address + (sizeof(render_data) * ro.mesh_index);
+		shadow_constants.pass_number = static_cast<glm::uint32>(pass_number);
+		return shadow_constants;
+	}
 }
 
 void mesh_scene::init(const rh::ctx& ctx)
@@ -310,9 +320,9 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx, int pass_number)
 	}
 
 	for (auto ro : draw_nodes_) {
-		gpu_draw_push_constants pc = push_constants(ro);
-		m_shaders.shader_constants = &pc;
-		m_shaders.shader_constants_size = sizeof(pc);
+		gpu_shadow_push_constants sc = shadow_constants(ro, pass_number);
+		m_shaders.shader_constants = &sc;
+		m_shaders.shader_constants_size = sizeof(sc);
 		if (VkResult result = m_shaders.push(mv_cmd); result != VK_SUCCESS) return rh::result::error;
 		vkCmdBindIndexBuffer(mv_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(mv_cmd, ro.index_count, 1, ro.first_index, 0, 0);

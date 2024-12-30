@@ -45,13 +45,20 @@ struct allocated_image
 
 struct allocated_csm
 {
-	VkImage image;
-	VkImageView image_view_near;
-	VkImageView image_view_middle;
-	VkImageView image_view_far;
-	VmaAllocation allocation;
-	VkExtent3D image_extent;
-	VkFormat image_format;
+	VkImage image{};
+	VkImageView image_view_near{};
+	VkImageView image_view_middle{};
+	VkImageView image_view_far{};
+	VmaAllocation allocation{};
+	VkExtent3D image_extent{};
+	VkFormat image_format{};
+	//VkSampler viewer_sampler{};
+	//VkImageView viewer_view_near{};
+	//VkImageView viewer_view_middle{};
+	//VkImageView viewer_view_far{};
+	//VkDescriptorSet imgui_ds_near{};
+	//VkDescriptorSet imgui_ds_middle{};
+	//VkDescriptorSet imgui_ds_far{};
 };
 
 struct allocated_ktx_image
@@ -146,6 +153,14 @@ struct gpu_draw_push_constants
 	VkDeviceAddress vertex_buffer{ 0 };
 	VkDeviceAddress render_buffer{ 0 };
 	VkDeviceAddress material_buffer{ 0 };
+};
+
+struct gpu_shadow_push_constants
+{
+	VkDeviceAddress scene_buffer{ 0 };
+	VkDeviceAddress vertex_buffer{ 0 };
+	VkDeviceAddress render_buffer{ 0 };
+	glm::uint32 pass_number;
 };
 
 struct debug_draw_push_constants

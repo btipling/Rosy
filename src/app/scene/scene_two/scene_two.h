@@ -32,7 +32,7 @@ private:
 	bool toggle_wire_frame_ = false;
 	bool light_view_ = false;
 	int blend_mode_ = 0;
-	float near_plane_ = 50.f;
+	int near_plane_ = 0;
 	float distance_from_camera_ = 0.02f;
 
 	void update_scene(const rh::ctx& ctx);

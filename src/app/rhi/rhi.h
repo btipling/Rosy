@@ -105,6 +105,7 @@ private:
 	VkResult init_swap_chain(SDL_Window* window);
 	VkResult create_swapchain(SDL_Window* window, VkSwapchainKHR old_swapchain);
 	VkResult init_draw_image();
+	VkResult init_csm_image();
 	VkResult init_descriptors();
 	VkResult init_command_pool();
 	VkResult init_command_buffers();
