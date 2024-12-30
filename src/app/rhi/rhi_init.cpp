@@ -1047,6 +1047,13 @@ VkResult rhi::init_csm_image()
 			shadow_map_image.imgui_ds_middle = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_middle, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 			shadow_map_image.imgui_ds_far = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_far, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 		}
+		{
+			descriptor_sets_manager* dsm = descriptor_sets.value().get();
+			shadow_map_image.ds_index_sampler = dsm->write_sampler(device, shadow_map_image.viewer_sampler, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+			shadow_map_image.ds_index_near = dsm->write_sampled_image(device, shadow_map_image.image_view_near, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+			shadow_map_image.ds_index_middle = dsm->write_sampled_image(device, shadow_map_image.image_view_middle, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+			shadow_map_image.ds_index_far = dsm->write_sampled_image(device, shadow_map_image.image_view_far, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+		}
 
 		shadow_map_image_ = shadow_map_image;
 		{

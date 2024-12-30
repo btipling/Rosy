@@ -56,6 +56,10 @@ struct allocated_csm
 	VkDescriptorSet imgui_ds_near;
 	VkDescriptorSet imgui_ds_middle;
 	VkDescriptorSet imgui_ds_far;
+	uint32_t ds_index_sampler;
+	uint32_t ds_index_near;
+	uint32_t ds_index_middle;
+	uint32_t ds_index_far;
 };
 
 struct allocated_ktx_image

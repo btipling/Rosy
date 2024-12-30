@@ -105,7 +105,7 @@ namespace rhi_helpers {
 		info.subresourceRange.baseMipLevel = 0;
 		info.subresourceRange.levelCount = 1;
 		info.subresourceRange.baseArrayLayer = 0;
-		info.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+		info.subresourceRange.layerCount = 1;
 		info.subresourceRange.aspectMask = aspect_flags;
 		return info;
 	}
