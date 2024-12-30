@@ -3,6 +3,7 @@
 #include "../loader/loader.h"
 #include "rhi_utils.h"
 #include "../../rhi/descriptor.h"
+#include "backends/imgui_impl_vulkan.h"
 
 namespace {
 	const char* instance_layers[] = {
@@ -120,12 +121,6 @@ VkResult rhi::init(SDL_Window* window)
 		rosy_utils::debug_print_w(L"Failed to init draw image! %d\n", result);
 		return result;
 	}
-	result = this->init_csm_image();
-	if (result != VK_SUCCESS)
-	{
-		rosy_utils::debug_print_w(L"Failed to init csm! %d\n", result);
-		return result;
-	}
 	result = this->init_descriptors();
 	if (result != VK_SUCCESS)
 	{
@@ -154,6 +149,12 @@ VkResult rhi::init(SDL_Window* window)
 	if (result != VK_SUCCESS)
 	{
 		rosy_utils::debug_print_w(L"Failed to init UI! %d\n", result);
+		return result;
+	}
+	result = this->init_csm_image();
+	if (result != VK_SUCCESS)
+	{
+		rosy_utils::debug_print_w(L"Failed to init csm! %d\n", result);
 		return result;
 	}
 	result = this->init_commands();
@@ -1038,6 +1039,9 @@ VkResult rhi::init_csm_image()
 				const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>(sampler), obj_name);
 				if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &object_name); debug_result != VK_SUCCESS) return debug_result;
 			}
+		}
+		{
+			shadow_map_image.imgui_ds_near = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_near, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 
 		shadow_map_image_ = shadow_map_image;
