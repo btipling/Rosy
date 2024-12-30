@@ -25,6 +25,10 @@ struct gpu_scene_data
 	glm::vec4 ambient_color = glm::vec4(1.f);
 	glm::vec4 sunlight_direction = glm::vec4(1.f);
 	glm::vec4 sunlight_color = glm::vec4(1.f);
+	glm::uint csm_index_sampler;
+	glm::uint csm_index_near;
+	glm::uint csm_index_middle;
+	glm::uint csm_index_far;
 };
 
 struct swap_chain_support_details
@@ -304,6 +308,7 @@ public:
 	[[nodiscard]] auto upload_materials(std::span<material_data> materials) const->gpu_material_buffers_result;
 	[[nodiscard]] auto create_render_data(size_t num_surfaces) const->gpu_render_buffers_result;
 	[[nodiscard]] auto create_scene_data() const->gpu_scene_buffers_result;
+	void update_scene();
 	allocated_buffer_result create_buffer(const char* name, const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const;
 
 

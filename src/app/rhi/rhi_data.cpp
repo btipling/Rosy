@@ -382,6 +382,10 @@ auto rhi_data::create_scene_data() const -> gpu_scene_buffers_result
 	return rv;
 }
 
+void rhi_data::update_scene()
+{
+}
+
 gpu_mesh_buffers_result rhi_data::upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const
 {
 	allocated_buffer index_buffer;

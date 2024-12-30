@@ -105,15 +105,20 @@ VkResult rhi::draw_ui()
 std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event) const
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
+	const allocated_csm csm = shadow_map_image_.value();
 	const VkExtent2D shadow_map_extent = {
-		.width = shadow_map_image_.value().image_extent.width,
-		.height = shadow_map_image_.value().image_extent.height,
+		.width = csm.image_extent.width,
+		.height = csm.image_extent.height,
 	};
 	rh::rhi rhi_ctx = {
 		.device = opt_device.value(),
 		.allocator = opt_allocator.value(),
 		.frame_extent = swapchain_extent,
 		.shadow_map_extent = shadow_map_extent,
+		.csm_index_sampler = static_cast<glm::uint>(csm.ds_index_sampler),
+		.csm_index_near = static_cast<glm::uint>(csm.ds_index_near),
+		.csm_index_middle = static_cast<glm::uint>(csm.ds_index_middle),
+		.csm_index_far = static_cast<glm::uint>(csm.ds_index_far),
 	};
 	if (frame_datas_.size() > 0) {
 		rhi_ctx.render_command_buffer = frame_datas_[current_frame_].render_command_buffer;
@@ -142,15 +147,20 @@ std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event)
 std::expected<rh::ctx, VkResult> rhi::current_shadow_pass_ctx(const SDL_Event* event) const
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
+	const allocated_csm csm = shadow_map_image_.value();
 	const VkExtent2D shadow_map_extent = {
-		.width = shadow_map_image_.value().image_extent.width,
-		.height = shadow_map_image_.value().image_extent.height,
+		.width = csm.image_extent.width,
+		.height = csm.image_extent.height,
 	};
 	rh::rhi rhi_ctx = {
 		.device = opt_device.value(),
 		.allocator = opt_allocator.value(),
 		.frame_extent = swapchain_extent,
 		.shadow_map_extent = shadow_map_extent,
+		.csm_index_sampler = static_cast<glm::uint>(csm.ds_index_sampler),
+		.csm_index_near = static_cast<glm::uint>(csm.ds_index_near),
+		.csm_index_middle = static_cast<glm::uint>(csm.ds_index_middle),
+		.csm_index_far = static_cast<glm::uint>(csm.ds_index_far),
 	};
 	if (frame_datas_.size() > 0) {
 		rhi_ctx.render_command_buffer = std::nullopt;

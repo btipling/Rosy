@@ -32,6 +32,10 @@ namespace rh
 		std::optional<descriptor_sets_manager*> descriptor_sets = std::nullopt;
 		VkExtent2D frame_extent{};
 		VkExtent2D shadow_map_extent{};
+		glm::uint csm_index_sampler;
+		glm::uint csm_index_near;
+		glm::uint csm_index_middle;
+		glm::uint csm_index_far;
 	};
 
 	struct ctx
