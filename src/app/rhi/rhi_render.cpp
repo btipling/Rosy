@@ -67,7 +67,7 @@ VkResult rhi::draw_ui()
 	ImGui::Begin("Shadow maps");
 	static const char* options[] =
 	{
-	   "Near Shadow Map",
+		"Near Shadow Map",
 		"Middle Shadow Map",
 		"Far Shadow Map",
 	};
