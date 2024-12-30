@@ -45,20 +45,20 @@ struct allocated_image
 
 struct allocated_csm
 {
-	VkImage image{};
-	VkImageView image_view_near{};
-	VkImageView image_view_middle{};
-	VkImageView image_view_far{};
-	VmaAllocation allocation{};
-	VkExtent3D image_extent{};
-	VkFormat image_format{};
-	VkSampler viewer_sampler{};
-	//VkImageView viewer_view_near{};
-	//VkImageView viewer_view_middle{};
-	//VkImageView viewer_view_far{};
-	//VkDescriptorSet imgui_ds_near{};
-	//VkDescriptorSet imgui_ds_middle{};
-	//VkDescriptorSet imgui_ds_far{};
+	VkImage image;
+	VkImageView image_view_near;
+	VkImageView image_view_middle;
+	VkImageView image_view_far;
+	VmaAllocation allocation;
+	VkExtent3D image_extent;
+	VkFormat image_format;
+	VkSampler viewer_sampler;
+	VkImageView viewer_view_near;
+	VkImageView viewer_view_middle;
+	VkImageView viewer_view_far;
+	VkDescriptorSet imgui_ds_near;
+	VkDescriptorSet imgui_ds_middle;
+	VkDescriptorSet imgui_ds_far;
 };
 
 struct allocated_ktx_image

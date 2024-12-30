@@ -68,8 +68,6 @@ int app::init()
 	}
 	renderer.debug();
 	SDL_AddEventWatch(event_handler, static_cast<void*>(this));
-	scene_selector_ = scene_selector{};
-	scene_selector_.updated = true;
 	scene_selector_.selected_scene = 1;
 	return 0;
 }
