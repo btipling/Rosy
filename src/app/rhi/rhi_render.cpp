@@ -66,6 +66,9 @@ void rhi::transition_shadow_map_image(const VkCommandBuffer cmd, const VkImage i
 VkResult rhi::draw_ui()
 {
 	// Draw some FPS statistics or something
+	ImGui::Begin("Shadow maps");
+	ImGui::Text("Hello shadow maps!");
+	ImGui::End();
 	return VK_SUCCESS;
 }
 
