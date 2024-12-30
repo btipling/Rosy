@@ -721,6 +721,14 @@ VkResult rhi::init_device()
 
 	rosy_utils::debug_print_w(L"Vulkan device created successfully!\n");
 	opt_device = device;
+	{
+		const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_INSTANCE, reinterpret_cast<uint64_t>(instance_.value()), "rosy instance");
+		if (result = vkSetDebugUtilsObjectNameEXT(device, &object_name); result != VK_SUCCESS) return result;
+	}
+	{
+		const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_DEVICE, reinterpret_cast<uint64_t>(device), "rosy device");
+		if (result = vkSetDebugUtilsObjectNameEXT(device, &object_name); result != VK_SUCCESS) return result;
+	}
 	return result;
 }
 
@@ -734,6 +742,10 @@ VkResult rhi::init_presentation_queue()
 	get_info.queueIndex = 0;
 	vkGetDeviceQueue2(opt_device.value(), &get_info, &queue);
 	present_queue_ = queue;
+	{
+		const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_QUEUE, reinterpret_cast<uint64_t>(queue), "presentation queue");
+		if (const VkResult result = vkSetDebugUtilsObjectNameEXT(opt_device.value(), &object_name); result != VK_SUCCESS) return result;
+	}
 	return VK_SUCCESS;
 }
 
@@ -840,6 +852,10 @@ VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swap
 		if (const VkResult result = vkCreateSwapchainKHR(device, &create_info, nullptr, &swapchain); result !=
 			VK_SUCCESS)
 			return result;
+		{
+			const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SWAPCHAIN_KHR, reinterpret_cast<uint64_t>(swapchain), "rosy swapchain");
+			if (const VkResult result = vkSetDebugUtilsObjectNameEXT(opt_device.value(), &object_name); result != VK_SUCCESS) return result;
+		}
 	}
 
 	if (old_swapchain != VK_NULL_HANDLE)
@@ -907,6 +923,14 @@ VkResult rhi::init_draw_image()
 		result = vkCreateImageView(device, &r_view_info, nullptr, &draw_image.image_view);
 		if (result != VK_SUCCESS) return result;
 		draw_image_ = draw_image;
+		{
+			const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(draw_image.image), "draw image");
+			if (result = vkSetDebugUtilsObjectNameEXT(device, &object_name); result != VK_SUCCESS) return result;
+		}
+		{
+			const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<uint64_t>(draw_image.image_view), "draw image view");
+			if (result = vkSetDebugUtilsObjectNameEXT(device, &object_name); result != VK_SUCCESS) return result;
+		}
 	}
 	{
 		// Depth image creation.
@@ -927,6 +951,14 @@ VkResult rhi::init_draw_image()
 		result = vkCreateImageView(device, &d_view_info, nullptr, &depth_image.image_view);
 		if (result != VK_SUCCESS) return result;
 		depth_image_ = depth_image;
+		{
+			const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(depth_image.image), "depth image");
+			if (result = vkSetDebugUtilsObjectNameEXT(device, &object_name); result != VK_SUCCESS) return result;
+		}
+		{
+			const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<uint64_t>(depth_image.image_view), "depth image view");
+			if (result = vkSetDebugUtilsObjectNameEXT(device, &object_name); result != VK_SUCCESS) return result;
+		}
 	}
 
 	return result;
@@ -1029,6 +1061,11 @@ VkResult rhi::init_command_pool()
 			VK_SUCCESS)
 			return result;
 		frame_datas_[i].command_pool = command_pool;
+		{
+			const auto obj_name = std::format("{}command_pool", i);
+			const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_COMMAND_POOL, reinterpret_cast<uint64_t>(command_pool), obj_name.c_str());
+			if (const VkResult result = vkSetDebugUtilsObjectNameEXT(opt_device.value(), &object_name); result != VK_SUCCESS) return result;
+		}
 	}
 	return VK_SUCCESS;
 }
@@ -1161,6 +1198,10 @@ VkResult rhi::init_commands()
 	VkResult result = vkCreateCommandPool(device, &pool_info, nullptr, &command_pool);
 	if (result != VK_SUCCESS) return result;
 	imm_command_pool_ = command_pool;
+	{
+		const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_COMMAND_POOL, reinterpret_cast<uint64_t>(command_pool), "immediate command pool");
+		if (result = vkSetDebugUtilsObjectNameEXT(opt_device.value(), &object_name); result != VK_SUCCESS) return result;
+	}
 
 	// allocate the command data for immediate submits
 	VkCommandBufferAllocateInfo alloc_info{};
@@ -1173,6 +1214,10 @@ VkResult rhi::init_commands()
 	result = vkAllocateCommandBuffers(device, &alloc_info, &buffer);
 	if (result != VK_SUCCESS) return result;
 	imm_command_buffer_ = buffer;
+	{
+		const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<uint64_t>(buffer), "immediate command buffer");
+		if (vkSetDebugUtilsObjectNameEXT(opt_device.value(), &object_name); result != VK_SUCCESS) return result;
+	}
 
 	return VK_SUCCESS;
 }
