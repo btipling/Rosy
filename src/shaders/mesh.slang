@@ -23,6 +23,7 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float4 posWorld = float4(v.position, 1.0);
 
+
     output.csm.near = mul(mul(sd.shadowproj_near, worldMat), posWorld);
     output.csm.middle = mul(mul(sd.shadowproj_middle, worldMat), posWorld);
     output.csm.far = mul(mul(sd.shadowproj_far, worldMat), posWorld);
@@ -63,8 +64,9 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     uint csm_far_i = sd.csm_index_far;
 
     SamplerState shadowSampler = imageSampler[NonUniformResourceIndex(csm_sampler_i)];
-    texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csm_middle_i)];
-    bool InShadow = shadowNearImage.Sample(shadowSampler, csm.near.xy).z < csm.near.z;
+    texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
+    float4 nearColor = shadowNearImage.Sample(shadowSampler, float2(csm.near.x, csm.near.y));
+    bool InShadow = nearColor.z < csm.near.z;
     if (InShadow) {
         sunLight = float3(0);
     }
@@ -73,5 +75,6 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
 
     Fragment output;
     output.color = outFragColor;
+    output.color = nearColor;
     return output;
 }

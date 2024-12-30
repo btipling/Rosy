@@ -4,6 +4,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define VOLK_IMPLEMENTATION
+// ReSharper disable once CppInconsistentNaming
+#define VK_EXT_depth_bias_control
 #include "volk/volk.h"
 #define IMGUI_IMPL_VULKAN_USE_VOLK
 #define VMA_IMPLEMENTATION

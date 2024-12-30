@@ -159,6 +159,7 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		ImGui::RadioButton("alpha blend", &blend_mode_, 2);
 	}
 	ImGui::End();
+	scene_graph_->draw_ui(ctx);
 	return rh::result::ok;
 }
 

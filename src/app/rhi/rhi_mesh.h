@@ -17,6 +17,11 @@ public:
 	std::string shadow_vertex_path{"out/shadow.spv"};
 	std::string shadow_frag_path{ "out/shadow.spv" };
 
+	bool depth_bias_enabled{ false };
+	float depth_bias_constant{ 0.f };
+	float depth_bias_clamp{ 0.f };
+	float depth_bias_slope_factor{ 0.f };
+
 	size_t root_scene = 0;
 	std::vector<std::vector<size_t>>scenes;
 	std::vector<std::shared_ptr<mesh_node>> nodes;
@@ -49,6 +54,7 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
+	void draw_ui(const rh::ctx& ctx);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;
 	std::vector<glm::vec4> shadow_map_frustum(const glm::mat4& proj, const glm::mat4& view);

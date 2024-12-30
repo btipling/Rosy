@@ -27,6 +27,7 @@ namespace rhi_cmd
 
 	void toggle_depth(const VkCommandBuffer cmd, const bool enable)
 	{
+		vkCmdSetDepthClampEnableEXT(cmd, false);
 		vkCmdSetDepthTestEnableEXT(cmd, enable);
 		vkCmdSetDepthWriteEnableEXT(cmd, enable);
 		vkCmdSetDepthCompareOpEXT(cmd, VK_COMPARE_OP_GREATER_OR_EQUAL);

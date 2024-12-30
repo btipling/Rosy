@@ -606,6 +606,9 @@ VkResult rhi::init_physical_device()
 	required_features.fillModeNonSolid = VK_TRUE;
 	required_features.wideLines = VK_TRUE;
 	required_features.shaderInt64 = VK_TRUE;
+	required_features.depthBiasClamp = VK_TRUE;
+	required_features.depthClamp = VK_TRUE;
+	required_features.depthBounds = VK_TRUE;
 	required_features_ = required_features;
 	if (!physical_device_.has_value()) return VK_NOT_READY;
 
@@ -1043,7 +1046,7 @@ VkResult rhi::init_csm_image()
 			}
 		}
 		{
-			VkSamplerCreateInfo sampler_create_info = rhi_helpers::create_sampler_create_info();
+			VkSamplerCreateInfo sampler_create_info = rhi_helpers::create_sampler_create_info(VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 			sampler_create_info.compareEnable = VK_TRUE;
 			sampler_create_info.compareOp = VK_COMPARE_OP_GREATER;
 			VkSampler sampler;

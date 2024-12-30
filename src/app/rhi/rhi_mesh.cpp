@@ -1,3 +1,4 @@
+#include "imgui.h"
 #include "rhi.h"
 #include "../loader/loader.h"
 
@@ -187,6 +188,19 @@ void mesh_scene::add_node(fastgltf::Node& gltf_node)
 void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 {
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
+}
+
+void mesh_scene::draw_ui(const rh::ctx& ctx)
+{
+	ImGui::Begin("Shadow offsets");
+	{
+		ImGui::Text("Depth bias");
+		ImGui::Checkbox("Enabled", &depth_bias_enabled);
+		ImGui::SliderFloat("constant", &depth_bias_constant, 0.f, 1000.0f);
+		ImGui::SliderFloat("clamp", &depth_bias_clamp, 0.f, 1000.0f);
+		ImGui::SliderFloat("slope factor", &depth_bias_slope_factor, 0.f, 1000.0f);
+	}
+	ImGui::End();
 };
 
 void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
@@ -311,10 +325,19 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx, int pass_number)
 
 	shader_pipeline m_shaders = shadow_shaders.value();
 	if (pass_number == 0) {
-
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
 		vkCmdBeginDebugUtilsLabelEXT(mv_cmd, &mesh_draw_label);
-
+		if (depth_bias_enabled) {
+			vkCmdSetDepthBiasEnable(mv_cmd, depth_bias_enabled);
+			VkDepthBiasInfoEXT db_info{};
+			//db_info.sType = VK_STRUCTURE_TYPE_DEPTH_BIAS_INFO_EXT;
+			//db_info.depthBiasConstantFactor = depth_bias_constant;
+			//db_info.depthBiasClamp = depth_bias_clamp;
+			//db_info.depthBiasSlopeFactor = depth_bias_slope_factor;
+			//vkCmdSetDepthBias2EXT(mv_cmd, &db_info);
+			vkCmdSetDepthClampEnableEXT(mv_cmd, true);
+			vkCmdSetDepthBias(mv_cmd, depth_bias_constant, depth_bias_clamp, depth_bias_slope_factor);
+		}
 		m_shaders.viewport_extent = shadow_map_extent_;
 		m_shaders.wire_frames_enabled = false;
 		m_shaders.depth_enabled = true;
@@ -332,7 +355,10 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx, int pass_number)
 		vkCmdDrawIndexed(mv_cmd, ro.index_count, 1, ro.first_index, 0, 0);
 	}
 
-	if (pass_number == 2) vkCmdEndDebugUtilsLabelEXT(mv_cmd);
+	if (pass_number == 2) {
+		vkCmdEndDebugUtilsLabelEXT(mv_cmd);
+		if (depth_bias_enabled) vkCmdSetDepthBiasEnable(mv_cmd, depth_bias_enabled);
+	}
 	return rh::result::ok;
 };
 
