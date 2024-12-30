@@ -148,21 +148,21 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 			if (mat.pbrData.baseColorTexture.has_value()) {
 				auto image_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
 				auto sampler_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
-				VkSamplerCreateInfo sample = sampler_create_infos[sampler_index];
+				VkSamplerCreateInfo sampler_create_info = sampler_create_infos[sampler_index];
 				auto [texture, vk_texture] = gltf_mesh_scene.ktx_textures[image_index];
 				auto img_view = gltf_mesh_scene.image_views[image_index];
 				VkSampler sampler{};
 				{
-					sample.maxLod = vk_texture.levelCount;
-					sample.minLod = 0;
+					sampler_create_info.maxLod = vk_texture.levelCount;
+					sampler_create_info.minLod = 0;
 
-					sample.anisotropyEnable = VK_FALSE;
-					sample.maxAnisotropy = 0.f;
-					sample.mipLodBias = 0.0f;
+					sampler_create_info.anisotropyEnable = VK_FALSE;
+					sampler_create_info.maxAnisotropy = 0.f;
+					sampler_create_info.mipLodBias = 0.0f;
 
-					sample.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-					sampler_create_infos.push_back(sample);
-					if (VkResult result = vkCreateSampler(device, &sample, nullptr, &sampler); result != VK_SUCCESS) continue;
+					sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+					sampler_create_infos.push_back(sampler_create_info);
+					if (VkResult result = vkCreateSampler(device, &sampler_create_info, nullptr, &sampler); result != VK_SUCCESS) continue;
 					gltf_mesh_scene.samplers.push_back(sampler);
 				}
 				{

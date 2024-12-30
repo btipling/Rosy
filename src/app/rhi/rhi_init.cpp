@@ -229,10 +229,12 @@ void rhi::deinit()
 		// Deinit draw images
 		if (shadow_map_image_.has_value())
 		{
+			const VkDevice device = opt_device.value();
 			const allocated_csm depth_image = shadow_map_image_.value();
-			vkDestroyImageView(opt_device.value(), depth_image.image_view_far, nullptr);
-			vkDestroyImageView(opt_device.value(), depth_image.image_view_middle, nullptr);
-			vkDestroyImageView(opt_device.value(), depth_image.image_view_near, nullptr);
+			vkDestroySampler(device, depth_image.viewer_sampler, nullptr);
+			vkDestroyImageView(device, depth_image.image_view_far, nullptr);
+			vkDestroyImageView(device, depth_image.image_view_middle, nullptr);
+			vkDestroyImageView(device, depth_image.image_view_near, nullptr);
 			vmaDestroyImage(opt_allocator.value(), depth_image.image, depth_image.allocation);
 		}
 		if (depth_image_.has_value())
@@ -1000,14 +1002,23 @@ VkResult rhi::init_csm_image()
 		VkImageViewCreateInfo d_view_info = rhi_helpers::shadow_img_view_create_info(shadow_map_image.image_format, shadow_map_image.image,
 			VK_IMAGE_ASPECT_DEPTH_BIT);
 
-		result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_near);
-		if (result != VK_SUCCESS) return result;
-		d_view_info.subresourceRange.baseArrayLayer = 1;
-		result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_middle);
-		if (result != VK_SUCCESS) return result;
-		d_view_info.subresourceRange.baseArrayLayer = 2;
-		result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_far);
-		if (result != VK_SUCCESS) return result;
+		{
+			result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_near);
+			if (result != VK_SUCCESS) return result;
+			d_view_info.subresourceRange.baseArrayLayer = 1;
+			result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_middle);
+			if (result != VK_SUCCESS) return result;
+			d_view_info.subresourceRange.baseArrayLayer = 2;
+			result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_far);
+			if (result != VK_SUCCESS) return result;
+		}
+
+		{
+			VkSamplerCreateInfo sampler_create_info = rhi_helpers::create_sampler_create_info();
+			VkSampler sampler;
+			if (result = vkCreateSampler(device, &sampler_create_info, nullptr, &sampler); result != VK_SUCCESS) return result;
+			shadow_map_image.viewer_sampler = sampler;
+		}
 
 		shadow_map_image_ = shadow_map_image;
 		const auto obj_name = "shadow_map_image";

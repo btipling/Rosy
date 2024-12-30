@@ -361,7 +361,7 @@ namespace rhi_helpers {
 		return clear_rect;
 	}
 
-	VkSamplerCreateInfo create_color_sampler_create_info(const VkFilter filter, const VkSamplerAddressMode address_mode)
+	VkSamplerCreateInfo create_sampler_create_info(const VkFilter filter, const VkSamplerAddressMode address_mode)
 	{
 		VkSamplerCreateInfo sampler_create_info{};
 		sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

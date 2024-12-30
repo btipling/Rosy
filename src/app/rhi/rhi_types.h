@@ -52,7 +52,7 @@ struct allocated_csm
 	VmaAllocation allocation{};
 	VkExtent3D image_extent{};
 	VkFormat image_format{};
-	//VkSampler viewer_sampler{};
+	VkSampler viewer_sampler{};
 	//VkImageView viewer_view_near{};
 	//VkImageView viewer_view_middle{};
 	//VkImageView viewer_view_far{};
