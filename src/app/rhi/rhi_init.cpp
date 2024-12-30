@@ -194,12 +194,14 @@ void rhi::deinit()
 	{
 		const VkDevice device = opt_device.value();
 		const allocated_csm csm_image = shadow_map_image_.value();
+		ImGui_ImplVulkan_RemoveTexture(csm_image.imgui_ds_near);
+		ImGui_ImplVulkan_RemoveTexture(csm_image.imgui_ds_middle);
+		ImGui_ImplVulkan_RemoveTexture(csm_image.imgui_ds_far);
 		vkDestroySampler(device, csm_image.viewer_sampler, nullptr);
 		vkDestroyImageView(device, csm_image.image_view_far, nullptr);
 		vkDestroyImageView(device, csm_image.image_view_middle, nullptr);
 		vkDestroyImageView(device, csm_image.image_view_near, nullptr);
 		vmaDestroyImage(opt_allocator.value(), csm_image.image, csm_image.allocation);
-		ImGui_ImplVulkan_RemoveTexture(csm_image.imgui_ds_near);
 	}
 	deinit_ui();
 
@@ -1042,6 +1044,8 @@ VkResult rhi::init_csm_image()
 		}
 		{
 			shadow_map_image.imgui_ds_near = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_near, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+			shadow_map_image.imgui_ds_middle = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_middle, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+			shadow_map_image.imgui_ds_far = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_far, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 		}
 
 		shadow_map_image_ = shadow_map_image;
