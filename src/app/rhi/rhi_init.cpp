@@ -1005,12 +1005,27 @@ VkResult rhi::init_csm_image()
 		{
 			result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_near);
 			if (result != VK_SUCCESS) return result;
+			{
+				const auto obj_name = "shadow_map_image_view_near";
+				const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<uint64_t>(shadow_map_image.image_view_near), obj_name);
+				if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &object_name); debug_result != VK_SUCCESS) return debug_result;
+			}
 			d_view_info.subresourceRange.baseArrayLayer = 1;
 			result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_middle);
 			if (result != VK_SUCCESS) return result;
+			{
+				const auto obj_name = "shadow_map_image_view_middle";
+				const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<uint64_t>(shadow_map_image.image_view_middle), obj_name);
+				if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &object_name); debug_result != VK_SUCCESS) return debug_result;
+			}
 			d_view_info.subresourceRange.baseArrayLayer = 2;
 			result = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_far);
 			if (result != VK_SUCCESS) return result;
+			{
+				const auto obj_name = "shadow_map_image_view_far";
+				const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<uint64_t>(shadow_map_image.image_view_far), obj_name);
+				if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &object_name); debug_result != VK_SUCCESS) return debug_result;
+			}
 		}
 
 		{
@@ -1018,12 +1033,19 @@ VkResult rhi::init_csm_image()
 			VkSampler sampler;
 			if (result = vkCreateSampler(device, &sampler_create_info, nullptr, &sampler); result != VK_SUCCESS) return result;
 			shadow_map_image.viewer_sampler = sampler;
+			{
+				const auto obj_name = "shadow_map_sampler";
+				const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>(sampler), obj_name);
+				if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &object_name); debug_result != VK_SUCCESS) return debug_result;
+			}
 		}
 
 		shadow_map_image_ = shadow_map_image;
-		const auto obj_name = "shadow_map_image";
-		const VkDebugUtilsObjectNameInfoEXT vert_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(shadow_map_image.image), obj_name);
-		if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &vert_name); debug_result != VK_SUCCESS) return debug_result;
+		{
+			const auto obj_name = "shadow_map_image";
+			const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(shadow_map_image.image), obj_name);
+			if (const VkResult debug_result = vkSetDebugUtilsObjectNameEXT(device, &object_name); debug_result != VK_SUCCESS) return debug_result;
+		}
 	}
 
 	return result;

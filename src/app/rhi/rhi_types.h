@@ -53,9 +53,6 @@ struct allocated_csm
 	VkExtent3D image_extent;
 	VkFormat image_format;
 	VkSampler viewer_sampler;
-	VkImageView viewer_view_near;
-	VkImageView viewer_view_middle;
-	VkImageView viewer_view_far;
 	VkDescriptorSet imgui_ds_near;
 	VkDescriptorSet imgui_ds_middle;
 	VkDescriptorSet imgui_ds_far;
