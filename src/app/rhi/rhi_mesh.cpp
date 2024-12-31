@@ -380,7 +380,7 @@ std::vector<glm::vec4> mesh_scene::shadow_map_frustum(const glm::mat4& proj, con
 		{
 			for (unsigned int z = 0; z < 2; ++z)
 			{
-				const glm::vec4 point = inv * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
+				const glm::vec4 point = inv * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f, z, 1.0f);
 				//rosy_utils::debug_print_a("\tcorner: (%f, %f, %f)\n", point.x, point.y, point.z);
 				corners.push_back(point / point.w);
 			}
@@ -428,12 +428,6 @@ shadow_map mesh_scene::shadow_map_projection(const std::vector<glm::vec4>& shado
 	if (max_z < 0) max_z /= z_offset;
 	else max_z *= z_offset;
 
-	auto m = shadow_map_view;
-	auto extent = glm::mat4(1.f);
-	extent[0][0] = min_x;
-	extent[1][1] = min_y;
-	extent[2][2] = min_z;
-	extent = glm::translate(extent, glm::vec3(max_x, max_y, max_z));
 
 	//rosy_utils::debug_print_a("min_x: %f max_x: %f min_y: %f, max_y: %f min_z: %f max_z: %f\n\n", min_x, max_x, min_y, max_y, min_z, max_z);
 

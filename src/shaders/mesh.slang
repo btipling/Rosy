@@ -66,8 +66,14 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     SamplerState shadowSampler = imageSampler[NonUniformResourceIndex(csm_sampler_i)];
     texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
     float4 nearColor = shadowNearImage.Sample(shadowSampler, float2(csm.near.x, csm.near.y));
-    bool InShadow = nearColor.z < csm.near.z;
-    if (InShadow) {
+    bool InNearShadow = nearColor.z < csm.near.z;
+    texture2D shadowMiddleImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
+    float4 middleColor = shadowNearImage.Sample(shadowSampler, float2(csm.near.x, csm.near.y));
+    bool InMiddleShadow = middleColor.z < csm.middle.z;
+    texture2D shadowFarImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
+    float4 farColor = shadowNearImage.Sample(shadowSampler, float2(csm.near.x, csm.near.y));
+    bool InFarShadow = farColor.z < csm.far.z;
+    if (InNearShadow || InMiddleShadow || InFarShadow) {
         sunLight = float3(0);
     }
 

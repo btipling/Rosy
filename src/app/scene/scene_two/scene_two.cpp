@@ -144,7 +144,7 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		ImGui::Text("Camera orientation: (%f, %f)", camera_.pitch, camera_.yaw);
 		ImGui::SliderFloat3("Rotate", value_ptr(scene_rot_), 0, glm::pi<float>() * 2.0f);
 		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -100.0f, 100.0f);
-		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 100.0f);
+		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 10.0f);
 		ImGui::SliderFloat3("Sunlight direction", value_ptr(sunlight_direction_), -1.0f, 1.0f);
 		sunlight_direction_ = glm::normalize(sunlight_direction_);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
