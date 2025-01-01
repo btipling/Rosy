@@ -18,12 +18,12 @@ struct gpu_scene_data
 	glm::mat4 view = glm::mat4(1.f);
 	glm::mat4 proj = glm::mat4(1.f);
 	glm::mat4 view_projection = glm::mat4(1.f);
+	glm::mat4 sunlight = glm::mat4(1.f); // i, j, l, t where l is the light direction, j is up and i is cross product of j & l
 	glm::mat4 shadow_projection_near = glm::mat4(1.f);
 	glm::mat4 shadow_projection_middle = glm::mat4(1.f);
 	glm::mat4 shadow_projection_far = glm::mat4(1.f);
 	glm::vec4 camera_position = glm::vec4(1.f);
 	glm::vec4 ambient_color = glm::vec4(1.f);
-	glm::vec4 sunlight_direction = glm::vec4(1.f);
 	glm::vec4 sunlight_color = glm::vec4(1.f);
 	glm::uint csm_index_sampler{ 0 };
 	glm::uint csm_index_near{ 0 };

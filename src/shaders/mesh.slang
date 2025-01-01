@@ -23,10 +23,33 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float4 posWorld = float4(v.position, 1.0);
 
+    float4x4 ndc_to_tc = {
+        0.5, 0, 0, 0.5,
+        0, 0.5, 0, 0.5,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    };
 
-    output.csm.near = mul(mul(sd.shadowproj_near, worldMat), posWorld);
-    output.csm.middle = mul(mul(sd.shadowproj_middle, worldMat), posWorld);
-    output.csm.far = mul(mul(sd.shadowproj_far, worldMat), posWorld);
+    output.csm.near = mul(
+        mul(
+            mul(ndc_to_tc, sd.shadowproj_near), 
+            worldMat),
+        posWorld
+    );
+    output.csm.middle = mul(
+        mul(
+            mul(ndc_to_tc,sd.shadowproj_middle), 
+            worldMat
+        ), 
+        posWorld
+    );
+    output.csm.far = mul(
+        mul(
+            mul(ndc_to_tc,sd.shadowproj_far), 
+            worldMat
+        ), 
+        posWorld
+    );
 
     output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
 
@@ -37,10 +60,10 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) : SV_Target
 {
     SceneData sd = *PushConstants.sd;
-
+    float3 sunlight = float3(sd.sunlight[0][2], sd.sunlight[1][2], sd.sunlight[2][2]);
     float3 color = coarseVertex.color;
     float3 V = normalize(sd.cameraPosition.xyz - coarseVertex.vertex);
-    float3 L = sd.sunlightDirection.xyz;
+    float3 L = -sunlight;
     float3 N = normalize(coarseVertex.normal);
     float3 H = normalize(L + V);
 
@@ -74,13 +97,13 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     float4 farColor = shadowNearImage.Sample(shadowSampler, float2(csm.near.x, csm.near.y));
     bool InFarShadow = farColor.z < csm.far.z;
     if (InNearShadow || InMiddleShadow || InFarShadow) {
-        sunLight = float3(0);
+       // sunLight = float3(0);
     }
 
     float4 outFragColor = imageTextureColor * float4(ambientLight + sunLight, 1.0);
 
     Fragment output;
     output.color = outFragColor;
-    output.color = nearColor;
+    // output.color = nearColor;
     return output;
 }

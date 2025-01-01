@@ -11,6 +11,7 @@ public:
 
 	std::optional<shader_pipeline> shaders = std::nullopt;
 	std::vector<debug_draw_push_constants> lines;
+	std::vector<debug_draw_push_constants> sunlight_lines;
 	std::vector<debug_draw_push_constants> shadow_box_lines;
 
 	std::optional<glm::mat4>shadow_frustum = std::nullopt;
@@ -27,5 +28,6 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void set_shadow_frustum(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z);
 	void set_shadow_frustum(glm::vec4 q0, glm::vec4 q1, glm::vec4 q2, glm::vec4 q3);
+	void set_sunlight(glm::mat4 sunlight);
 	[[nodiscard]] auto draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address) -> rh::result;
 };

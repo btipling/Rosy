@@ -1,3 +1,5 @@
+#include <numbers>
+
 #include "imgui.h"
 #include "rhi.h"
 #include "../loader/loader.h"
@@ -158,6 +160,7 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 		sp.with_shaders(scene_vertex_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shadow_shaders = sp;
+		debug->set_sunlight(sunlight());
 	}
 }
 
@@ -190,10 +193,40 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 }
 
+glm::mat4 mesh_scene::sunlight()
+{
+	return light_transform_;
+}
+
 void mesh_scene::draw_ui(const rh::ctx& ctx)
 {
-	ImGui::Begin("Shadow offsets");
+	ImGui::Begin("Sunlight & Shadow");
 	{
+		bool rotate = false;
+		if (ImGui::SliderFloat("Sunlight rotation x", &sunlight_x_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
+			auto m = glm::mat4{ 1.f };
+			m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
+			m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
+			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
+			 light_transform_ = m;
+			debug->set_sunlight(sunlight());
+		}
+		if (ImGui::SliderFloat("Sunlight rotation y", &sunlight_y_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
+			auto m = glm::mat4{ 1.f };
+			m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
+			m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
+			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
+			light_transform_ = m;
+			debug->set_sunlight(sunlight());
+		}
+		if (ImGui::SliderFloat("Sunlight rotation z", &sunlight_z_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
+			auto m = glm::mat4{ 1.f };
+			m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
+			m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
+			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
+			light_transform_ = m;
+			debug->set_sunlight(sunlight());
+		}
 		ImGui::Text("Depth bias");
 		ImGui::Checkbox("Enabled", &depth_bias_enabled);
 		ImGui::SliderFloat("constant", &depth_bias_constant, 0.f, 1000.0f);
@@ -236,7 +269,7 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 			for (
 				const std::shared_ptr<mesh_asset> ma = meshes[current_node->mesh_index.value()];
 				const auto [start_index, count, material] : ma->surfaces
-			)
+				)
 			{
 				render_data rd{};
 				rd.transform = current_node->world_transform;

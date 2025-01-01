@@ -249,7 +249,12 @@ void scene_one::update_scene(const rh::ctx& ctx)
 
 		scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
 		scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
-		scene_data_.sunlight_direction = glm::vec4(sunlight_direction_, 0.0);
+		scene_data_.sunlight = glm::mat4(
+			glm::vec4(1.f),
+			glm::vec4(1.f),
+			glm::vec4(sunlight_direction_, 0.0),
+			glm::vec4(0, 0, 0, 1)
+		);
 		scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
 
 		glm::mat4 sv_cam = glm::inverse(shadow_map_view_);

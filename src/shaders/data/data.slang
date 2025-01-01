@@ -46,12 +46,12 @@ public struct SceneData
     public float4x4 view;
     public float4x4 proj;
     public float4x4 viewproj;
+    public float4x4 sunlight; // i, j, l, t where l is the light direction, j is up and i is cross product of j & l
     public float4x4 shadowproj_near;
     public float4x4 shadowproj_middle;
     public float4x4 shadowproj_far;
     public float4 cameraPosition;
     public float4 ambientColor;
-    public float4 sunlightDirection;
     public float4 sunlightColor;
     public uint csm_index_sampler;
     public uint csm_index_near;
