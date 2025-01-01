@@ -199,16 +199,64 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 
 glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx) const
 {
-	return csm_pos(ctx) * light_transform_;
+	if (mesh_cam == nullptr) return glm::mat4(1.f);
+	const glm::mat4 L = glm::inverse(light_transform_) * mesh_cam->get_view_matrix();
+	return L;
+	//return light_transform_ * csm_pos(ctx);
 }
 
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx) const
 {
+	if (mesh_cam == nullptr) return glm::mat4(1.f);
+	const glm::mat4 sv_cam = glm::translate(glm::mat4(1.f), mesh_cam->position);
 	const auto [width, height] = ctx.rhi.frame_extent;
 	const auto s = (static_cast<float>(width) / static_cast<float>(height));
 	const float g = 0.1f;
-	if (mesh_cam == nullptr) return glm::mat4(1.f);
-	return glm::translate(glm::mat4(1.f), mesh_cam->position) * 2.f;
+
+
+	glm::vec4 sv_x = sv_cam[0];
+	glm::vec4 sv_y = sv_cam[1];
+	glm::vec4 sv_z = sv_cam[2];
+	glm::vec4 sv_c = sv_cam[3];
+
+	constexpr float sv_a = 0.f;
+	constexpr float sv_b = 2;
+
+	glm::vec4 q0 = glm::vec4(((sv_a * s) / g), (sv_a / g), sv_a, 1.f);
+	glm::vec4 q1 = glm::vec4(((sv_a * s) / g), (sv_a / g), sv_a, 1.f);
+	glm::vec4 q2 = glm::vec4(((sv_a * s) / g), (sv_a / g), sv_a, 1.f);
+	glm::vec4 q3 = glm::vec4(((sv_a * s) / g), (sv_a / g), sv_a, 1.f);
+
+	glm::vec4 q4 = glm::vec4(((sv_b * s) / g), (sv_b / g), sv_b, 1.f);
+	glm::vec4 q5 = glm::vec4(((sv_b * s) / g), (sv_b / g), sv_b, 1.f);
+	glm::vec4 q6 = glm::vec4(((sv_b * s) / g), (sv_b / g), sv_b, 1.f);
+	glm::vec4 q7 = glm::vec4(((sv_b * s) / g), (sv_b / g), sv_b, 1.f);;
+
+	std::vector<glm::vec4> shadow_frustum = { q0, q1, q2, q3, q4, q5, q6, q7 };
+
+	float min_x = std::numeric_limits<float>::max();
+	float max_x = std::numeric_limits<float>::lowest();
+	float min_y = std::numeric_limits<float>::max();
+	float max_y = std::numeric_limits<float>::lowest();
+	float min_z = std::numeric_limits<float>::max();
+	float max_z = std::numeric_limits<float>::lowest();
+
+	for (const auto& point : shadow_frustum)
+	{
+
+		min_x = std::min(min_x, point.x);
+		max_x = std::max(max_x, point.x);
+		min_y = std::min(min_y, point.y);
+		max_y = std::max(max_y, point.y);
+		min_z = std::min(min_z, point.z);
+		max_z = std::max(max_z, point.z);
+	}
+	glm::vec3 sl = { (max_x + min_x) / 2.f, (max_y + min_y) / 2.f, min_z };
+	//sl = sl * 10.f;
+	//sl[0] = 5.f;
+	//sl[1] = 2.f;
+	//sl = mesh_cam->position * 2.f;
+	return  mesh_cam->get_view_matrix();
 }
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)

@@ -15,8 +15,6 @@ void debug_gfx::init(const rh::ctx& ctx)
 		rosy_utils::debug_print_a("error reading debug shader files! %s", e.what());
 		return;
 	}
-
-	const VkDevice device = ctx.rhi.device;
 	{
 		shader_pipeline sp = {};
 		sp.name = std::format("scene {}", name);

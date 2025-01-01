@@ -143,7 +143,13 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -100.0f, 100.0f);
 		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 10.0f);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
-		ImGui::Checkbox("Light view", &light_view_);
+
+		ImGui::Text("Light View");
+		static int elem = static_cast<int>(current_view_);
+		const char* elems_names[3] = { "Camera", "CSM", "Light" };
+		const char* elem_name = (elem >= 0 && elem < 3) ? elems_names[elem] : "Unknown";
+		current_view_ = static_cast<camera_view>(elem);
+		ImGui::SliderInt("slider enum", &elem, 0, 3 - 1, elem_name); // Use ImGuiSliderFlags_NoInput flag to disable CTRL+Click here.
 		ImGui::RadioButton("near", &near_plane_, 0); ImGui::SameLine();
 		ImGui::RadioButton("middle", &near_plane_, 1); ImGui::SameLine();
 		ImGui::RadioButton("far", &near_plane_, 2);
@@ -205,8 +211,9 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		shadow_proj = glm::perspective(fov, s, g, -500.f / 25);
 		auto [sm_view_far, sm_projection_far] = scene_graph_->shadow_map_projection(scene_graph_->sunlight(ctx)[2], shadow_proj, view);
 
-		glm::mat4 p = proj * view;
-		glm::mat4 light_view_p = p;
+		glm::mat4 new_sunlight = scene_graph_->sunlight(ctx);
+		glm::mat4 p{ proj * view };
+		glm::mat4 light_view_p{ p };
 		switch (near_plane_)
 		{
 		case 0:
@@ -223,9 +230,17 @@ void scene_two::update_scene(const rh::ctx& ctx)
 			light_view_p = sm_projection_far;
 			break;
 		}
-		if (light_view_)
+		switch (current_view_)
 		{
+		case camera_view::csm:
 			p = light_view_p * shadow_map_view_;
+			break;
+		case camera_view::light:
+			p = proj * new_sunlight;
+			break;
+		default:
+			p = proj * view;
+			break;
 		}
 
 		scene_data_.view = view;
@@ -238,7 +253,7 @@ void scene_two::update_scene(const rh::ctx& ctx)
 
 		scene_data_.camera_position = glm::vec4(scene_graph_->mesh_cam->position, 1.f);
 		scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
-		scene_data_.sunlight = scene_graph_->sunlight(ctx);
+		scene_data_.sunlight = new_sunlight;
 		scene_data_.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
 
 		glm::mat4 sv_cam = glm::inverse(shadow_map_view_);

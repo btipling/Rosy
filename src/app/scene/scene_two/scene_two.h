@@ -4,6 +4,8 @@
 #include "../../rhi/rhi_shader.h"
 #include "../scene.h"
 
+enum class camera_view :int{ camera, csm, light };
+
 class scene_two final : public scene
 {
 public:
@@ -26,11 +28,11 @@ private:
 	float scene_scale_ = 0.1f;
 	glm::mat4 shadow_map_view_{ 1.f };
 
-	bool toggle_wire_frame_ = false;
-	bool light_view_ = false;
-	int blend_mode_ = 0;
-	int near_plane_ = 0;
-	float distance_from_camera_ = 0.02f;
+	bool toggle_wire_frame_{ false };
+	camera_view current_view_{ camera_view::camera };
+	int blend_mode_{ 0 };
+	int near_plane_{ 0 };
+	float distance_from_camera_{ 0.02f };
 
 	void update_scene(const rh::ctx& ctx);
 };

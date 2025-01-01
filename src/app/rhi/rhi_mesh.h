@@ -58,8 +58,8 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
-	glm::mat4 sunlight(const rh::ctx& ctx) const;
-	glm::mat4 csm_pos(const rh::ctx& ctx) const;
+	[[nodiscard]] glm::mat4 sunlight(const rh::ctx& ctx) const;
+	[[nodiscard]] auto csm_pos(const rh::ctx& ctx) const -> glm::mat4;
 	void draw_ui(const rh::ctx& ctx);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;
