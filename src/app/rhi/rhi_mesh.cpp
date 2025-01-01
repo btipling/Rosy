@@ -197,42 +197,34 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 }
 
-glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx) const
+glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx)
 {
 	if (mesh_cam == nullptr) return glm::mat4(1.f);
 	const glm::mat4 L = glm::inverse(light_transform_) * mesh_cam->get_view_matrix();
-	return L;
-	//return light_transform_ * csm_pos(ctx);
+	return csm_pos(ctx, L);
 }
 
-glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx) const
+glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx, glm::mat4 L)
 {
 	if (mesh_cam == nullptr) return glm::mat4(1.f);
-	const glm::mat4 sv_cam = glm::translate(glm::mat4(1.f), mesh_cam->position);
+	const glm::vec3 sv_a = mesh_cam->position;
+	const glm::vec3 sv_b = sv_a + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 0.f, cascade_factor_, 0.f));
+
 	const auto [width, height] = ctx.rhi.frame_extent;
 	const auto s = (static_cast<float>(width) / static_cast<float>(height));
 	const float g = 0.1f;
 
+	glm::vec3 q0 = (sv_a * s) / g + sv_a / g + sv_a;
+	glm::vec3 q1 = (sv_a * s) / g - sv_a / g + sv_a;
+	glm::vec3 q2 = (sv_a * s) / g - sv_a / g + sv_a;
+	glm::vec3 q3 = (sv_a * s) / g + sv_a / g + sv_a;
 
-	glm::vec4 sv_x = sv_cam[0];
-	glm::vec4 sv_y = sv_cam[1];
-	glm::vec4 sv_z = sv_cam[2];
-	glm::vec4 sv_c = sv_cam[3];
+	glm::vec3 q4 = (sv_b * s) / g + sv_b / g + sv_b;
+	glm::vec3 q5 = (sv_b * s) / g - sv_b / g + sv_b;
+	glm::vec3 q6 = (sv_b * s) / g - sv_b / g + sv_b;
+	glm::vec3 q7 = (sv_b * s) / g + sv_b / g + sv_b;
 
-	constexpr float sv_a = 0.f;
-	constexpr float sv_b = 2;
-
-	glm::vec4 q0 = glm::vec4(((sv_a * s) / g), (sv_a / g), sv_a, 1.f);
-	glm::vec4 q1 = glm::vec4(((sv_a * s) / g), (sv_a / g), sv_a, 1.f);
-	glm::vec4 q2 = glm::vec4(((sv_a * s) / g), (sv_a / g), sv_a, 1.f);
-	glm::vec4 q3 = glm::vec4(((sv_a * s) / g), (sv_a / g), sv_a, 1.f);
-
-	glm::vec4 q4 = glm::vec4(((sv_b * s) / g), (sv_b / g), sv_b, 1.f);
-	glm::vec4 q5 = glm::vec4(((sv_b * s) / g), (sv_b / g), sv_b, 1.f);
-	glm::vec4 q6 = glm::vec4(((sv_b * s) / g), (sv_b / g), sv_b, 1.f);
-	glm::vec4 q7 = glm::vec4(((sv_b * s) / g), (sv_b / g), sv_b, 1.f);;
-
-	std::vector<glm::vec4> shadow_frustum = { q0, q1, q2, q3, q4, q5, q6, q7 };
+	std::vector shadow_frustum = { q0, q1, q2, q3, q4, q5, q6, q7 };
 
 	float min_x = std::numeric_limits<float>::max();
 	float max_x = std::numeric_limits<float>::lowest();
@@ -252,11 +244,8 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx) const
 		max_z = std::max(max_z, point.z);
 	}
 	glm::vec3 sl = { (max_x + min_x) / 2.f, (max_y + min_y) / 2.f, min_z };
-	//sl = sl * 10.f;
-	//sl[0] = 5.f;
-	//sl[1] = 2.f;
-	//sl = mesh_cam->position * 2.f;
-	return  mesh_cam->get_view_matrix();
+	light_pos_ = sl;
+	return translate(glm::mat4(1.f), sl) * L;
 }
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)
@@ -264,6 +253,7 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 	ImGui::Begin("Sunlight & Shadow");
 	{
 		bool rotate = false;
+		ImGui::Text("Light position: (%.3f, %.3f, %.3f)", light_pos_.x, light_pos_.y, light_pos_.z);
 		if (ImGui::SliderFloat("Sunlight rotation x", &sunlight_x_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
 			auto m = glm::mat4{ 1.f };
 			m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
@@ -285,6 +275,7 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 			light_transform_ = m;
 		}
+		if (ImGui::SliderFloat("Cascade factor", &cascade_factor_, 0, 50, "%.3f"))
 		ImGui::Text("Depth bias");
 		ImGui::Checkbox("Enabled", &depth_bias_enabled);
 		ImGui::SliderFloat("constant", &depth_bias_constant, 0.f, 1000.0f);

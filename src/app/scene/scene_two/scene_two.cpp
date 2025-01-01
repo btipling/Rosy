@@ -137,8 +137,8 @@ rh::result scene_two::draw(const rh::ctx ctx)
 rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 	ImGui::Begin("Scene Graph");
 	{
-		ImGui::Text("Camera position: (%f, %f, %f)", scene_graph_->mesh_cam->position.x, scene_graph_->mesh_cam->position.y, scene_graph_->mesh_cam->position.z);
-		ImGui::Text("Camera orientation: (%f, %f)", scene_graph_->mesh_cam->pitch, scene_graph_->mesh_cam->yaw);
+		ImGui::Text("Camera position: (%.3f, %.3f, %.3f)", scene_graph_->mesh_cam->position.x, scene_graph_->mesh_cam->position.y, scene_graph_->mesh_cam->position.z);
+		ImGui::Text("Camera orientation: (%.3f, %.3f)", scene_graph_->mesh_cam->pitch, scene_graph_->mesh_cam->yaw);
 		ImGui::SliderFloat3("Rotate", value_ptr(scene_rot_), 0, glm::pi<float>() * 2.0f);
 		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -100.0f, 100.0f);
 		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 10.0f);

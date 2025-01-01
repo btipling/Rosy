@@ -58,8 +58,8 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
-	[[nodiscard]] glm::mat4 sunlight(const rh::ctx& ctx) const;
-	[[nodiscard]] auto csm_pos(const rh::ctx& ctx) const -> glm::mat4;
+	[[nodiscard]] glm::mat4 sunlight(const rh::ctx& ctx);
+	[[nodiscard]] auto csm_pos(const rh::ctx& ctx, glm::mat4 L) -> glm::mat4;
 	void draw_ui(const rh::ctx& ctx);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;
@@ -72,6 +72,8 @@ private:
 	float sunlight_x_rot_{ 0.f };
 	float sunlight_y_rot_{ 0.f };
 	float sunlight_z_rot_{ 0.f };
+	glm::vec3 light_pos_{ 1.f };
+	float cascade_factor_{ 0 };
 	VkExtent2D shadow_map_extent_{};
 	std::vector<render_object> draw_nodes_{};
 };
