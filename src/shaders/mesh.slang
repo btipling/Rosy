@@ -60,10 +60,10 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) : SV_Target
 {
     SceneData sd = *PushConstants.sd;
-    float3 sunlight = float3(sd.sunlight[2][0], sd.sunlight[2][1], sd.sunlight[2][2]);
+    float3 sunlight = float3(sd.sunlight[2][0], sd.sunlight[2][1], -sd.sunlight[2][2]);
     float3 color = coarseVertex.color;
     float3 V = normalize(sd.cameraPosition.xyz - coarseVertex.vertex);
-    float3 L = -sunlight;
+    float3 L = sunlight;
     float3 N = normalize(coarseVertex.normal);
     float3 H = normalize(L + V);
 

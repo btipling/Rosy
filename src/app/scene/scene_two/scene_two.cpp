@@ -140,8 +140,8 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		ImGui::Text("Camera position: (%.3f, %.3f, %.3f)", scene_graph_->mesh_cam->position.x, scene_graph_->mesh_cam->position.y, scene_graph_->mesh_cam->position.z);
 		ImGui::Text("Camera orientation: (%.3f, %.3f)", scene_graph_->mesh_cam->pitch, scene_graph_->mesh_cam->yaw);
 		ImGui::SliderFloat3("Rotate", value_ptr(scene_rot_), 0, glm::pi<float>() * 2.0f);
-		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -100.0f, 100.0f);
-		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 10.0f);
+		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -50.0f, 50.0f);
+		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 5.0f);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 
 		ImGui::Text("Light View");
@@ -189,12 +189,29 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		constexpr float b = (z_near * z_far) / (z_far - z_near);
 
 
+		constexpr auto ndc = glm::mat4(
+			glm::vec4(1.f, 0.f, 0.f, 0.f),
+			glm::vec4(0.f, -1.f, 0.f, 0.f),
+			glm::vec4(0.f, 0.f, 1.f, 0.f),
+			glm::vec4(0.f, 0.f, 0.f, 1.f)
+		);
+
+		constexpr auto light_view_to_ndc = glm::mat4(
+			glm::vec4(-1.f, 0.f, 0.f, 0.f),
+			glm::vec4(0.f, 1.f, 0.f, 0.f),
+			glm::vec4(0.f, 0.f, 1.f, 0.f),
+			glm::vec4(0.f, 0.f, 0.f, 1.f)
+		);
+
+
 		proj[0][0] = w;
-		proj[1][1] = -h;
+		proj[1][1] = h;
 
 		proj[2][2] = a;
 		proj[3][2] = b;
 		proj[2][3] = 1.0f;
+
+		proj = ndc * proj;
 
 		const auto s = (static_cast<float>(width) / static_cast<float>(height));
 		const float g = 0.1f;
@@ -233,10 +250,10 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		switch (current_view_)
 		{
 		case camera_view::csm:
-			p = light_view_p * shadow_map_view_;
+			p = proj * scene_graph_->csm_pos(ctx);
 			break;
 		case camera_view::light:
-			p = proj * new_sunlight;
+			p = light_view_to_ndc * proj * new_sunlight;
 			break;
 		default:
 			p = proj * view;

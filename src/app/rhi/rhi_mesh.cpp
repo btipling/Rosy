@@ -6,7 +6,7 @@
 
 
 namespace {
-	constexpr auto ndc = glm::mat4(
+	constexpr auto gltf_to_ndc = glm::mat4(
 		glm::vec4(-1.f, 0.f, 0.f, 0.f),
 		glm::vec4(0.f, 1.f, 0.f, 0.f),
 		glm::vec4(0.f, 0.f, 1.f, 0.f),
@@ -199,12 +199,10 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 
 glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx)
 {
-	if (mesh_cam == nullptr) return glm::mat4(1.f);
-	const glm::mat4 L = glm::inverse(light_transform_) * mesh_cam->get_view_matrix();
-	return csm_pos(ctx, L);
+	return light_transform_;
 }
 
-glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx, glm::mat4 L)
+glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 {
 	if (mesh_cam == nullptr) return glm::mat4(1.f);
 	const glm::vec3 sv_a = mesh_cam->position;
@@ -245,6 +243,7 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx, glm::mat4 L)
 	}
 	glm::vec3 sl = { (max_x + min_x) / 2.f, (max_y + min_y) / 2.f, min_z };
 	light_pos_ = sl;
+	const glm::mat4 L = glm::inverse(light_transform_) * mesh_cam->get_view_matrix();
 	return translate(glm::mat4(1.f), sl) * L;
 }
 
@@ -275,7 +274,7 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 			light_transform_ = m;
 		}
-		if (ImGui::SliderFloat("Cascade factor", &cascade_factor_, 0, 50, "%.3f"))
+		ImGui::SliderFloat("Cascade factor", &cascade_factor_, 0, 50, "%.3f");
 		ImGui::Text("Depth bias");
 		ImGui::Checkbox("Enabled", &depth_bias_enabled);
 		ImGui::SliderFloat("constant", &depth_bias_constant, 0.f, 1000.0f);
@@ -304,7 +303,7 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 	for (const size_t node_index : scenes[ctx.scene_index])
 	{
 		auto draw_node = nodes[node_index];
-		draw_node->update(ndc * ctx.world_transform, nodes);
+		draw_node->update(gltf_to_ndc * ctx.world_transform, nodes);
 		queue.push(draw_node);
 
 	}
