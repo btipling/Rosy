@@ -197,7 +197,7 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		);
 
 		constexpr auto light_view_to_ndc = glm::mat4(
-			glm::vec4(-1.f, 0.f, 0.f, 0.f),
+			glm::vec4(1.f, 0.f, 0.f, 0.f),
 			glm::vec4(0.f, 1.f, 0.f, 0.f),
 			glm::vec4(0.f, 0.f, 1.f, 0.f),
 			glm::vec4(0.f, 0.f, 0.f, 1.f)
@@ -253,7 +253,7 @@ void scene_two::update_scene(const rh::ctx& ctx)
 			p = proj * scene_graph_->csm_pos(ctx);
 			break;
 		case camera_view::light:
-			p = light_view_to_ndc * proj * new_sunlight;
+			p = light_view_to_ndc * proj * inverse(new_sunlight);
 			break;
 		default:
 			p = proj * view;
