@@ -141,6 +141,10 @@ void mesh_scene::deinit(const rh::ctx& ctx) const
 
 void mesh_scene::init_shadows(const rh::ctx& ctx)
 {
+	auto cam = camera(glm::vec3{ 3.75f, 4.32f, 2.84f });
+	cam.pitch = 0.36f;
+	cam.yaw = 1.f;
+	mesh_cam = std::make_unique<camera>(std::move(cam));
 	const VkDevice device = ctx.rhi.device;
 	std::vector<char> scene_vertex_shader;
 	shadow_map_extent_ = ctx.rhi.shadow_map_extent;
@@ -160,7 +164,7 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 		sp.with_shaders(scene_vertex_shader);
 		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
 		shadow_shaders = sp;
-		debug->set_sunlight(sunlight());
+		debug->set_sunlight(sunlight(ctx));
 	}
 }
 
@@ -193,9 +197,18 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 }
 
-glm::mat4 mesh_scene::sunlight()
+glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx) const
 {
-	return light_transform_;
+	return csm_pos(ctx) * light_transform_;
+}
+
+glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx) const
+{
+	const auto [width, height] = ctx.rhi.frame_extent;
+	const auto s = (static_cast<float>(width) / static_cast<float>(height));
+	const float g = 0.1f;
+	if (mesh_cam == nullptr) return glm::mat4(1.f);
+	return glm::translate(glm::mat4(1.f), mesh_cam->position) * 2.f;
 }
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)
@@ -209,7 +222,6 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 			m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
 			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 			 light_transform_ = m;
-			debug->set_sunlight(sunlight());
 		}
 		if (ImGui::SliderFloat("Sunlight rotation y", &sunlight_y_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
 			auto m = glm::mat4{ 1.f };
@@ -217,7 +229,6 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 			m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
 			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 			light_transform_ = m;
-			debug->set_sunlight(sunlight());
 		}
 		if (ImGui::SliderFloat("Sunlight rotation z", &sunlight_z_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
 			auto m = glm::mat4{ 1.f };
@@ -225,7 +236,6 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 			m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
 			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 			light_transform_ = m;
-			debug->set_sunlight(sunlight());
 		}
 		ImGui::Text("Depth bias");
 		ImGui::Checkbox("Enabled", &depth_bias_enabled);
@@ -304,6 +314,7 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 		const size_t render_buffer_size = render_datas.size() * sizeof(render_data);
 		assert(render_buffer_size <= rb.buffer_size);
 		memcpy(rb.render_buffer.info.pMappedData, render_datas.data(), render_buffer_size);
+		debug->set_sunlight(sunlight(*ctx.ctx));
 	}
 
 }

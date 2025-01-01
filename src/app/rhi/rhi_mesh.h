@@ -1,5 +1,8 @@
 #pragma once
 #include "rhi_types.h"
+#include "../camera.h"
+
+class camera;
 
 struct shadow_map
 {
@@ -16,6 +19,7 @@ public:
 	std::string frag_path{ "out/mesh.spv" };
 	std::string shadow_vertex_path{"out/shadow.spv"};
 	std::string shadow_frag_path{ "out/shadow.spv" };
+	std::unique_ptr<camera> mesh_cam = nullptr;
 
 	bool depth_bias_enabled{ false };
 	float depth_bias_constant{ 0.f };
@@ -54,7 +58,8 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
-	glm::mat4 sunlight();
+	glm::mat4 sunlight(const rh::ctx& ctx) const;
+	glm::mat4 csm_pos(const rh::ctx& ctx) const;
 	void draw_ui(const rh::ctx& ctx);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;

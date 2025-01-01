@@ -161,11 +161,11 @@ void debug_gfx::set_sunlight(glm::mat4 sunlight)
 	line.color = glm::vec4(1.0f, 0.843f, 0.0f, 1.0f);
 	line.p1 = origin;
 
-	line.p2 = sunlight[0];
+	line.p2 = glm::vec4(sunlight[0][0], sunlight[0][1], sunlight[0][2], 1.f);;
 	sunlight_lines.push_back(line);
-	line.p2 = sunlight[1];
+	line.p2 = glm::vec4(sunlight[1][0], sunlight[1][1], sunlight[1][2], 1.f);;
 	sunlight_lines.push_back(line);
-	line.p2 = sunlight[2];
+	line.p2 = glm::vec4(sunlight[2][0], sunlight[2][1], sunlight[2][2], 1.f);;
 	sunlight_lines.push_back(line);
 }
 

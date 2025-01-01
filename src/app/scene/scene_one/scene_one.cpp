@@ -8,11 +8,8 @@
 #include "../../loader/loader.h"
 
 
-scene_one::scene_one() :  // NOLINT(modernize-use-equals-default)
-	camera_(glm::vec3{ 10.2f, 0.6f, -13.3f })
+scene_one::scene_one()
 {
-	camera_.pitch = 0.36f;
-	camera_.yaw = 1.f;
 }
 
 rh::result scene_one::deinit(rh::ctx& ctx)
@@ -107,7 +104,7 @@ rh::result scene_one::draw(const rh::ctx ctx)
 			vkCmdSetFrontFaceEXT(render_cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 			vkCmdSetDepthTestEnableEXT(render_cmd, false);
 			auto m = glm::mat4(1.0f);
-			m = translate(m, glm::vec3(-camera_.position[0], camera_.position[1], camera_.position[2]));
+			m = translate(m, glm::vec3(-scene_graph_->mesh_cam->position[0], scene_graph_->mesh_cam->position[1], scene_graph_->mesh_cam->position[2]));
 			mesh_ctx m_ctx{};
 			m_ctx.ctx = &ctx;
 			m_ctx.wire_frame = toggle_wire_frame_;
@@ -138,8 +135,8 @@ rh::result scene_one::draw(const rh::ctx ctx)
 rh::result scene_one::draw_ui(const rh::ctx& ctx) {
 	ImGui::Begin("Scene Graph");
 	{
-		ImGui::Text("Camera position: (%f, %f, %f)", camera_.position.x, camera_.position.y, camera_.position.z);
-		ImGui::Text("Camera orientation: (%f, %f)", camera_.pitch, camera_.yaw);
+		ImGui::Text("Camera position: (%f, %f, %f)", scene_graph_->mesh_cam->position.x, scene_graph_->mesh_cam->position.y, scene_graph_->mesh_cam->position.z);
+		ImGui::Text("Camera orientation: (%f, %f)", scene_graph_->mesh_cam->pitch, scene_graph_->mesh_cam->yaw);
 		ImGui::SliderFloat3("Rotate", value_ptr(scene_rot_), 0, glm::pi<float>() * 2.0f);
 		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -100.0f, 100.0f);
 		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 100.0f);
@@ -160,7 +157,7 @@ rh::result scene_one::draw_ui(const rh::ctx& ctx) {
 
 rh::result scene_one::update(const rh::ctx& ctx)
 {
-	camera_.process_sdl_event(ctx);
+	scene_graph_->mesh_cam->process_sdl_event(ctx);
 	return rh::result::ok;
 }
 
@@ -194,8 +191,8 @@ std::vector<glm::vec4> scene_one::shadow_map_frustum(const glm::mat4& proj, cons
 
 void scene_one::update_scene(const rh::ctx& ctx)
 {
-	camera_.process_sdl_event(ctx);
-	camera_.update(ctx);
+	scene_graph_->mesh_cam->process_sdl_event(ctx);
+	scene_graph_->mesh_cam->update(ctx);
 
 	{
 		const auto [width, height] = ctx.rhi.frame_extent;
@@ -221,7 +218,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 		const float g = 0.1f;
 		auto shadow_proj = glm::mat4(1.f);
 		assert(s > 0);
-		const glm::mat4 view = camera_.get_view_matrix();
+		const glm::mat4 view = scene_graph_->mesh_cam->get_view_matrix();
 
 		shadow_proj = glm::perspective(fov, s, g, -500.f / 100);
 		auto [sm_view_near, sm_projection_near] = scene_graph_->shadow_map_projection(sunlight_direction_, shadow_proj, view);
@@ -247,7 +244,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 		scene_data_.shadow_projection_middle = sm_projection_middle * sm_view_middle;
 		scene_data_.shadow_projection_far = sm_projection_far * sm_view_far;
 
-		scene_data_.camera_position = glm::vec4(camera_.position, 1.f);
+		scene_data_.camera_position = glm::vec4(scene_graph_->mesh_cam->position, 1.f);
 		scene_data_.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
 		scene_data_.sunlight = glm::mat4(
 			glm::vec4(1.f),
@@ -275,7 +272,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	}
 	{
 		auto m = glm::mat4(1.0f);
-		m = translate(m, glm::vec3(-camera_.position[0], camera_.position[1], camera_.position[2]));
+		m = translate(m, glm::vec3(-scene_graph_->mesh_cam->position[0], scene_graph_->mesh_cam->position[1], scene_graph_->mesh_cam->position[2]));
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;;
 		m_ctx.world_transform = m;

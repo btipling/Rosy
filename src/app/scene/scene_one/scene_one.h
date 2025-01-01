@@ -2,7 +2,6 @@
 
 #include "../../rhi/rhi_frame.h"
 #include "../../rhi/rhi_shader.h"
-#include "../../camera.h"
 #include "../scene.h"
 
 class scene_one final : public scene
@@ -17,7 +16,6 @@ public:
 	rh::result draw_ui(const rh::ctx& ctx) override;
 private:
 	gpu_scene_data scene_data_ = {};
-	camera camera_;
 
 	std::shared_ptr<mesh_scene> scene_graph_;
 	std::shared_ptr<mesh_scene> skybox_;
