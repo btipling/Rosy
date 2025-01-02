@@ -219,13 +219,13 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		const glm::mat4 view = scene_graph_->mesh_cam->get_view_matrix();
 
 		shadow_proj = glm::perspective( fov, s, g, -500.f / 100);
-		auto [sm_view_near, sm_projection_near] = scene_graph_->shadow_map_projection(scene_graph_->sunlight(ctx)[2], shadow_proj, view);
+		auto [sm_view_near, sm_projection_near] = scene_graph_->shadow_map_projection(ctx, scene_graph_->sunlight(ctx)[2], shadow_proj, view);
 
 		shadow_proj = glm::perspective(fov, s, g, -500.f / 50);
-		auto [sm_view_middle, sm_projection_middle] = scene_graph_->shadow_map_projection(scene_graph_->sunlight(ctx)[2], shadow_proj, view);
+		auto [sm_view_middle, sm_projection_middle] = scene_graph_->shadow_map_projection(ctx, scene_graph_->sunlight(ctx)[2], shadow_proj, view);
 
 		shadow_proj = glm::perspective(fov, s, g, -500.f / 25);
-		auto [sm_view_far, sm_projection_far] = scene_graph_->shadow_map_projection(scene_graph_->sunlight(ctx)[2], shadow_proj, view);
+		auto [sm_view_far, sm_projection_far] = scene_graph_->shadow_map_projection(ctx, scene_graph_->sunlight(ctx)[2], shadow_proj, view);
 
 		glm::mat4 new_sunlight = scene_graph_->sunlight(ctx);
 		glm::mat4 p{ proj * view };

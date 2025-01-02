@@ -211,7 +211,6 @@ glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx)
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 {
 	if (mesh_cam == nullptr) return glm::mat4(1.f);
-	const glm::mat4 L = sunlight(ctx);
 
 	constexpr auto ndc = glm::mat4(
 		glm::vec4(1.f, 0.f, 0.f, 0.f),
@@ -243,29 +242,29 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	if (mesh_cam == nullptr) {
 		return glm::mat4(1.f);
 	}
-	const float sv_a = 0.1;
+	constexpr float sv_a = 0.f;
 	const float sv_b = cascade_factor_;
 
 	const auto s = (static_cast<float>(width) / static_cast<float>(height));
 	const float g = 0.1f;
 
 	const glm::mat4 v_cam = mesh_cam->get_view_matrix();
-	const glm::mat4 pv_cam = proj * v_cam;
-	const glm::mat4 sv_cam = glm::inverse(v_cam);
-	glm::vec4 sv_x = sv_cam[0];
-	glm::vec4 sv_y = sv_cam[1];
-	glm::vec4 sv_z = sv_cam[2];
-	glm::vec4 sv_c = sv_cam[3];
+	const glm::mat4 l_cam = sunlight(ctx);
+	const glm::mat4 L = glm::inverse(l_cam);
+	glm::vec4 l_x = L[0];
+	glm::vec4 l_y = L[1];
+	glm::vec4 l_z = L[2];
+	glm::vec4 l_c = L[3];
 
-	q0_ = sv_c + (((sv_a * s) / g) * sv_x) + ((sv_a / g) * sv_y) + (sv_a * sv_z);
-	q1_ = sv_c + (((sv_a * s) / g) * sv_x) - ((sv_a / g) * sv_y) + (sv_a * sv_z);
-	q2_ = sv_c - (((sv_a * s) / g) * sv_x) - ((sv_a / g) * sv_y) + (sv_a * sv_z);
-	q3_ = sv_c - (((sv_a * s) / g) * sv_x) + ((sv_a / g) * sv_y) + (sv_a * sv_z);
+	q0_ = l_c + (((sv_a * s) / g) * l_x) + ((sv_a / g) * l_y) + (sv_a * l_z);
+	q1_ = l_c + (((sv_a * s) / g) * l_x) - ((sv_a / g) * l_y) + (sv_a * l_z);
+	q2_ = l_c - (((sv_a * s) / g) * l_x) - ((sv_a / g) * l_y) + (sv_a * l_z);
+	q3_ = l_c - (((sv_a * s) / g) * l_x) + ((sv_a / g) * l_y) + (sv_a * l_z);
 
-	q4_ = sv_c + (((sv_b * s) / g) * sv_x) + ((sv_b / g) * sv_y) + (sv_b * sv_z);
-	q5_ = sv_c + (((sv_b * s) / g) * sv_x) - ((sv_b / g) * sv_y) + (sv_b * sv_z);
-	q6_ = sv_c - (((sv_b * s) / g) * sv_x) - ((sv_b / g) * sv_y) + (sv_b * sv_z);
-	q7_ = sv_c - (((sv_b * s) / g) * sv_x) + ((sv_b / g) * sv_y) + (sv_b * sv_z);
+	q4_ = l_c + (((sv_b * s) / g) * l_x) + ((sv_b / g) * l_y) + (sv_b * l_z);
+	q5_ = l_c + (((sv_b * s) / g) * l_x) - ((sv_b / g) * l_y) + (sv_b * l_z);
+	q6_ = l_c - (((sv_b * s) / g) * l_x) - ((sv_b / g) * l_y) + (sv_b * l_z);
+	q7_ = l_c - (((sv_b * s) / g) * l_x) + ((sv_b / g) * l_y) + (sv_b * l_z);
 
 	std::vector shadow_frustum = { q0_, q1_, q2_, q3_, q4_, q5_, q6_, q7_ };
 
@@ -585,8 +584,9 @@ shadow_map mesh_scene::shadow_map_projection(const std::vector<glm::vec4>& shado
 	return map;
 }
 
-shadow_map mesh_scene::shadow_map_projection(const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view)
+shadow_map mesh_scene::shadow_map_projection(const rh::ctx& ctx, const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view)
 {
+	const glm::mat4 m_sk = csm_pos(ctx);
 	const auto frustum = shadow_map_frustum(p, world_view);
 	const auto shadow_view = shadow_map_view(frustum, glm::normalize(light_direction));
 	return shadow_map_projection(frustum, shadow_view);
