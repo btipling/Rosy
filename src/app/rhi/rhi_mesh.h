@@ -72,8 +72,23 @@ private:
 	float sunlight_x_rot_{ 0.f };
 	float sunlight_y_rot_{ 0.f };
 	float sunlight_z_rot_{ 0.f };
+	glm::vec4 q0_;
+	glm::vec4 q1_;
+	glm::vec4 q2_;
+	glm::vec4 q3_;
+	glm::vec4 q4_;
+	glm::vec4 q5_;
+	glm::vec4 q6_;
+	glm::vec4 q7_;
+	float max_x_;
+	float min_x_;
+	float max_y_;
+	float min_y_;
+	float max_z_;
+	float min_z_;
+
 	glm::vec3 light_pos_{ 1.f };
-	float cascade_factor_{ 0 };
+	float cascade_factor_{ 0.5 };
 	VkExtent2D shadow_map_extent_{};
 	std::vector<render_object> draw_nodes_{};
 };

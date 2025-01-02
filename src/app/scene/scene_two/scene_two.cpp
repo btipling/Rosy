@@ -177,18 +177,6 @@ void scene_two::update_scene(const rh::ctx& ctx)
 	scene_graph_->mesh_cam->update(ctx);
 
 	{
-		const auto [width, height] = ctx.rhi.frame_extent;
-		glm::mat4 proj(0.0f);
-		constexpr float z_near = 0.1f;
-		constexpr float z_far = 1000.0f;
-		const float aspect = static_cast<float>(width) / static_cast<float>(height);
-		constexpr float fov = glm::radians(70.0f);
-		const float h = 1.0 / tan(fov * 0.5);
-		const float w = h / aspect;
-		constexpr float a = -z_near / (z_far - z_near);
-		constexpr float b = (z_near * z_far) / (z_far - z_near);
-
-
 		constexpr auto ndc = glm::mat4(
 			glm::vec4(1.f, 0.f, 0.f, 0.f),
 			glm::vec4(0.f, -1.f, 0.f, 0.f),
@@ -202,6 +190,17 @@ void scene_two::update_scene(const rh::ctx& ctx)
 			glm::vec4(0.f, 0.f, 1.f, 0.f),
 			glm::vec4(0.f, 0.f, 0.f, 1.f)
 		);
+
+		const auto [width, height] = ctx.rhi.frame_extent;
+		glm::mat4 proj(0.0f);
+		constexpr float z_near = 0.1f;
+		constexpr float z_far = 1000.0f;
+		const float aspect = static_cast<float>(width) / static_cast<float>(height);
+		constexpr float fov = glm::radians(70.0f);
+		const float h = 1.0 / tan(fov * 0.5);
+		const float w = h / aspect;
+		constexpr float a = -z_near / (z_far - z_near);
+		constexpr float b = (z_near * z_far) / (z_far - z_near);
 
 
 		proj[0][0] = w;
@@ -250,7 +249,7 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		switch (current_view_)
 		{
 		case camera_view::csm:
-			p = proj * scene_graph_->csm_pos(ctx);
+			p = proj * inverse(scene_graph_->csm_pos(ctx));
 			break;
 		case camera_view::light:
 			p = light_view_to_ndc * proj * inverse(new_sunlight);
@@ -288,7 +287,7 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		glm::vec4 q2 = sv_c - (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
 		glm::vec4 q3 = sv_c - (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
 
-		scene_graph_->debug->set_shadow_frustum(q0, q1, q2, q3);
+		//scene_graph_->debug->set_shadow_frustum(q0, q1, q2, q3);
 		scene_graph_->debug->shadow_frustum = glm::mat4(1.f);
 	}
 	{

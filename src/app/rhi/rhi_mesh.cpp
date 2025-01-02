@@ -199,52 +199,91 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 
 glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx)
 {
-	return light_transform_;
+	if (mesh_cam == nullptr) return glm::mat4(1.f);
+	glm::vec3 sl = mesh_cam->position + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 0, 100 * cascade_factor_, 1.f));
+	//sl[1] = mesh_cam->position[1] + 10;
+	sl = sl + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 30.f, 1.f, 1.f));
+	//sl = sl + mesh_cam->position;
+	light_pos_ = sl;
+	return translate(glm::mat4(1.f), glm::vec3(sl)) * light_transform_;
 }
 
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 {
-	if (mesh_cam == nullptr) return glm::mat4(1.f);
-	const glm::vec3 sv_a = mesh_cam->position;
-	const glm::vec3 sv_b = sv_a + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 0.f, cascade_factor_, 0.f));
-
+	constexpr auto ndc = glm::mat4(
+		glm::vec4(1.f, 0.f, 0.f, 0.f),
+		glm::vec4(0.f, -1.f, 0.f, 0.f),
+		glm::vec4(0.f, 0.f, 1.f, 0.f),
+		glm::vec4(0.f, 0.f, 0.f, 1.f)
+	);
 	const auto [width, height] = ctx.rhi.frame_extent;
+	glm::mat4 proj(0.0f);
+	constexpr float z_near = 0.1f;
+	constexpr float z_far = 1000.0f;
+	const float aspect = static_cast<float>(width) / static_cast<float>(height);
+	constexpr float fov = glm::radians(70.0f);
+	const float h = 1.0 / tan(fov * 0.5);
+	const float w = h / aspect;
+	constexpr float a = -z_near / (z_far - z_near);
+	constexpr float b = (z_near * z_far) / (z_far - z_near);
+
+
+	proj[0][0] = w;
+	proj[1][1] = h;
+
+	proj[2][2] = a;
+	proj[3][2] = b;
+	proj[2][3] = 1.0f;
+
+	proj = ndc * proj;
+
+	if (mesh_cam == nullptr) {
+		return glm::mat4(1.f);
+	}
+	const float sv_a = 0.1;
+	const float sv_b = cascade_factor_;
+
 	const auto s = (static_cast<float>(width) / static_cast<float>(height));
 	const float g = 0.1f;
 
-	glm::vec3 q0 = (sv_a * s) / g + sv_a / g + sv_a;
-	glm::vec3 q1 = (sv_a * s) / g - sv_a / g + sv_a;
-	glm::vec3 q2 = (sv_a * s) / g - sv_a / g + sv_a;
-	glm::vec3 q3 = (sv_a * s) / g + sv_a / g + sv_a;
+	const glm::mat4 v_cam = mesh_cam->get_view_matrix();
+	const glm::mat4 pv_cam = proj * v_cam;
+	const glm::mat4 sv_cam = glm::inverse(v_cam);
+	glm::vec4 sv_x = sv_cam[0];
+	glm::vec4 sv_y = sv_cam[1];
+	glm::vec4 sv_z = sv_cam[2];
+	glm::vec4 sv_c = sv_cam[3];
 
-	glm::vec3 q4 = (sv_b * s) / g + sv_b / g + sv_b;
-	glm::vec3 q5 = (sv_b * s) / g - sv_b / g + sv_b;
-	glm::vec3 q6 = (sv_b * s) / g - sv_b / g + sv_b;
-	glm::vec3 q7 = (sv_b * s) / g + sv_b / g + sv_b;
+	q0_ = sv_c + (((sv_a * s) / g) * sv_x) + ((sv_a / g) * sv_y) + (sv_a * sv_z);
+	q1_ = sv_c + (((sv_a * s) / g) * sv_x) - ((sv_a / g) * sv_y) + (sv_a * sv_z);
+	q2_ = sv_c - (((sv_a * s) / g) * sv_x) - ((sv_a / g) * sv_y) + (sv_a * sv_z);
+	q3_ = sv_c - (((sv_a * s) / g) * sv_x) + ((sv_a / g) * sv_y) + (sv_a * sv_z);
 
-	std::vector shadow_frustum = { q0, q1, q2, q3, q4, q5, q6, q7 };
+	q4_ = sv_c + (((sv_b * s) / g) * sv_x) + ((sv_b / g) * sv_y) + (sv_b * sv_z);
+	q5_ = sv_c + (((sv_b * s) / g) * sv_x) - ((sv_b / g) * sv_y) + (sv_b * sv_z);
+	q6_ = sv_c - (((sv_b * s) / g) * sv_x) - ((sv_b / g) * sv_y) + (sv_b * sv_z);
+	q7_ = sv_c - (((sv_b * s) / g) * sv_x) + ((sv_b / g) * sv_y) + (sv_b * sv_z);
 
-	float min_x = std::numeric_limits<float>::max();
-	float max_x = std::numeric_limits<float>::lowest();
-	float min_y = std::numeric_limits<float>::max();
-	float max_y = std::numeric_limits<float>::lowest();
-	float min_z = std::numeric_limits<float>::max();
-	float max_z = std::numeric_limits<float>::lowest();
+	std::vector shadow_frustum = { q0_, q1_, q2_, q3_, q4_, q5_, q6_, q7_ };
+
+	min_x_ = std::numeric_limits<float>::max();
+	max_x_ = std::numeric_limits<float>::lowest();
+	min_y_ = std::numeric_limits<float>::max();
+	max_y_ = std::numeric_limits<float>::lowest();
+	min_z_ = std::numeric_limits<float>::max();
+	max_z_ = std::numeric_limits<float>::lowest();
 
 	for (const auto& point : shadow_frustum)
 	{
 
-		min_x = std::min(min_x, point.x);
-		max_x = std::max(max_x, point.x);
-		min_y = std::min(min_y, point.y);
-		max_y = std::max(max_y, point.y);
-		min_z = std::min(min_z, point.z);
-		max_z = std::max(max_z, point.z);
+		min_x_ = std::min(min_x_, point.x);
+		max_x_ = std::max(max_x_, point.x);
+		min_y_ = std::min(min_y_, point.y);
+		max_y_ = std::max(max_y_, point.y);
+		min_z_ = std::min(min_z_, point.z);
+		max_z_ = std::max(max_z_, point.z);
 	}
-	glm::vec3 sl = { (max_x + min_x) / 2.f, (max_y + min_y) / 2.f, min_z };
-	light_pos_ = sl;
-	const glm::mat4 L = glm::inverse(light_transform_) * mesh_cam->get_view_matrix();
-	return translate(glm::mat4(1.f), sl) * L;
+	return translate(glm::mat4(1.f), glm::vec3(1.f));
 }
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)
@@ -253,6 +292,19 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 	{
 		bool rotate = false;
 		ImGui::Text("Light position: (%.3f, %.3f, %.3f)", light_pos_.x, light_pos_.y, light_pos_.z);
+
+		ImGui::Text("q0_: (%.3f, %.3f, %.3f)", q0_.x, q0_.y, q0_.z);
+		ImGui::Text("q1_: (%.3f, %.3f, %.3f)", q1_.x, q1_.y, q1_.z);
+		ImGui::Text("q2_: (%.3f, %.3f, %.3f)", q2_.x, q2_.y, q2_.z);
+		ImGui::Text("q3_: (%.3f, %.3f, %.3f)", q3_.x, q3_.y, q3_.z);
+
+		ImGui::Text("q4_: (%.3f, %.3f, %.3f)", q4_.x, q4_.y, q4_.z);
+		ImGui::Text("q5_: (%.3f, %.3f, %.3f)", q5_.x, q5_.y, q5_.z);
+		ImGui::Text("q6_: (%.3f, %.3f, %.3f)", q6_.x, q6_.y, q6_.z);
+		ImGui::Text("q7_: (%.3f, %.3f, %.3f)", q7_.x, q7_.y, q7_.z);
+
+		ImGui::Text("min: (%.3f, %.3f, %.3f)", min_x_, min_y_, min_z_);
+		ImGui::Text("max: (%.3f, %.3f, %.3f)", max_x_, max_y_, max_z_);
 		if (ImGui::SliderFloat("Sunlight rotation x", &sunlight_x_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
 			auto m = glm::mat4{ 1.f };
 			m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
@@ -274,7 +326,7 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 			light_transform_ = m;
 		}
-		ImGui::SliderFloat("Cascade factor", &cascade_factor_, 0, 50, "%.3f");
+		ImGui::SliderFloat("Cascade factor", &cascade_factor_, 0, 10, "%.3f");
 		ImGui::Text("Depth bias");
 		ImGui::Checkbox("Enabled", &depth_bias_enabled);
 		ImGui::SliderFloat("constant", &depth_bias_constant, 0.f, 1000.0f);
