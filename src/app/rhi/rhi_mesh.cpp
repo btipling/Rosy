@@ -200,7 +200,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx)
 {
 	if (mesh_cam == nullptr) return glm::mat4(1.f);
-	glm::vec3 sl = mesh_cam->position + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 0, 100 * cascade_factor_, 1.f));
+	glm::vec3 sl = mesh_cam->position + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 0, 0, 1.f));
 	//sl[1] = mesh_cam->position[1] + 10;
 	sl = sl + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 30.f, 1.f, 1.f));
 	//sl = sl + mesh_cam->position;
@@ -210,6 +210,9 @@ glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx)
 
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 {
+	if (mesh_cam == nullptr) return glm::mat4(1.f);
+	const glm::mat4 L = sunlight(ctx);
+
 	constexpr auto ndc = glm::mat4(
 		glm::vec4(1.f, 0.f, 0.f, 0.f),
 		glm::vec4(0.f, -1.f, 0.f, 0.f),
