@@ -3,6 +3,7 @@
 
 struct debug_frustum
 {
+	glm::mat4 transform{ glm::identity<glm::mat4>() };
 	std::array<glm::vec4, 8> points;
 	static debug_frustum from_bounds(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z);
 };

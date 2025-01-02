@@ -126,8 +126,8 @@ void debug_gfx::set_shadow_frustum(debug_frustum frustum)
 {
 	{
 		shadow_box_lines.clear();
-		const auto [points] = frustum;
-		auto m = glm::mat4(1.f);
+		const auto [transform, points] = frustum;
+		glm::mat4 m = transform;
 		debug_draw_push_constants line{};
 		line.world_matrix = m;
 

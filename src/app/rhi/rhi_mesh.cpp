@@ -262,12 +262,19 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 		max_z_ = std::max(max_z_, point.z);
 	}
 
-	const debug_frustum frustum = debug_frustum::from_bounds(min_x_, max_x_, min_y_, max_y_, min_z_, max_z_);
+	const auto sk = glm::vec3((max_x_ + min_x_) / 2.f, (max_y_ + min_y_) / 2.f, min_z_);
+	cascade_camera_ = glm::mat4(
+		light_transform_[0],
+		light_transform_[1],
+		light_transform_[2],
+		glm::vec4(sk, 1.f)
+	);
+
+	debug_frustum frustum = debug_frustum::from_bounds(min_x_, max_x_, min_y_, max_y_, min_z_, max_z_);
+	frustum.transform = cascade_camera_;
 	debug->set_shadow_frustum(frustum);
 
-	const auto sk = glm::vec3((max_x_ + min_x_)/2.f, (max_y_ + min_y_)/2.f, min_z_);
-
-	return translate(glm::mat4(1.f), sk);
+	return cascade_camera_;
 }
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)

@@ -68,7 +68,8 @@ public:
 	shadow_map shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view);
 	shadow_map shadow_map_projection(const rh::ctx& ctx, const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view);
 private:
-	glm::mat4 light_transform_ = glm::identity<glm::mat4>();
+	glm::mat4 light_transform_{ glm::identity<glm::mat4>() };
+	glm::mat4 cascade_camera_{ glm::identity<glm::mat4>() };
 	float sunlight_x_rot_{ 0.f };
 	float sunlight_y_rot_{ 0.f };
 	float sunlight_z_rot_{ 0.f };
