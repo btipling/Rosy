@@ -264,7 +264,10 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 
 	const debug_frustum frustum = debug_frustum::from_bounds(min_x_, max_x_, min_y_, max_y_, min_z_, max_z_);
 	debug->set_shadow_frustum(frustum);
-	return translate(glm::mat4(1.f), glm::vec3(1.f));
+
+	const auto sk = glm::vec3((max_x_ + min_x_)/2.f, (max_y_ + min_y_)/2.f, min_z_);
+
+	return translate(glm::mat4(1.f), sk);
 }
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)
@@ -387,7 +390,7 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 		const size_t render_buffer_size = render_datas.size() * sizeof(render_data);
 		assert(render_buffer_size <= rb.buffer_size);
 		memcpy(rb.render_buffer.info.pMappedData, render_datas.data(), render_buffer_size);
-		debug->set_sunlight(sunlight(*ctx.ctx));
+		debug->set_sunlight(csm_pos(*ctx.ctx));
 	}
 
 }
