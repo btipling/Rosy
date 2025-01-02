@@ -291,10 +291,12 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)
 {
+	const glm::mat4 L = sunlight(ctx);
 	ImGui::Begin("Sunlight & Shadow");
 	{
 		bool rotate = false;
 		ImGui::Text("Light position: (%.3f, %.3f, %.3f)", light_pos_.x, light_pos_.y, light_pos_.z);
+		ImGui::Text("Light direction: (%.3f, %.3f, %.3f)", L[2][0], L[2][1], L[2][2]);
 
 		ImGui::Text("q0_: (%.3f, %.3f, %.3f)", q0_.x, q0_.y, q0_.z);
 		ImGui::Text("q1_: (%.3f, %.3f, %.3f)", q1_.x, q1_.y, q1_.z);
