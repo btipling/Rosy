@@ -69,6 +69,7 @@ public:
 	shadow_map shadow_map_projection(const rh::ctx& ctx, const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view);
 private:
 	glm::mat4 light_transform_{ glm::identity<glm::mat4>() };
+	glm::vec3 light_pos_{ 1.f };
 	glm::mat4 cascade_camera_{ glm::identity<glm::mat4>() };
 	float sunlight_x_rot_{ 0.f };
 	float sunlight_y_rot_{ 0.f };
@@ -88,7 +89,6 @@ private:
 	float max_z_;
 	float min_z_;
 
-	glm::vec3 light_pos_{ 1.f };
 	float cascade_factor_{ 0.5 };
 	VkExtent2D shadow_map_extent_{};
 	std::vector<render_object> draw_nodes_{};

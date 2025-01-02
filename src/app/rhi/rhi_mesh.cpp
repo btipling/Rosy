@@ -226,21 +226,16 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	const glm::mat4 v_cam = mesh_cam->get_view_matrix();
 	const glm::mat4 l_cam = sunlight(ctx);
 	// ReSharper disable once CppInconsistentNaming
-	const glm::mat4 L = glm::inverse(l_cam);
-	const glm::vec4 l_x = L[0];
-	const glm::vec4 l_y = L[1];
-	const glm::vec4 l_z = L[2];
-	const glm::vec4 l_c = L[3];
+	const glm::mat4 L = glm::inverse(l_cam) * v_cam;
 
-	q0_ = l_c + (((sv_a * s) / g) * l_x) + ((sv_a / g) * l_y) + (sv_a * l_z);
-	q1_ = l_c + (((sv_a * s) / g) * l_x) - ((sv_a / g) * l_y) + (sv_a * l_z);
-	q2_ = l_c - (((sv_a * s) / g) * l_x) - ((sv_a / g) * l_y) + (sv_a * l_z);
-	q3_ = l_c - (((sv_a * s) / g) * l_x) + ((sv_a / g) * l_y) + (sv_a * l_z);
-
-	q4_ = l_c + (((sv_b * s) / g) * l_x) + ((sv_b / g) * l_y) + (sv_b * l_z);
-	q5_ = l_c + (((sv_b * s) / g) * l_x) - ((sv_b / g) * l_y) + (sv_b * l_z);
-	q6_ = l_c - (((sv_b * s) / g) * l_x) - ((sv_b / g) * l_y) + (sv_b * l_z);
-	q7_ = l_c - (((sv_b * s) / g) * l_x) + ((sv_b / g) * l_y) + (sv_b * l_z);
+	q0_ = L * glm::vec4( (sv_a * s) / g, + (sv_a / g), sv_a, 1.f);
+	q1_ = L * glm::vec4( (sv_a * s) / g, - (sv_a / g), sv_a, 1.f);
+	q2_ = L * glm::vec4(-(sv_a * s) / g, - (sv_a / g), sv_a, 1.f);
+	q3_ = L * glm::vec4(-(sv_a * s) / g, + (sv_a / g), sv_a, 1.f);
+	q4_ = L * glm::vec4( (sv_b * s) / g, + (sv_b / g), sv_b, 1.f);
+	q5_ = L * glm::vec4( (sv_b * s) / g, - (sv_b / g), sv_b, 1.f);
+	q6_ = L * glm::vec4(-(sv_b * s) / g, - (sv_b / g), sv_b, 1.f);
+	q7_ = L * glm::vec4(-(sv_b * s) / g, + (sv_b / g), sv_b, 1.f);
 
 	const std::vector shadow_frustum = { q0_, q1_, q2_, q3_, q4_, q5_, q6_, q7_ };
 
