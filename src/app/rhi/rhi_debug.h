@@ -1,6 +1,12 @@
 #pragma once
 #include "rhi_types.h"
 
+struct debug_frustum
+{
+	std::array<glm::vec4, 8> points;
+	static debug_frustum from_bounds(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z);
+};
+
 class debug_gfx
 {
 public:
@@ -26,8 +32,7 @@ public:
 	debug_gfx& operator=(debug_gfx&&) noexcept = default;
 	void init(const rh::ctx& ctx);
 	void deinit(const rh::ctx& ctx) const;
-	void set_shadow_frustum(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z);
-	void set_shadow_frustum(glm::vec4 q0, glm::vec4 q1, glm::vec4 q2, glm::vec4 q3);
+	void set_shadow_frustum(debug_frustum frustum);
 	void set_sunlight(glm::mat4 sunlight);
 	[[nodiscard]] auto draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address) -> rh::result;
 };

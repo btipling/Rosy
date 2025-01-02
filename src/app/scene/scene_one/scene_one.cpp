@@ -267,7 +267,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 		glm::vec4 q2 = sv_c - (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
 		glm::vec4 q3 = sv_c - (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
 
-		scene_graph_->debug->set_shadow_frustum(q0, q1, q2, q3);
+		//scene_graph_->debug->set_shadow_frustum(q0, q1, q2, q3);
 		scene_graph_->debug->shadow_frustum = glm::mat4(1.f);
 	}
 	{

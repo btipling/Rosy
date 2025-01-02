@@ -86,68 +86,6 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 	return rh::result::ok;
 };
 
-void debug_gfx::set_shadow_frustum(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z)
-{
-	{
-		shadow_box_lines.clear();
-		// Shadow box
-		debug_draw_push_constants line{};
-		auto m = glm::mat4(1.f);
-		line.world_matrix = glm::scale(m, glm::vec3(0.1));
-		line.color = glm::vec4(1.f, 1.f, 0.f, 1.f);
-
-		line.p1 = glm::vec4(min_x, min_y, min_z, 1.f);
-		line.p2 = glm::vec4(max_x, min_y, min_z, 1.f);
-		shadow_box_lines.push_back(line);
-		line.p1 = glm::vec4(min_x, min_y, min_z, 1.f);
-		line.p2 = glm::vec4(min_x, max_y, min_z, 1.f);
-		shadow_box_lines.push_back(line);
-		line.p1 = glm::vec4(max_x, min_y, min_z, 1.f);
-		line.p2 = glm::vec4(max_x, max_y, min_z, 1.f);
-		shadow_box_lines.push_back(line);
-		line.p1 = glm::vec4(max_x, max_y, min_z, 1.f);
-		line.p2 = glm::vec4(min_x, max_y, min_z, 1.f);
-		shadow_box_lines.push_back(line);
-
-		line.p1 = glm::vec4(min_x, min_y, max_z, 1.f);
-		line.p2 = glm::vec4(max_x, min_y, max_z, 1.f);
-		shadow_box_lines.push_back(line);
-		line.p1 = glm::vec4(min_x, min_y, max_z, 1.f);
-		line.p2 = glm::vec4(min_x, max_y, max_z, 1.f);
-		shadow_box_lines.push_back(line);
-		line.p1 = glm::vec4(max_x, min_y, max_z, 1.f);
-		line.p2 = glm::vec4(max_x, max_y, max_z, 1.f);
-		shadow_box_lines.push_back(line);
-		line.p1 = glm::vec4(max_x, max_y, max_z, 1.f);
-		line.p2 = glm::vec4(min_x, max_y, max_z, 1.f);
-		shadow_box_lines.push_back(line);
-
-		line.p1 = glm::vec4(min_x, min_y, min_z, 1.f);
-		line.p2 = glm::vec4(min_x, min_y, max_z, 1.f);
-		shadow_box_lines.push_back(line);
-		line.p1 = glm::vec4(min_x, max_y, min_z, 1.f);
-		line.p2 = glm::vec4(min_x, max_y, max_z, 1.f);
-		shadow_box_lines.push_back(line);
-		line.p1 = glm::vec4(max_x, min_y, min_z, 1.f);
-		line.p2 = glm::vec4(max_x, min_y, max_z, 1.f);
-		shadow_box_lines.push_back(line);
-		line.p1 = glm::vec4(max_x, max_y, min_z, 1.f);
-		line.p2 = glm::vec4(max_x, max_y, max_z, 1.f);
-		shadow_box_lines.push_back(line);
-
-		// forward pointer
-		line.color = glm::vec4(0.f, 0.f, 1.f, 1.f);
-		line.p1 = glm::vec4(max_x, min_y, max_z, 1.f);
-		line.p2 = glm::vec4(max_x, min_y, max_z * 2.f, 1.f);
-		shadow_box_lines.push_back(line);
-		// up pointer
-		line.color = glm::vec4(0.f, 1.f, 0.f, 1.f);
-		line.p1 = glm::vec4(max_x, max_y, min_z, 1.f);
-		line.p2 = glm::vec4(max_x, max_y * 2.f, min_z, 1.f);
-		shadow_box_lines.push_back(line);
-	}
-}
-
 void debug_gfx::set_sunlight(glm::mat4 sunlight)
 {
 	sunlight_lines.clear();
@@ -168,56 +106,111 @@ void debug_gfx::set_sunlight(glm::mat4 sunlight)
 	sunlight_lines.push_back(line);
 }
 
-void debug_gfx::set_shadow_frustum(glm::vec4 q0, glm::vec4 q1, glm::vec4 q2, glm::vec4 q3)
+debug_frustum debug_frustum::from_bounds(const float min_x, const float max_x, const float min_y, const float max_y, const float min_z, const float max_z)
+{
+	debug_frustum f{};
+	f.points[0] = glm::vec4{ min_x, min_y, min_z, 1.f };
+	f.points[1] = glm::vec4{ max_x, min_y, min_z, 1.f };
+	f.points[2] = glm::vec4{ min_x, max_y, min_z, 1.f };
+	f.points[3] = glm::vec4{ max_x, max_y, min_z, 1.f };
+
+	f.points[4] = glm::vec4{ min_x, min_y, max_z, 1.f };
+	f.points[5] = glm::vec4{ max_x, min_y, max_z, 1.f };
+	f.points[6] = glm::vec4{ min_x, max_y, max_z, 1.f };
+	f.points[7] = glm::vec4{ max_x, max_y, max_z, 1.f };
+	return f;
+}
+
+
+void debug_gfx::set_shadow_frustum(debug_frustum frustum)
 {
 	{
 		shadow_box_lines.clear();
-		// Shadow box
-		debug_draw_push_constants line{};
+		const auto [points] = frustum;
 		auto m = glm::mat4(1.f);
+		debug_draw_push_constants line{};
 		line.world_matrix = m;
-		line.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
 
-		line.p1 = q0;
-		line.p2 = q1;
-		shadow_box_lines.push_back(line);
-		line.color = glm::vec4(0.f, 0.f, 1.f, 1.f);
-		line.p1 = q1;
-		line.p2 = q2;
-		shadow_box_lines.push_back(line);
-		line.color = glm::vec4(0.f, 1.f, 0.f, 1.f);
-		line.p1 = q0;
-		line.p2 = q3;
-		shadow_box_lines.push_back(line);
-		line.color = glm::vec4(1.f, 1.f, 0.f, 1.f);
-		line.p1 = q3;
-		line.p2 = q2;
+		auto red = glm::vec4(1.f, 0.f, 0.f, 1.f);
+		auto blue = glm::vec4(0.f, 0.f, 1.f, 1.f);
+		auto green = glm::vec4(0.f, 1.f, 0.f, 1.f);
+		auto yellow = glm::vec4(1.f, 1.f, 0.f, 1.f);
+
+		// Shadow frustum near
+		//rosy_utils::debug_print_a("\t near_line_1: %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = red;
+		line.p1 = points[0];
+		line.p2 = points[1];
 		shadow_box_lines.push_back(line);
 
-		//line.p1 = glm::vec4(min_x, min_y, max_z, 1.f);
-		//line.p2 = glm::vec4(max_x, min_y, max_z, 1.f);
-		//shadow_box_lines.push_back(line);
-		//line.p1 = glm::vec4(min_x, min_y, max_z, 1.f);
-		//line.p2 = glm::vec4(min_x, max_y, max_z, 1.f);
-		//shadow_box_lines.push_back(line);
-		//line.p1 = glm::vec4(max_x, min_y, max_z, 1.f);
-		//line.p2 = glm::vec4(max_x, max_y, max_z, 1.f);
-		//shadow_box_lines.push_back(line);
-		//line.p1 = glm::vec4(max_x, max_y, max_z, 1.f);
-		//line.p2 = glm::vec4(min_x, max_y, max_z, 1.f);
-		//shadow_box_lines.push_back(line);
+		//rosy_utils::debug_print_a("\t near_line_2: %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = red;
+		line.p1 = points[1];
+		line.p2 = points[3];
+		shadow_box_lines.push_back(line);
 
-		//line.p1 = q0;
-		//line.p2 = glm::vec4(min_x, min_y, max_z, 1.f);
-		//shadow_box_lines.push_back(line);
-		//line.p1 = q2;
-		//line.p2 = glm::vec4(min_x, max_y, max_z, 1.f);
-		//shadow_box_lines.push_back(line);
-		//line.p1 = q1;
-		//line.p2 = glm::vec4(max_x, min_y, max_z, 1.f);
-		//shadow_box_lines.push_back(line);
-		//line.p1 = q3;
-		//line.p2 = glm::vec4(max_x, max_y, max_z, 1.f);
-		//shadow_box_lines.push_back(line);
+		//rosy_utils::debug_print_a("\t near_line_3 %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = red;
+		line.p1 = points[0];
+		line.p2 = points[2];
+		shadow_box_lines.push_back(line);
+
+		//rosy_utils::debug_print_a("\t near_line_4: %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = red;
+		line.p1 = points[3];
+		line.p2 = points[2];
+		shadow_box_lines.push_back(line);
+
+
+		// Shadow frustum far
+		//rosy_utils::debug_print_a("\t far_line_1: %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = blue;
+		line.p1 = points[4];
+		line.p2 = points[5];
+		shadow_box_lines.push_back(line);
+
+		//rosy_utils::debug_print_a("\t far_line_2: %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = blue;
+		line.p1 = points[5];
+		line.p2 = points[7];
+
+		//rosy_utils::debug_print_a("\t far_line_3: %f.3\n", glm::distance2(points[3], points[7]));
+		shadow_box_lines.push_back(line);
+		line.color = blue;
+		line.p1 = points[4];
+		line.p2 = points[6];
+		shadow_box_lines.push_back(line);
+
+		//rosy_utils::debug_print_a("\t far_line_4: %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = blue;
+		line.p1 = points[7];
+		line.p2 = points[6];
+		shadow_box_lines.push_back(line);
+
+		// connect near and far sides of frustum
+		//rosy_utils::debug_print_a("\t connect_line_1: %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = yellow;
+		line.p1 = points[0];
+		line.p2 = points[4];
+		shadow_box_lines.push_back(line);
+
+		//rosy_utils::debug_print_a("\t connect_line_2: %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = yellow;
+		line.p1 = points[1];
+		line.p2 = points[5];
+
+		//rosy_utils::debug_print_a("\t connect_line_3: %f.3\n", glm::distance2(points[3], points[7]));
+		shadow_box_lines.push_back(line);
+		line.color = green;
+		line.p1 = points[2];
+		line.p2 = points[6];
+		shadow_box_lines.push_back(line);
+
+		//rosy_utils::debug_print_a("\t connect_line_4: %f.3\n", glm::distance2(points[3], points[7]));
+		line.color = green;
+		line.p1 = points[3];
+		line.p2 = points[7];
+		shadow_box_lines.push_back(line);
+		//rosy_utils::debug_print_a("\n\n");
 	}
 }

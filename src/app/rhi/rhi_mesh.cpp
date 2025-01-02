@@ -212,32 +212,7 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 {
 	if (mesh_cam == nullptr) return glm::mat4(1.f);
 
-	constexpr auto ndc = glm::mat4(
-		glm::vec4(1.f, 0.f, 0.f, 0.f),
-		glm::vec4(0.f, -1.f, 0.f, 0.f),
-		glm::vec4(0.f, 0.f, 1.f, 0.f),
-		glm::vec4(0.f, 0.f, 0.f, 1.f)
-	);
 	const auto [width, height] = ctx.rhi.frame_extent;
-	glm::mat4 proj(0.0f);
-	constexpr float z_near = 0.1f;
-	constexpr float z_far = 1000.0f;
-	const float aspect = static_cast<float>(width) / static_cast<float>(height);
-	constexpr float fov = glm::radians(70.0f);
-	const float h = 1.0 / tan(fov * 0.5);
-	const float w = h / aspect;
-	constexpr float a = -z_near / (z_far - z_near);
-	constexpr float b = (z_near * z_far) / (z_far - z_near);
-
-
-	proj[0][0] = w;
-	proj[1][1] = h;
-
-	proj[2][2] = a;
-	proj[3][2] = b;
-	proj[2][3] = 1.0f;
-
-	proj = ndc * proj;
 
 	if (mesh_cam == nullptr) {
 		return glm::mat4(1.f);
@@ -246,15 +221,16 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	const float sv_b = cascade_factor_;
 
 	const auto s = (static_cast<float>(width) / static_cast<float>(height));
-	const float g = 0.1f;
+	constexpr float g = 0.1f;
 
 	const glm::mat4 v_cam = mesh_cam->get_view_matrix();
 	const glm::mat4 l_cam = sunlight(ctx);
+	// ReSharper disable once CppInconsistentNaming
 	const glm::mat4 L = glm::inverse(l_cam);
-	glm::vec4 l_x = L[0];
-	glm::vec4 l_y = L[1];
-	glm::vec4 l_z = L[2];
-	glm::vec4 l_c = L[3];
+	const glm::vec4 l_x = L[0];
+	const glm::vec4 l_y = L[1];
+	const glm::vec4 l_z = L[2];
+	const glm::vec4 l_c = L[3];
 
 	q0_ = l_c + (((sv_a * s) / g) * l_x) + ((sv_a / g) * l_y) + (sv_a * l_z);
 	q1_ = l_c + (((sv_a * s) / g) * l_x) - ((sv_a / g) * l_y) + (sv_a * l_z);
@@ -266,7 +242,7 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	q6_ = l_c - (((sv_b * s) / g) * l_x) - ((sv_b / g) * l_y) + (sv_b * l_z);
 	q7_ = l_c - (((sv_b * s) / g) * l_x) + ((sv_b / g) * l_y) + (sv_b * l_z);
 
-	std::vector shadow_frustum = { q0_, q1_, q2_, q3_, q4_, q5_, q6_, q7_ };
+	const std::vector shadow_frustum = { q0_, q1_, q2_, q3_, q4_, q5_, q6_, q7_ };
 
 	min_x_ = std::numeric_limits<float>::max();
 	max_x_ = std::numeric_limits<float>::lowest();
@@ -285,6 +261,9 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 		min_z_ = std::min(min_z_, point.z);
 		max_z_ = std::max(max_z_, point.z);
 	}
+
+	const debug_frustum frustum = debug_frustum::from_bounds(min_x_, max_x_, min_y_, max_y_, min_z_, max_z_);
+	debug->set_shadow_frustum(frustum);
 	return translate(glm::mat4(1.f), glm::vec3(1.f));
 }
 
