@@ -66,7 +66,8 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 	if (shadow_frustum.has_value()) {
 		for (auto line : shadow_box_lines) {
 			auto shadow_line = line;
-			shadow_line.world_matrix = ctx.view_proj * shadow_frustum.value();
+			//shadow_line.world_matrix = ctx.view_proj * shadow_frustum.value();
+			shadow_line.world_matrix = ctx.view_proj * line.world_matrix;
 			m_shaders.shader_constants = &shadow_line;
 			m_shaders.shader_constants_size = sizeof(shadow_line);
 			if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;

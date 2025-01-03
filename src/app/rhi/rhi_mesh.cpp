@@ -204,8 +204,8 @@ glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx)
 	//sl[1] = mesh_cam->position[1] + 10;
 	sl = sl + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 30.f, 1.f, 1.f));
 	//sl = sl + mesh_cam->position;
-	light_pos_ = sl;
-	return translate(glm::mat4(1.f), glm::vec3(sl)) * light_transform_;
+	light_pos_ =  glm::vec3(0.f, 0.f, 0.f);
+	return translate(glm::mat4(1.f), light_pos_) * light_transform_;
 }
 
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
