@@ -173,8 +173,7 @@ rh::result scene_two::update(const rh::ctx& ctx)
 
 void scene_two::update_scene(const rh::ctx& ctx)
 {
-	scene_graph_->mesh_cam->process_sdl_event(ctx);
-	scene_graph_->mesh_cam->update(ctx);
+	scene_graph_->scene_update(ctx);
 
 	{
 		constexpr auto ndc = glm::mat4(

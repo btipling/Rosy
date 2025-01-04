@@ -324,9 +324,10 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 };
 
 
-void mesh_scene::scene_update(const rh::ctx&)
+void mesh_scene::scene_update(const rh::ctx& ctx)
 {
-	
+	mesh_cam->process_sdl_event(ctx);
+	mesh_cam->update(ctx);
 }
 
 void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
