@@ -269,10 +269,10 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	debug->set_shadow_frustum(frustum);
 
 	csm_p_ = glm::mat4(
-		glm::vec4(2/csm_dk_, 0, 0, 0),
-		glm::vec4(0, 2/csm_dk_, 0, 0),
-		glm::vec4(0, 0, 1/(max_z_ - min_z_), 0),
-		glm::vec4(0, 0, 0, 1)
+		glm::vec4(2.f / csm_dk_, 0.f, 0.f, 0.f),
+		glm::vec4(0.f, -2.f / csm_dk_, 0.f, 0.f),
+		glm::vec4(0.f, 0.f, 1.f / (max_z_ - min_z_), 0.f),
+		glm::vec4(0.f, 0.f, 0.f, 1.f)
 	);
 	  
 	return cascade_camera_;
@@ -411,7 +411,7 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		switch (current_view)
 		{
 		case camera_view::csm:
-			p = csm_p_ * glm::inverse(cascade_camera_);
+			p = csm_p_ * cascade_camera_;
 			break;
 		case camera_view::light:
 			p = light_view_to_ndc * proj * glm::inverse(new_sunlight);

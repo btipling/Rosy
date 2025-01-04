@@ -80,12 +80,14 @@ rh::result scene_two::depth(const rh::ctx ctx, int pass_number)
 
 	// Scene
 	{
+		vkCmdSetFrontFaceEXT(mv_cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;
 		m_ctx.wire_frame = toggle_wire_frame_;
 		m_ctx.shadow_pass_cmd = mv_cmd;
 		m_ctx.extent = frame_extent;
 		if (const auto res = scene_graph_->generate_shadows(m_ctx, pass_number); res != rh::result::ok) return res;
+		vkCmdSetFrontFaceEXT(mv_cmd, VK_FRONT_FACE_CLOCKWISE);
 	}
 
 	return rh::result::ok;
