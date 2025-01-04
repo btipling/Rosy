@@ -8,11 +8,6 @@
 #include "../../loader/loader.h"
 
 
-namespace rh
-{
-	struct ctx;
-}
-
 scene_one::scene_one()
 {
 }
@@ -119,7 +114,7 @@ rh::result scene_one::draw(const rh::ctx ctx)
 			m_ctx.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;;
 			m_ctx.extent = frame_extent;
 			m_ctx.world_transform = m;
-			m_ctx.view_proj = scene_data_.view_projection;
+			m_ctx.view_proj = scene_graph_->scene_data.view_projection;
 			if (const auto res = skybox_->draw(m_ctx); res != rh::result::ok) return res;
 			vkCmdSetDepthTestEnableEXT(render_cmd, true);
 			vkCmdSetFrontFaceEXT(render_cmd, VK_FRONT_FACE_CLOCKWISE);
@@ -131,7 +126,7 @@ rh::result scene_one::draw(const rh::ctx ctx)
 			m_ctx.wire_frame = toggle_wire_frame_;
 			m_ctx.render_cmd = render_cmd;
 			m_ctx.extent = frame_extent;
-			m_ctx.view_proj = scene_data_.view_projection;
+			m_ctx.view_proj = scene_graph_->scene_data.view_projection;
 			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
 		}
 	}
@@ -179,7 +174,6 @@ rh::result scene_one::update(const rh::ctx& ctx)
 void scene_one::update_scene(const rh::ctx& ctx)
 {
 	//TODO: (skybox-fix) remove these...
-	scene_graph_->scene_data = scene_data_;
 	scene_graph_->near_plane = near_plane_;
 	scene_graph_->scene_rot = scene_rot_;
 	scene_graph_->scene_pos = scene_pos_;
@@ -190,7 +184,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 	scene_graph_->blend_mode = blend_mode_;
 	scene_graph_->distance_from_camera = distance_from_camera_;
 
-	scene_data_ = scene_graph_->scene_update(ctx);
+	gpu_scene_data scene_data = scene_graph_->scene_update(ctx);
 
 	{
 		auto m = glm::mat4(1.0f);
@@ -198,7 +192,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;;
 		m_ctx.world_transform = m;
-		skybox_->update(m_ctx, scene_data_);
+		skybox_->update(m_ctx, scene_data);
 	}
 	{
 		auto m = translate(glm::mat4(1.f), scene_pos_);
@@ -209,7 +203,7 @@ void scene_one::update_scene(const rh::ctx& ctx)
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;
 		m_ctx.world_transform = m;
-		scene_graph_->update(m_ctx, scene_data_);
+		scene_graph_->update(m_ctx, scene_data);
 	}
 }
 

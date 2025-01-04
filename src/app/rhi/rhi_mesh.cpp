@@ -516,7 +516,6 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 		assert(render_buffer_size <= rb.buffer_size);
 		memcpy(rb.render_buffer.info.pMappedData, render_datas.data(), render_buffer_size);
 	}
-
 }
 
 rh::result mesh_scene::draw(mesh_ctx ctx)

@@ -14,7 +14,6 @@ public:
 	rh::result draw(rh::ctx ctx) override;
 	rh::result draw_ui(const rh::ctx& ctx) override;
 private:
-	gpu_scene_data scene_data_ = {};
 
 	std::shared_ptr<mesh_scene> scene_graph_;
 	std::shared_ptr<mesh_scene> skybox_;
