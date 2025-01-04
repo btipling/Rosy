@@ -123,6 +123,7 @@ rh::result scene_two::draw(const rh::ctx ctx)
 		}
 		// Scene
 		{
+			//vkCmdSetFrontFaceEXT(render_cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 			mesh_ctx m_ctx{};
 			m_ctx.ctx = &ctx;
 			m_ctx.wire_frame = toggle_wire_frame_;
@@ -130,6 +131,7 @@ rh::result scene_two::draw(const rh::ctx ctx)
 			m_ctx.extent = frame_extent;
 			m_ctx.view_proj = scene_graph_->scene_data.view_projection;
 			if (const auto res = scene_graph_->draw(m_ctx); res != rh::result::ok) return res;
+			//vkCmdSetFrontFaceEXT(render_cmd, VK_FRONT_FACE_CLOCKWISE);
 		}
 	}
 

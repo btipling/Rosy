@@ -63,7 +63,7 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     float3 sunlight = float3(sd.sunlight[2][0], sd.sunlight[2][1], -sd.sunlight[2][2]);
     float3 color = coarseVertex.color;
     float3 V = normalize(sd.cameraPosition.xyz - coarseVertex.vertex);
-    float3 L = sunlight;
+    float3 L = -sunlight;
     float3 N = normalize(coarseVertex.normal);
     float3 H = normalize(L + V);
 
@@ -96,7 +96,7 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     texture2D shadowFarImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
     float4 farColor = shadowNearImage.Sample(shadowSampler, float2(csm.near.x, csm.near.y));
     bool InFarShadow = farColor.z < csm.far.z;
-    if (InNearShadow || InMiddleShadow || InFarShadow) {
+    if (InNearShadow) {
        // sunLight = float3(0);
     }
 

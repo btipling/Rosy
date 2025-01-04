@@ -205,75 +205,12 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 {
-	if (mesh_cam == nullptr) return glm::mat4(1.f);
-
-	const auto [width, height] = ctx.rhi.frame_extent;
-
-	if (mesh_cam == nullptr) {
-		return glm::mat4(1.f);
-	}
-	const float distance = 10.f * cascade_factor_;
-	const float sv_a = distance;
-	const float sv_b = distance + cascade_factor_;
-
-	const auto s = (static_cast<float>(width) / static_cast<float>(height));
-	constexpr float g = 0.1f;
-
-	const glm::mat4 v_cam = glm::translate(glm::mat4(1.f), mesh_cam->position);
-	const glm::mat4 l_cam = light_transform_;
-	// ReSharper disable once CppInconsistentNaming
-	const glm::mat4 L = glm::inverse(l_cam);
-
-	q0_ = L * glm::vec4( (sv_a * s) / g, + (sv_a / g), sv_a, 1.f);
-	q1_ = L * glm::vec4( (sv_a * s) / g, - (sv_a / g), sv_a, 1.f);
-	q2_ = L * glm::vec4(-(sv_a * s) / g, - (sv_a / g), sv_a, 1.f);
-	q3_ = L * glm::vec4(-(sv_a * s) / g, + (sv_a / g), sv_a, 1.f);
-	q4_ = L * glm::vec4( (sv_b * s) / g, + (sv_b / g), sv_b, 1.f);
-	q5_ = L * glm::vec4( (sv_b * s) / g, - (sv_b / g), sv_b, 1.f);
-	q6_ = L * glm::vec4(-(sv_b * s) / g, - (sv_b / g), sv_b, 1.f);
-	q7_ = L * glm::vec4(-(sv_b * s) / g, + (sv_b / g), sv_b, 1.f);
-
-	const std::vector shadow_frustum = { q0_, q1_, q2_, q3_, q4_, q5_, q6_, q7_ };
-
-	min_x_ = std::numeric_limits<float>::max();
-	max_x_ = std::numeric_limits<float>::lowest();
-	min_y_ = std::numeric_limits<float>::max();
-	max_y_ = std::numeric_limits<float>::lowest();
-	min_z_ = std::numeric_limits<float>::max();
-	max_z_ = std::numeric_limits<float>::lowest();
-
-	for (const auto& point : shadow_frustum)
-	{
-
-		min_x_ = std::min(min_x_, point.x);
-		max_x_ = std::max(max_x_, point.x);
-		min_y_ = std::min(min_y_, point.y);
-		max_y_ = std::max(max_y_, point.y);
-		min_z_ = std::min(min_z_, point.z);
-		max_z_ = std::max(max_z_, point.z);
-	}
-
-	const auto sk = glm::vec3((max_x_ + min_x_) / 2.f, (max_y_ + min_y_) / 2.f, min_z_);
-	cascade_camera_ = v_cam * glm::mat4(
-		l_cam[0],
-		l_cam[1],
-		l_cam[2],
-		glm::vec4(sk, 1.f)
-	);
-
-	csm_dk_ = std::max(max_x_ - min_x_, max_y_ - min_y_);
-	debug_frustum frustum = debug_frustum::from_bounds(min_x_, min_x_ + csm_dk_, min_y_, min_y_ + csm_dk_, min_z_, min_z_ + csm_dk_);
-	frustum.transform = cascade_camera_;
-
-	debug->set_sunlight(cascade_camera_);
-	debug->set_shadow_frustum(frustum);
-
-	csm_p_ = glm::mat4(
-		glm::vec4(2.f / csm_dk_, 0.f, 0.f, 0.f),
-		glm::vec4(0.f, -2.f / csm_dk_, 0.f, 0.f),
-		glm::vec4(0.f, 0.f, 1.f / (max_z_ - min_z_), 0.f),
+	csm_p_ =  glm::mat4(
+		glm::vec4(2.f / 15.f, 0.f, 0.f, 0.f),
+		glm::vec4(0.f, 2.f / 15.f, 0.f, 0.f),
+		glm::vec4(0.f, 0.f, 1.f /50.f, 0.f),
 		glm::vec4(0.f, 0.f, 0.f, 1.f)
-	);
+	) * glm::translate(glm::mat4(1.f), mesh_cam->position)  * glm::inverse(light_transform_);
 	  
 	return cascade_camera_;
 }
@@ -411,7 +348,7 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		switch (current_view)
 		{
 		case camera_view::csm:
-			p = csm_p_ * cascade_camera_;
+			p = csm_p_;
 			break;
 		case camera_view::light:
 			p = light_view_to_ndc * proj * glm::inverse(new_sunlight);
