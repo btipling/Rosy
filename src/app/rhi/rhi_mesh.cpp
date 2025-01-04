@@ -200,12 +200,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx)
 {
 	if (mesh_cam == nullptr) return glm::mat4(1.f);
-	glm::vec3 sl = mesh_cam->position + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 0, 0, 1.f));
-	//sl[1] = mesh_cam->position[1] + 10;
-	sl = sl + glm::vec3(mesh_cam->get_rotation_matrix() * glm::vec4(0.f, 30.f, 1.f, 1.f));
-	//sl = sl + mesh_cam->position;
-	light_pos_ =  glm::vec3(0.f, 0.f, 0.f);
-	return translate(glm::mat4(1.f), light_pos_) * light_transform_;
+	return light_transform_;
 }
 
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
@@ -217,16 +212,17 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	if (mesh_cam == nullptr) {
 		return glm::mat4(1.f);
 	}
-	constexpr float sv_a = 0.f;
-	const float sv_b = cascade_factor_;
+	const float distance = 10.f * cascade_factor_;
+	const float sv_a = distance;
+	const float sv_b = distance + cascade_factor_;
 
 	const auto s = (static_cast<float>(width) / static_cast<float>(height));
 	constexpr float g = 0.1f;
 
-	const glm::mat4 v_cam = mesh_cam->get_view_matrix();
+	const glm::mat4 v_cam = glm::translate(glm::mat4(1.f), mesh_cam->position);
 	const glm::mat4 l_cam = sunlight(ctx);
 	// ReSharper disable once CppInconsistentNaming
-	const glm::mat4 L = glm::inverse(l_cam) * v_cam;
+	const glm::mat4 L = glm::inverse(l_cam);
 
 	q0_ = L * glm::vec4( (sv_a * s) / g, + (sv_a / g), sv_a, 1.f);
 	q1_ = L * glm::vec4( (sv_a * s) / g, - (sv_a / g), sv_a, 1.f);
@@ -258,15 +254,18 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	}
 
 	const auto sk = glm::vec3((max_x_ + min_x_) / 2.f, (max_y_ + min_y_) / 2.f, min_z_);
-	cascade_camera_ = glm::mat4(
-		light_transform_[0],
-		light_transform_[1],
-		light_transform_[2],
+	cascade_camera_ = v_cam * glm::mat4(
+		l_cam[0],
+		l_cam[1],
+		l_cam[2],
 		glm::vec4(sk, 1.f)
 	);
 
-	debug_frustum frustum = debug_frustum::from_bounds(min_x_, max_x_, min_y_, max_y_, min_z_, max_z_);
+	const float dk = std::max(max_x_ - min_x_, max_y_ - min_y_);
+	debug_frustum frustum = debug_frustum::from_bounds(min_x_, min_x_ + dk, min_y_, min_y_ + dk, min_z_, min_z_ + dk);
 	frustum.transform = cascade_camera_;
+
+	debug->set_sunlight(cascade_camera_);
 	debug->set_shadow_frustum(frustum);
 
 	return cascade_camera_;
@@ -392,7 +391,6 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 		const size_t render_buffer_size = render_datas.size() * sizeof(render_data);
 		assert(render_buffer_size <= rb.buffer_size);
 		memcpy(rb.render_buffer.info.pMappedData, render_datas.data(), render_buffer_size);
-		debug->set_sunlight(csm_pos(*ctx.ctx));
 	}
 
 }

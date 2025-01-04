@@ -93,17 +93,16 @@ void debug_gfx::set_sunlight(glm::mat4 sunlight)
 	// Sunlight direction
 	debug_draw_push_constants line{};
 	constexpr auto origin = glm::vec4(0.f, 0.f, 0.f, 1.f);
-	auto m = glm::mat4(1.f);
-	line.world_matrix = glm::translate(m, glm::vec3(sunlight[3]));
+	line.world_matrix = sunlight;
 	line.p1 = origin;
 
 	line.color = glm::vec4(1.0f, 0.843f, 0.0f, 1.0f);
-	line.p2 = glm::vec4(sunlight[0][0], sunlight[0][1], sunlight[0][2], 1.f);;
+	line.p2 = glm::vec4(1.f, 0.f, 0.f, 1.f);;
 	sunlight_lines.push_back(line);
-	line.p2 = glm::vec4(sunlight[1][0], sunlight[1][1], sunlight[1][2], 1.f);;
+	line.p2 = glm::vec4(0.f, 1.f, 0.f, 1.f);;
 	sunlight_lines.push_back(line);
 	line.color = glm::vec4(1.0f, 0.843f, 0.843f, 1.0f);
-	line.p2 = glm::vec4(sunlight[2][0], sunlight[2][1], sunlight[2][2], 1.f);;
+	line.p2 = glm::vec4(0.f, 0.f, 1.f, 1.f);;
 	sunlight_lines.push_back(line);
 }
 

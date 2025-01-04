@@ -89,7 +89,7 @@ private:
 	float max_z_;
 	float min_z_;
 
-	float cascade_factor_{ 0.5 };
+	float cascade_factor_{ 0 };
 	VkExtent2D shadow_map_extent_{};
 	std::vector<render_object> draw_nodes_{};
 };

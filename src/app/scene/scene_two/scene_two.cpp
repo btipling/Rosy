@@ -249,10 +249,10 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		switch (current_view_)
 		{
 		case camera_view::csm:
-			p = proj * inverse(scene_graph_->csm_pos(ctx));
+			p = proj * glm::inverse(scene_graph_->csm_pos(ctx));
 			break;
 		case camera_view::light:
-			p = light_view_to_ndc * proj * inverse(new_sunlight);
+			p = light_view_to_ndc * proj * glm::inverse(new_sunlight);
 			break;
 		default:
 			p = proj * view;
