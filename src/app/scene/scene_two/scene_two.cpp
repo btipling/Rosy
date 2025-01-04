@@ -184,7 +184,7 @@ void scene_two::update_scene(const rh::ctx& ctx)
 	scene_graph_->blend_mode = blend_mode_;
 	scene_graph_->distance_from_camera = distance_from_camera_;
 
-	scene_data_ = scene_graph_->scene_update(ctx);
+	gpu_scene_data scene_data = scene_graph_->scene_update(ctx);
 
 	{
 		auto m = glm::mat4(1.0f);
@@ -192,7 +192,7 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;;
 		m_ctx.world_transform = m;
-		skybox_->update(m_ctx, scene_data_);
+		skybox_->update(m_ctx, scene_data);
 	}
 	{
 		auto m = translate(glm::mat4(1.f), scene_pos_);
@@ -203,7 +203,7 @@ void scene_two::update_scene(const rh::ctx& ctx)
 		mesh_ctx m_ctx{};
 		m_ctx.ctx = &ctx;
 		m_ctx.world_transform = m;
-		scene_graph_->update(m_ctx, scene_data_);
+		scene_graph_->update(m_ctx, scene_data);
 	}
 }
 
