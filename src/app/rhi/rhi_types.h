@@ -328,3 +328,6 @@ private:
 	rhi* renderer_;
 	ktxVulkanTexture_subAllocatorCallbacks sub_allocator_callbacks_{};
 };
+
+//TODO: (skybox-fix) move into mesh:
+enum class camera_view :int { camera, csm, light };

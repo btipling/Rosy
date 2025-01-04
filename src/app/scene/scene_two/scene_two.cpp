@@ -173,6 +173,18 @@ rh::result scene_two::update(const rh::ctx& ctx)
 
 void scene_two::update_scene(const rh::ctx& ctx)
 {
+	//TODO: (skybox-fix) remove these...
+	scene_graph_->scene_data = scene_data_;
+	scene_graph_->near_plane = near_plane_;
+	scene_graph_->scene_rot = scene_rot_;
+	scene_graph_->scene_pos = scene_pos_;
+	scene_graph_->scene_scale = scene_scale_;
+	scene_graph_->shadow_map_view_old = shadow_map_view_;
+	scene_graph_->toggle_wire_frame = toggle_wire_frame_;
+	scene_graph_->current_view = current_view_;
+	scene_graph_->blend_mode = blend_mode_;
+	scene_graph_->distance_from_camera = distance_from_camera_;
+
 	scene_graph_->scene_update(ctx);
 
 	{

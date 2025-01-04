@@ -3,9 +3,6 @@
 #include "../../rhi/rhi_frame.h"
 #include "../../rhi/rhi_shader.h"
 #include "../scene.h"
-
-enum class camera_view :int{ camera, csm, light };
-
 class scene_two final : public scene
 {
 public:
@@ -23,6 +20,7 @@ private:
 	std::shared_ptr<mesh_scene> skybox_;
 
 	// Scene
+	//TODO: (skybox-fix) remove these
 	glm::vec3 scene_rot_ = glm::vec3(0.f);
 	glm::vec3 scene_pos_ = glm::vec3(0.f, 2.5f, 2.5f);
 	float scene_scale_ = 0.1f;

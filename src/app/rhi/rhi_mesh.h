@@ -2,6 +2,7 @@
 #include "rhi_types.h"
 #include "../camera.h"
 
+enum class camera_view;
 class camera;
 
 struct shadow_map
@@ -45,6 +46,18 @@ public:
 	VkDescriptorSetLayout image_layout{};
 
 	std::shared_ptr<debug_gfx> debug{};
+
+	// TODO: (skybox-fix) make the following private
+	gpu_scene_data scene_data = {};
+	int near_plane{ 0 };
+	glm::vec3 scene_rot = glm::vec3(0.f);
+	glm::vec3 scene_pos = glm::vec3(0.f, 2.5f, 2.5f);
+	float scene_scale = 0.1f;
+	glm::mat4 shadow_map_view_old{ 1.f };
+	bool toggle_wire_frame{ false };
+	camera_view current_view{ camera_view::camera };
+	int blend_mode{ 0 };
+	float distance_from_camera{ 0.02f };
 
 	explicit mesh_scene() = default;
 	~mesh_scene() = default;
