@@ -324,10 +324,127 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 };
 
 
-void mesh_scene::scene_update(const rh::ctx& ctx)
+gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 {
-	mesh_cam->process_sdl_event(ctx);
-	mesh_cam->update(ctx);
+	{
+		mesh_cam->process_sdl_event(ctx);
+		mesh_cam->update(ctx);
+	}
+	{
+		constexpr auto ndc = glm::mat4(
+			glm::vec4(1.f, 0.f, 0.f, 0.f),
+			glm::vec4(0.f, -1.f, 0.f, 0.f),
+			glm::vec4(0.f, 0.f, 1.f, 0.f),
+			glm::vec4(0.f, 0.f, 0.f, 1.f)
+		);
+
+		constexpr auto light_view_to_ndc = glm::mat4(
+			glm::vec4(1.f, 0.f, 0.f, 0.f),
+			glm::vec4(0.f, 1.f, 0.f, 0.f),
+			glm::vec4(0.f, 0.f, 1.f, 0.f),
+			glm::vec4(0.f, 0.f, 0.f, 1.f)
+		);
+
+		const auto [width, height] = ctx.rhi.frame_extent;
+		glm::mat4 proj(0.0f);
+		constexpr float z_near = 0.1f;
+		constexpr float z_far = 1000.0f;
+		const float aspect = static_cast<float>(width) / static_cast<float>(height);
+		constexpr float fov = glm::radians(70.0f);
+		const float h = 1.0 / tan(fov * 0.5);
+		const float w = h / aspect;
+		constexpr float a = -z_near / (z_far - z_near);
+		constexpr float b = (z_near * z_far) / (z_far - z_near);
+
+
+		proj[0][0] = w;
+		proj[1][1] = h;
+
+		proj[2][2] = a;
+		proj[3][2] = b;
+		proj[2][3] = 1.0f;
+
+		proj = ndc * proj;
+
+		const auto s = (static_cast<float>(width) / static_cast<float>(height));
+		const float g = 0.1f;
+		auto shadow_proj = glm::mat4(1.f);
+		assert(s > 0);
+		const glm::mat4 view = mesh_cam->get_view_matrix();
+
+		shadow_proj = glm::perspective(fov, s, g, -500.f / 100);
+		auto [sm_view_near, sm_projection_near] = shadow_map_projection(ctx, sunlight(ctx)[2], shadow_proj, view);
+
+		shadow_proj = glm::perspective(fov, s, g, -500.f / 50);
+		auto [sm_view_middle, sm_projection_middle] = shadow_map_projection(ctx, sunlight(ctx)[2], shadow_proj, view);
+
+		shadow_proj = glm::perspective(fov, s, g, -500.f / 25);
+		auto [sm_view_far, sm_projection_far] = shadow_map_projection(ctx, sunlight(ctx)[2], shadow_proj, view);
+
+		glm::mat4 new_sunlight = sunlight(ctx);
+		glm::mat4 p{ proj * view };
+		glm::mat4 light_view_p{ p };
+		switch (near_plane)
+		{
+		case 0:
+			shadow_map_view_old = sm_view_near;
+			light_view_p = sm_projection_near;
+			break;
+		case 1:
+			shadow_map_view_old = sm_view_middle;
+			light_view_p = sm_projection_middle;
+			break;
+		case 2:
+		default:
+			shadow_map_view_old = sm_view_far;
+			light_view_p = sm_projection_far;
+			break;
+		}
+		switch (current_view)
+		{
+		case camera_view::csm:
+			p = proj * glm::inverse(csm_pos(ctx));
+			break;
+		case camera_view::light:
+			p = light_view_to_ndc * proj * glm::inverse(new_sunlight);
+			break;
+		default:
+			p = proj * view;
+			break;
+		}
+
+		scene_data.view = view;
+		scene_data.proj = proj;
+		scene_data.view_projection = p;
+
+		scene_data.shadow_projection_near = sm_projection_near * sm_view_near;
+		scene_data.shadow_projection_middle = sm_projection_middle * sm_view_middle;
+		scene_data.shadow_projection_far = sm_projection_far * sm_view_far;
+
+		scene_data.camera_position = glm::vec4(mesh_cam->position, 1.f);
+		scene_data.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+		scene_data.sunlight = new_sunlight;
+		scene_data.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
+
+		glm::mat4 sv_cam = glm::inverse(shadow_map_view_old);
+		//glm::mat4 sv_cam = glm::inverse(view);
+		glm::vec4 sv_x = sv_cam[0];
+		glm::vec4 sv_y = sv_cam[1];
+		glm::vec4 sv_z = sv_cam[2];
+		glm::vec4 sv_c = sv_cam[3];
+
+
+		const float sv_u = -distance_from_camera;
+
+		glm::vec4 q0 = sv_c + (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
+		glm::vec4 q1 = sv_c + (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
+		glm::vec4 q2 = sv_c - (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
+		glm::vec4 q3 = sv_c - (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
+
+		//debug->set_shadow_frustum(q0, q1, q2, q3);
+		debug->shadow_frustum = glm::mat4(1.f);
+	}
+	return scene_data;
 }
 
 void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)

@@ -81,7 +81,7 @@ public:
 	shadow_map shadow_map_projection(const std::vector<glm::vec4>& shadow_frustum, const glm::mat4& shadow_map_view);
 	shadow_map shadow_map_projection(const rh::ctx& ctx, const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view);
 
-	void scene_update(const rh::ctx&);
+	gpu_scene_data scene_update(const rh::ctx&);
 private:
 	glm::mat4 light_transform_{ glm::identity<glm::mat4>() };
 	glm::vec3 light_pos_{ 1.f };
