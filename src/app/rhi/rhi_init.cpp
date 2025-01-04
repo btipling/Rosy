@@ -1047,8 +1047,8 @@ VkResult rhi::init_csm_image()
 		}
 		{
 			VkSamplerCreateInfo sampler_create_info = rhi_helpers::create_sampler_create_info(VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-			sampler_create_info.compareEnable = VK_TRUE;
-			sampler_create_info.compareOp = VK_COMPARE_OP_GREATER;
+		/*	sampler_create_info.compareEnable = VK_TRUE;
+			sampler_create_info.compareOp = VK_COMPARE_OP_GREATER;*/
 			VkSampler sampler;
 			if (result = vkCreateSampler(device, &sampler_create_info, nullptr, &sampler); result != VK_SUCCESS) return result;
 			shadow_map_image.shadow_sampler = sampler;
