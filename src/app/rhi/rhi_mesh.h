@@ -83,10 +83,13 @@ public:
 
 	gpu_scene_data scene_update(const rh::ctx&);
 private:
+	glm::mat4 csm_p_{ glm::mat4{1.f} };
+	float csm_dk_{ 0.f };
+
 	glm::mat4 light_transform_{ glm::identity<glm::mat4>() };
 	glm::vec3 light_pos_{ 1.f };
 	glm::mat4 cascade_camera_{ glm::identity<glm::mat4>() };
-	float sunlight_x_rot_{ 0.f };
+	float sunlight_x_rot_{ 0.683f };
 	float sunlight_y_rot_{ 0.f };
 	float sunlight_z_rot_{ 0.f };
 	glm::vec4 q0_;
@@ -104,7 +107,7 @@ private:
 	float max_z_;
 	float min_z_;
 
-	float cascade_factor_{ 0 };
+	float cascade_factor_{ 0.111f };
 	VkExtent2D shadow_map_extent_{};
 	std::vector<render_object> draw_nodes_{};
 };

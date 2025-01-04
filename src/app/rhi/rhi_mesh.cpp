@@ -166,6 +166,13 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 		shadow_shaders = sp;
 		debug->set_sunlight(sunlight(ctx));
 	}
+	{
+		auto m = glm::mat4{ 1.f };
+		m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
+		m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
+		m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
+		light_transform_ = m;
+	}
 }
 
 void mesh_scene::add_node(fastgltf::Node& gltf_node)
@@ -261,8 +268,8 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 		glm::vec4(sk, 1.f)
 	);
 
-	const float dk = std::max(max_x_ - min_x_, max_y_ - min_y_);
-	debug_frustum frustum = debug_frustum::from_bounds(min_x_, min_x_ + dk, min_y_, min_y_ + dk, min_z_, min_z_ + dk);
+	csm_dk_ = std::max(max_x_ - min_x_, max_y_ - min_y_);
+	debug_frustum frustum = debug_frustum::from_bounds(min_x_, min_x_ + csm_dk_, min_y_, min_y_ + csm_dk_, min_z_, min_z_ + csm_dk_);
 	frustum.transform = cascade_camera_;
 
 	debug->set_sunlight(cascade_camera_);
@@ -279,6 +286,7 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 		bool rotate = false;
 		ImGui::Text("Light position: (%.3f, %.3f, %.3f)", light_pos_.x, light_pos_.y, light_pos_.z);
 		ImGui::Text("Light direction: (%.3f, %.3f, %.3f)", L[2][0], L[2][1], L[2][2]);
+		ImGui::Text("CSM dimension %.3f", csm_dk_);
 
 		ImGui::Text("q0_: (%.3f, %.3f, %.3f)", q0_.x, q0_.y, q0_.z);
 		ImGui::Text("q1_: (%.3f, %.3f, %.3f)", q1_.x, q1_.y, q1_.z);
