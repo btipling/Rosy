@@ -261,8 +261,8 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 		ImGui::SliderFloat("Cascade factor", &cascade_factor_, 0, 1, "%.3f");
 		ImGui::Text("Depth bias");
 		ImGui::Checkbox("Enabled", &depth_bias_enabled);
-		ImGui::SliderFloat("constant", &depth_bias_constant, 0.f, 1000.0f);
-		ImGui::SliderFloat("clamp", &depth_bias_clamp, 0.f, 1000.0f);
+		ImGui::SliderFloat("constant", &depth_bias_constant, -1000.f, 1000.f);
+		ImGui::SliderFloat("clamp", &depth_bias_clamp, -1000.f, 1000.0f);
 		ImGui::SliderFloat("slope factor", &depth_bias_slope_factor, 0.f, 1000.0f);
 	}
 	ImGui::End();
