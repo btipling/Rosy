@@ -323,6 +323,12 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 	ImGui::End();
 };
 
+
+void mesh_scene::scene_update(const rh::ctx&)
+{
+	
+}
+
 void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 {
 	if (ctx.scene_index >= scenes.size()) return;
