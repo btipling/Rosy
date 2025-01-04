@@ -174,7 +174,6 @@ rh::result scene_two::update(const rh::ctx& ctx)
 void scene_two::update_scene(const rh::ctx& ctx)
 {
 	//TODO: (skybox-fix) remove these...
-	scene_graph_->scene_data = scene_data_;
 	scene_graph_->near_plane = near_plane_;
 	scene_graph_->scene_rot = scene_rot_;
 	scene_graph_->scene_pos = scene_pos_;
