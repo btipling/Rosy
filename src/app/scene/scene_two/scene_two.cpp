@@ -187,7 +187,6 @@ void scene_two::update_scene(const rh::ctx& ctx)
 
 	scene_data_ = scene_graph_->scene_update(ctx);
 
-	
 	{
 		auto m = glm::mat4(1.0f);
 		m = translate(m, glm::vec3(-scene_graph_->mesh_cam->position[0], scene_graph_->mesh_cam->position[1], scene_graph_->mesh_cam->position[2]));
