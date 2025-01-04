@@ -157,21 +157,20 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 		rosy_utils::debug_print_a("error reading shadow shader files! %s", e.what());
 		return;
 	}
-
-	{
-		shader_pipeline sp = {};
-		sp.name = std::format("shadows {}", name);
-		sp.with_shaders(scene_vertex_shader);
-		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
-		shadow_shaders = sp;
-		debug->set_sunlight(sunlight(ctx));
-	}
 	{
 		auto m = glm::mat4{ 1.f };
 		m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
 		m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
 		m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 		light_transform_ = m;
+	}
+	{
+		shader_pipeline sp = {};
+		sp.name = std::format("shadows {}", name);
+		sp.with_shaders(scene_vertex_shader);
+		if (const VkResult result = sp.build(ctx.rhi.device); result != VK_SUCCESS) return;
+		shadow_shaders = sp;
+		debug->set_sunlight(light_transform_);
 	}
 }
 
@@ -204,12 +203,6 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 }
 
-glm::mat4 mesh_scene::sunlight(const rh::ctx& ctx)
-{
-	if (mesh_cam == nullptr) return glm::mat4(1.f);
-	return light_transform_;
-}
-
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 {
 	if (mesh_cam == nullptr) return glm::mat4(1.f);
@@ -227,7 +220,7 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	constexpr float g = 0.1f;
 
 	const glm::mat4 v_cam = glm::translate(glm::mat4(1.f), mesh_cam->position);
-	const glm::mat4 l_cam = sunlight(ctx);
+	const glm::mat4 l_cam = light_transform_;
 	// ReSharper disable once CppInconsistentNaming
 	const glm::mat4 L = glm::inverse(l_cam);
 
@@ -275,12 +268,19 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	debug->set_sunlight(cascade_camera_);
 	debug->set_shadow_frustum(frustum);
 
+	csm_p_ = glm::mat4(
+		glm::vec4(2/csm_dk_, 0, 0, 0),
+		glm::vec4(0, 2/csm_dk_, 0, 0),
+		glm::vec4(0, 0, 1/(max_z_ - min_z_), 0),
+		glm::vec4(0, 0, 0, 1)
+	);
+	  
 	return cascade_camera_;
 }
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)
 {
-	const glm::mat4 L = sunlight(ctx);
+	const glm::mat4 L = light_transform_;
 	ImGui::Begin("Sunlight & Shadow");
 	{
 		bool rotate = false;
@@ -321,7 +321,7 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 			light_transform_ = m;
 		}
-		ImGui::SliderFloat("Cascade factor", &cascade_factor_, 0, 10, "%.3f");
+		ImGui::SliderFloat("Cascade factor", &cascade_factor_, 0, 1, "%.3f");
 		ImGui::Text("Depth bias");
 		ImGui::Checkbox("Enabled", &depth_bias_enabled);
 		ImGui::SliderFloat("constant", &depth_bias_constant, 0.f, 1000.0f);
@@ -381,15 +381,15 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		const glm::mat4 view = mesh_cam->get_view_matrix();
 
 		shadow_proj = glm::perspective(fov, s, g, -500.f / 100);
-		auto [sm_view_near, sm_projection_near] = shadow_map_projection(ctx, sunlight(ctx)[2], shadow_proj, view);
+		auto [sm_view_near, sm_projection_near] = shadow_map_projection(ctx, light_transform_[2], shadow_proj, view);
 
 		shadow_proj = glm::perspective(fov, s, g, -500.f / 50);
-		auto [sm_view_middle, sm_projection_middle] = shadow_map_projection(ctx, sunlight(ctx)[2], shadow_proj, view);
+		auto [sm_view_middle, sm_projection_middle] = shadow_map_projection(ctx, light_transform_[2], shadow_proj, view);
 
 		shadow_proj = glm::perspective(fov, s, g, -500.f / 25);
-		auto [sm_view_far, sm_projection_far] = shadow_map_projection(ctx, sunlight(ctx)[2], shadow_proj, view);
+		auto [sm_view_far, sm_projection_far] = shadow_map_projection(ctx, light_transform_[2], shadow_proj, view);
 
-		glm::mat4 new_sunlight = sunlight(ctx);
+		glm::mat4 new_sunlight = light_transform_;
 		glm::mat4 p{ proj * view };
 		glm::mat4 light_view_p{ p };
 		switch (near_plane)
@@ -411,7 +411,7 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		switch (current_view)
 		{
 		case camera_view::csm:
-			p = proj * glm::inverse(csm_pos(ctx));
+			p = csm_p_ * glm::inverse(cascade_camera_);
 			break;
 		case camera_view::light:
 			p = light_view_to_ndc * proj * glm::inverse(new_sunlight);

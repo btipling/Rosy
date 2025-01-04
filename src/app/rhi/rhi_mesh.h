@@ -71,7 +71,6 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
-	[[nodiscard]] glm::mat4 sunlight(const rh::ctx& ctx);
 	[[nodiscard]] auto csm_pos(const rh::ctx& ctx) -> glm::mat4;
 	void draw_ui(const rh::ctx& ctx);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
