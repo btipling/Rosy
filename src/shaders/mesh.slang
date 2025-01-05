@@ -13,15 +13,15 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     SceneData sd = *PushConstants.sd;
 
     float4x4 worldMat = rd.transform;
+    float4 posWorld = float4(v.position, 1.0);
 
     VertexStageOutput output;
 
     output.coarseVertex.vertex = v.position;
+    output.coarseVertex.position = mul(worldMat, posWorld).xyz;
     output.coarseVertex.color = v.color.xyz;
     output.coarseVertex.normal = mul(rd.normalTransform, v.normal);
     output.coarseVertex.textureCoordinates = float2(v.textureCoordinates_x, v.textureCoordinates_y);
-
-    float4 posWorld = float4(v.position, 1.0);
 
     float4x4 ndc_to_tc = {
         0.5, 0, 0, 0.5,
@@ -66,7 +66,8 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     float3 L = -sunlight;
     float3 N = normalize(coarseVertex.normal);
     float3 H = normalize(L + V);
-    const float distance_from_object = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]); 
+    const float distance_x = abs(sd.cameraPosition.x - coarseVertex.position.x);
+    const float distance_y = abs(sd.cameraPosition.y - coarseVertex.position.y);
 
     float cosTheta = dot(L, N);
     float cosPhi = dot(H, N);
@@ -97,7 +98,8 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     float4 farColor = shadowNearImage.Sample(shadowSampler, float2(csm.far.x, csm.far.y));
 
     bool inShadow = false;
-    if (distance_from_object < 5.f) {
+    float near_distance = 3.5f;
+    if (distance_x < near_distance || distance_y < near_distance) {
         inShadow = nearColor.x > csm.near.z;
     }
     bool InMiddleShadow = middleColor.x > csm.middle.z;

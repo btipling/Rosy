@@ -202,9 +202,9 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 }
 
-glm::mat4 mesh_scene::csm_pos(const int csm_extent)
+glm::mat4 mesh_scene::csm_pos(const float csm_extent)
 {
-	const float cascade_level = 10.f * (static_cast<float>(csm_extent) + 1.f);
+	const float cascade_level = 10.f * (csm_extent + 1.f);
 	const auto shadow_p = glm::mat4(
 		glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
 		glm::vec4(0.f, 2.f / cascade_level, 0.f, 0.f),
@@ -214,6 +214,7 @@ glm::mat4 mesh_scene::csm_pos(const int csm_extent)
 	const glm::mat4 l_light = light_transform_;
 	glm::vec3 l_pos = mesh_cam->position;
 	l_pos[1] -= 25;
+	l_pos[2] += (cascade_level/2.f);
 	const auto l = glm::mat4(
 		l_light[0],
 		l_light[1],
@@ -339,7 +340,7 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		switch (current_view_)
 		{
 		case camera_view::csm:
-			p = csm_pos(csm_extent_);
+			p = csm_pos(static_cast<float>(csm_extent_));
 			break;
 		case camera_view::light:
 			p = light_view_to_ndc * proj * glm::inverse(new_sunlight);

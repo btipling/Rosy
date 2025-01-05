@@ -31,6 +31,7 @@ public struct CoarseVertex
     public float3 color;
     public float3 normal;
     public float3 vertex;
+    public float3 position;
     public float2 textureCoordinates;
 };
 
