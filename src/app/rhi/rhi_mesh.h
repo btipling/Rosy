@@ -18,7 +18,7 @@ public:
 	float color[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 	std::string vertex_path{ "out/mesh.spv" };
 	std::string frag_path{ "out/mesh.spv" };
-	std::string shadow_vertex_path{"out/shadow.spv"};
+	std::string shadow_vertex_path{ "out/shadow.spv" };
 	std::string shadow_frag_path{ "out/shadow.spv" };
 	std::unique_ptr<camera> mesh_cam = nullptr;
 
@@ -67,7 +67,7 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
-	[[nodiscard]] auto csm_pos(const rh::ctx& ctx, int csm_extent)-> glm::mat4;
+	[[nodiscard]] auto csm_pos(int csm_extent) -> glm::mat4;
 	void draw_ui(const rh::ctx& ctx);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;

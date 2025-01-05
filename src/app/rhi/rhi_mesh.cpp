@@ -4,7 +4,6 @@
 #include "rhi.h"
 #include "../loader/loader.h"
 
-
 namespace {
 	constexpr auto gltf_to_ndc = glm::mat4(
 		glm::vec4(-1.f, 0.f, 0.f, 0.f),
@@ -203,7 +202,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 }
 
-glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx, int csm_extent)
+glm::mat4 mesh_scene::csm_pos(int csm_extent)
 {
 	const float cascade_level = 10.f * (static_cast<float>(csm_extent)+ 1.f);
 	const auto shadow_p = glm::mat4(
@@ -339,7 +338,7 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		switch (current_view_)
 		{
 		case camera_view::csm:
-			p = csm_pos(ctx, csm_extent_);
+			p = csm_pos(csm_extent_);
 			break;
 		case camera_view::light:
 			p = light_view_to_ndc * proj * glm::inverse(new_sunlight);
@@ -353,12 +352,12 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		scene_data.proj = proj;
 		scene_data.view_projection = p;
 
-		scene_data.shadow_projection_near = sm_projection_near * sm_view_near;
-		scene_data.shadow_projection_middle = sm_projection_middle * sm_view_middle;
-		scene_data.shadow_projection_far = sm_projection_far * sm_view_far;
-		//scene_data.shadow_projection_near = csm_pos(ctx, 0);
-		//scene_data.shadow_projection_middle = csm_pos(ctx, 1);
-		//scene_data.shadow_projection_far = csm_pos(ctx, 2);
+		//scene_data.shadow_projection_near = sm_projection_near * sm_view_near;
+		//scene_data.shadow_projection_middle = sm_projection_middle * sm_view_middle;
+		//scene_data.shadow_projection_far = sm_projection_far * sm_view_far;
+		scene_data.shadow_projection_near = csm_pos(0);
+		scene_data.shadow_projection_middle = csm_pos(1);
+		scene_data.shadow_projection_far = csm_pos(2);
 
 		scene_data.camera_position = glm::vec4(mesh_cam->position, 1.f);
 		scene_data.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
