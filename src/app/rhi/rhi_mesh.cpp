@@ -205,7 +205,7 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx, int csm_extent)
 {
-	const float cascade_level = 10.f * (static_cast<float>(csm_extent_ )+ 1.f);
+	const float cascade_level = 10.f * (static_cast<float>(csm_extent)+ 1.f);
 	const auto shadow_p = glm::mat4(
 		glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
 		glm::vec4(0.f, 2.f / cascade_level, 0.f, 0.f),
@@ -356,6 +356,9 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		scene_data.shadow_projection_near = sm_projection_near * sm_view_near;
 		scene_data.shadow_projection_middle = sm_projection_middle * sm_view_middle;
 		scene_data.shadow_projection_far = sm_projection_far * sm_view_far;
+		//scene_data.shadow_projection_near = csm_pos(ctx, 0);
+		//scene_data.shadow_projection_middle = csm_pos(ctx, 1);
+		//scene_data.shadow_projection_far = csm_pos(ctx, 2);
 
 		scene_data.camera_position = glm::vec4(mesh_cam->position, 1.f);
 		scene_data.ambient_color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
@@ -491,12 +494,6 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx, int pass_number)
 		vkCmdBeginDebugUtilsLabelEXT(mv_cmd, &mesh_draw_label);
 		if (depth_bias_enabled) {
 			vkCmdSetDepthBiasEnable(mv_cmd, depth_bias_enabled);
-			VkDepthBiasInfoEXT db_info{};
-			//db_info.sType = VK_STRUCTURE_TYPE_DEPTH_BIAS_INFO_EXT;
-			//db_info.depthBiasConstantFactor = depth_bias_constant;
-			//db_info.depthBiasClamp = depth_bias_clamp;
-			//db_info.depthBiasSlopeFactor = depth_bias_slope_factor;
-			//vkCmdSetDepthBias2EXT(mv_cmd, &db_info);
 			vkCmdSetDepthClampEnableEXT(mv_cmd, true);
 			vkCmdSetDepthBias(mv_cmd, depth_bias_constant, depth_bias_clamp, depth_bias_slope_factor);
 		}
