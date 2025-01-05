@@ -110,6 +110,5 @@ Fragment fragmentMain(CoarseVertex coarseVertex: CoarseVertex, CSM csm: CSM, flo
 
     Fragment output;
     output.color = outFragColor;
-    output.color.xyz;
     return output;
 }
