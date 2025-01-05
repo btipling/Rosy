@@ -990,8 +990,8 @@ VkResult rhi::init_csm_image()
 	{
 		// Shadow map image creation.
 		constexpr VkExtent3D shadow_map_image_extent = {
-			.width = 2048,
-			.height = 2048,
+			.width = 4096,
+			.height = 4096,
 			.depth = 1
 		};
 		allocated_csm shadow_map_image{};

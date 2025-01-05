@@ -67,7 +67,7 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
-	[[nodiscard]] auto csm_pos(float csm_extent) -> glm::mat4;
+	[[nodiscard]] auto csm_pos(int csm_extent) -> glm::mat4;
 	void draw_ui(const rh::ctx& ctx);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;

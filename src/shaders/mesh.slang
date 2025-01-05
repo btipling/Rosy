@@ -84,26 +84,29 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     float4 imageTextureColor = matImageTexture.Sample(matSampler, coarseVertex.textureCoordinates);
 
     uint csm_sampler_i = sd.csm_index_sampler;
-    uint csm_near_i = sd.csm_index_near;
-    uint csm_middle_i = sd.csm_index_middle;
-    uint csm_far_i = sd.csm_index_far;
 
     SamplerState shadowSampler = imageSampler[NonUniformResourceIndex(csm_sampler_i)];
-    texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
-    float4 nearColor = shadowNearImage.Sample(shadowSampler, float2(csm.near.x, csm.near.y));
 
-    texture2D shadowMiddleImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
-    float4 middleColor = shadowNearImage.Sample(shadowSampler, float2(csm.middle.x, csm.middle.y));
-    texture2D shadowFarImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
-    float4 farColor = shadowNearImage.Sample(shadowSampler, float2(csm.far.x, csm.far.y));
+    uint csm_middle_i = sd.csm_index_middle;
+    texture2D shadowMiddleImage = imageTexture[NonUniformResourceIndex(csm_middle_i)];
+    float4 middleColor = shadowMiddleImage.Sample(shadowSampler, float2(csm.middle.x, csm.middle.y));
 
     bool inShadow = false;
-    float near_distance = 3.5f;
-    if (distance_x < near_distance || distance_y < near_distance) {
+    float near_distance = 2.5f;
+    float middle_distance = 10.f;
+    if (distance_x < near_distance && distance_y < near_distance) {
+        uint csm_near_i = sd.csm_index_near;
+        texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
+        float4 nearColor = shadowNearImage.Sample(shadowSampler, float2(csm.near.x, csm.near.y));
         inShadow = nearColor.x > csm.near.z;
+    } else if (distance_x < middle_distance && distance_y < middle_distance) {
+        inShadow = middleColor.x > csm.middle.z;
+    } else {
+        uint csm_far_i = sd.csm_index_far;
+        texture2D shadowFarImage = imageTexture[NonUniformResourceIndex(csm_far_i)];
+        float4 farColor = shadowFarImage.Sample(shadowSampler, float2(csm.far.x, csm.far.y));
+        inShadow = farColor.x > csm.far.z;
     }
-    bool InMiddleShadow = middleColor.x > csm.middle.z;
-    bool InFarShadow = farColor.x > csm.far.z;
     if (inShadow) {
        sunLight = float3(0);
     }
@@ -112,6 +115,6 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
 
     Fragment output;
     output.color = outFragColor;
-    // output.color = nearColor;
+    //output.color = middleColor;
     return output;
 }
