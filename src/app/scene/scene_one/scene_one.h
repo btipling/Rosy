@@ -26,10 +26,6 @@ private:
 	glm::mat4 shadow_map_view_{ 1.f };
 
 	bool toggle_wire_frame_{ false };
-	camera_view current_view_{ camera_view::camera };
-	int blend_mode_{ 0 };
-	int near_plane_{ 0 };
-	float distance_from_camera_{ 0.02f };
 
 	void update_scene(const rh::ctx& ctx);
 };

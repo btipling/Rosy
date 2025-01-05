@@ -22,10 +22,10 @@ public:
 	std::string shadow_frag_path{ "out/shadow.spv" };
 	std::unique_ptr<camera> mesh_cam = nullptr;
 
-	bool depth_bias_enabled{ false };
-	float depth_bias_constant{ 0.f };
+	bool depth_bias_enabled{ true };
+	float depth_bias_constant{ -9.f };
 	float depth_bias_clamp{ 0.f };
-	float depth_bias_slope_factor{ 0.f };
+	float depth_bias_slope_factor{ -4.5f };
 
 	size_t root_scene = 0;
 	std::vector<std::vector<size_t>>scenes;
@@ -49,15 +49,11 @@ public:
 
 	// TODO: (skybox-fix) make the following private
 	gpu_scene_data scene_data = {};
-	int near_plane{ 0 };
 	glm::vec3 scene_rot = glm::vec3(0.f);
 	glm::vec3 scene_pos = glm::vec3(0.f, 2.5f, 2.5f);
 	float scene_scale = 0.1f;
 	glm::mat4 shadow_map_view_old{ 1.f };
 	bool toggle_wire_frame{ false };
-	camera_view current_view{ camera_view::camera };
-	int blend_mode{ 0 };
-	float distance_from_camera{ 0.02f };
 
 	explicit mesh_scene() = default;
 	~mesh_scene() = default;
@@ -84,27 +80,15 @@ public:
 private:
 	glm::mat4 csm_p_{ glm::mat4{1.f} };
 	float csm_dk_{ 0.f };
+	int csm_extent_{ 0 };
 
 	glm::mat4 light_transform_{ glm::identity<glm::mat4>() };
 	glm::vec3 light_pos_{ 1.f };
 	glm::mat4 cascade_camera_{ glm::identity<glm::mat4>() };
-	float sunlight_x_rot_{ 0.683f };
+	camera_view current_view_{ camera_view::camera };
+	float sunlight_x_rot_{ 4.5f };
 	float sunlight_y_rot_{ 0.f };
 	float sunlight_z_rot_{ 0.f };
-	glm::vec4 q0_;
-	glm::vec4 q1_;
-	glm::vec4 q2_;
-	glm::vec4 q3_;
-	glm::vec4 q4_;
-	glm::vec4 q5_;
-	glm::vec4 q6_;
-	glm::vec4 q7_;
-	float max_x_;
-	float min_x_;
-	float max_y_;
-	float min_y_;
-	float max_z_;
-	float min_z_;
 
 	float cascade_factor_{ 0.111f };
 	VkExtent2D shadow_map_extent_{};

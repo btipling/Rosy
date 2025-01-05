@@ -147,21 +147,6 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		ImGui::SliderFloat3("Translate", value_ptr(scene_pos_), -50.0f, 50.0f);
 		ImGui::SliderFloat("Scale", &scene_scale_, 0.01f, 5.0f);
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
-
-		ImGui::Text("Light View");
-		static int elem = static_cast<int>(current_view_);
-		const char* elems_names[3] = { "Camera", "CSM", "Light" };
-		const char* elem_name = (elem >= 0 && elem < 3) ? elems_names[elem] : "Unknown";
-		current_view_ = static_cast<camera_view>(elem);
-		ImGui::SliderInt("slider enum", &elem, 0, 3 - 1, elem_name); // Use ImGuiSliderFlags_NoInput flag to disable CTRL+Click here.
-		ImGui::RadioButton("near", &near_plane_, 0); ImGui::SameLine();
-		ImGui::RadioButton("middle", &near_plane_, 1); ImGui::SameLine();
-		ImGui::RadioButton("far", &near_plane_, 2);
-		ImGui::SliderFloat("distance from light camera", &distance_from_camera_, 0.f, 1.0f);
-		ImGui::Text("Blending");
-		ImGui::RadioButton("disabled", &blend_mode_, 0); ImGui::SameLine();
-		ImGui::RadioButton("additive", &blend_mode_, 1); ImGui::SameLine();
-		ImGui::RadioButton("alpha blend", &blend_mode_, 2);
 	}
 	ImGui::End();
 	scene_graph_->draw_ui(ctx);
@@ -178,15 +163,11 @@ rh::result scene_two::update(const rh::ctx& ctx)
 void scene_two::update_scene(const rh::ctx& ctx)
 {
 	//TODO: (skybox-fix) remove these...
-	scene_graph_->near_plane = near_plane_;
 	scene_graph_->scene_rot = scene_rot_;
 	scene_graph_->scene_pos = scene_pos_;
 	scene_graph_->scene_scale = scene_scale_;
 	scene_graph_->shadow_map_view_old = shadow_map_view_;
 	scene_graph_->toggle_wire_frame = toggle_wire_frame_;
-	scene_graph_->current_view = current_view_;
-	scene_graph_->blend_mode = blend_mode_;
-	scene_graph_->distance_from_camera = distance_from_camera_;
 
 	gpu_scene_data scene_data = scene_graph_->scene_update(ctx);
 

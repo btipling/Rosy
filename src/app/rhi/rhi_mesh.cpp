@@ -205,12 +205,22 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 
 glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 {
-	csm_p_ =  glm::mat4(
-		glm::vec4(2.f / 15.f, 0.f, 0.f, 0.f),
-		glm::vec4(0.f, 2.f / 15.f, 0.f, 0.f),
-		glm::vec4(0.f, 0.f, 1.f /50.f, 0.f),
+	const float cascade_level = 10.f * (csm_extent_ + 1.f);
+	const glm::mat4 ortho_p = glm::mat4(
+		glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
+		glm::vec4(0.f, 2.f / cascade_level, 0.f, 0.f),
+		glm::vec4(0.f, 0.f, -1.f / 60.f, 0.f),
 		glm::vec4(0.f, 0.f, 0.f, 1.f)
-	) * glm::translate(glm::mat4(1.f), mesh_cam->position)  * glm::inverse(light_transform_);
+	);
+	glm::vec3 l_pos = mesh_cam->position;
+	l_pos[1] += 2.5;
+	const glm::mat4 l = glm::mat4(
+		light_transform_[0],
+		light_transform_[1],
+		light_transform_[2],
+		glm::vec4(l_pos, 1.f)
+	);
+	csm_p_ = ortho_p * glm::inverse(l);
 	  
 	return cascade_camera_;
 }
@@ -225,18 +235,17 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 		ImGui::Text("Light direction: (%.3f, %.3f, %.3f)", L[2][0], L[2][1], L[2][2]);
 		ImGui::Text("CSM dimension %.3f", csm_dk_);
 
-		ImGui::Text("q0_: (%.3f, %.3f, %.3f)", q0_.x, q0_.y, q0_.z);
-		ImGui::Text("q1_: (%.3f, %.3f, %.3f)", q1_.x, q1_.y, q1_.z);
-		ImGui::Text("q2_: (%.3f, %.3f, %.3f)", q2_.x, q2_.y, q2_.z);
-		ImGui::Text("q3_: (%.3f, %.3f, %.3f)", q3_.x, q3_.y, q3_.z);
+		ImGui::RadioButton("near", &csm_extent_, 0); ImGui::SameLine();
+		ImGui::RadioButton("middle", &csm_extent_, 1); ImGui::SameLine();
+		ImGui::RadioButton("far", &csm_extent_, 2);
 
-		ImGui::Text("q4_: (%.3f, %.3f, %.3f)", q4_.x, q4_.y, q4_.z);
-		ImGui::Text("q5_: (%.3f, %.3f, %.3f)", q5_.x, q5_.y, q5_.z);
-		ImGui::Text("q6_: (%.3f, %.3f, %.3f)", q6_.x, q6_.y, q6_.z);
-		ImGui::Text("q7_: (%.3f, %.3f, %.3f)", q7_.x, q7_.y, q7_.z);
+		ImGui::Text("Light View");
+		static int elem = static_cast<int>(current_view_);
+		const char* elems_names[3] = { "Camera", "CSM", "Light" };
+		const char* elem_name = (elem >= 0 && elem < 3) ? elems_names[elem] : "Unknown";
+		current_view_ = static_cast<camera_view>(elem);
+		ImGui::SliderInt("slider enum", &elem, 0, 3 - 1, elem_name);
 
-		ImGui::Text("min: (%.3f, %.3f, %.3f)", min_x_, min_y_, min_z_);
-		ImGui::Text("max: (%.3f, %.3f, %.3f)", max_x_, max_y_, max_z_);
 		if (ImGui::SliderFloat("Sunlight rotation x", &sunlight_x_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
 			auto m = glm::mat4{ 1.f };
 			m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
@@ -261,9 +270,9 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 		ImGui::SliderFloat("Cascade factor", &cascade_factor_, 0, 1, "%.3f");
 		ImGui::Text("Depth bias");
 		ImGui::Checkbox("Enabled", &depth_bias_enabled);
-		ImGui::SliderFloat("constant", &depth_bias_constant, -1000.f, 1000.f);
-		ImGui::SliderFloat("clamp", &depth_bias_clamp, -1000.f, 1000.0f);
-		ImGui::SliderFloat("slope factor", &depth_bias_slope_factor, 0.f, 1000.0f);
+		ImGui::SliderFloat("constant", &depth_bias_constant, -500.f, 500.f);
+		ImGui::SliderFloat("clamp", &depth_bias_clamp, -500.f, 500.f);
+		ImGui::SliderFloat("slope factor", &depth_bias_slope_factor, -500.f, 500.f);
 	}
 	ImGui::End();
 };
@@ -326,26 +335,10 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		shadow_proj = glm::perspective(fov, s, g, -500.f / 25);
 		auto [sm_view_far, sm_projection_far] = shadow_map_projection(ctx, light_transform_[2], shadow_proj, view);
 
-		glm::mat4 new_sunlight = light_transform_;
+		const glm::mat4 new_sunlight = light_transform_;
 		glm::mat4 p{ proj * view };
-		glm::mat4 light_view_p{ p };
-		switch (near_plane)
-		{
-		case 0:
-			shadow_map_view_old = sm_view_near;
-			light_view_p = sm_projection_near;
-			break;
-		case 1:
-			shadow_map_view_old = sm_view_middle;
-			light_view_p = sm_projection_middle;
-			break;
-		case 2:
-		default:
-			shadow_map_view_old = sm_view_far;
-			light_view_p = sm_projection_far;
-			break;
-		}
-		switch (current_view)
+
+		switch (current_view_)
 		{
 		case camera_view::csm:
 			p = csm_p_;
@@ -371,23 +364,6 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		scene_data.sunlight = new_sunlight;
 		scene_data.sunlight_color = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
 
-		glm::mat4 sv_cam = glm::inverse(shadow_map_view_old);
-		//glm::mat4 sv_cam = glm::inverse(view);
-		glm::vec4 sv_x = sv_cam[0];
-		glm::vec4 sv_y = sv_cam[1];
-		glm::vec4 sv_z = sv_cam[2];
-		glm::vec4 sv_c = sv_cam[3];
-
-
-		const float sv_u = -distance_from_camera;
-
-		glm::vec4 q0 = sv_c + (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
-		glm::vec4 q1 = sv_c + (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
-		glm::vec4 q2 = sv_c - (((sv_u * s) / g) * sv_x) - ((sv_u / g) * sv_y) + (sv_u * sv_z);
-		glm::vec4 q3 = sv_c - (((sv_u * s) / g) * sv_x) + ((sv_u / g) * sv_y) + (sv_u * sv_z);
-
-		//debug->set_shadow_frustum(q0, q1, q2, q3);
-		debug->shadow_frustum = glm::mat4(1.f);
 	}
 	return scene_data;
 }
