@@ -66,6 +66,7 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     float3 L = -sunlight;
     float3 N = normalize(coarseVertex.normal);
     float3 H = normalize(L + V);
+    const float distance_from_object = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]); 
 
     float cosTheta = dot(L, N);
     float cosPhi = dot(H, N);
@@ -95,10 +96,13 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
     texture2D shadowFarImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
     float4 farColor = shadowNearImage.Sample(shadowSampler, float2(csm.far.x, csm.far.y));
 
-    bool InNearShadow = nearColor.x > csm.near.z;
+    bool inShadow = false;
+    if (distance_from_object < 5.f) {
+        inShadow = nearColor.x > csm.near.z;
+    }
     bool InMiddleShadow = middleColor.x > csm.middle.z;
     bool InFarShadow = farColor.x > csm.far.z;
-    if (InNearShadow || InMiddleShadow || InFarShadow) {
+    if (inShadow) {
        sunLight = float3(0);
     }
 
