@@ -19,7 +19,7 @@ This application is hard coded to run on an Nvidia GPU and Windows 11.
 * Dynamic rendering
 * Bindless
 * Shader Objects
-* One Global Descriptor Set
+* One global descriptor set for all images and samplers
 
 ## TODO
 * [ ] config for physical device to use
