@@ -1,7 +1,7 @@
 # Rosy
 This is a hobby project to build a game engine and eventually a game in my spare time.
 
-![image](https://github.com/user-attachments/assets/96deac49-17c2-4321-91e3-c9071fcd5d78)
+![image](https://github.com/user-attachments/assets/7f651c0d-8ca9-4136-973e-93c17bef5e31)
 
 ## Building
 This project will likely not build for anyone else at this time.
@@ -14,14 +14,16 @@ Assets are not included in the repository and the application will immediately h
 
 This application is hard coded to run on an Nvidia GPU and Windows 11.
 
+## Modern Vulkan 
+* Buffer device address
+* Dynamic rendering
+* Bindless
+* Shader Objects
+* One Global Descriptor Set
+
 ## TODO
 * [ ] config for physical device to use
-* [ ] bindless resources https://henriquegois.dev/posts/bindless-resources-in-vulkan/
-* [ ] more bindless https://blog.traverseresearch.nl/bindless-rendering-setup-afeb678d77fc?gi=ff07f56c3097
-* [ ] descriptor indexing https://chunkstories.xyz/blog/a-note-on-descriptor-indexing/
-* [ ] resource sync https://themaister.net/blog/2019/08/14/yet-another-blog-explaining-vulkan-synchronization/
 * [ ] read links in https://github.com/Darianopolis/Links/blob/main/Links.txt
-* [x] Do resize and draw in SDL resize callback for maximum responsiveness
 
 ## Generating Cubemaps with ktx
 
