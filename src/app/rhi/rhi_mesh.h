@@ -67,7 +67,7 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
-	[[nodiscard]] auto csm_pos(const rh::ctx& ctx) -> glm::mat4;
+	[[nodiscard]] auto csm_pos(const rh::ctx& ctx, int csm_extent)-> glm::mat4;
 	void draw_ui(const rh::ctx& ctx);
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;
@@ -78,13 +78,11 @@ public:
 
 	gpu_scene_data scene_update(const rh::ctx&);
 private:
-	glm::mat4 csm_p_{ glm::mat4{1.f} };
 	float csm_dk_{ 0.f };
 	int csm_extent_{ 0 };
 
 	glm::mat4 light_transform_{ glm::identity<glm::mat4>() };
 	glm::vec3 light_pos_{ 1.f };
-	glm::mat4 cascade_camera_{ glm::identity<glm::mat4>() };
 	camera_view current_view_{ camera_view::camera };
 	float sunlight_x_rot_{ 4.5f };
 	float sunlight_y_rot_{ 0.f };

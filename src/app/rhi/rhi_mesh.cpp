@@ -203,10 +203,10 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 	scenes.emplace_back(gltf_scene.nodeIndices.begin(), gltf_scene.nodeIndices.end());
 }
 
-glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
+glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx, int csm_extent)
 {
-	const float cascade_level = 10.f * (csm_extent_ + 1.f);
-	const glm::mat4 ortho_p = glm::mat4(
+	const float cascade_level = 10.f * (static_cast<float>(csm_extent_ )+ 1.f);
+	const auto shadow_p = glm::mat4(
 		glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
 		glm::vec4(0.f, 2.f / cascade_level, 0.f, 0.f),
 		glm::vec4(0.f, 0.f, -1.f / 60.f, 0.f),
@@ -214,15 +214,13 @@ glm::mat4 mesh_scene::csm_pos(const rh::ctx& ctx)
 	);
 	glm::vec3 l_pos = mesh_cam->position;
 	l_pos[1] += 2.5;
-	const glm::mat4 l = glm::mat4(
+	const auto l = glm::mat4(
 		light_transform_[0],
 		light_transform_[1],
 		light_transform_[2],
 		glm::vec4(l_pos, 1.f)
 	);
-	csm_p_ = ortho_p * glm::inverse(l);
-	  
-	return cascade_camera_;
+	return shadow_p * glm::inverse(l);
 }
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)
@@ -341,7 +339,7 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		switch (current_view_)
 		{
 		case camera_view::csm:
-			p = csm_p_;
+			p = csm_pos(ctx, csm_extent_);
 			break;
 		case camera_view::light:
 			p = light_view_to_ndc * proj * glm::inverse(new_sunlight);
@@ -612,7 +610,6 @@ shadow_map mesh_scene::shadow_map_projection(const std::vector<glm::vec4>& shado
 
 shadow_map mesh_scene::shadow_map_projection(const rh::ctx& ctx, const glm::vec3 light_direction, const glm::mat4& p, const glm::mat4& world_view)
 {
-	const glm::mat4 m_sk = csm_pos(ctx);
 	const auto frustum = shadow_map_frustum(p, world_view);
 	const auto shadow_view = shadow_map_view(frustum, glm::normalize(light_direction));
 	return shadow_map_projection(frustum, shadow_view);
