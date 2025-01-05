@@ -43,6 +43,9 @@
     <Filter Include="Resource Files\shaders\data">
       <UniqueIdentifier>{e89ab0f0-3f76-4547-97de-eefcc545094e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\shaders\shading">
+      <UniqueIdentifier>{7b328f73-9f43-4d46-979b-e7cf252df73b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rosy.h">
@@ -276,6 +279,7 @@
     <None Include="shaders\skybox_cube.slang">
       <Filter>Resource Files\shaders</Filter>
     </None>
+    <None Include="shaders\shading\pcf.slang" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\SDL3.lib">

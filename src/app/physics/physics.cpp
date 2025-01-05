@@ -83,7 +83,7 @@ namespace physics
     }
 
     double acceleration(const state& state, double t) {
-        constexpr double dampening = -0.02;
+        constexpr double dampening = -0.05;
         constexpr double scale = 0.5;
         return dampening * state.velocity / (1.0 + std::abs(state.velocity) / scale);
     }

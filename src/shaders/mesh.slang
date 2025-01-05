@@ -1,4 +1,5 @@
 import data.data;
+import shading.pcf;
 
 [[vk::binding(0, 0)]] texture2D imageTexture[];
 [[vk::binding(1, 0)]] SamplerState imageSampler[];
@@ -17,8 +18,8 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     VertexStageOutput output;
 
-    output.coarseVertex.vertex = v.position;
-    output.coarseVertex.position = mul(worldMat, posWorld).xyz;
+    output.coarseVertex.vertex = float4(v.position, 1.f);
+    output.coarseVertex.position = mul(worldMat, posWorld);
     output.coarseVertex.color = v.color.xyz;
     output.coarseVertex.normal = mul(rd.normalTransform, v.normal);
     output.coarseVertex.textureCoordinates = float2(v.textureCoordinates_x, v.textureCoordinates_y);
@@ -57,17 +58,17 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 }
 
 [shader("fragment")]
-Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) : SV_Target
+Fragment fragmentMain(CoarseVertex coarseVertex: CoarseVertex, CSM csm: CSM, float4 fragCoord: SV_Position) : SV_Target
 {
     SceneData sd = *PushConstants.sd;
     float3 sunlight = float3(sd.sunlight[2][0], sd.sunlight[2][1], -sd.sunlight[2][2]);
     float3 color = coarseVertex.color;
-    float3 V = normalize(sd.cameraPosition.xyz - coarseVertex.vertex);
+    float3 V = normalize(sd.cameraPosition.xyz - coarseVertex.vertex.xyz);
     float3 L = -sunlight;
     float3 N = normalize(coarseVertex.normal);
     float3 H = normalize(L + V);
-    const float distance_x = abs(sd.cameraPosition.x - coarseVertex.position.x);
-    const float distance_y = abs(sd.cameraPosition.y - coarseVertex.position.y);
+    const float distanceX = abs(sd.cameraPosition.x - coarseVertex.position.x);
+    const float distanceY = abs(sd.cameraPosition.y - coarseVertex.position.y);
 
     float cosTheta = dot(L, N);
     float cosPhi = dot(H, N);
@@ -87,34 +88,28 @@ Fragment fragmentMain(CoarseVertex coarseVertex : CoarseVertex, CSM csm : CSM) :
 
     SamplerState shadowSampler = imageSampler[NonUniformResourceIndex(csm_sampler_i)];
 
-    uint csm_middle_i = sd.csm_index_middle;
-    texture2D shadowMiddleImage = imageTexture[NonUniformResourceIndex(csm_middle_i)];
-    float4 middleColor = shadowMiddleImage.Sample(shadowSampler, float2(csm.middle.x, csm.middle.y));
-
     bool inShadow = false;
-    float near_distance = 2.5f;
-    float middle_distance = 10.f;
-    if (distance_x < near_distance && distance_y < near_distance) {
+    float nearDistance = 10.f;
+    float middleDistance = 20.f;
+    float shadowFactor = 1.f;
+    if (distanceX < nearDistance && distanceY < nearDistance) {
         uint csm_near_i = sd.csm_index_near;
         texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
-        float4 nearColor = shadowNearImage.Sample(shadowSampler, float2(csm.near.x, csm.near.y));
-        inShadow = nearColor.x > csm.near.z;
-    } else if (distance_x < middle_distance && distance_y < middle_distance) {
-        inShadow = middleColor.x > csm.middle.z;
+        shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
+    } else if (distanceX < middleDistance && distanceY < middleDistance) {
+        uint csm_middle_i = sd.csm_index_middle;
+        texture2D shadowMiddleImage = imageTexture[NonUniformResourceIndex(csm_middle_i)];
+        shadowFactor = pcf(fragCoord, csm.middle, shadowMiddleImage, shadowSampler);
     } else {
         uint csm_far_i = sd.csm_index_far;
         texture2D shadowFarImage = imageTexture[NonUniformResourceIndex(csm_far_i)];
-        float4 farColor = shadowFarImage.Sample(shadowSampler, float2(csm.far.x, csm.far.y));
-        inShadow = farColor.x > csm.far.z;
-    }
-    if (inShadow) {
-       sunLight = float3(0);
+        shadowFactor = pcf(fragCoord, csm.far, shadowFarImage, shadowSampler);
     }
 
-    float4 outFragColor = imageTextureColor * float4(ambientLight + sunLight, 1.0);
+    float4 outFragColor = imageTextureColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
 
     Fragment output;
     output.color = outFragColor;
-    //output.color = middleColor;
+    output.color.xyz;
     return output;
 }

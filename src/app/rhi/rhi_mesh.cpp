@@ -204,25 +204,25 @@ void mesh_scene::add_scene(fastgltf::Scene& gltf_scene)
 
 glm::mat4 mesh_scene::csm_pos(const int csm_extent)
 {
-	float cascade_level = 15.f;
+	float cascade_level = 50.f;
 	if (csm_extent == 1)
 	{
-		cascade_level = 30.f;
+		cascade_level = 150.f;
 	}
 	if (csm_extent == 2)
 	{
-		cascade_level = 60.f;
+		cascade_level = 300.f;
 	}
 	const auto shadow_p = glm::mat4(
 		glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
 		glm::vec4(0.f, 2.f / cascade_level, 0.f, 0.f),
-		glm::vec4(0.f, 0.f, 1.f / 60.f, 0.f),
+		glm::vec4(0.f, 0.f, 1.f / 500.f, 0.f),
 		glm::vec4(0.f, 0.f, 0.f, 1.f)
 	);
 	const glm::mat4 l_light = light_transform_;
 	glm::vec3 l_pos = mesh_cam->position;
-	l_pos[1] -= 25;
-	l_pos[2] += 5;
+	l_pos[1] -= 190;
+	l_pos[2] += 35;
 	const auto l = glm::mat4(
 		l_light[0],
 		l_light[1],

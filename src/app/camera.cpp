@@ -28,7 +28,7 @@ glm::mat4 camera::get_rotation_matrix() const
 
 void camera::integrate_all()
 {
-    constexpr double base_velocity = 0.00025;
+    constexpr double base_velocity = 0.00050;
     if (velocity.x != 0)
     {
         integrate(movement::direction::horizontal, velocity.x * base_velocity);

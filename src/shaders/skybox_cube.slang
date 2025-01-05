@@ -6,7 +6,7 @@ import data.data;
 [shader("fragment")]
 Fragment cubeFragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
 {
-    float4 outFragColor = imageTexture[NonUniformResourceIndex(0)].Sample(imageSampler[NonUniformResourceIndex(0)], coarseVertex.vertex);
+    float4 outFragColor = imageTexture[NonUniformResourceIndex(0)].Sample(imageSampler[NonUniformResourceIndex(0)], coarseVertex.vertex.xyz);
 
     Fragment output;
     output.color = outFragColor;

@@ -22,7 +22,7 @@ private:
 	//TODO: (skybox-fix) remove these
 	glm::vec3 scene_rot_ = glm::vec3(0.f);
 	glm::vec3 scene_pos_ = glm::vec3(0.f, 2.5f, 2.5f);
-	float scene_scale_ = 0.1f;
+	float scene_scale_ = 1.f;
 	glm::mat4 shadow_map_view_{ 1.f };
 
 	bool toggle_wire_frame_{ false };

@@ -28,10 +28,10 @@ public struct MaterialData {
 
 public struct CoarseVertex
 {
+    public float4 vertex;
+    public float4 position;
     public float3 color;
     public float3 normal;
-    public float3 vertex;
-    public float3 position;
     public float2 textureCoordinates;
 };
 

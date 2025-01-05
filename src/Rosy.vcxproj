@@ -216,6 +216,7 @@
     <None Include="shaders\dev.slang" />
     <None Include="shaders\imgui.frag" />
     <None Include="shaders\mesh.slang" />
+    <None Include="shaders\shading\pcf.slang" />
     <None Include="shaders\shadow.slang" />
     <None Include="shaders\skybox.slang" />
     <None Include="shaders\skybox_cube.slang" />
