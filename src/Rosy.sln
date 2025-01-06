@@ -4,6 +4,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Rosy", "Rosy.vcxproj", "{570DBD33-7190-40C5-901A-BE713AB0AF8F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{22927D03-A7BE-4D9E-B31A-5D4D87B3308E} = {22927D03-A7BE-4D9E-B31A-5D4D87B3308E}
+		{37CDE029-6221-49A3-A6E1-E0E5C66B0C33} = {37CDE029-6221-49A3-A6E1-E0E5C66B0C33}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rhi", "rhi\rhi.vcxproj", "{22927D03-A7BE-4D9E-B31A-5D4D87B3308E}"
 EndProject
