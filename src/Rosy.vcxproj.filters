@@ -22,9 +22,6 @@
     <Filter Include="Header Files\windows">
       <UniqueIdentifier>{f371c8eb-1362-4738-8f79-ad8ddf9a430f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files\shaders">
-      <UniqueIdentifier>{6bc48daa-beb3-41e9-9c7f-65b348bd827b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="scene">
       <UniqueIdentifier>{e2b74731-36d9-406f-b1ad-60e949f83000}</UniqueIdentifier>
     </Filter>
@@ -39,12 +36,6 @@
     </Filter>
     <Filter Include="Header Files\imgui">
       <UniqueIdentifier>{3fd1bec5-2abd-4815-991f-bf22492740a5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resource Files\shaders\data">
-      <UniqueIdentifier>{e89ab0f0-3f76-4547-97de-eefcc545094e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resource Files\shaders\shading">
-      <UniqueIdentifier>{7b328f73-9f43-4d46-979b-e7cf252df73b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -254,31 +245,6 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="compile.ps1" />
-    <None Include="shaders\imgui.frag">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="shaders\mesh.slang">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="shaders\debug.slang">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="shaders\skybox.slang">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="shaders\shadow.slang">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="shaders\data\data.slang">
-      <Filter>Resource Files\shaders\data</Filter>
-    </None>
-    <None Include="shaders\dev.slang">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
-    <None Include="shaders\skybox_cube.slang">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
     <None Include="shaders\shading\pcf.slang" />
   </ItemGroup>
   <ItemGroup>

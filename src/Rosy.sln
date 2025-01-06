@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rhi", "rhi\rhi.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests\tests.vcxproj", "{37CDE029-6221-49A3-A6E1-E0E5C66B0C33}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shader", "Shader\Shader.vcxproj", "{85D3F50E-9150-42C5-BE99-A2DFAC1A56DE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -45,6 +47,14 @@ Global
 		{37CDE029-6221-49A3-A6E1-E0E5C66B0C33}.Release|x64.Build.0 = Release|x64
 		{37CDE029-6221-49A3-A6E1-E0E5C66B0C33}.Release|x86.ActiveCfg = Release|Win32
 		{37CDE029-6221-49A3-A6E1-E0E5C66B0C33}.Release|x86.Build.0 = Release|Win32
+		{85D3F50E-9150-42C5-BE99-A2DFAC1A56DE}.Debug|x64.ActiveCfg = Debug|x64
+		{85D3F50E-9150-42C5-BE99-A2DFAC1A56DE}.Debug|x64.Build.0 = Debug|x64
+		{85D3F50E-9150-42C5-BE99-A2DFAC1A56DE}.Debug|x86.ActiveCfg = Debug|Win32
+		{85D3F50E-9150-42C5-BE99-A2DFAC1A56DE}.Debug|x86.Build.0 = Debug|Win32
+		{85D3F50E-9150-42C5-BE99-A2DFAC1A56DE}.Release|x64.ActiveCfg = Release|x64
+		{85D3F50E-9150-42C5-BE99-A2DFAC1A56DE}.Release|x64.Build.0 = Release|x64
+		{85D3F50E-9150-42C5-BE99-A2DFAC1A56DE}.Release|x86.ActiveCfg = Release|Win32
+		{85D3F50E-9150-42C5-BE99-A2DFAC1A56DE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
