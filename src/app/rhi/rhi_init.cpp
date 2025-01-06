@@ -105,6 +105,12 @@ VkResult rhi::init(SDL_Window* window)
 		rosy_utils::debug_print_w(L"Failed to create Vulkan device! %d\n", result);
 		return result;
 	}
+	result = this->init_tracy();
+	if (result != VK_SUCCESS)
+	{
+		rosy_utils::debug_print_w(L"Failed to init tracy! %d\n", result);
+		return result;
+	}
 	this->init_allocator();
 	result = this->init_presentation_queue();
 	if (result != VK_SUCCESS)
@@ -270,7 +276,9 @@ void rhi::deinit()
 	{
 		vmaDestroyAllocator(opt_allocator.value());
 	}
-
+	if (tracy_ctx != nullptr) {
+		TracyVkDestroy(tracy_ctx);
+	}
 	if (opt_device.has_value())
 	{
 		if (const VkResult result = vkDeviceWaitIdle(opt_device.value()); result == VK_SUCCESS)
@@ -1307,5 +1315,17 @@ VkResult rhi::init_ktx()
 	ktxVulkanDeviceInfo_Construct(&new_vdi, vk_ctx.gpu, vk_ctx.device,
 		vk_ctx.queue, vk_ctx.cmd_pool, nullptr);
 	vdi = new_vdi;
+	return VK_SUCCESS;
+}
+
+
+VkResult rhi::init_tracy()
+{
+	tracy_ctx = TracyVkContextHostCalibrated(
+		opt_physical_device.value(),
+		opt_device.value(),
+		vkResetQueryPool,
+		vkGetPhysicalDeviceCalibrateableTimeDomainsEXT,
+		vkGetCalibratedTimestampsEXT);
 	return VK_SUCCESS;
 }

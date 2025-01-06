@@ -35,13 +35,7 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 	}
 	return true;
 }
-
-namespace tracy
-{
-	class VkCtx;
-}
-static tracy::VkCtx* g_tracyCtx;
-
+ 
 int app::init()
 {
 #ifdef PROFILING_ENABLED
@@ -87,12 +81,6 @@ int app::init()
 	renderer.debug();
 	SDL_AddEventWatch(event_handler, static_cast<void*>(this));
 	scene_selector_.selected_scene = 1;
-	g_tracyCtx = TracyVkContextHostCalibrated(
-		renderer.opt_physical_device.value(), 
-		renderer.opt_device.value(),
-		vkResetQueryPool,
-		vkGetPhysicalDeviceCalibrateableTimeDomainsEXT,
-		vkGetCalibratedTimestampsEXT);
 	return 0;
 }
 
@@ -107,9 +95,6 @@ int app::deinit()
 		if (scene_ != nullptr) {
 			if (scene_->deinit(ctx) == rh::result::error) rosy_utils::debug_print_a("scene_ deinit failed\n");
 		}
-	}
-	{
-		if (g_tracyCtx) TracyVkDestroy(g_tracyCtx);
 	}
 	{
 		// Deinit renderer
@@ -288,9 +273,6 @@ void app::render_scene(const SDL_Event* event)
 		}
 		if (const auto scene_result = scene_->depth(ctx, i); scene_result != rh::result::ok) return end_rendering("scene_ depth failed %d\n");
 		if (const VkResult result = renderer.end_shadow_pass();  result != VK_SUCCESS) {
-			if (ctx.rhi.shadow_pass_command_buffer.has_value()) {
-				TracyVkCollect(g_tracyCtx, ctx.rhi.shadow_pass_command_buffer.value());
-			}
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 				rosy_utils::debug_print_a("swapchain out of date\n");
 				resize_requested_ = true;
@@ -316,9 +298,6 @@ void app::render_scene(const SDL_Event* event)
 	}
 	if (const auto scene_result = scene_->draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
 	render_ui(event);
-	if (ctx.rhi.render_command_buffer.has_value()) {
-		TracyVkCollect(g_tracyCtx, ctx.rhi.render_command_buffer.value());
-	}
 	if (const VkResult result = renderer.end_frame(); result != VK_SUCCESS) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			rosy_utils::debug_print_a("swapchain out of date\n");

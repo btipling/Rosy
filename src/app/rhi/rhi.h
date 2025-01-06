@@ -15,6 +15,7 @@ public:
 	VkExtent2D swapchain_extent = {};
 	std::optional<ktxVulkanDeviceInfo> vdi = std::nullopt;
 	rosy_config::config* app_cfg;
+	tracy::VkCtx* tracy_ctx = nullptr;
 	std::optional<std::unique_ptr<descriptor_sets_manager>> descriptor_sets = std::nullopt;
 
 	explicit rhi(rosy_config::config* cfg);
@@ -101,6 +102,7 @@ private:
 	VkResult init_surface(SDL_Window* window);
 	VkResult init_physical_device();
 	VkResult init_device();
+	VkResult init_tracy();
 	void init_allocator();
 	VkResult init_presentation_queue();
 	VkResult init_swap_chain(SDL_Window* window);

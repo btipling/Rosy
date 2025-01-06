@@ -367,6 +367,7 @@ VkResult rhi::render_pass()
 	VkResult result;
 	// end shadow pass
 	{
+		TracyVkCollect(tracy_ctx, mv_cmd);
 		result = vkEndCommandBuffer(mv_cmd);
 		if (result != VK_SUCCESS) return result;
 	}
@@ -487,6 +488,7 @@ VkResult rhi::end_frame()
 	{
 		VkResult result;
 		// end render pass
+		TracyVkCollect(tracy_ctx, render_cmd);
 		vkCmdEndRendering(render_cmd);
 		{
 			// blit the draw image to the swapchain image
