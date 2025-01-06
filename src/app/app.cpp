@@ -196,10 +196,15 @@ void app::end_rendering(const char* message)
 	return;
 }
 
+extern const char* const profiling_rendering_frame = "Rendering";
 void app::render(const SDL_Event* event)
 {
+	ZoneScopedNC("rendering", 0xEBE8BE);
+	FrameMarkStart(profiling_rendering_frame);
 	render_scene(event);
+	FrameMarkEnd(profiling_rendering_frame);
 }
+
 
 void app::render_ui(const SDL_Event* event)
 {
