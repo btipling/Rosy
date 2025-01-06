@@ -89,7 +89,7 @@ Fragment fragmentMain(CoarseVertex coarseVertex: CoarseVertex, CSM csm: CSM, flo
     SamplerState shadowSampler = imageSampler[NonUniformResourceIndex(csm_sampler_i)];
 
     bool inShadow = false;
-    float nearDistance = 10.f;
+    float nearDistance = 7.f;
     float middleDistance = 20.f;
     float shadowFactor = 1.f;
     if (distanceX < nearDistance && distanceY < nearDistance) {
