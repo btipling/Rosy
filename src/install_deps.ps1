@@ -7,6 +7,7 @@ $empty_deps_string = $empty_dependencies | ConvertTo-Json
     dependencies = @(
         'directxtex',
         'fastgltf',
+        # 'tracy',
         'stb'
     )
 }

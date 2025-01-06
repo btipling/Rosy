@@ -34,7 +34,7 @@ VkResult rhi::init_ui(SDL_Window* window) {
 
 	ImGui_ImplVulkan_InitInfo init_info{};
 	init_info.Instance = instance_.value();
-	init_info.PhysicalDevice = physical_device_.value();
+	init_info.PhysicalDevice = opt_physical_device.value();
 	init_info.Device = opt_device.value();
 	init_info.Queue = present_queue_.value();
 	init_info.DescriptorPool = imgui_pool;

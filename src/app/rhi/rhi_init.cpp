@@ -24,6 +24,9 @@ namespace {
 
 	const char* device_extensions[] = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef PROFILING_ENABLED
+		VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
+#endif
 		VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
 		VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
 		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
@@ -337,15 +340,15 @@ VkResult rhi::query_instance_layers()
 
 VkResult rhi::query_device_layers() const
 {
-	if (!physical_device_.has_value()) return VK_NOT_READY;
+	if (!opt_physical_device.has_value()) return VK_NOT_READY;
 	uint32_t p_property_count = 0;
-	VkResult result = vkEnumerateDeviceLayerProperties(physical_device_.value(), &p_property_count, nullptr);
+	VkResult result = vkEnumerateDeviceLayerProperties(opt_physical_device.value(), &p_property_count, nullptr);
 	if (result != VK_SUCCESS) return result;
 	rosy_utils::debug_print_a("Found %d device layers\n", p_property_count);
 	if (p_property_count == 0) return result;
 	std::vector<VkLayerProperties> layers;
 	layers.resize(p_property_count);
-	result = vkEnumerateDeviceLayerProperties(physical_device_.value(), &p_property_count, layers.data());
+	result = vkEnumerateDeviceLayerProperties(opt_physical_device.value(), &p_property_count, layers.data());
 	if (result != VK_SUCCESS) return result;
 	for (VkLayerProperties lp : layers)
 	{
@@ -412,9 +415,9 @@ VkResult rhi::query_instance_extensions()
 VkResult rhi::query_device_extensions()
 {
 	uint32_t p_property_count = 0;
-	if (!physical_device_.has_value()) return VK_NOT_READY;
+	if (!opt_physical_device.has_value()) return VK_NOT_READY;
 
-	VkResult result = vkEnumerateDeviceExtensionProperties(physical_device_.value(), nullptr, &p_property_count, nullptr);
+	VkResult result = vkEnumerateDeviceExtensionProperties(opt_physical_device.value(), nullptr, &p_property_count, nullptr);
 	if (result != VK_SUCCESS) return result;
 
 	rosy_utils::debug_print_a("Found %d device extensions\n", p_property_count);
@@ -423,7 +426,7 @@ VkResult rhi::query_device_extensions()
 	std::vector<VkExtensionProperties> extensions;
 	extensions.resize(p_property_count);
 
-	result = vkEnumerateDeviceExtensionProperties(physical_device_.value(), nullptr, &p_property_count,
+	result = vkEnumerateDeviceExtensionProperties(opt_physical_device.value(), nullptr, &p_property_count,
 		extensions.data());
 	if (result != VK_SUCCESS) return result;
 
@@ -571,7 +574,7 @@ VkResult rhi::init_physical_device()
 		{
 			{
 				found_device = true;
-				physical_device_ = p_device;
+				opt_physical_device = p_device;
 				physical_device_properties_ = device_properties;
 			}
 			{
@@ -610,9 +613,9 @@ VkResult rhi::init_physical_device()
 	required_features.depthClamp = VK_TRUE;
 	required_features.depthBounds = VK_TRUE;
 	required_features_ = required_features;
-	if (!physical_device_.has_value()) return VK_NOT_READY;
+	if (!opt_physical_device.has_value()) return VK_NOT_READY;
 
-	VkPhysicalDevice p_device = physical_device_.value();
+	VkPhysicalDevice p_device = opt_physical_device.value();
 	std::vector<VkQueueFamilyProperties> queue_family_properties_data = queue_family_properties_.value();
 	bool found_queue = false;
 	for (std::uint32_t i = 0; i < queue_family_properties_data.size(); ++i)
@@ -645,7 +648,7 @@ VkResult rhi::init_physical_device()
 
 VkResult rhi::init_device()
 {
-	if (!physical_device_.has_value()) return VK_NOT_READY;
+	if (!opt_physical_device.has_value()) return VK_NOT_READY;
 
 	VkDeviceQueueCreateInfo device_queue_create_info{};
 	device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -725,7 +728,7 @@ VkResult rhi::init_device()
 	device_create_info.ppEnabledExtensionNames = device_device_extensions_.data();
 	device_create_info.pEnabledFeatures = &required_features_;
 	VkDevice device;
-	VkResult result = vkCreateDevice(physical_device_.value(), &device_create_info, nullptr, &device);
+	VkResult result = vkCreateDevice(opt_physical_device.value(), &device_create_info, nullptr, &device);
 	if (result != VK_SUCCESS) return result;
 
 	rosy_utils::debug_print_w(L"Vulkan device created successfully!\n");
@@ -817,7 +820,7 @@ VkResult rhi::init_swap_chain(SDL_Window* window)
 
 VkResult rhi::create_swapchain(SDL_Window* window, const VkSwapchainKHR old_swapchain)
 {
-	swapchain_details_ = query_swap_chain_support(physical_device_.value());
+	swapchain_details_ = query_swap_chain_support(opt_physical_device.value());
 
 	swapchain_image_format_ = choose_swap_surface_format(swapchain_details_.formats);
 	swapchain_present_mode_ = choose_swap_present_mode(swapchain_details_.present_modes);
@@ -1099,7 +1102,7 @@ void rhi::init_allocator()
 
 	VmaAllocatorCreateInfo allocator_create_info{};
 	allocator_create_info.vulkanApiVersion = VK_API_VERSION_1_3;
-	allocator_create_info.physicalDevice = physical_device_.value();
+	allocator_create_info.physicalDevice = opt_physical_device.value();
 	allocator_create_info.device = opt_device.value();
 	allocator_create_info.instance = instance_.value();
 	allocator_create_info.pVulkanFunctions = &vulkan_functions;
@@ -1295,7 +1298,7 @@ VkResult rhi::init_data()
 VkResult rhi::init_ktx()
 {
 	const vulkan_ctx vk_ctx = {
-		.gpu = physical_device_.value(),
+		.gpu = opt_physical_device.value(),
 		.device = opt_device.value(),
 		.queue = present_queue_.value(),
 		.cmd_pool = imm_command_pool_.value(),

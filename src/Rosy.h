@@ -19,3 +19,5 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "app/config/Config.h"
 #include "app/utils/utils.h"
+#include <tracy/Tracy.hpp>
+#include <tracy/TracyVulkan.hpp>

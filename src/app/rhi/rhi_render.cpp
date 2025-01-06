@@ -63,6 +63,29 @@ void rhi::transition_shadow_map_image(const VkCommandBuffer cmd, const VkImage i
 
 VkResult rhi::draw_ui()
 {
+#ifdef PROFILING_ENABLED
+
+	if (ImGui::Begin("Profiling"))
+	{
+		if (TracyIsStarted)
+		{
+
+			ImGui::Text("Started.");
+		} else
+		{
+
+			ImGui::Text("Not started.");
+		}
+		if (TracyIsConnected)
+		{
+			ImGui::Text("Connected.");
+		} else
+		{
+			ImGui::Text("Not connected.");
+		}
+	}
+	ImGui::End();
+#endif
 	// Draw some FPS statistics or something
 	ImGui::Begin("Shadow maps");
 	static const char* options[] =

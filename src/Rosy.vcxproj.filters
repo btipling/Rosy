@@ -239,6 +239,9 @@
     <ClCompile Include="app\rhi\rhi_debug.cpp">
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
+    <ClCompile Include="lib\tracy\TracyClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rosy.rc">

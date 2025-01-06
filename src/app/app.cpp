@@ -36,33 +36,49 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 	return true;
 }
 
+namespace tracy
+{
+	class VkCtx;
+}
+static tracy::VkCtx* g_tracyCtx;
 
 int app::init()
 {
+#ifdef PROFILING_ENABLED
+	rosy_utils::debug_print_a("profiling enabled\n");
+#else
+	rosy_utils::debug_print_a("profiling not enabled\n");
+#endif
 	{
-		SDL_Init(SDL_INIT_VIDEO);
+		ZoneScoped;
+		{
+			ZoneScopedN("Initialize SDL");
+			SDL_Init(SDL_INIT_VIDEO);
 
-		int width = 640;
-		int height = 480;
-		int displays_count = 0;
 
-		const auto display_ids = SDL_GetDisplays(&displays_count);
-		if (displays_count == 0) {
-			const auto err = SDL_GetError();
-			rosy_utils::debug_print_a("SDL error: %s\n", err);
-			abort();
+
+			int width = 640;
+			int height = 480;
+			int displays_count = 0;
+
+			const auto display_ids = SDL_GetDisplays(&displays_count);
+			if (displays_count == 0) {
+				const auto err = SDL_GetError();
+				rosy_utils::debug_print_a("SDL error: %s\n", err);
+				abort();
+			}
+			// TODO: don't always get the first display
+			SDL_Rect display_bounds = {};
+			if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
+				cfg.max_window_width = display_bounds.w;
+				cfg.max_window_height = display_bounds.h;
+				width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
+				height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
+			}
+
+			constexpr SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+			window_ = SDL_CreateWindow("Rosy", width, height, window_flags);
 		}
-		// TODO: don't always get the first display
-		SDL_Rect display_bounds = {};
-		if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
-			cfg.max_window_width = display_bounds.w;
-			cfg.max_window_height = display_bounds.h;
-			width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
-			height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
-		}
-
-		constexpr SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
-		window_ = SDL_CreateWindow("Rosy", width, height, window_flags);
 	}
 	if (const VkResult result = renderer.init(window_); result != VK_SUCCESS) {
 		rosy_utils::debug_print_a("rhi init failed %d\n", result);
@@ -71,6 +87,12 @@ int app::init()
 	renderer.debug();
 	SDL_AddEventWatch(event_handler, static_cast<void*>(this));
 	scene_selector_.selected_scene = 1;
+	g_tracyCtx = TracyVkContextHostCalibrated(
+		renderer.opt_physical_device.value(), 
+		renderer.opt_device.value(),
+		vkResetQueryPool,
+		vkGetPhysicalDeviceCalibrateableTimeDomainsEXT,
+		vkGetCalibratedTimestampsEXT);
 	return 0;
 }
 
@@ -85,6 +107,9 @@ int app::deinit()
 		if (scene_ != nullptr) {
 			if (scene_->deinit(ctx) == rh::result::error) rosy_utils::debug_print_a("scene_ deinit failed\n");
 		}
+	}
+	{
+		if (g_tracyCtx) TracyVkDestroy(g_tracyCtx);
 	}
 	{
 		// Deinit renderer
@@ -174,6 +199,7 @@ int app::run()
 			continue;
 		}
 		render(nullptr);
+
 	}
 	return 0;
 }
@@ -262,6 +288,9 @@ void app::render_scene(const SDL_Event* event)
 		}
 		if (const auto scene_result = scene_->depth(ctx, i); scene_result != rh::result::ok) return end_rendering("scene_ depth failed %d\n");
 		if (const VkResult result = renderer.end_shadow_pass();  result != VK_SUCCESS) {
+			if (ctx.rhi.shadow_pass_command_buffer.has_value()) {
+				TracyVkCollect(g_tracyCtx, ctx.rhi.shadow_pass_command_buffer.value());
+			}
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 				rosy_utils::debug_print_a("swapchain out of date\n");
 				resize_requested_ = true;
@@ -287,6 +316,9 @@ void app::render_scene(const SDL_Event* event)
 	}
 	if (const auto scene_result = scene_->draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
 	render_ui(event);
+	if (ctx.rhi.render_command_buffer.has_value()) {
+		TracyVkCollect(g_tracyCtx, ctx.rhi.render_command_buffer.value());
+	}
 	if (const VkResult result = renderer.end_frame(); result != VK_SUCCESS) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			rosy_utils::debug_print_a("swapchain out of date\n");

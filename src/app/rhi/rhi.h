@@ -9,6 +9,7 @@ public:
 	std::expected<rh::ctx, VkResult> current_render_ctx(const SDL_Event* event) const;
 	std::expected<rh::ctx, VkResult> current_shadow_pass_ctx(const SDL_Event* event) const;
 	std::optional<VkDevice> opt_device = std::nullopt;
+	std::optional<VkPhysicalDevice> opt_physical_device = std::nullopt;
 	std::optional<VmaAllocator> opt_allocator = std::nullopt;
 	std::optional<std::unique_ptr<rhi_data>> buffer;
 	VkExtent2D swapchain_extent = {};
@@ -48,7 +49,6 @@ private:
 	std::vector<const char*> instance_extensions_;
 	std::vector<const char*> device_device_extensions_;
 	std::optional<VkInstance> instance_ = std::nullopt;
-	std::optional<VkPhysicalDevice> physical_device_ = std::nullopt;
 	std::optional<VkPhysicalDeviceProperties> physical_device_properties_ = std::nullopt;
 	std::optional<VkPhysicalDeviceFeatures> supported_features_ = std::nullopt;
 	std::optional<VkPhysicalDeviceMemoryProperties> physical_device_memory_properties_ = std::nullopt;
