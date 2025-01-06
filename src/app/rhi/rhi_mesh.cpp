@@ -35,6 +35,7 @@ namespace {
 
 void mesh_scene::init(const rh::ctx& ctx)
 {
+	ZoneScopedNC("init_mesh", 0xB19CD8);
 	std::vector<char> scene_vertex_shader;
 	std::vector<char> scene_fragment_shader;
 	try
@@ -97,6 +98,7 @@ void mesh_scene::init(const rh::ctx& ctx)
 
 void mesh_scene::deinit(const rh::ctx& ctx) const
 {
+	ZoneScopedNC("deinit_mesh", 0xE6D1F2);
 	const auto buffer = ctx.rhi.data.value();
 	const VkDevice device = ctx.rhi.device;
 	{
@@ -140,6 +142,7 @@ void mesh_scene::deinit(const rh::ctx& ctx) const
 
 void mesh_scene::init_shadows(const rh::ctx& ctx)
 {
+	ZoneScopedNC("init_shadows", 0xBEA9DF);
 	auto cam = camera(glm::vec3{ 3.75f, 4.32f, 2.84f });
 	cam.pitch = 0.36f;
 	cam.yaw = 1.f;
@@ -234,6 +237,7 @@ glm::mat4 mesh_scene::csm_pos(const int csm_extent)
 
 void mesh_scene::draw_ui(const rh::ctx& ctx)
 {
+	ZoneScopedNC("draw_ui", 0xBEA9DF);
 	const glm::mat4 L = light_transform_;
 	ImGui::Begin("Sunlight & Shadow");
 	{
@@ -436,6 +440,7 @@ void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
 
 rh::result mesh_scene::draw(mesh_ctx ctx)
 {
+	ZoneScopedNC("mesh_draw", 0xCCB7E5);
 	if (meshes.size() == 0) return rh::result::ok;
 	auto render_cmd = ctx.render_cmd;
 
@@ -479,6 +484,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 
 rh::result mesh_scene::generate_shadows(mesh_ctx ctx, int pass_number)
 {
+	ZoneScopedNC("mesh_generate_shadows", 0xD9C4EC);
 	if (meshes.size() == 0) return rh::result::ok;
 	auto mv_cmd = ctx.shadow_pass_cmd;
 

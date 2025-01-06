@@ -211,6 +211,7 @@ std::expected<rh::ctx, VkResult> rhi::current_shadow_pass_ctx(const SDL_Event* e
 
 VkResult rhi::begin_frame()
 {
+	ZoneScopedNC("begin_frame", 0x91ABC9);
 	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
 		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
 		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
@@ -268,6 +269,7 @@ VkResult rhi::begin_frame()
 
 VkResult rhi::init_shadow_pass()
 {
+	ZoneScopedNC("init_shadow_pass", 0x9EB9D1);
 	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
 		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
 		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
@@ -306,6 +308,7 @@ VkResult rhi::init_shadow_pass()
 
 VkResult rhi::begin_shadow_pass(const int pass_number) const
 {
+	ZoneScopedNC("begin_shadow_pass", 0xA5BFD3);
 	if (pass_number == 0) return VK_SUCCESS;
 
 	const allocated_csm shadow_map_image = shadow_map_image_.value();
@@ -331,6 +334,7 @@ VkResult rhi::begin_shadow_pass(const int pass_number) const
 
 VkResult rhi::end_shadow_pass() const
 {
+	ZoneScopedNC("end_shadow_pass", 0xABC5D5);
 	vkCmdEndRendering(frame_datas_[current_frame_].shadow_pass_command_buffer.value());
 	return VK_SUCCESS;
 }
@@ -339,6 +343,7 @@ VkResult rhi::end_shadow_pass() const
 
 VkResult rhi::render_pass()
 {
+	ZoneScopedNC("render_pass", 0xB2CBD7);
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depth_image = depth_image_.value();
 	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
@@ -461,6 +466,7 @@ VkResult rhi::render_pass()
 
 VkResult rhi::end_frame()
 {
+	ZoneScopedNC("end_frame", 0xB9D1D9);
 	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
 		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
 		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
