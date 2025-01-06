@@ -151,7 +151,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\lib\dds_image;$(ProjectDir)\vcpkg_installed\x64-windows\include;$(ProjectDir)\lib\imgui;$(VULKAN_SDK)\Include;$(SDL_PATH)\include;$(KTX_PATH)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\lib\dds_image;$(ProjectDir)\vcpkg_installed\x64-windows\include;$(ProjectDir)\lib\tracy;$(ProjectDir)\lib\imgui;$(VULKAN_SDK)\Include;$(SDL_PATH)\include;$(KTX_PATH)\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
     </ClCompile>
@@ -178,11 +178,11 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\lib\dds_image;$(ProjectDir)\vcpkg_installed\x64-windows\include;$(ProjectDir)\lib\tracy;$(ProjectDir)\lib\imgui;$(VULKAN_SDK)\Include;$(SDL_PATH)\include;$(KTX_PATH)\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <AdditionalOptions>/DPROFILING_ENABLED /DTRACY_ENABLE /DTRACY_VERBOSE %(AdditionalOptions)</AdditionalOptions>
       <DebugInformationFormat>None</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(ProjectDir)\lib\dds_image;$(ProjectDir)\vcpkg_installed\x64-windows\include;$(ProjectDir)\lib\tracy;$(ProjectDir)\lib\imgui;$(VULKAN_SDK)\Include;$(SDL_PATH)\include;$(KTX_PATH)\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
