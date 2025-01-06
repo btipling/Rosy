@@ -70,6 +70,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <CustomBuildBeforeTargets>Run</CustomBuildBeforeTargets>
+  </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
   </PropertyGroup>
@@ -117,6 +120,16 @@
       <AdditionalDependencies>vulkan-1.lib;rhi.obj;descriptor.obj;pch.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(KTX_PATH)\build\Debug;$(SDL_PATH)\build\Debug;$(VULKAN_SDK)\Lib;C:\Users\Bjorn\source\repos\btipling\Rosy\src\rhi\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <CustomBuildStep>
+      <Command>Powershell.exe -file "$(SolutionDir)compile.ps1</Command>
+      <Outputs>debug.spv;mesh.spv;shadow.spv;skybox.spv;skybox_cube.spv;%(Outputs)</Outputs>
+      <TreatOutputAsContent>true</TreatOutputAsContent>
+      <RootFolder>.\out</RootFolder>
+      <Inputs>shaders\debug.slang;shaders\mesh.slang;shaders\shadow.slang;shaders\skybox.slang;shaders\skybox_cube.slang;shaders\data\data.slang;shaders\shading\pcf.slang;%(Inputs)</Inputs>
+    </CustomBuildStep>
+    <PreBuildEvent>
+      <Command>Powershell.exe -file "$(SolutionDir)compile.ps1</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -210,7 +223,17 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="compile.ps1" />
+    <None Include="install_deps.ps1" />
+    <None Include="shaders\data\data.slang" />
+    <None Include="shaders\debug.slang" />
+    <None Include="shaders\dev.slang" />
+    <None Include="shaders\imgui.frag" />
+    <None Include="shaders\mesh.slang" />
     <None Include="shaders\shading\pcf.slang" />
+    <None Include="shaders\shadow.slang" />
+    <None Include="shaders\skybox.slang" />
+    <None Include="shaders\skybox_cube.slang" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\ktx.lib" />
