@@ -281,6 +281,7 @@
     </None>
     <None Include="compile.ps1" />
     <None Include="install_deps.ps1" />
+    <None Include="shader_watcher.ps1" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\SDL3.lib">
