@@ -21,3 +21,7 @@
 #include "app/utils/utils.h"
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
+
+namespace tracy {
+	class VkCtx;
+}

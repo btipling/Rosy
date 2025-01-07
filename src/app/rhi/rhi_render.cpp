@@ -301,12 +301,15 @@ VkResult rhi::init_shadow_pass()
 		const VkRenderingInfo render_info = rhi_helpers::shadow_map_rendering_info(shadow_map_extent, depth_attachment);
 		//begin clearing
 		vkCmdBeginRendering(mv_cmd, &render_info);
-		rhi_cmd::set_rendering_defaults(mv_cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-		rhi_cmd::toggle_culling(mv_cmd, false, VK_FRONT_FACE_CLOCKWISE);
-		rhi_cmd::toggle_wire_frame(mv_cmd, false);
-		rhi_cmd::set_view_port(mv_cmd, shadow_map_extent);
-		rhi_cmd::toggle_depth(mv_cmd, true);
-		rhi_cmd::disable_blending(mv_cmd);
+		{
+			ZoneScopedN("dynamic_shader_object_cmds");
+			rhi_cmd::set_rendering_defaults(mv_cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+			rhi_cmd::toggle_culling(mv_cmd, false, VK_FRONT_FACE_CLOCKWISE);
+			rhi_cmd::toggle_wire_frame(mv_cmd, false);
+			rhi_cmd::set_view_port(mv_cmd, shadow_map_extent);
+			rhi_cmd::toggle_depth(mv_cmd, true);
+			rhi_cmd::disable_blending(mv_cmd);
+		}
 	}
 	return VK_SUCCESS;
 }
@@ -479,12 +482,15 @@ VkResult rhi::render_pass()
 			VkRenderingInfo render_info = rhi_helpers::rendering_info(swapchain_extent, color_attachment, depth_attachment);
 			// begin render pass
 			vkCmdBeginRendering(render_cmd, &render_info);
-			rhi_cmd::set_rendering_defaults(render_cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-			rhi_cmd::toggle_culling(render_cmd, true, VK_FRONT_FACE_CLOCKWISE);
-			rhi_cmd::toggle_wire_frame(render_cmd, false);
-			rhi_cmd::set_view_port(render_cmd, swapchain_extent);
-			rhi_cmd::toggle_depth(render_cmd, true);
-			rhi_cmd::disable_blending(render_cmd);
+			{
+				ZoneScopedN("dynamic_shader_object_cmds");
+				rhi_cmd::set_rendering_defaults(render_cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+				rhi_cmd::toggle_culling(render_cmd, true, VK_FRONT_FACE_CLOCKWISE);
+				rhi_cmd::toggle_wire_frame(render_cmd, false);
+				rhi_cmd::set_view_port(render_cmd, swapchain_extent);
+				rhi_cmd::toggle_depth(render_cmd, true);
+				rhi_cmd::disable_blending(render_cmd);
+			}
 		}
 	}
 

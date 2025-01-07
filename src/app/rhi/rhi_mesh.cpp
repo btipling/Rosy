@@ -351,9 +351,6 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		scene_data.proj = proj;
 		scene_data.view_projection = p;
 
-		//scene_data.shadow_projection_near = sm_projection_near * sm_view_near;
-		//scene_data.shadow_projection_middle = sm_projection_middle * sm_view_middle;
-		//scene_data.shadow_projection_far = sm_projection_far * sm_view_far;
 		scene_data.shadow_projection_near = csm_pos(0);
 		scene_data.shadow_projection_middle = csm_pos(1);
 		scene_data.shadow_projection_far = csm_pos(2);

@@ -17,6 +17,7 @@
 #include "scene/scene_one/scene_one.h"
 #include "scene/scene_two/scene_two.h"
 
+
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
 static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-use-anonymous-namespace)
 	const auto app_i = static_cast<app*>(userdata);
