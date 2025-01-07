@@ -36,9 +36,9 @@ void debug_gfx::deinit(const rh::ctx& ctx) const
 
 rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 {
+	ZoneScopedNC("draw_debug_lines", 0xCDC4FF);
 	if (lines.size() == 0) return rh::result::ok;
 	auto render_cmd = ctx.render_cmd;
-
 	{
 		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
 		vkCmdBeginDebugUtilsLabelEXT(render_cmd, &mesh_draw_label);
@@ -56,6 +56,7 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 
 	vkCmdSetPrimitiveTopologyEXT(render_cmd, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
 	for (auto line : lines) {
+		ZoneScopedNC("draw_nodes_", 0xF9FFD1);
 		auto l = line;
 		l.world_matrix = ctx.view_proj * l.world_matrix;
 		m_shaders.shader_constants = &l;
@@ -65,6 +66,7 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 	}
 	if (shadow_frustum.has_value()) {
 		for (auto line : shadow_box_lines) {
+			ZoneScopedNC("draw_nodes_", 0xF9FFD1);
 			auto shadow_line = line;
 			//shadow_line.world_matrix = ctx.view_proj * shadow_frustum.value();
 			shadow_line.world_matrix = ctx.view_proj * line.world_matrix;
@@ -75,6 +77,7 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 		}
 	}
 	for (auto line : sunlight_lines) {
+		ZoneScopedNC("draw_nodes_", 0xF9FFD1);
 		auto shadow_line = line;
 		shadow_line.world_matrix = ctx.view_proj * line.world_matrix;
 		m_shaders.shader_constants = &shadow_line;

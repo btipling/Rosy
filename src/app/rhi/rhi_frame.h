@@ -41,6 +41,7 @@ namespace rh
 	struct ctx
 	{
 		rhi rhi{};
+		tracy::VkCtx* tracy_ctx = nullptr;
 		const SDL_Event* sdl_event{};
 		bool mouse_enabled = true;
 		double current_time = 0.f;

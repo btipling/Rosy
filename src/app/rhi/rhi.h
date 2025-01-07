@@ -26,6 +26,7 @@ public:
 	VkResult init_shadow_pass();
 	VkResult begin_shadow_pass(int pass_number) const;
 	VkResult end_shadow_pass() const;
+	VkResult init_render_pass();
 	VkResult render_pass();
 	VkResult end_frame();
 	VkResult draw_ui();

@@ -702,6 +702,9 @@ VkResult rhi::init_device()
 	vulkan12_features.imagelessFramebuffer = VK_TRUE;
 	vulkan12_features.uniformBufferStandardLayout = VK_TRUE;
 	vulkan12_features.shaderSubgroupExtendedTypes = VK_TRUE;
+#ifdef PROFILING_ENABLED
+	vulkan12_features.hostQueryReset = VK_TRUE;
+#endif
 
 
 	VkPhysicalDeviceVulkan11Features vulkan11_features{};

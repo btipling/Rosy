@@ -71,7 +71,8 @@ VkResult rhi::draw_ui()
 		{
 
 			ImGui::Text("Started.");
-		} else
+		}
+		else
 		{
 
 			ImGui::Text("Not started.");
@@ -79,7 +80,8 @@ VkResult rhi::draw_ui()
 		if (TracyIsConnected)
 		{
 			ImGui::Text("Connected.");
-		} else
+		}
+		else
 		{
 			ImGui::Text("Not connected.");
 		}
@@ -161,6 +163,7 @@ std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event)
 	}
 	const rh::ctx ctx = {
 		.rhi = rhi_ctx,
+		.tracy_ctx = tracy_ctx,
 		.sdl_event = event,
 		.current_time = static_cast<double>(ticks),
 	};
@@ -203,6 +206,7 @@ std::expected<rh::ctx, VkResult> rhi::current_shadow_pass_ctx(const SDL_Event* e
 	}
 	const rh::ctx ctx = {
 		.rhi = rhi_ctx,
+		.tracy_ctx = tracy_ctx,
 		.sdl_event = event,
 		.current_time = static_cast<double>(ticks),
 	};
@@ -261,6 +265,7 @@ VkResult rhi::begin_frame()
 			begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 			result = vkBeginCommandBuffer(mv_cmd, &begin_info);
 			if (result != VK_SUCCESS) return result;
+			TracyVkZoneS(tracy_ctx, mv_cmd, "vk_shadow_pass", 60);
 		}
 
 	}
@@ -341,9 +346,9 @@ VkResult rhi::end_shadow_pass() const
 
 
 
-VkResult rhi::render_pass()
+VkResult rhi::init_render_pass()
 {
-	ZoneScopedNC("render_pass", 0xB2CBD7);
+	ZoneScopedNC("init_render_pass", 0xB2CBD7);
 	allocated_image draw_image = draw_image_.value();
 	allocated_image depth_image = depth_image_.value();
 	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
@@ -427,8 +432,33 @@ VkResult rhi::render_pass()
 		begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		result = vkBeginCommandBuffer(render_cmd, &begin_info);
 		if (result != VK_SUCCESS) return result;
+		TracyVkZoneS(tracy_ctx, render_cmd, "vk_render_pass", 60);
 	}
+	return VK_SUCCESS;
+}
+
+VkResult rhi::render_pass()
+{
+	ZoneScopedNC("render_pass", 0xB2CBD7);
+	allocated_image draw_image = draw_image_.value();
+	allocated_image depth_image = depth_image_.value();
+	auto [opt_shadow_pass_command_buffer, opt_render_command_buffer, opt_image_available_semaphore,
+		opt_shadow_pass_semaphore, opt_render_finished_semaphore, opt_shadow_pass_fence,
+		opt_in_flight_fence, opt_command_pool] = frame_datas_[current_frame_];
 	{
+		if (!opt_shadow_pass_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_render_command_buffer.has_value()) return VK_NOT_READY;
+		if (!opt_image_available_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_render_finished_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
+		if (!opt_command_pool.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_semaphore.has_value()) return VK_NOT_READY;
+		if (!opt_shadow_pass_fence.has_value()) return VK_NOT_READY;
+	}
+
+
+	{
+		VkCommandBuffer render_cmd = opt_render_command_buffer.value();
 		// Clear image. This transition means that all the commands recorded before now happen before
 		// any calls after. The calls themselves before this may have executed in any order up until this point.
 		transition_image(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
@@ -437,8 +467,6 @@ VkResult rhi::render_pass()
 		clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
 		VkImageSubresourceRange subresource_range = rhi_helpers::create_img_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
 		vkCmdClearColorImage(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
-	}
-	{
 		// Start dynamic render pass, again this sets a barrier between vkCmdClearColorImage and what happens after
 		transition_image(render_cmd, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		transition_image(render_cmd, depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
@@ -494,7 +522,6 @@ VkResult rhi::end_frame()
 	{
 		VkResult result;
 		// end render pass
-		TracyVkCollect(tracy_ctx, render_cmd);
 		vkCmdEndRendering(render_cmd);
 		{
 			// blit the draw image to the swapchain image
@@ -520,6 +547,7 @@ VkResult rhi::end_frame()
 		{
 			// Transition swapchain image for presentation
 			transition_image(render_cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			TracyVkCollect(tracy_ctx, render_cmd);
 			result = vkEndCommandBuffer(render_cmd);
 			if (result != VK_SUCCESS) return result;
 		}

@@ -35,7 +35,7 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 	}
 	return true;
 }
- 
+
 int app::init()
 {
 #ifdef PROFILING_ENABLED
@@ -196,13 +196,13 @@ void app::end_rendering(const char* message)
 	return;
 }
 
+extern const char* const profiling_shadow_pass_frame = "Shadow_pass";
 extern const char* const profiling_rendering_frame = "Rendering";
 void app::render(const SDL_Event* event)
 {
 	ZoneScopedNC("rendering", 0xEBE8BE);
-	FrameMarkStart(profiling_rendering_frame);
 	render_scene(event);
-	FrameMarkEnd(profiling_rendering_frame);
+	FrameMark;
 }
 
 
@@ -256,19 +256,9 @@ void app::render_scene(const SDL_Event* event)
 		if (const auto scene_result = scene_->update(ctx); scene_result != rh::result::ok) return end_rendering("scene_ update failed\n");
 	}
 	// Generate shadows
-
-	if (const VkResult result = renderer.init_shadow_pass();  result != VK_SUCCESS) {
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			rosy_utils::debug_print_a("swapchain out of date\n");
-			resize_requested_ = true;
-			return;
-		}
-		return end_rendering("rhi shadow pass failed\n");
-	}
-
-	constexpr int num_shadow_passes = 3;
-	for (int i = 0; i < num_shadow_passes; i++) {
-		if (const VkResult result = renderer.begin_shadow_pass(i);  result != VK_SUCCESS) {
+	if (ctx.rhi.shadow_pass_command_buffer.has_value()) {
+		FrameMarkStart(profiling_shadow_pass_frame);
+		if (const VkResult result = renderer.init_shadow_pass();  result != VK_SUCCESS) {
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 				rosy_utils::debug_print_a("swapchain out of date\n");
 				resize_requested_ = true;
@@ -276,15 +266,28 @@ void app::render_scene(const SDL_Event* event)
 			}
 			return end_rendering("rhi shadow pass failed\n");
 		}
-		if (const auto scene_result = scene_->depth(ctx, i); scene_result != rh::result::ok) return end_rendering("scene_ depth failed %d\n");
-		if (const VkResult result = renderer.end_shadow_pass();  result != VK_SUCCESS) {
-			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-				rosy_utils::debug_print_a("swapchain out of date\n");
-				resize_requested_ = true;
-				return;
+
+		constexpr int num_shadow_passes = 3;
+		for (int i = 0; i < num_shadow_passes; i++) {
+			if (const VkResult result = renderer.begin_shadow_pass(i);  result != VK_SUCCESS) {
+				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+					rosy_utils::debug_print_a("swapchain out of date\n");
+					resize_requested_ = true;
+					return;
+				}
+				return end_rendering("rhi shadow pass failed\n");
 			}
-			return end_rendering("rhi shadow pass failed\n");
+			if (const auto scene_result = scene_->depth(ctx, i); scene_result != rh::result::ok) return end_rendering("scene_ depth failed %d\n");
+			if (const VkResult result = renderer.end_shadow_pass();  result != VK_SUCCESS) {
+				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+					rosy_utils::debug_print_a("swapchain out of date\n");
+					resize_requested_ = true;
+					return;
+				}
+				return end_rendering("rhi shadow pass failed\n");
+			}
 		}
+		FrameMarkEnd(profiling_shadow_pass_frame);
 	}
 	{
 		// Init render context
@@ -292,23 +295,38 @@ void app::render_scene(const SDL_Event* event)
 		else return end_rendering("no available frame data\n");
 		ctx.mouse_enabled = !show_cursor_.state;
 	}
-	// Render Scene
-	if (const VkResult result = renderer.render_pass();  result != VK_SUCCESS) {
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			rosy_utils::debug_print_a("swapchain out of date\n");
-			resize_requested_ = true;
-			return;
+	{
+
+		if (const VkResult result = renderer.init_render_pass();  result != VK_SUCCESS) {
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+				rosy_utils::debug_print_a("swapchain out of date\n");
+				resize_requested_ = true;
+				return;
+			}
+			return end_rendering("rhi render pass failed\n");
 		}
-		return end_rendering("rhi render pass failed\n");
 	}
-	if (const auto scene_result = scene_->draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
-	render_ui(event);
-	if (const VkResult result = renderer.end_frame(); result != VK_SUCCESS) {
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			rosy_utils::debug_print_a("swapchain out of date\n");
-			resize_requested_ = true;
-			return;
+	if (ctx.rhi.render_command_buffer.has_value()) {
+		FrameMarkStart(profiling_rendering_frame);
+		// Render Scene
+		if (const VkResult result = renderer.render_pass();  result != VK_SUCCESS) {
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+				rosy_utils::debug_print_a("swapchain out of date\n");
+				resize_requested_ = true;
+				return;
+			}
+			return end_rendering("rhi render pass failed\n");
 		}
-		return end_rendering("renderer end frame failed\n");
+		if (const auto scene_result = scene_->draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
+		render_ui(event);
+		if (const VkResult result = renderer.end_frame(); result != VK_SUCCESS) {
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+				rosy_utils::debug_print_a("swapchain out of date\n");
+				resize_requested_ = true;
+				return;
+			}
+			return end_rendering("renderer end frame failed\n");
+		}
+		FrameMarkEnd(profiling_rendering_frame);
 	}
 }

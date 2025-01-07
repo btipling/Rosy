@@ -443,37 +443,38 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 	ZoneScopedNC("mesh_draw", 0xCCB7E5);
 	if (meshes.size() == 0) return rh::result::ok;
 	auto render_cmd = ctx.render_cmd;
-
 	{
-		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
-		vkCmdBeginDebugUtilsLabelEXT(render_cmd, &mesh_draw_label);
+		{
+			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
+			vkCmdBeginDebugUtilsLabelEXT(render_cmd, &mesh_draw_label);
+		}
+
+		shader_pipeline m_shaders = shaders.value();
+		{
+			m_shaders.viewport_extent = ctx.extent;
+			m_shaders.wire_frames_enabled = ctx.wire_frame;
+			m_shaders.depth_enabled = ctx.depth_enabled;
+			m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
+			m_shaders.front_face = ctx.front_face;
+			if (VkResult result = m_shaders.shade(render_cmd); result != VK_SUCCESS) return rh::result::error;
+		}
+
+		{
+			VkDescriptorSet desc = ctx.ctx->rhi.descriptor_sets.value()->descriptor_set.value();
+			vkCmdBindDescriptorSets(render_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, &desc, 0, nullptr);
+		}
+
+		for (auto ro : draw_nodes_) {
+			ZoneScopedNC("draw_nodes_", 0xF9FFD1);
+			gpu_draw_push_constants pc = push_constants(ro);
+			m_shaders.shader_constants = &pc;
+			if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;
+			vkCmdBindIndexBuffer(render_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(render_cmd, ro.index_count, 1, ro.first_index, 0, 0);
+		}
+
+		vkCmdEndDebugUtilsLabelEXT(render_cmd);
 	}
-
-	shader_pipeline m_shaders = shaders.value();
-	{
-		m_shaders.viewport_extent = ctx.extent;
-		m_shaders.wire_frames_enabled = ctx.wire_frame;
-		m_shaders.depth_enabled = ctx.depth_enabled;
-		m_shaders.shader_constants_size = sizeof(gpu_draw_push_constants);
-		m_shaders.front_face = ctx.front_face;
-		if (VkResult result = m_shaders.shade(render_cmd); result != VK_SUCCESS) return rh::result::error;
-	}
-
-	{
-		VkDescriptorSet desc = ctx.ctx->rhi.descriptor_sets.value()->descriptor_set.value();
-		vkCmdBindDescriptorSets(render_cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shaders.pipeline_layout.value(), 0, 1, &desc, 0, nullptr);
-	}
-
-	for (auto ro : draw_nodes_) {
-		gpu_draw_push_constants pc = push_constants(ro);
-		m_shaders.shader_constants = &pc;
-		if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;
-		vkCmdBindIndexBuffer(render_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(render_cmd, ro.index_count, 1, ro.first_index, 0, 0);
-	}
-
-	vkCmdEndDebugUtilsLabelEXT(render_cmd);
-
 
 	// Debug
 	if (scene_buffers.has_value()) {
@@ -487,36 +488,38 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx, int pass_number)
 	ZoneScopedNC("mesh_generate_shadows", 0xD9C4EC);
 	if (meshes.size() == 0) return rh::result::ok;
 	auto mv_cmd = ctx.shadow_pass_cmd;
-
-	shader_pipeline m_shaders = shadow_shaders.value();
-	if (pass_number == 0) {
-		VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
-		vkCmdBeginDebugUtilsLabelEXT(mv_cmd, &mesh_draw_label);
-		if (depth_bias_enabled) {
-			vkCmdSetDepthBiasEnable(mv_cmd, depth_bias_enabled);
-			vkCmdSetDepthClampEnableEXT(mv_cmd, true);
-			vkCmdSetDepthBias(mv_cmd, depth_bias_constant, depth_bias_clamp, depth_bias_slope_factor);
+	{
+		shader_pipeline m_shaders = shadow_shaders.value();
+		if (pass_number == 0) {
+			VkDebugUtilsLabelEXT mesh_draw_label = rhi_helpers::create_debug_label(name.c_str(), color);
+			vkCmdBeginDebugUtilsLabelEXT(mv_cmd, &mesh_draw_label);
+			if (depth_bias_enabled) {
+				vkCmdSetDepthBiasEnable(mv_cmd, depth_bias_enabled);
+				vkCmdSetDepthClampEnableEXT(mv_cmd, true);
+				vkCmdSetDepthBias(mv_cmd, depth_bias_constant, depth_bias_clamp, depth_bias_slope_factor);
+			}
+			m_shaders.viewport_extent = shadow_map_extent_;
+			m_shaders.wire_frames_enabled = false;
+			m_shaders.depth_enabled = true;
+			m_shaders.culling_enabled = false;
+			m_shaders.front_face = ctx.front_face;
+			if (VkResult result = m_shaders.shade(mv_cmd); result != VK_SUCCESS) return rh::result::error;
 		}
-		m_shaders.viewport_extent = shadow_map_extent_;
-		m_shaders.wire_frames_enabled = false;
-		m_shaders.depth_enabled = true;
-		m_shaders.culling_enabled = false;
-		m_shaders.front_face = ctx.front_face;
-		if (VkResult result = m_shaders.shade(mv_cmd); result != VK_SUCCESS) return rh::result::error;
-	}
 
-	for (auto ro : draw_nodes_) {
-		gpu_shadow_push_constants sc = shadow_constants(ro, pass_number);
-		m_shaders.shader_constants = &sc;
-		m_shaders.shader_constants_size = sizeof(sc);
-		if (VkResult result = m_shaders.push(mv_cmd); result != VK_SUCCESS) return rh::result::error;
-		vkCmdBindIndexBuffer(mv_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(mv_cmd, ro.index_count, 1, ro.first_index, 0, 0);
-	}
+		for (auto ro : draw_nodes_) {
+			ZoneScopedNC("draw_nodes_", 0xF9FFD1);
+			gpu_shadow_push_constants sc = shadow_constants(ro, pass_number);
+			m_shaders.shader_constants = &sc;
+			m_shaders.shader_constants_size = sizeof(sc);
+			if (VkResult result = m_shaders.push(mv_cmd); result != VK_SUCCESS) return rh::result::error;
+			vkCmdBindIndexBuffer(mv_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(mv_cmd, ro.index_count, 1, ro.first_index, 0, 0);
+		}
 
-	if (pass_number == 2) {
-		vkCmdEndDebugUtilsLabelEXT(mv_cmd);
-		if (depth_bias_enabled) vkCmdSetDepthBiasEnable(mv_cmd, depth_bias_enabled);
+		if (pass_number == 2) {
+			vkCmdEndDebugUtilsLabelEXT(mv_cmd);
+			if (depth_bias_enabled) vkCmdSetDepthBiasEnable(mv_cmd, depth_bias_enabled);
+		}
 	}
 	return rh::result::ok;
 };
