@@ -112,6 +112,20 @@ VkResult rhi::draw_ui()
 	}
 	ImGui::End();
 #endif
+	if (ImGui::Begin("Stats"))
+	{
+		ImGui::Text("afps %.0f rad/s", stats->a_fps);
+		ImGui::Text("dfps %.0f °/s", stats->d_fps);
+		ImGui::Text("rfps %.0f", stats->r_fps);
+		ImGui::Text("frame time %.3fms", stats->frame_time);
+		ImGui::Text("update time %.3f ms", stats->scene_update_time);
+		ImGui::Text("draw time %.3f ms", stats->mesh_draw_time);
+		ImGui::Text("shadow pass time %.3f ms", stats->shadow_draw_time);
+		ImGui::Text("triangles %i", stats->triangle_count);
+		ImGui::Text("lines %i", stats->line_count);
+		ImGui::Text("draws %i", stats->draw_call_count);
+	}
+	ImGui::End();
 	// Draw some FPS statistics or something
 	ImGui::Begin("Shadow maps");
 	static const char* options[] =

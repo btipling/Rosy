@@ -207,6 +207,9 @@ void app::render(const SDL_Event* event)
 	const auto end = std::chrono::system_clock::now();
 	const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 	renderer.stats->frame_time = elapsed.count() / 1000.f;
+	renderer.stats->r_fps = 1.f / (renderer.stats->frame_time / 1000.f);
+	renderer.stats->a_fps = glm::two_pi<float>() * renderer.stats->r_fps;
+	renderer.stats->d_fps = glm::degrees(glm::two_pi<float>() * renderer.stats->r_fps);
 	FrameMark;
 }
 
