@@ -296,7 +296,10 @@ void rhi::deinit()
 	{
 		vkDestroyInstance(instance_.value(), nullptr);
 	}
-	delete stats;
+	if (stats) {
+		delete stats;
+		stats = nullptr;
+	}
 }
 
 void rhi::destroy_swapchain()
