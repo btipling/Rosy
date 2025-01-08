@@ -84,3 +84,69 @@ void rhi::deinit_ui() const
 		vkDestroyDescriptorPool(opt_device.value(), ui_pool_.value(), nullptr);
 	}
 }
+
+VkResult rhi::draw_ui()
+{
+#ifdef PROFILING_ENABLED
+
+	if (ImGui::Begin("Profiling"))
+	{
+		if (TracyIsStarted)
+		{
+
+			ImGui::Text("Started.");
+		}
+		else
+		{
+
+			ImGui::Text("Not started.");
+		}
+		if (TracyIsConnected)
+		{
+			ImGui::Text("Connected.");
+		}
+		else
+		{
+			ImGui::Text("Not connected.");
+		}
+	}
+	ImGui::End();
+#endif
+	// Draw some FPS statistics or something
+	ImGui::Begin("Shadow maps");
+	static const char* options[] =
+	{
+		"Near Shadow Map",
+		"Middle Shadow Map",
+		"Far Shadow Map",
+	};
+
+	if (ImGui::BeginCombo("Select Shadow Map", options[current_viewed_shadow_map_]))
+	{
+		for (int n = 0; n < IM_ARRAYSIZE(options); n++) {
+			if (ImGui::Selectable(options[n], current_viewed_shadow_map_ == n)) current_viewed_shadow_map_ = n;
+		}
+		ImGui::EndCombo();
+	}
+	ImVec2 pos = ImGui::GetCursorScreenPos();
+	constexpr auto uv_min = ImVec2(0.0f, 0.0f);
+	constexpr auto uv_max = ImVec2(1.0f, 1.0f);
+	constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+	const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
+	const ImVec2 content_area = ImGui::GetContentRegionAvail();
+	switch (current_viewed_shadow_map_)
+	{
+	case 1:
+		ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_middle), content_area, uv_min, uv_max, tint_col, border_col);
+		break;
+	case 2:
+		ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_far), content_area, uv_min, uv_max, tint_col, border_col);
+		break;
+	case 0:
+	default:
+		ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
+		break;
+	}
+	ImGui::End();
+	return VK_SUCCESS;
+}

@@ -7,6 +7,15 @@
 #include "rhi_mesh.h"
 #include "SDL3/SDL_events.h"
 
+struct engine_stats {
+	float frame_time{ 0 };
+	int triangle_count{ 0 };
+	int line_count{ 0 };
+	int draw_call_count{ 0 };
+	float scene_update_time{ 0 };
+	float mesh_draw_time{ 0 };
+	float shadow_draw_time{ 0 };
+};
 
 struct frame_data
 {
@@ -36,6 +45,7 @@ namespace rh
 		glm::uint csm_index_near;
 		glm::uint csm_index_middle;
 		glm::uint csm_index_far;
+		engine_stats* stats{nullptr};
 	};
 
 	struct ctx

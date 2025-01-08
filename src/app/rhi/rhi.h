@@ -15,8 +15,9 @@ public:
 	VkExtent2D swapchain_extent = {};
 	std::optional<ktxVulkanDeviceInfo> vdi = std::nullopt;
 	rosy_config::config* app_cfg;
-	tracy::VkCtx* tracy_ctx = nullptr;
+	tracy::VkCtx* tracy_ctx{ nullptr };
 	std::optional<std::unique_ptr<descriptor_sets_manager>> descriptor_sets = std::nullopt;
+	engine_stats* stats{ nullptr };
 
 	explicit rhi(rosy_config::config* cfg);
 	VkResult init(SDL_Window* window);
@@ -24,8 +25,8 @@ public:
 	void deinit();
 	VkResult begin_frame();
 	VkResult init_shadow_pass();
-	VkResult begin_shadow_pass(int pass_number) const;
-	VkResult end_shadow_pass() const;
+	[[nodiscard]] VkResult begin_shadow_pass(int pass_number) const;
+	[[nodiscard]] VkResult end_shadow_pass() const;
 	VkResult init_render_pass();
 	VkResult render_pass();
 	VkResult end_frame();
