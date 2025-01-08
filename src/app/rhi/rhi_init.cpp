@@ -36,6 +36,7 @@ namespace {
 rhi::rhi(rosy_config::config* cfg) : app_cfg{ cfg }, required_features_{ required_features }
 {
 	memset(&required_features_, 0, sizeof(VkPhysicalDeviceFeatures));
+	stats = new engine_stats{};
 }
 
 rhi::~rhi()
@@ -294,6 +295,10 @@ void rhi::deinit()
 	if (instance_.has_value())
 	{
 		vkDestroyInstance(instance_.value(), nullptr);
+	}
+	if (stats) {
+		delete stats;
+		stats = nullptr;
 	}
 }
 

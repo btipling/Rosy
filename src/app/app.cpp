@@ -201,8 +201,15 @@ extern const char* const profiling_shadow_pass_frame = "Shadow_pass";
 extern const char* const profiling_rendering_frame = "Rendering";
 void app::render(const SDL_Event* event)
 {
+	const auto start = std::chrono::system_clock::now();
 	ZoneScopedNC("rendering", 0xEBE8BE);
 	render_scene(event);
+	const auto end = std::chrono::system_clock::now();
+	const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+	renderer.stats->frame_time = elapsed.count() / 1000.f;
+	renderer.stats->r_fps = 1.f / (renderer.stats->frame_time / 1000.f);
+	renderer.stats->a_fps = glm::two_pi<float>() * renderer.stats->r_fps;
+	renderer.stats->d_fps = glm::degrees(glm::two_pi<float>() * renderer.stats->r_fps);
 	FrameMark;
 }
 
@@ -230,6 +237,9 @@ void app::render_ui(const SDL_Event* event)
 
 void app::render_scene(const SDL_Event* event)
 {
+	renderer.stats->draw_call_count = 0;
+	renderer.stats->triangle_count = 0;
+	renderer.stats->line_count = 0;
 	if (scene_ == nullptr) return;
 	if (const VkResult result = renderer.begin_frame();  result != VK_SUCCESS) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -254,7 +264,11 @@ void app::render_scene(const SDL_Event* event)
 		if (const auto scene_result = scene_->build(ctx); scene_result != rh::result::ok) return end_rendering("scene_ build failed\n");
 		scene_loaded_ = true;
 		// Update scene
+		auto start = std::chrono::system_clock::now();
 		if (const auto scene_result = scene_->update(ctx); scene_result != rh::result::ok) return end_rendering("scene_ update failed\n");
+		auto end = std::chrono::system_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+		renderer.stats->scene_update_time = elapsed.count() / 1000.f;
 	}
 	// Generate shadows
 	if (ctx.rhi.shadow_pass_command_buffer.has_value()) {
@@ -269,6 +283,7 @@ void app::render_scene(const SDL_Event* event)
 		}
 
 		constexpr int num_shadow_passes = 3;
+		auto start = std::chrono::system_clock::now();
 		for (int i = 0; i < num_shadow_passes; i++) {
 			if (const VkResult result = renderer.begin_shadow_pass(i);  result != VK_SUCCESS) {
 				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -288,6 +303,9 @@ void app::render_scene(const SDL_Event* event)
 				return end_rendering("rhi shadow pass failed\n");
 			}
 		}
+		auto end = std::chrono::system_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+		renderer.stats->shadow_draw_time = elapsed.count() / 1000.f;
 		FrameMarkEnd(profiling_shadow_pass_frame);
 	}
 	{
@@ -318,7 +336,11 @@ void app::render_scene(const SDL_Event* event)
 			}
 			return end_rendering("rhi render pass failed\n");
 		}
+		auto start = std::chrono::system_clock::now();
 		if (const auto scene_result = scene_->draw(ctx); scene_result != rh::result::ok) return end_rendering("scene_ draw failed\n");
+		auto end = std::chrono::system_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+		renderer.stats->mesh_draw_time = elapsed.count() / 1000.f;
 		render_ui(event);
 		if (const VkResult result = renderer.end_frame(); result != VK_SUCCESS) {
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) {

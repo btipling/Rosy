@@ -35,7 +35,7 @@ void rhi::transition_image(const VkCommandBuffer cmd, const VkImage image, const
 void rhi::transition_shadow_map_image(const VkCommandBuffer cmd, const VkImage image, const VkImageLayout current_layout,
 	const VkImageLayout new_layout, const VkPipelineStageFlags2 src_stage_flags, const VkPipelineStageFlags2 dst_stage_flags)
 {
-	const VkImageAspectFlags aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	constexpr VkImageAspectFlags aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	VkImageSubresourceRange subresource_range = rhi_helpers::create_shadow_img_subresource_range(aspect_mask);
 	subresource_range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
@@ -61,72 +61,6 @@ void rhi::transition_shadow_map_image(const VkCommandBuffer cmd, const VkImage i
 	vkCmdPipelineBarrier2(cmd, &dependency_info);
 }
 
-VkResult rhi::draw_ui()
-{
-#ifdef PROFILING_ENABLED
-
-	if (ImGui::Begin("Profiling"))
-	{
-		if (TracyIsStarted)
-		{
-
-			ImGui::Text("Started.");
-		}
-		else
-		{
-
-			ImGui::Text("Not started.");
-		}
-		if (TracyIsConnected)
-		{
-			ImGui::Text("Connected.");
-		}
-		else
-		{
-			ImGui::Text("Not connected.");
-		}
-	}
-	ImGui::End();
-#endif
-	// Draw some FPS statistics or something
-	ImGui::Begin("Shadow maps");
-	static const char* options[] =
-	{
-		"Near Shadow Map",
-		"Middle Shadow Map",
-		"Far Shadow Map",
-	};
-
-	if (ImGui::BeginCombo("Select Shadow Map", options[current_viewed_shadow_map_]))
-	{
-		for (int n = 0; n < IM_ARRAYSIZE(options); n++) {
-			if (ImGui::Selectable(options[n], current_viewed_shadow_map_ == n)) current_viewed_shadow_map_ = n;
-		}
-		ImGui::EndCombo();
-	}
-	ImVec2 pos = ImGui::GetCursorScreenPos();
-	constexpr auto uv_min = ImVec2(0.0f, 0.0f);
-	constexpr auto uv_max = ImVec2(1.0f, 1.0f);
-	constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-	const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
-	const ImVec2 content_area = ImGui::GetContentRegionAvail();
-	switch (current_viewed_shadow_map_)
-	{
-	case 1:
-		ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_middle), content_area, uv_min, uv_max, tint_col, border_col);
-		break;
-	case 2:
-		ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_far), content_area, uv_min, uv_max, tint_col, border_col);
-		break;
-	case 0:
-	default:
-		ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image_.value().imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
-		break;
-	}
-	ImGui::End();
-	return VK_SUCCESS;
-}
-
 std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event) const
 {
 	if (frame_datas_.size() == 0) return std::unexpected(VK_ERROR_UNKNOWN);
@@ -144,6 +78,7 @@ std::expected<rh::ctx, VkResult> rhi::current_render_ctx(const SDL_Event* event)
 		.csm_index_near = static_cast<glm::uint>(csm.ds_index_near),
 		.csm_index_middle = static_cast<glm::uint>(csm.ds_index_middle),
 		.csm_index_far = static_cast<glm::uint>(csm.ds_index_far),
+		.stats = stats,
 	};
 	if (frame_datas_.size() > 0) {
 		rhi_ctx.render_command_buffer = frame_datas_[current_frame_].render_command_buffer;
@@ -187,6 +122,7 @@ std::expected<rh::ctx, VkResult> rhi::current_shadow_pass_ctx(const SDL_Event* e
 		.csm_index_near = static_cast<glm::uint>(csm.ds_index_near),
 		.csm_index_middle = static_cast<glm::uint>(csm.ds_index_middle),
 		.csm_index_far = static_cast<glm::uint>(csm.ds_index_far),
+		.stats = stats,
 	};
 	if (frame_datas_.size() > 0) {
 		rhi_ctx.render_command_buffer = std::nullopt;

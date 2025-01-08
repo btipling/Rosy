@@ -468,6 +468,8 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 			if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;
 			vkCmdBindIndexBuffer(render_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(render_cmd, ro.index_count, 1, ro.first_index, 0, 0);
+			ctx.ctx->rhi.stats->draw_call_count += 1;
+			ctx.ctx->rhi.stats->triangle_count += ro.index_count / 3;
 		}
 
 		vkCmdEndDebugUtilsLabelEXT(render_cmd);
@@ -511,6 +513,8 @@ rh::result mesh_scene::generate_shadows(mesh_ctx ctx, int pass_number)
 			if (VkResult result = m_shaders.push(mv_cmd); result != VK_SUCCESS) return rh::result::error;
 			vkCmdBindIndexBuffer(mv_cmd, ro.index_buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(mv_cmd, ro.index_count, 1, ro.first_index, 0, 0);
+			ctx.ctx->rhi.stats->draw_call_count += 1;
+			ctx.ctx->rhi.stats->triangle_count += ro.index_count / 3;
 		}
 
 		if (pass_number == 2) {

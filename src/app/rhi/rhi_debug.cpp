@@ -63,6 +63,8 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 		m_shaders.shader_constants_size = sizeof(line);
 		if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;
 		vkCmdDraw(render_cmd, 2, 1, 0, 0);
+		ctx.ctx->rhi.stats->draw_call_count += 1;
+		ctx.ctx->rhi.stats->line_count += 1;
 	}
 	if (shadow_frustum.has_value()) {
 		for (auto line : shadow_box_lines) {
@@ -74,6 +76,8 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 			m_shaders.shader_constants_size = sizeof(shadow_line);
 			if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;
 			vkCmdDraw(render_cmd, 2, 1, 0, 0);
+			ctx.ctx->rhi.stats->draw_call_count += 1;
+			ctx.ctx->rhi.stats->line_count += 1;
 		}
 	}
 	for (auto line : sunlight_lines) {
@@ -84,6 +88,8 @@ rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
 		m_shaders.shader_constants_size = sizeof(shadow_line);
 		if (VkResult result = m_shaders.push(render_cmd); result != VK_SUCCESS) return rh::result::error;
 		vkCmdDraw(render_cmd, 2, 1, 0, 0);
+		ctx.ctx->rhi.stats->draw_call_count += 1;
+		ctx.ctx->rhi.stats->line_count += 1;
 	}
 	vkCmdSetPrimitiveTopologyEXT(render_cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 	vkCmdEndDebugUtilsLabelEXT(render_cmd);
