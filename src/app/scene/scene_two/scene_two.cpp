@@ -52,7 +52,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	}
 	{
 		mesh_scene mesh_graph{};
-		if (const auto res = data->load_gltf_meshes(ctx, "assets\\skybox_blue_desert.glb", mesh_graph); res != rh::result::ok)
+		if (const auto res = data->load_gltf_meshes(ctx, "assets\\new_sky.glb", mesh_graph); res != rh::result::ok)
 		{
 			return res;
 		}
