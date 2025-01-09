@@ -7,8 +7,10 @@
 // ReSharper disable once CppInconsistentNaming
 #include "volk/volk.h"
 #define IMGUI_IMPL_VULKAN_USE_VOLK
+#pragma warning(disable: 4100 4189 4127 4324 4505)
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
+#pragma warning(default: 4100 4189 4127 4324 4505)
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"

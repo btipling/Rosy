@@ -7,11 +7,12 @@
 #include "app/app.h"
 
 
-
-int main()
+#pragma warning(disable: 4100)
+int main(int argc, char* argv[])
 {
 	app app_i{};
 	if (const int res = app_i.init() != 0) return res;
 	if (const int res = app_i.run() != 0) return res;
 	return app_i.deinit();
 }
+#pragma warning(default: 4100)
