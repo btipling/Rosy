@@ -154,6 +154,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)\lib\dds_image;$(ProjectDir)\vcpkg_installed\x64-windows\include;$(ProjectDir)\lib\tracy;$(ProjectDir)\lib\imgui;$(VULKAN_SDK)\Include;$(SDL_PATH)\include;$(KTX_PATH)\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

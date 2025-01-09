@@ -503,9 +503,9 @@ VkResult rhi::init_instance()
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	create_info.pNext = &create_debug_callback_info_ext;
 	create_info.pApplicationInfo = &app_info;
-	create_info.enabledLayerCount = instance_layer_properties_.size();
+	create_info.enabledLayerCount = static_cast<uint32_t>(instance_layer_properties_.size());
 	create_info.ppEnabledLayerNames = instance_layer_properties_.data();
-	create_info.enabledExtensionCount = instance_extensions_.size();
+	create_info.enabledExtensionCount = static_cast<uint32_t>(instance_extensions_.size());
 	create_info.ppEnabledExtensionNames = instance_extensions_.data();
 
 	VkInstance instance;
@@ -740,7 +740,7 @@ VkResult rhi::init_device()
 	device_create_info.pQueueCreateInfos = &device_queue_create_info;
 	device_create_info.enabledLayerCount = 0;
 	device_create_info.ppEnabledLayerNames = nullptr;
-	device_create_info.enabledExtensionCount = device_device_extensions_.size();
+	device_create_info.enabledExtensionCount = static_cast<uint32_t>(device_device_extensions_.size());
 	device_create_info.ppEnabledExtensionNames = device_device_extensions_.data();
 	device_create_info.pEnabledFeatures = &required_features_;
 	VkDevice device;

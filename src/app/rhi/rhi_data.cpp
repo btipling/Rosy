@@ -149,11 +149,10 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 				auto image_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
 				auto sampler_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value();
 				VkSamplerCreateInfo sampler_create_info = sampler_create_infos[sampler_index];
-				auto [texture, vk_texture] = gltf_mesh_scene.ktx_textures[image_index];
 				auto img_view = gltf_mesh_scene.image_views[image_index];
 				VkSampler sampler{};
 				{
-					sampler_create_info.maxLod = vk_texture.levelCount;
+					sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
 					sampler_create_info.minLod = 0;
 
 					sampler_create_info.anisotropyEnable = VK_FALSE;
@@ -205,7 +204,7 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 			new_surface.start_index = static_cast<uint32_t>(indices.size());
 			new_surface.count = static_cast<uint32_t>(gltf.accessors[p.indicesAccessor.value()].count);
 
-			size_t initial_vtx = vertices.size();
+			uint32_t initial_vtx = static_cast<uint32_t>(vertices.size());
 
 			{
 				fastgltf::Accessor& index_accessor = gltf.accessors[p.indicesAccessor.value()];

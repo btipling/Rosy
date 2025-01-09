@@ -257,21 +257,21 @@ void mesh_scene::draw_ui(const rh::ctx& ctx)
 		current_view_ = static_cast<camera_view>(elem);
 		ImGui::SliderInt("slider enum", &elem, 0, 3 - 1, elem_name);
 
-		if (ImGui::SliderFloat("Sunlight rotation x", &sunlight_x_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
+		if (ImGui::SliderFloat("Sunlight rotation x", &sunlight_x_rot_, 0, static_cast<float>(std::numbers::pi) * 2.f, "%.3f")) {
 			auto m = glm::mat4{ 1.f };
 			m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
 			m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
 			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 			 light_transform_ = m;
 		}
-		if (ImGui::SliderFloat("Sunlight rotation y", &sunlight_y_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
+		if (ImGui::SliderFloat("Sunlight rotation y", &sunlight_y_rot_, 0, static_cast<float>(std::numbers::pi) * 2.f, "%.3f")) {
 			auto m = glm::mat4{ 1.f };
 			m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
 			m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
 			m = glm::rotate(m, sunlight_z_rot_, glm::vec3(0.f, 0.f, 1.f));
 			light_transform_ = m;
 		}
-		if (ImGui::SliderFloat("Sunlight rotation z", &sunlight_z_rot_, 0, std::numbers::pi * 2.f, "%.3f")) {
+		if (ImGui::SliderFloat("Sunlight rotation z", &sunlight_z_rot_, 0, static_cast<float>(std::numbers::pi) * 2.f, "%.3f")) {
 			auto m = glm::mat4{ 1.f };
 			m = glm::rotate(m, sunlight_x_rot_, glm::vec3(1.f, 0.f, 0.f));
 			m = glm::rotate(m, sunlight_y_rot_, glm::vec3(0.f, 1.f, 0.f));
@@ -311,14 +311,14 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 		);
 
 		const auto [width, height] = ctx.rhi.frame_extent;
-		constexpr float z_near = 0.1f;
-		constexpr float z_far = 1000.0f;
-		const float aspect = static_cast<float>(width) / static_cast<float>(height);
-		constexpr float fov = glm::radians(70.0f);
-		const float h = 1.0 / tan(fov * 0.5);
-		const float w = h / aspect;
-		constexpr float a = -z_near / (z_far - z_near);
-		constexpr float b = (z_near * z_far) / (z_far - z_near);
+		constexpr double z_near = 0.1f;
+		constexpr double z_far = 1000.0f;
+		const double aspect = static_cast<float>(width) / static_cast<float>(height);
+		constexpr double fov = glm::radians(70.0f);
+		const double h = 1.0 / tan(fov * 0.5);
+		const double w = h / aspect;
+		constexpr double a = -z_near / (z_far - z_near);
+		constexpr double b = (z_near * z_far) / (z_far - z_near);
 
 
 		glm::mat4 proj(

@@ -182,8 +182,8 @@ VkResult rhi::begin_frame()
 	current_swapchain_image_index_ = image_index;
 
 	const allocated_image draw_image = draw_image_.value();
-	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * render_scale_;
-	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * render_scale_;
+	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * static_cast<uint32_t>(render_scale_);
+	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * static_cast<uint32_t>(render_scale_);
 
 	vkResetFences(device, 1, &shadow_pass_fence);
 
