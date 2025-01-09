@@ -147,7 +147,7 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 			material m{};
 			if (mat.pbrData.baseColorTexture.has_value()) {
 				auto image_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
-				auto sampler_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
+				auto sampler_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value();
 				VkSamplerCreateInfo sampler_create_info = sampler_create_infos[sampler_index];
 				auto [texture, vk_texture] = gltf_mesh_scene.ktx_textures[image_index];
 				auto img_view = gltf_mesh_scene.image_views[image_index];
