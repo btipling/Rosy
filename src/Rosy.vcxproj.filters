@@ -239,7 +239,7 @@
     <ClCompile Include="app\rhi\rhi_debug.cpp">
       <Filter>Source Files\rhi</Filter>
     </ClCompile>
-    <ClCompile Include="lib\tracy\TracyClient.cpp">
+    <ClCompile Include="lib\tracy\TracyClient.cpp" DisableSpecificWarnings="4100">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

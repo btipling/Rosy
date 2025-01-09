@@ -242,32 +242,6 @@ namespace rhi_helpers {
 		return push_constant_range;
 	}
 
-	VkWriteDescriptorSet create_img_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorImageInfo& img_info)
-	{
-		VkWriteDescriptorSet desc_set{};
-		desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		desc_set.pNext = nullptr;
-		desc_set.dstBinding = 0;
-		desc_set.dstSet = des_set;
-		desc_set.descriptorCount = 1;
-		desc_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		desc_set.pImageInfo = &img_info;
-		return desc_set;
-	}
-
-	VkWriteDescriptorSet create_buffer_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorBufferInfo& buf_info)
-	{
-		VkWriteDescriptorSet desc_set{};
-		desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		desc_set.pNext = nullptr;
-		desc_set.dstBinding = 0;
-		desc_set.dstSet = des_set;
-		desc_set.descriptorCount = 1;
-		desc_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		desc_set.pBufferInfo = &buf_info;
-		return desc_set;
-	}
-
 	VkDescriptorImageInfo create_img_descriptor_info(const VkImageView& image_view)
 	{
 		VkDescriptorImageInfo img_info{};

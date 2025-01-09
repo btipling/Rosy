@@ -386,7 +386,6 @@ VkResult rhi::query_instance_extensions()
 	rosy_utils::debug_print_a("num required instance extensions: %d\n", std::size(instance_extensions));
 	{
 		// Setup required instance extensions
-		size_t found_extensions = 0;
 		uint32_t extension_count;
 		const auto extension_names = SDL_Vulkan_GetInstanceExtensions(&extension_count);
 		for (uint32_t i = 0; i < extension_count; i++)
@@ -503,9 +502,9 @@ VkResult rhi::init_instance()
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	create_info.pNext = &create_debug_callback_info_ext;
 	create_info.pApplicationInfo = &app_info;
-	create_info.enabledLayerCount = instance_layer_properties_.size();
+	create_info.enabledLayerCount = static_cast<uint32_t>(instance_layer_properties_.size());
 	create_info.ppEnabledLayerNames = instance_layer_properties_.data();
-	create_info.enabledExtensionCount = instance_extensions_.size();
+	create_info.enabledExtensionCount = static_cast<uint32_t>(instance_extensions_.size());
 	create_info.ppEnabledExtensionNames = instance_extensions_.data();
 
 	VkInstance instance;
@@ -740,7 +739,7 @@ VkResult rhi::init_device()
 	device_create_info.pQueueCreateInfos = &device_queue_create_info;
 	device_create_info.enabledLayerCount = 0;
 	device_create_info.ppEnabledLayerNames = nullptr;
-	device_create_info.enabledExtensionCount = device_device_extensions_.size();
+	device_create_info.enabledExtensionCount = static_cast<uint32_t>(device_device_extensions_.size());
 	device_create_info.ppEnabledExtensionNames = device_device_extensions_.data();
 	device_create_info.pEnabledFeatures = &required_features_;
 	VkDevice device;
@@ -1293,12 +1292,12 @@ VkResult rhi::init_commands()
 	alloc_info.commandBufferCount = 1;
 	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-	VkCommandBuffer buffer;
-	result = vkAllocateCommandBuffers(device, &alloc_info, &buffer);
+	VkCommandBuffer new_buffer;
+	result = vkAllocateCommandBuffers(device, &alloc_info, &new_buffer);
 	if (result != VK_SUCCESS) return result;
-	imm_command_buffer_ = buffer;
+	imm_command_buffer_ = new_buffer;
 	{
-		const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<uint64_t>(buffer), "immediate command buffer");
+		const VkDebugUtilsObjectNameInfoEXT object_name = rhi_helpers::add_name(VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<uint64_t>(new_buffer), "immediate command buffer");
 		if (vkSetDebugUtilsObjectNameEXT(opt_device.value(), &object_name); result != VK_SUCCESS) return result;
 	}
 

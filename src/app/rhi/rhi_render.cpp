@@ -164,7 +164,6 @@ VkResult rhi::begin_frame()
 	}
 
 	const VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
-	const VkCommandBuffer render_cmd = opt_render_command_buffer.value();
 	const VkSemaphore image_available = opt_image_available_semaphore.value();
 	const VkFence shadow_pass_fence = opt_shadow_pass_fence.value();
 
@@ -177,13 +176,11 @@ VkResult rhi::begin_frame()
 	// vkAcquireNextImageKHR will signal the imageAvailable semaphore which the submit queue call will wait for below.
 	vkAcquireNextImageKHR(opt_device.value(), swapchain_.value(), UINT64_MAX, image_available, VK_NULL_HANDLE,
 		&image_index);
-	VkImage image = swap_chain_images_[image_index];
-	VkImageView image_view = swap_chain_image_views_[image_index];
 	current_swapchain_image_index_ = image_index;
 
 	const allocated_image draw_image = draw_image_.value();
-	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * render_scale_;
-	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * render_scale_;
+	draw_extent_.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * static_cast<uint32_t>(render_scale_);
+	draw_extent_.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * static_cast<uint32_t>(render_scale_);
 
 	vkResetFences(device, 1, &shadow_pass_fence);
 
@@ -450,7 +447,6 @@ VkResult rhi::end_frame()
 		if (!opt_in_flight_fence.has_value()) return VK_NOT_READY;
 		if (!opt_command_pool.has_value()) return VK_NOT_READY;
 	}
-	const VkCommandBuffer mv_cmd = opt_shadow_pass_command_buffer.value();
 	VkCommandBuffer render_cmd = opt_render_command_buffer.value();
 	VkSemaphore shadow_pass_pass = opt_shadow_pass_semaphore.value();
 	VkSemaphore rendered_finished = opt_render_finished_semaphore.value();

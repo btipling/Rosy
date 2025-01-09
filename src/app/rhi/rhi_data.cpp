@@ -3,10 +3,12 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <iostream>
 #include <glm/gtx/quaternion.hpp>
+#pragma warning(push)
+#pragma warning(disable:4100)
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
-#include <fastgltf/tools.hpp>
+#pragma warning(pop)
 #include <stb_image.h>
 
 rhi_data::rhi_data(rhi* renderer) : renderer_{ renderer }
@@ -65,7 +67,7 @@ namespace {
 	}
 }
 
-rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path, mesh_scene& gltf_mesh_scene)
+rh::result rhi_data::load_gltf_meshes(std::filesystem::path file_path, mesh_scene& gltf_mesh_scene)
 {
 	VkDevice device = renderer_->opt_device.value();
 	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
@@ -147,13 +149,12 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 			material m{};
 			if (mat.pbrData.baseColorTexture.has_value()) {
 				auto image_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
-				auto sampler_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
+				auto sampler_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value();
 				VkSamplerCreateInfo sampler_create_info = sampler_create_infos[sampler_index];
-				auto [texture, vk_texture] = gltf_mesh_scene.ktx_textures[image_index];
 				auto img_view = gltf_mesh_scene.image_views[image_index];
 				VkSampler sampler{};
 				{
-					sampler_create_info.maxLod = vk_texture.levelCount;
+					sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
 					sampler_create_info.minLod = 0;
 
 					sampler_create_info.anisotropyEnable = VK_FALSE;
@@ -205,7 +206,7 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 			new_surface.start_index = static_cast<uint32_t>(indices.size());
 			new_surface.count = static_cast<uint32_t>(gltf.accessors[p.indicesAccessor.value()].count);
 
-			size_t initial_vtx = vertices.size();
+			uint32_t initial_vtx = static_cast<uint32_t>(vertices.size());
 
 			{
 				fastgltf::Accessor& index_accessor = gltf.accessors[p.indicesAccessor.value()];
@@ -292,7 +293,6 @@ rh::result rhi_data::load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path 
 		size_t num_surfaces{ 0 };
 		std::queue<std::shared_ptr<mesh_node>> queue{};
 		for (const size_t node_index : gltf_mesh_scene.scenes[gltf_mesh_scene.root_scene]) queue.push(gltf_mesh_scene.nodes[node_index]);
-		size_t mesh_index = 0;
 		while (queue.size() > 0)
 		{
 			const auto current_node = queue.front();
@@ -635,8 +635,7 @@ std::expected<ktxVulkanTexture, ktx_error_code_e> rhi_data::create_image(ktxText
 }
 
 
-std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(const void* data, const VkExtent3D size, const VkFormat format,
-	const VkImageUsageFlags usage, const bool mip_mapped)
+std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(const void* data, const VkExtent3D size, const VkFormat format)
 {
 	const size_t data_size = static_cast<size_t>(size.depth) * size.width * size.height * 4;
 
@@ -710,7 +709,7 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastglt
 				image_size.width = width;
 				image_size.height = height;
 				image_size.depth = 1;
-				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, format, VK_IMAGE_USAGE_SAMPLED_BIT, false);
+				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, format);
 
 				stbi_image_free(data);
 				return rv;
@@ -727,7 +726,7 @@ std::expected<ktx_auto_texture, ktx_error_code_e> rhi_data::create_image(fastglt
 				image_size.height = height;
 				image_size.depth = 1;
 
-				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, format, VK_IMAGE_USAGE_SAMPLED_BIT, false);
+				std::expected<ktx_auto_texture, ktx_error_code_e> rv = create_image(data, image_size, format);
 
 				stbi_image_free(data);
 				return rv;

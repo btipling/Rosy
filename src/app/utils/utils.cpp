@@ -10,7 +10,7 @@ namespace rosy_utils {
 		va_list args;
 		va_start(args, format);
 
-		int _ = StringCbVPrintfW(buffer, sizeof(buffer), format, args);
+		if (const int result = StringCbVPrintfW(buffer, sizeof(buffer), format, args); result != 0) return;
 		OutputDebugStringW(buffer);
 
 		va_end(args);
@@ -23,7 +23,7 @@ namespace rosy_utils {
 		va_list args;
 		va_start(args, format);
 
-		int _ = StringCbVPrintfA(buffer, sizeof(buffer), format, args);
+		if (const int result = StringCbVPrintfA(buffer, sizeof(buffer), format, args); result != 0) return;
 		OutputDebugStringA(buffer);
 
 		va_end(args);

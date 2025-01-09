@@ -35,5 +35,5 @@ public:
 	void deinit(const rh::ctx& ctx) const;
 	void set_shadow_frustum(debug_frustum frustum);
 	void set_sunlight(glm::mat4 sunlight);
-	[[nodiscard]] auto draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address) -> rh::result;
+	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 };

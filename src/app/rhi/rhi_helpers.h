@@ -24,8 +24,6 @@ namespace rhi_helpers {
 	VkShaderCreateInfoEXT create_shader_info(const std::vector<char>& shader_src, const VkShaderStageFlagBits stage, const VkShaderStageFlags next_stage,
 		VkShaderCreateFlagsEXT shader_flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT);
 	VkPushConstantRange create_push_constant(VkShaderStageFlags stage, uint32_t size);
-	VkWriteDescriptorSet create_img_write_descriptor_set(VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorImageInfo& img_info);
-	VkWriteDescriptorSet create_buffer_write_descriptor_set(const VkDescriptorSet des_set, uint32_t des_binding, const VkDescriptorBufferInfo& buf_info);
 	VkDescriptorImageInfo create_img_descriptor_info(const VkImageView& image_view);
 	VkImageSubresourceRange create_img_subresource_range(VkImageAspectFlags aspect_mask);
 	VkPipelineLayoutCreateInfo create_pipeline_layout_create_info(const VkPushConstantRange& pc_range, uint32_t pc_count, 

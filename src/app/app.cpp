@@ -5,11 +5,12 @@
 #include "stb_image.h"
 #define VOLK_IMPLEMENTATION
 // ReSharper disable once CppInconsistentNaming
-#define VK_EXT_depth_bias_control
 #include "volk/volk.h"
 #define IMGUI_IMPL_VULKAN_USE_VOLK
+#pragma warning(disable: 4100 4189 4127 4324 4505)
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
+#pragma warning(default: 4100 4189 4127 4324 4505)
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
@@ -227,7 +228,7 @@ void app::render_ui(const SDL_Event* event)
 		else return end_rendering("no available frame data\n");
 		if (scene_ != nullptr)
 		{
-			if (const auto scene_result = scene_->draw_ui(ctx); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
+			if (const auto scene_result = scene_->draw_ui(); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
 		}
 	}
 	scene_selector_.draw_ui();

@@ -7,7 +7,7 @@
 #include "app/app.h"
 
 
-
+#pragma warning(disable: 4100)
 int main(int argc, char* argv[])
 {
 	app app_i{};
@@ -15,3 +15,4 @@ int main(int argc, char* argv[])
 	if (const int res = app_i.run() != 0) return res;
 	return app_i.deinit();
 }
+#pragma warning(default: 4100)

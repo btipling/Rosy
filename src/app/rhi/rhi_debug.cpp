@@ -34,7 +34,7 @@ void debug_gfx::deinit(const rh::ctx& ctx) const
 	}
 }
 
-rh::result debug_gfx::draw(mesh_ctx ctx, VkDeviceAddress scene_buffer_address)
+rh::result debug_gfx::draw(mesh_ctx ctx)
 {
 	ZoneScopedNC("draw_debug_lines", 0xCDC4FF);
 	if (lines.size() == 0) return rh::result::ok;

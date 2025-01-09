@@ -23,5 +23,6 @@
 #include <tracy/TracyVulkan.hpp>
 
 namespace tracy {
+	// ReSharper disable once CppInconsistentNaming
 	class VkCtx;
 }

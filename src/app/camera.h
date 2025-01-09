@@ -32,10 +32,10 @@ public:
 
     void process_sdl_event(const rh::ctx& ctx);
 
-    void update(const rh::ctx& ctx);
+    void update();
 private:
     std::vector<movement> movements_;
     void integrate_all();
-    void integrate(movement::direction direction, double velocity);
+    void integrate(movement::direction direction, double v);
 };
 
