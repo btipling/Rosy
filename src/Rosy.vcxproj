@@ -147,7 +147,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -260,7 +260,9 @@
     <ClCompile Include="app\rhi\rhi_sub_allocator.cpp" />
     <ClCompile Include="app\scene\scene.cpp" />
     <ClCompile Include="app\scene\scene_two\scene_two.cpp" />
-    <ClCompile Include="lib\tracy\TracyClient.cpp" />
+    <ClCompile Include="lib\tracy\TracyClient.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Level4</WarningLevel>
+    </ClCompile>
     <ClCompile Include="math.cpp" />
     <ClCompile Include="Rosy.cpp" />
     <ClCompile Include="lib\imgui\backends\imgui_impl_sdl3.cpp" />

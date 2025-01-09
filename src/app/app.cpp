@@ -226,7 +226,7 @@ void app::render_ui(const SDL_Event* event)
 		else return end_rendering("no available frame data\n");
 		if (scene_ != nullptr)
 		{
-			if (const auto scene_result = scene_->draw_ui(ctx); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
+			if (const auto scene_result = scene_->draw_ui(); scene_result != rh::result::ok)  return end_rendering("scene_ draw ui failed\n");
 		}
 	}
 	scene_selector_.draw_ui();

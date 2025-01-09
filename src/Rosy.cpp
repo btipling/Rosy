@@ -8,7 +8,7 @@
 
 
 
-int main(int argc, char* argv[])
+int main()
 {
 	app app_i{};
 	if (const int res = app_i.init() != 0) return res;

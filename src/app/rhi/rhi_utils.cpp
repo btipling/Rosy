@@ -3,6 +3,7 @@
 
 namespace
 {
+#pragma warning(disable:4100)
 	VkBool32 VKAPI_CALL debug_callback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
 		VkDebugUtilsMessageSeverityFlagsEXT message_type,
@@ -12,6 +13,7 @@ namespace
 		rosy_utils::debug_print_a("Validation layer debug callback: %s\n", p_callback_data->pMessage);
 		return VK_FALSE;
 	}
+#pragma warning(default:4100)
 }
 
 void rhi::debug() const

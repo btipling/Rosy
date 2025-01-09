@@ -49,9 +49,8 @@ void mesh_scene::init(const rh::ctx& ctx)
 		return;
 	}
 
-	std::vector<VkDescriptorSetLayout>layouts{};
-	const VkDevice device = ctx.rhi.device;
 	{
+		std::vector<VkDescriptorSetLayout> layouts{};
 		layouts.push_back(ctx.rhi.descriptor_sets.value()->descriptor_set_layout.value());
 		shader_pipeline sp = {};
 		sp.layouts = layouts;
@@ -147,7 +146,6 @@ void mesh_scene::init_shadows(const rh::ctx& ctx)
 	cam.pitch = 0.36f;
 	cam.yaw = 1.f;
 	mesh_cam = std::make_unique<camera>(std::move(cam));
-	const VkDevice device = ctx.rhi.device;
 	std::vector<char> scene_vertex_shader;
 	shadow_map_extent_ = ctx.rhi.shadow_map_extent;
 	try
@@ -235,13 +233,12 @@ glm::mat4 mesh_scene::csm_pos(const int csm_extent)
 	return shadow_p * glm::inverse(l);
 }
 
-void mesh_scene::draw_ui(const rh::ctx& ctx)
+void mesh_scene::draw_ui()
 {
 	ZoneScopedNC("draw_ui", 0xBEA9DF);
 	const glm::mat4 L = light_transform_;
 	ImGui::Begin("Sunlight & Shadow");
 	{
-		bool rotate = false;
 		ImGui::Text("Light position: (%.3f, %.3f, %.3f)", light_pos_.x, light_pos_.y, light_pos_.z);
 		ImGui::Text("Light direction: (%.3f, %.3f, %.3f)", L[2][0], L[2][1], L[2][2]);
 		ImGui::Text("CSM dimension %.3f", csm_dk_);
@@ -293,7 +290,7 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 {
 	{
 		mesh_cam->process_sdl_event(ctx);
-		mesh_cam->update(ctx);
+		mesh_cam->update();
 	}
 	{
 		constexpr auto ndc = glm::mat4(
@@ -364,12 +361,12 @@ gpu_scene_data mesh_scene::scene_update(const rh::ctx& ctx)
 	return scene_data;
 }
 
-void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data)
+void mesh_scene::update(mesh_ctx ctx, std::optional<gpu_scene_data> new_scene_data)
 {
 	if (ctx.scene_index >= scenes.size()) return;
-	if (scene_data.has_value() && scene_buffers.has_value()) {
+	if (new_scene_data.has_value() && scene_buffers.has_value()) {
 		gpu_scene_buffers sb = scene_buffers.value();
-		gpu_scene_data sd = scene_data.value();
+		gpu_scene_data sd = new_scene_data.value();
 		sd.csm_index_sampler = ctx.ctx->rhi.csm_index_sampler;
 		sd.csm_index_near = ctx.ctx->rhi.csm_index_near;
 		sd.csm_index_middle = ctx.ctx->rhi.csm_index_middle;
@@ -477,7 +474,7 @@ rh::result mesh_scene::draw(mesh_ctx ctx)
 
 	// Debug
 	if (scene_buffers.has_value()) {
-		if (const auto res = debug->draw(ctx, scene_buffers.value().scene_buffer_address); res != rh::result::ok) return res;
+		if (const auto res = debug->draw(ctx); res != rh::result::ok) return res;
 	}
 	return rh::result::ok;
 };

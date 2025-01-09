@@ -15,8 +15,6 @@ scene_two::scene_two()
 rh::result scene_two::deinit(rh::ctx& ctx)
 {
 	const VkDevice device = ctx.rhi.device;
-	const VmaAllocator allocator = ctx.rhi.allocator;
-	const auto buffer = ctx.rhi.data.value();
 	{
 		vkDeviceWaitIdle(device);
 	}
@@ -33,12 +31,11 @@ rh::result scene_two::deinit(rh::ctx& ctx)
 
 rh::result scene_two::build(const rh::ctx& ctx)
 {
-	const VkDevice device = ctx.rhi.device;
 	const auto data = ctx.rhi.data.value();
 	{
 		mesh_scene mesh_graph{};
 		// ReSharper disable once StringLiteralTypo
-		if (const auto res = data->load_gltf_meshes(ctx, "assets\\SM_Deccer_Cubes_Textured_Complex.gltf", mesh_graph); res != rh::result::ok)
+		if (const auto res = data->load_gltf_meshes("assets\\SM_Deccer_Cubes_Textured_Complex.gltf", mesh_graph); res != rh::result::ok)
 		{
 			return res;
 		}
@@ -52,7 +49,7 @@ rh::result scene_two::build(const rh::ctx& ctx)
 	}
 	{
 		mesh_scene mesh_graph{};
-		if (const auto res = data->load_gltf_meshes(ctx, "assets\\new_sky.glb", mesh_graph); res != rh::result::ok)
+		if (const auto res = data->load_gltf_meshes("assets\\new_sky.glb", mesh_graph); res != rh::result::ok)
 		{
 			return res;
 		}
@@ -70,7 +67,6 @@ rh::result scene_two::build(const rh::ctx& ctx)
 
 rh::result scene_two::depth(const rh::ctx ctx, int pass_number)
 {
-	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.shadow_pass_command_buffer.has_value()) return rh::result::error;
 	const VkCommandBuffer mv_cmd = ctx.rhi.shadow_pass_command_buffer.value();
@@ -95,7 +91,6 @@ rh::result scene_two::depth(const rh::ctx ctx, int pass_number)
 
 rh::result scene_two::draw(const rh::ctx ctx)
 {
-	VkDevice device = ctx.rhi.device;
 	if (!ctx.rhi.data.has_value()) return rh::result::error;
 	if (!ctx.rhi.render_command_buffer.has_value()) return rh::result::error;
 
@@ -138,7 +133,7 @@ rh::result scene_two::draw(const rh::ctx ctx)
 	return rh::result::ok;
 }
 
-rh::result scene_two::draw_ui(const rh::ctx& ctx) {
+rh::result scene_two::draw_ui() {
 	ImGui::Begin("Scene Graph");
 	{
 		ImGui::Text("Camera position: (%.3f, %.3f, %.3f)", scene_graph_->mesh_cam->position.x, scene_graph_->mesh_cam->position.y, scene_graph_->mesh_cam->position.z);
@@ -149,7 +144,7 @@ rh::result scene_two::draw_ui(const rh::ctx& ctx) {
 		ImGui::Checkbox("Wireframe", &toggle_wire_frame_);
 	}
 	ImGui::End();
-	scene_graph_->draw_ui(ctx);
+	scene_graph_->draw_ui();
 	return rh::result::ok;
 }
 

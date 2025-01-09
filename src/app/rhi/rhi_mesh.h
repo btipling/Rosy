@@ -63,12 +63,12 @@ public:
 	mesh_scene& operator=(mesh_scene&&) noexcept = default;
 	void init(const rh::ctx& ctx);
 	void init_shadows(const rh::ctx& ctx);
-	void update(mesh_ctx ctx, std::optional<gpu_scene_data> scene_data = std::nullopt);
+	void update(mesh_ctx ctx, std::optional<gpu_scene_data> new_scene_data = std::nullopt);
 	void deinit(const rh::ctx& ctx) const;
 	void add_node(fastgltf::Node& gltf_node);
 	void add_scene(fastgltf::Scene& gltf_scene);
 	[[nodiscard]] auto csm_pos(int csm_extent) -> glm::mat4;
-	void draw_ui(const rh::ctx& ctx);
+	void draw_ui();
 	[[nodiscard]] auto draw(mesh_ctx ctx) -> rh::result;
 	[[nodiscard]] auto generate_shadows(mesh_ctx ctx, int pass_number) -> rh::result;
 

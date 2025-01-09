@@ -304,7 +304,7 @@ class rhi_data
 {
 public:
 	explicit rhi_data(rhi* renderer);
-	rh::result load_gltf_meshes(const rh::ctx& ctx, std::filesystem::path file_path, mesh_scene& gltf_mesh_scene);
+	rh::result load_gltf_meshes(std::filesystem::path file_path, mesh_scene& gltf_mesh_scene);
 	[[nodiscard]] auto upload_mesh(std::span<uint32_t> indices, std::span<vertex> vertices) const->gpu_mesh_buffers_result;
 	[[nodiscard]] auto upload_materials(std::span<material_data> materials) const->gpu_material_buffers_result;
 	[[nodiscard]] auto create_render_data(size_t num_surfaces) const->gpu_render_buffers_result;
@@ -316,8 +316,7 @@ public:
 
 	[[nodiscard]] auto create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage,
 		bool mip_mapped) const->allocated_image_result;
-	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(const void* data, const VkExtent3D size, const VkFormat format,
-		const VkImageUsageFlags usage, const bool mip_mapped);
+	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(const void* data, const VkExtent3D size, const VkFormat format);
 	std::expected<ktxVulkanTexture, ktx_error_code_e> create_image(ktxTexture* ktx_texture, const VkImageUsageFlags usage);
 	std::expected<ktx_auto_texture, ktx_error_code_e> create_image(fastgltf::Asset& asset, const fastgltf::Image& image, VkFormat format);
 

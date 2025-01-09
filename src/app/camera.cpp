@@ -43,7 +43,7 @@ void camera::integrate_all()
     }
 }
 
-void camera::integrate(const movement::direction direction, const double velocity)
+void camera::integrate(const movement::direction direction, const double v)
 {
     SDL_Time  ticks = 0;
     if (!SDL_GetCurrentTime(&ticks)) return;
@@ -52,7 +52,7 @@ void camera::integrate(const movement::direction direction, const double velocit
     {
         if (movement mv = movements_[i]; mv.dir == direction)
         {
-            mv.step.current_state.velocity = velocity;
+            mv.step.current_state.velocity = v;
             movements_[i] = mv;
             found = true;
         }
@@ -65,7 +65,7 @@ void camera::integrate(const movement::direction direction, const double velocit
                 .previous_state = {},
                 .current_state = {
                     .position = 0,
-                    .velocity = velocity,
+                    .velocity = v,
                 },
             },
             .start = static_cast<double>(ticks),
@@ -104,7 +104,7 @@ void camera::process_sdl_event(const rh::ctx& ctx)
     }
 }
 
-void camera::update(const rh::ctx& ctx)
+void camera::update()
 {
     integrate_all();
     int to_remove{ -1 };
