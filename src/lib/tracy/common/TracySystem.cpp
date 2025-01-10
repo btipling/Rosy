@@ -131,7 +131,7 @@ TRACY_API void SetThreadName( const char* name )
 {
     SetThreadNameWithHint( name, 0 );
 }
-
+#pragma warning(disable: 4100)
 TRACY_API void SetThreadNameWithHint( const char* name, int32_t groupHint )
 {
 #if defined _WIN32
@@ -211,7 +211,7 @@ TRACY_API void SetThreadNameWithHint( const char* name, int32_t groupHint )
     }
 #endif
 }
-
+#pragma warning(default: 4100)
 #ifdef TRACY_ENABLE
 ThreadNameData* GetThreadNameData( uint32_t id )
 {

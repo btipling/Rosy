@@ -82,11 +82,13 @@ namespace physics
         return output;
     }
 
+#pragma warning(disable:4100) // t is unused in this case, but this is the form an acceleration function takes
     double acceleration(const state& state, double t) {
         constexpr double dampening = -0.05;
         constexpr double scale = 0.5;
         return dampening * state.velocity / (1.0 + std::abs(state.velocity) / scale);
     }
+#pragma warning(default:4100)
 
     void integrate(state& state, const double t, const double frame_time) {
 	    const derivative a = evaluate(state, t, 0.0f, derivative());
