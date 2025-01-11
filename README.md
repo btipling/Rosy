@@ -6,11 +6,15 @@ This is a hobby project to build a game engine and eventually a game in my spare
 ## Building
 This project will likely not build for anyone else at this time.
 
+* shared_libs is where the .lib files should go for third party dependencies
+* src/x64/Debug is where .dll files for third party dependencies should go
+* SDL_PATH, KTX_PATH etc describe required environment variables.
 * [SDL3](https://github.com/libsdl-org/SDL) dll and lib needed
-    * SDL_PATH must be set to where SDL3's git repo is.
-    * A debug build must exist where the SDL.lib file must be found
-    * The SDL.dll must be added to the x64/Debug/ directory where the executable is built by Visual Studio
-* [KTX](https://github.com/KhronosGroup/KTX-Software/tree/main) dll and lib needed
+    * SDL_PATH must be set to where SDL3's git repo is to find the include headers folder
+    * SDL must be built and the SDL.dll and SDL.lib files must be added to the project
+* [KTX](https://github.com/KhronosGroup/KTX-Software/tree/main)
+    * KTX_PATH needs to be set and built and the dll and lib needed to be added.
+* The Vulkan SDK must be installed and the VULKAN_SDK environment variable must be set.
 * [vcpkg](https://vcpkg.io/en/) and vcpkg install needed
 
 
