@@ -18,19 +18,19 @@ namespace rosy
 	void log::info(const std::string_view log_message) const
 	{
 		if (level > log_level::info) return;
-		std::cout << log_message << std::endl;
+		std::cout << log_message << '\n';
 	}
 
 	void log::warn(const std::string_view log_message) const
 	{
 		if (level > log_level::warn) return;
-		std::cout << log_message << std::endl;
+		std::cout << log_message << '\n';
 	}
 
 	void log::error(const std::string_view log_message) const
 	{
 		if (level == log_level::disabled) return;
-		std::cerr << log_message << std::endl;
+		std::cerr << log_message << '\n';
 	}
 
 	//// Engine
