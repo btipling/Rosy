@@ -8,31 +8,33 @@
 namespace rosy
 {
 	///// Log
+
 	void log::debug(const std::string_view log_message) const
 	{
 		if (level != log_level::debug) return;
-		std::cout << log_message;
+		std::cout << log_message; // Intentionally do not use line endings automatically for debugging.
 	}
 
 	void log::info(const std::string_view log_message) const
 	{
-		if (level != log_level::info || level != log_level::debug) return;
-		std::cout << log_message;
+		if (level > log_level::info) return;
+		std::cout << log_message << std::endl;
 	}
 
 	void log::warn(const std::string_view log_message) const
 	{
-		if (level != log_level::warn || level != log_level::info || level != log_level::debug) return;
-		std::cout << log_message;
+		if (level > log_level::warn) return;
+		std::cout << log_message << std::endl;
 	}
 
 	void log::error(const std::string_view log_message) const
 	{
 		if (level == log_level::disabled) return;
-		std::cout << log_message;
+		std::cerr << log_message << std::endl;
 	}
 
 	//// Engine
+	
 	result engine::init()
 	{
 		l = new log{ log_level::debug };
@@ -42,7 +44,6 @@ namespace rosy
 			l->error(std::format("SDL initialization failed: {}\n", SDL_GetError()));
 			return result::error;
 		}
-		std::println("Engine init!");
 
 		int width = 640;
 		int height = 480;
@@ -56,7 +57,7 @@ namespace rosy
 
 		SDL_Rect display_bounds = {};
 		if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
-			l->debug("Got display bounds");
+			l->debug("Got display bounds\n");
 			width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
 			height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
 		} else
@@ -72,6 +73,7 @@ namespace rosy
 			l->error(std::format("Window creation failed: {}\n", SDL_GetError()));
 			return result::error;
 		}
+		l->info("Engine initialized.");
 		return result::ok;
 	}
 
