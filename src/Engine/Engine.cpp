@@ -54,6 +54,7 @@ namespace rosy
 		if (!window)
 		{
 			std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
+			return result::error;
 		}
 		return result::ok;
 	}
