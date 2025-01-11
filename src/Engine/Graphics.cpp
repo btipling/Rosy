@@ -6,6 +6,11 @@ using namespace rosy;
 
 result graphics::init(SDL_Window* new_window, log const* new_log)
 {
+	if (!new_window || !new_log)
+	{
+		return result::invalid_argument;
+	}
+
 	window = new_window;
 	l = new_log;
 	l->info("Graphics init start");

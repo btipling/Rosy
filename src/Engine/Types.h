@@ -7,6 +7,8 @@ namespace rosy
 	{
 		ok,
 		error,
+		invalid_argument,
+		allocation_failure,
 	};
 
 	enum class log_level : uint8_t

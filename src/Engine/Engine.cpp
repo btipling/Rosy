@@ -22,7 +22,7 @@ result engine::init()
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
 			l->error(std::format("SDL initialization failed: {}", SDL_GetError()));
-			return result::error;
+			return result::allocation_failure;
 		}
 
 		int width = 640;
@@ -62,12 +62,12 @@ result engine::init()
 		if (gfx == nullptr)
 		{
 			l->error("Error allocating graphics engine");
-			return result::error;
+			return result::allocation_failure;
 		}
 		if (auto const res = gfx->init(window, l); res != result::ok)
 		{
 			l->error(std::format("Graphics creation failed: {}", static_cast<uint8_t>(res)));
-			return result::error;
+			return res;
 		}
 	}
 
