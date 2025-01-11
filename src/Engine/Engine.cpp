@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[])
 {
-	std::cout << "Hello World!\n";
+	std::cout << "Rosy Engine Starting" << std::endl;
 	rosy::engine engine{};
 	if (const rosy::result res = engine.init(); res != rosy::result::ok) {
 		engine.deinit();
@@ -22,7 +22,7 @@ namespace rosy
 	result engine::init()
 	{
 		SDL_Init(SDL_INIT_VIDEO);
-		std::cout << "Engine init!\n";
+		std::cout << "Engine init!" << std::endl;
 
 		int width = 640;
 		int height = 480;
@@ -31,26 +31,33 @@ namespace rosy
 
 		SDL_Rect display_bounds = {};
 		if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
-			std::cout << "Got display bounds\n";
+			std::cout << "Got display bounds" << std::endl;
 			width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
 			height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
 		}
 
 		constexpr SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 		window = SDL_CreateWindow("Rosy", width, height, window_flags);
+		if (!window)
+		{
+			std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
+		}
 		return result::ok;
 	}
 
 	void engine::deinit()
 	{
-		std::cout << "Engine deinit!\n";
-		SDL_DestroyWindow(window);
+		std::cout << "Engine deinit!" << std::endl;
+		if (window) {
+			SDL_DestroyWindow(window);
+			window = nullptr;
+		}
 		SDL_Quit();
 	}
 
 	result engine::run()
 	{
-		std::cout << "Engine run!\n";
+		std::cout << "Engine run!" << std::endl;
 		bool should_run = true;
 		SDL_Event event{};
 		while (should_run)
