@@ -7,8 +7,12 @@ This is a hobby project to build a game engine and eventually a game in my spare
 This project will likely not build for anyone else at this time.
 
 * [SDL3](https://github.com/libsdl-org/SDL) dll and lib needed
+    * SDL_PATH must be set to where SDL3's git repo is.
+    * A debug build must exist where the SDL.lib file must be found
+    * The SDL.dll must be added to the x64/Debug/ directory where the executable is built by Visual Studio
 * [KTX](https://github.com/KhronosGroup/KTX-Software/tree/main) dll and lib needed
 * [vcpkg](https://vcpkg.io/en/) and vcpkg install needed
+
 
 Assets are not included in the repository and the application will immediately halt without them.
 
