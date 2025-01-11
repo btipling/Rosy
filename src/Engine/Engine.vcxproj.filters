@@ -24,4 +24,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\shared_libs\SDL3.lib" />
+  </ItemGroup>
 </Project>

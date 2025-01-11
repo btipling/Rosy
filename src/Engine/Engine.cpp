@@ -1,6 +1,5 @@
 #include "Engine.h"
 
-
 int main(int argc, char* argv[])
 {
 	std::cout << "Hello World!\n";
@@ -17,13 +16,13 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-
 namespace rosy
 {
 	//// Engine
 	result engine::init()
 	{
 		std::cout << "Engine init!\n";
+		SDL_Init(SDL_INIT_VIDEO);
 		return result::ok;
 	}
 
@@ -35,6 +34,7 @@ namespace rosy
 
 	void engine::deinit()
 	{
+		SDL_Quit();
 		std::cout << "Engine deinit!\n";
 	}
 
