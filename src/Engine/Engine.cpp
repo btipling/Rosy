@@ -12,7 +12,7 @@ result engine::init()
 	l = new(std::nothrow) log{ log_level::debug };
 	if (l == nullptr)
 	{
-		return result::error;
+		return result::allocation_failure;
 	}
 
 	l->info("Engine init begin");
@@ -22,7 +22,7 @@ result engine::init()
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
 			l->error(std::format("SDL initialization failed: {}", SDL_GetError()));
-			return result::allocation_failure;
+			return result::error;
 		}
 
 		int width = 640;
