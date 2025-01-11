@@ -21,19 +21,32 @@ namespace rosy
 	//// Engine
 	result engine::init()
 	{
-		SDL_Init(SDL_INIT_VIDEO);
+		if (!SDL_Init(SDL_INIT_VIDEO))
+		{
+			std::cerr << "SDL initialization failed: " << SDL_GetError() << std::endl;
+			return result::error;
+		}
 		std::cout << "Engine init!" << std::endl;
 
 		int width = 640;
 		int height = 480;
 		int displays_count = 0;
 		const auto display_ids = SDL_GetDisplays(&displays_count);
+		if (!display_ids || displays_count < 0)
+		{
+			std::cerr << "Failed to get SDL display info: " << SDL_GetError() << std::endl;
+			return result::error;
+		}
 
 		SDL_Rect display_bounds = {};
 		if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
 			std::cout << "Got display bounds" << std::endl;
 			width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
 			height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
+		} else
+		{
+			std::cerr << "SDL getting display bounds failed: " << SDL_GetError() << std::endl;
+			return result::error;
 		}
 
 		constexpr SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
