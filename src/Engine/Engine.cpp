@@ -31,7 +31,7 @@ namespace rosy
 
 		SDL_Rect display_bounds = {};
 		if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
-			std::cout << "Got display bounds";
+			std::cout << "Got display bounds\n";
 			width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
 			height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
 		}
