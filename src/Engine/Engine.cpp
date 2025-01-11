@@ -32,7 +32,7 @@ namespace rosy
 		int height = 480;
 		int displays_count = 0;
 		const auto display_ids = SDL_GetDisplays(&displays_count);
-		if (!display_ids || displays_count < 0)
+		if (!display_ids || displays_count <= 0)
 		{
 			std::cerr << "Failed to get SDL display info: " << SDL_GetError() << std::endl;
 			return result::error;
