@@ -9,7 +9,12 @@ using namespace rosy;
 
 result engine::init()
 {
-	l = new log{ log_level::debug };
+	l = new(std::nothrow) log{ log_level::debug };
+	if (l == nullptr)
+	{
+		return result::error;
+	}
+
 	l->info("Engine init begin");
 
 	// SDL Window initialization.
@@ -53,7 +58,7 @@ result engine::init()
 
 	// Graphics engine initialization
 	{
-		gfx = new graphics{};
+		gfx = new(std::nothrow) graphics{};
 		if (gfx == nullptr)
 		{
 			l->error("Error allocating graphics engine");
