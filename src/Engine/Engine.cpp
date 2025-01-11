@@ -1,47 +1,22 @@
 #include "Engine.h"
-
+#include <format>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
-#include <iostream>
-#include <print>
 
-namespace rosy
+using namespace rosy;
+
+//// Engine
+
+result engine::init()
 {
-	///// Log
+	l = new log{ log_level::debug };
+	l->info("Engine init begin");
 
-	void log::debug(const std::string_view log_message) const
+	// SDL Window initialization.
 	{
-		if (level != log_level::debug) return;
-		std::cout << log_message; // Intentionally do not use line endings automatically for debugging.
-	}
-
-	void log::info(const std::string_view log_message) const
-	{
-		if (level > log_level::info) return;
-		std::cout << log_message << '\n';
-	}
-
-	void log::warn(const std::string_view log_message) const
-	{
-		if (level > log_level::warn) return;
-		std::cout << log_message << '\n';
-	}
-
-	void log::error(const std::string_view log_message) const
-	{
-		if (level == log_level::disabled) return;
-		std::cerr << log_message << '\n';
-	}
-
-	//// Engine
-	
-	result engine::init()
-	{
-		l = new log{ log_level::debug };
-		l->info("Engine initializing.");
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
-			l->error(std::format("SDL initialization failed: {}\n", SDL_GetError()));
+			l->error(std::format("SDL initialization failed: {}", SDL_GetError()));
 			return result::error;
 		}
 
@@ -51,7 +26,7 @@ namespace rosy
 		const auto display_ids = SDL_GetDisplays(&displays_count);
 		if (!display_ids || displays_count <= 0)
 		{
-			l->error(std::format("Failed to get SDL display info: {}\n", SDL_GetError()));
+			l->error(std::format("Failed to get SDL display info: {}", SDL_GetError()));
 			return result::error;
 		}
 
@@ -60,9 +35,10 @@ namespace rosy
 			l->debug("Got display bounds\n");
 			width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
 			height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
-		} else
+		}
+		else
 		{
-			l->error(std::format("SDL getting display bounds failed: {}\n", SDL_GetError()));
+			l->error(std::format("SDL getting display bounds failed: {}", SDL_GetError()));
 			return result::error;
 		}
 
@@ -70,44 +46,70 @@ namespace rosy
 		window = SDL_CreateWindow("Rosy", width, height, window_flags);
 		if (!window)
 		{
-			l->error(std::format("Window creation failed: {}\n", SDL_GetError()));
+			l->error(std::format("Window creation failed: {}", SDL_GetError()));
 			return result::error;
 		}
-		l->info("Engine initialized.");
-		return result::ok;
 	}
 
-	void engine::deinit()
+	// Graphics engine initialization
 	{
-		l->info("Engine deinit!");
-		if (window) {
-			SDL_DestroyWindow(window);
-			window = nullptr;
-		}
-		if (l)
+		gfx = new graphics{};
+		if (gfx == nullptr)
 		{
-			delete l;
-			l = nullptr;
+			l->error("Error allocating graphics engine");
+			return result::error;
 		}
-		SDL_Quit();
+		if (auto const res = gfx->init(window, l); res != result::ok)
+		{
+			l->error(std::format("Graphics creation failed: {}", static_cast<uint8_t>(res)));
+			return result::error;
+		}
 	}
 
-	result engine::run()
+	l->info("Engine init done");
+	return result::ok;
+}
+
+void engine::deinit()
+{
+	if (l) l->info("Engine deinit start");
+
+	if (gfx)
 	{
-		l->info("Engine run!");
-		bool should_run = true;
-		SDL_Event event{};
-		while (should_run)
-		{
-			while (SDL_PollEvent(&event)) {
-				if (event.type == SDL_EVENT_QUIT) {
-					should_run = false;
-					break;
-				}
+		gfx->deinit();
+		delete gfx;
+		gfx = nullptr;
+	}
+
+	if (window) {
+		SDL_DestroyWindow(window);
+		window = nullptr;
+	}
+
+	SDL_Quit();
+
+	if (l)
+	{
+		l->info("Engine deinit end");
+		delete l;
+		l = nullptr;
+	}
+}
+
+result engine::run()
+{
+	l->info("Engine run!");
+	bool should_run = true;
+	SDL_Event event{};
+	while (should_run)
+	{
+		while (SDL_PollEvent(&event)) {
+			if (event.type == SDL_EVENT_QUIT) {
+				should_run = false;
+				break;
 			}
-			if (!should_run) break;
 		}
-		return result::ok;
+		if (!should_run) break;
 	}
-
+	return result::ok;
 }

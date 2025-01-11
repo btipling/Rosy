@@ -1,13 +1,16 @@
-#include "Main.h"
+#include "Engine.h"
+#pragma warning(disable:4100)
+
+using namespace rosy;
 
 int main(int argc, char* argv[])
 {
 	rosy::engine engine{};
-	if (const rosy::result res = engine.init(); res != rosy::result::ok) {
+	if (const result res = engine.init(); res != result::ok) {
 		engine.deinit();
 		return 1;
 	}
-	if (const rosy::result res = engine.run(); res != rosy::result::ok) {
+	if (const result res = engine.run(); res != result::ok) {
 		engine.deinit();
 		return 1;
 	}
