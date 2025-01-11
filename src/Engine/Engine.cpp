@@ -37,7 +37,7 @@ result engine::init()
 
 		SDL_Rect display_bounds = {};
 		if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
-			l->debug("Got display bounds\n");
+			l->debug("Got display bounds");
 			width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
 			height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
 		}
