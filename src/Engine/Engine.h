@@ -17,6 +17,8 @@ namespace rosy
 
 	struct engine
 	{
+		SDL_Window* window = nullptr;
+
 		result init();
 		result run();
 		void deinit();
