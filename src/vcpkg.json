@@ -1,7 +1,0 @@
-{
-    "dependencies":  [
-                         "directxtex",
-                         "fastgltf",
-                         "stb"
-                     ]
-}
