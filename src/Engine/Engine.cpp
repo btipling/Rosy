@@ -1,32 +1,49 @@
 #include "Engine.h"
 
-int main(int argc, char* argv[])
-{
-	std::cout << "Rosy Engine Starting" << std::endl;
-	rosy::engine engine{};
-	if (const rosy::result res = engine.init(); res != rosy::result::ok) {
-		engine.deinit();
-		return 1;
-	}
-	if (const rosy::result res = engine.run(); res != rosy::result::ok) {
-		engine.deinit();
-		return 1;
-	}
-	engine.deinit();
-	return 0;
-}
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
+#include <iostream>
+#include <print>
 
 namespace rosy
 {
+	///// Log
+
+	void log::debug(const std::string_view log_message) const
+	{
+		if (level != log_level::debug) return;
+		std::cout << log_message; // Intentionally do not use line endings automatically for debugging.
+	}
+
+	void log::info(const std::string_view log_message) const
+	{
+		if (level > log_level::info) return;
+		std::cout << log_message << '\n';
+	}
+
+	void log::warn(const std::string_view log_message) const
+	{
+		if (level > log_level::warn) return;
+		std::cout << log_message << '\n';
+	}
+
+	void log::error(const std::string_view log_message) const
+	{
+		if (level == log_level::disabled) return;
+		std::cerr << log_message << '\n';
+	}
+
 	//// Engine
+	
 	result engine::init()
 	{
+		l = new log{ log_level::debug };
+		l->info("Engine initializing.");
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
-			std::cerr << "SDL initialization failed: " << SDL_GetError() << std::endl;
+			l->error(std::format("SDL initialization failed: {}\n", SDL_GetError()));
 			return result::error;
 		}
-		std::cout << "Engine init!" << std::endl;
 
 		int width = 640;
 		int height = 480;
@@ -34,18 +51,18 @@ namespace rosy
 		const auto display_ids = SDL_GetDisplays(&displays_count);
 		if (!display_ids || displays_count <= 0)
 		{
-			std::cerr << "Failed to get SDL display info: " << SDL_GetError() << std::endl;
+			l->error(std::format("Failed to get SDL display info: {}\n", SDL_GetError()));
 			return result::error;
 		}
 
 		SDL_Rect display_bounds = {};
 		if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
-			std::cout << "Got display bounds" << std::endl;
+			l->debug("Got display bounds\n");
 			width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
 			height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
 		} else
 		{
-			std::cerr << "SDL getting display bounds failed: " << SDL_GetError() << std::endl;
+			l->error(std::format("SDL getting display bounds failed: {}\n", SDL_GetError()));
 			return result::error;
 		}
 
@@ -53,25 +70,31 @@ namespace rosy
 		window = SDL_CreateWindow("Rosy", width, height, window_flags);
 		if (!window)
 		{
-			std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
+			l->error(std::format("Window creation failed: {}\n", SDL_GetError()));
 			return result::error;
 		}
+		l->info("Engine initialized.");
 		return result::ok;
 	}
 
 	void engine::deinit()
 	{
-		std::cout << "Engine deinit!" << std::endl;
+		l->info("Engine deinit!");
 		if (window) {
 			SDL_DestroyWindow(window);
 			window = nullptr;
+		}
+		if (l)
+		{
+			delete l;
+			l = nullptr;
 		}
 		SDL_Quit();
 	}
 
 	result engine::run()
 	{
-		std::cout << "Engine run!" << std::endl;
+		l->info("Engine run!");
 		bool should_run = true;
 		SDL_Event event{};
 		while (should_run)
