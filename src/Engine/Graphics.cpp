@@ -37,19 +37,31 @@ namespace {
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 	};
 
-	rosy::log const* debug_callback_logger = nullptr; // Exists only for the purpose of the callback.
-#pragma warning(disable:4100)
+	rosy::log const* debug_callback_logger = nullptr; // Exists only for the purpose of the callback, this is also not thread safe.
 	VkBool32 VKAPI_CALL debug_callback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-		VkDebugUtilsMessageSeverityFlagsEXT message_type,
+		[[maybe_unused]] const VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+		[[maybe_unused]] const VkDebugUtilsMessageSeverityFlagsEXT message_type,
 		const VkDebugUtilsMessengerCallbackDataEXT* p_callback_data,
-		void* p_user_data)
+		[[maybe_unused]] void* p_user_data)
 	{
 		if (!debug_callback_logger) return VK_FALSE;
-		debug_callback_logger->warn(std::format("Validation layer debug callback: {}", p_callback_data->pMessage));
+		if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+			debug_callback_logger->error(std::format("[{}] {}",
+				message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT ? "Validation" : "Performance",
+				p_callback_data->pMessage));
+		}
+		else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+			debug_callback_logger->warn(std::format("[{}] {}",
+				message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT ? "Validation" : "Performance",
+				p_callback_data->pMessage));
+		}
+		else {
+			debug_callback_logger->debug(std::format("[{}] {}",
+				message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT ? "Validation" : "Performance",
+				p_callback_data->pMessage));
+		}
 		return VK_FALSE;
 	}
-#pragma warning(default:4100)
 
 	struct graphics_device
 	{
@@ -246,7 +258,6 @@ namespace {
 
 			if (graphics_created_bitmask & graphics_created_bit_instance)
 			{
-				debug_callback_logger = nullptr;
 				vkDestroyInstance(instance, nullptr);
 			}
 		}
@@ -322,12 +333,14 @@ namespace {
 			l->debug(std::format("num instanceExtensions: {}", instance_extensions.size()));
 
 			std::vector<const char*> required_instance_extensions(std::begin(instance_extensions), std::end(instance_extensions));
-			for (auto [extensionName, specVersion] : extensions)
+
+			// ReSharper disable once CppUseStructuredBinding
+			for (VkExtensionProperties properties : extensions)
 			{
-				l->debug(std::format("Instance extension name: {}", extensionName));
+				l->debug(std::format("Instance extension name: {}", properties.extensionName));
 				for (const char* extension_name : instance_extensions)
 				{
-					if (strcmp(extension_name, extensionName) == 0)
+					if (strcmp(extension_name, properties.extensionName) == 0)
 					{
 						l->debug(std::format("Requiring instance extension: {}", extension_name));
 						std::erase(required_instance_extensions, extension_name);
