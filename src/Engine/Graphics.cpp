@@ -8,6 +8,7 @@
 #include <SDL3/SDL_vulkan.h>
 
 #pragma warning(disable: 4100 4459)
+#include <queue>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
@@ -105,6 +106,9 @@ namespace {
 		VmaAllocator allocator{ 0 };
 
 		tracy::VkCtx* tracy_ctx{ nullptr };
+
+
+		VkQueue present_queue;
 
 		VkDebugUtilsMessengerEXT debug_messenger;
 		VkSurfaceKHR surface;
@@ -852,6 +856,23 @@ namespace {
 		VkResult init_presentation_queue()
 		{
 			l->info("Initializing presentation queue");
+			{
+				VkDeviceQueueInfo2 get_info{};
+				get_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
+				get_info.flags = 0;
+				get_info.queueFamilyIndex = queue_index;
+				get_info.queueIndex = 0;
+				vkGetDeviceQueue2(device, &get_info, &present_queue);
+			}
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_QUEUE;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(present_queue);
+				debug_name.pObjectName = "rosy present queue";
+				if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+			}
 			return VK_SUCCESS;
 		}
 
