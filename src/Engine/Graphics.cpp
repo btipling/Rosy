@@ -37,6 +37,16 @@ namespace {
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 	};
 
+	const char* default_device_extensions[] = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef PROFILING_ENABLED
+		VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
+#endif
+		VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
+		VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
+		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
+	};
+
 	rosy::log const* debug_callback_logger = nullptr; // Exists only for the purpose of the callback, this is also not thread safe.
 	VkBool32 VKAPI_CALL debug_callback(
 		[[maybe_unused]] const VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -77,7 +87,7 @@ namespace {
 		std::vector<const char*> instance_layer_properties;
 		std::vector<const char*> device_layer_properties;
 		std::vector<const char*> instance_extensions;
-		std::vector<const char*> device_device_extensions;
+		std::vector<const char*> device_extensions;
 
 		VkInstance instance;
 		VkDevice device;
@@ -601,16 +611,65 @@ namespace {
 			return result;
 		}
 
-		VkResult query_device_layers()
+		[[nodiscard]] VkResult query_device_layers() const
 		{
 			l->info("Querying device layers");
-			return VK_SUCCESS;
+			uint32_t p_property_count = 0;
+			VkResult result = vkEnumerateDeviceLayerProperties(physical_device, &p_property_count, nullptr);
+			if (result != VK_SUCCESS) return result;
+			l->debug(std::format("Found {} device layers", p_property_count));
+			if (p_property_count == 0) return result;
+			std::vector<VkLayerProperties> layers;
+			layers.resize(p_property_count);
+			result = vkEnumerateDeviceLayerProperties(physical_device, &p_property_count, layers.data());
+			if (result != VK_SUCCESS) return result;
+			for (VkLayerProperties lp : layers)
+			{
+				l->debug(std::format("Device layer name: {} layer description: {}", lp.layerName, lp.description));
+			}
+			return result;
 		}
 
 		VkResult query_device_extensions()
 		{
 			l->info("Querying device extensions");
-			return VK_SUCCESS;
+
+			uint32_t p_property_count = 0;
+
+			VkResult result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &p_property_count, nullptr);
+			if (result != VK_SUCCESS) return result;
+
+			l->debug(std::format("Found {} device extensions", p_property_count));
+			if (p_property_count == 0) return result;
+
+			std::vector<VkExtensionProperties> extensions;
+			extensions.resize(p_property_count);
+
+			result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &p_property_count, extensions.data());
+			if (result != VK_SUCCESS) return result;
+
+			// validate required device extensions
+			std::vector<const char*> required_device_extensions(std::begin(device_extensions), std::end(device_extensions));
+
+			for (auto [extensionName, specVersion] : extensions)
+			{
+				l->debug(std::format("Device extension name: {}", extensionName));
+				for (const char* extension_name : device_extensions)
+				{
+					if (strcmp(extension_name, extensionName) == 0)
+					{
+						l->debug(std::format("Requiring device extension: {}", extension_name));
+						device_extensions.push_back(extension_name);
+						std::erase(required_device_extensions, extension_name);
+					}
+				}
+			}
+
+			if (required_device_extensions.size() != 0)
+			{
+				return VK_ERROR_EXTENSION_NOT_PRESENT;
+			}
+			return result;
 		}
 
 		VkResult init_device()
