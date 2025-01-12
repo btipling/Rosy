@@ -99,10 +99,10 @@ namespace {
 		std::vector<const char*> instance_extensions;
 		std::vector<const char*> device_extensions;
 
-		VkInstance instance;
-		VkDevice device;
-		VkPhysicalDevice physical_device;
-		VmaAllocator allocator;
+		VkInstance instance{0};
+		VkDevice device{ 0 };
+		VkPhysicalDevice physical_device{ 0 };
+		VmaAllocator allocator{ 0 };
 
 		tracy::VkCtx* tracy_ctx{ nullptr };
 
@@ -297,7 +297,10 @@ namespace {
 		void deinit() const
 		{
 			// Deinit acquired resources in the opposite order in which they were created
-
+			if (graphics_created_bitmask & graphics_created_bit_vma)
+			{
+				vmaDestroyAllocator(allocator);
+			}
 			if (tracy_ctx != nullptr) {
 				TracyVkDestroy(tracy_ctx);
 			}
@@ -826,6 +829,22 @@ namespace {
 		VkResult init_allocator()
 		{
 			l->info("Initializing VMA");
+
+			constexpr VkDeviceSize device_size{ 0 };
+			VmaVulkanFunctions vulkan_functions{};
+			vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+			vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+
+			VmaAllocatorCreateInfo allocator_create_info{};
+			allocator_create_info.vulkanApiVersion = VK_API_VERSION_1_3;
+			allocator_create_info.physicalDevice = physical_device;
+			allocator_create_info.device = device;
+			allocator_create_info.instance = instance;
+			allocator_create_info.pVulkanFunctions = &vulkan_functions;
+			allocator_create_info.preferredLargeHeapBlockSize = device_size;
+			allocator_create_info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+
+			vmaCreateAllocator(&allocator_create_info, &allocator);
 			graphics_created_bitmask |= graphics_created_bit_vma;
 			return VK_SUCCESS;
 		}
