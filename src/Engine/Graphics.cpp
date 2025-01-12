@@ -106,6 +106,7 @@ namespace {
 		std::vector<VkQueueFamilyProperties> queue_family_properties;
 		uint32_t queue_count = 0;
 		uint32_t queue_index = 0;
+		std::vector<float> queue_priorities;
 
 		SDL_Window* window;
 
@@ -284,6 +285,11 @@ namespace {
 		void deinit() const
 		{
 			// Deinit acquired resources in the opposite order in which they were created
+
+			if (graphics_created_bitmask & graphics_created_bit_device)
+			{
+				if (const VkResult result = vkDeviceWaitIdle(device); result == VK_SUCCESS) vkDestroyDevice(device, nullptr);
+			}
 
 			if (graphics_created_bitmask & graphics_created_bit_surface)
 			{
@@ -675,8 +681,111 @@ namespace {
 		VkResult init_device()
 		{
 			l->info("Initializing device");
+
+			VkDeviceQueueCreateInfo device_queue_create_info{};
+			device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			device_queue_create_info.pNext = nullptr;
+			device_queue_create_info.flags = 0;
+			device_queue_create_info.queueFamilyIndex = queue_index;
+			queue_priorities.resize(queue_count, 0.5f);
+			device_queue_create_info.pQueuePriorities = queue_priorities.data();
+			device_queue_create_info.queueCount = queue_count;
+
+			VkPhysicalDeviceVulkan13Features vulkan13_features{};
+			vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+			vulkan13_features.pNext = nullptr;
+			vulkan13_features.dynamicRendering = VK_TRUE;
+			vulkan13_features.synchronization2 = VK_TRUE;
+			vulkan13_features.maintenance4 = VK_TRUE;
+
+			VkPhysicalDeviceVulkan12Features vulkan12_features{};
+			vulkan12_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+			vulkan12_features.pNext = &vulkan13_features;
+			vulkan12_features.bufferDeviceAddress = VK_TRUE;
+			vulkan12_features.descriptorIndexing = VK_TRUE;
+			vulkan12_features.shaderInputAttachmentArrayDynamicIndexing = VK_TRUE;
+			vulkan12_features.shaderUniformTexelBufferArrayDynamicIndexing = VK_TRUE;
+			vulkan12_features.shaderStorageTexelBufferArrayDynamicIndexing = VK_TRUE;
+			vulkan12_features.shaderUniformBufferArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderUniformTexelBufferArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderStorageTexelBufferArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+			vulkan12_features.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+			vulkan12_features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+			vulkan12_features.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
+			vulkan12_features.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+			vulkan12_features.descriptorBindingPartiallyBound = VK_TRUE;
+			vulkan12_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+			vulkan12_features.runtimeDescriptorArray = VK_TRUE;
+			vulkan12_features.samplerFilterMinmax = VK_TRUE;
+			vulkan12_features.scalarBlockLayout = VK_TRUE;
+			vulkan12_features.imagelessFramebuffer = VK_TRUE;
+			vulkan12_features.uniformBufferStandardLayout = VK_TRUE;
+			vulkan12_features.shaderSubgroupExtendedTypes = VK_TRUE;
+#ifdef PROFILING_ENABLED
+			vulkan12_features.hostQueryReset = VK_TRUE;
+#endif
+
+			VkPhysicalDeviceVulkan11Features vulkan11_features{};
+			vulkan11_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+			vulkan11_features.pNext = &vulkan12_features;
+			vulkan11_features.variablePointers = VK_TRUE;
+			vulkan11_features.variablePointersStorageBuffer = VK_TRUE;
+			vulkan11_features.multiview = VK_FALSE;
+			vulkan11_features.multiviewGeometryShader = VK_FALSE;
+			vulkan11_features.multiviewTessellationShader = VK_FALSE;
+
+			VkPhysicalDeviceShaderObjectFeaturesEXT enable_shader_object = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
+				.pNext = &vulkan11_features,
+				.shaderObject = VK_TRUE
+			};
+
+			VkPhysicalDeviceDepthClipEnableFeaturesEXT  enable_depth_clip_object = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
+				.pNext = &enable_shader_object,
+				.depthClipEnable = VK_TRUE
+			};
+
+			VkDeviceCreateInfo device_create_info = {};
+			device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+			device_create_info.pNext = &enable_depth_clip_object;
+			device_create_info.flags = 0;
+			device_create_info.queueCreateInfoCount = 1;
+			device_create_info.pQueueCreateInfos = &device_queue_create_info;
+			device_create_info.enabledLayerCount = 0;
+			device_create_info.ppEnabledLayerNames = nullptr;
+			device_create_info.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size());
+			device_create_info.ppEnabledExtensionNames = device_extensions.data();
+			device_create_info.pEnabledFeatures = &required_features;
+
+			VkResult result = vkCreateDevice(physical_device, &device_create_info, nullptr, &device);
+			if (result != VK_SUCCESS) return result;
+
+			l->debug("Vulkan device created successfully!");
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_INSTANCE;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(instance);
+				debug_name.pObjectName = "rosy instance";
+				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+			}
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_DEVICE;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(device);
+				debug_name.pObjectName = "rosy device";
+				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+			}
 			graphics_created_bitmask |= graphics_created_bit_device;
-			return VK_SUCCESS;
+			return result;
 		}
 
 		VkResult init_tracy()
