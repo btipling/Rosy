@@ -9,6 +9,7 @@ namespace rosy
 		error,
 		invalid_argument,
 		allocation_failure,
+		graphics_init_failure,
 	};
 
 	enum class log_level : uint8_t
