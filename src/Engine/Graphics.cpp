@@ -78,6 +78,9 @@ namespace {
 		VkPhysicalDevice physical_device;
 		VmaAllocator allocator;
 
+		VkDebugUtilsMessengerEXT debug_messenger;
+
+
 		SDL_Window* window;
 
 		result init()
@@ -254,7 +257,12 @@ namespace {
 
 		void deinit() const
 		{
-			// Deinit acquired resources.
+			// Deinit acquired resources in the opposite order in which they were created
+
+			if (graphics_created_bitmask & graphics_created_bit_debug_messenger)
+			{
+				vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
+			}
 
 			if (graphics_created_bitmask & graphics_created_bit_instance)
 			{
@@ -404,8 +412,27 @@ namespace {
 		VkResult create_debug_callback()
 		{
 			l->info("Creating Vulkan debug callback");
+			if (!enable_validation_layers) return VK_SUCCESS;
+
+			constexpr VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info_ext = {
+				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+				.pNext = nullptr,
+				.flags = 0,
+				.messageSeverity =
+					VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+				.messageType =
+					VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+				.pfnUserCallback = debug_callback,
+				.pUserData = nullptr,
+			};
+			const VkResult result = vkCreateDebugUtilsMessengerEXT(instance, &create_debug_callback_info_ext, nullptr, &debug_messenger);
+			if (result != VK_SUCCESS) return result;
 			graphics_created_bitmask |= graphics_created_bit_debug_messenger;
-			return VK_SUCCESS;
+			return result;
 		}
 
 		VkResult init_surface()
