@@ -510,6 +510,7 @@ namespace {
 			required_features.depthClamp         = VK_TRUE;
 			required_features.depthBounds        = VK_TRUE;
 
+			uint32_t new_queue_count = 0;
 			for (const VkPhysicalDevice& p_device : physical_devices)
 			{
 				// get device properties
@@ -582,7 +583,6 @@ namespace {
 				vkGetPhysicalDeviceMemoryProperties(p_device, &mem_props);
 
 				// queues
-				uint32_t new_queue_count = 0;
 				uint32_t new_queue_index = 0;
 				std::vector<VkQueueFamilyProperties> current_queue_family_properties_data;
 				{
