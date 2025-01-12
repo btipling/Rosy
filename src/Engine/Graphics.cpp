@@ -98,7 +98,12 @@ namespace {
 				l->error(std::format("Failed to init tracy! {}", static_cast<uint8_t>(vk_result)));
 				return result::graphics_init_failure;
 			}
-			init_allocator();
+			vk_result = init_allocator();
+			if (vk_result != VK_SUCCESS)
+			{
+				l->error(std::format("Failed to init vma! {}", static_cast<uint8_t>(vk_result)));
+				return result::graphics_init_failure;
+			}
 			vk_result = init_presentation_queue();
 			if (vk_result != VK_SUCCESS)
 			{
