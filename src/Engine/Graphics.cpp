@@ -1,9 +1,11 @@
 #include "Graphics.h"
 
 #include <format>
+#include <vector>
 
 #include "volk/volk.h"
 #include "vma/vk_mem_alloc.h"
+#include <SDL3/SDL_vulkan.h>
 
 using namespace rosy;
 
@@ -23,10 +25,27 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_ktx              = 0b00000000000000000000100000000000;
 	constexpr  uint32_t graphics_created_bit_descriptor       = 0b00000000000000000001000000000000;
 
+
+	const char* default_instance_layers[] = {
+		"VK_LAYER_LUNARG_api_dump",
+		"VK_LAYER_KHRONOS_validation",
+		"VK_LAYER_KHRONOS_shader_object",
+		"VK_LAYER_KHRONOS_synchronization2",
+	};
+
+	const char* default_instance_extensions[] = {
+		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+	};
+
 	struct graphics_device
 	{
 		rosy::log const* l{ nullptr };
 		uint32_t graphics_created_bitmask{0};
+		bool enable_validation_layers{ true };
+		std::vector<const char*> instance_layer_properties;
+		std::vector<const char*> device_layer_properties;
+		std::vector<const char*> instance_extensions;
+		std::vector<const char*> device_device_extensions;
 		SDL_Window* window;
 
 		result init()
@@ -209,13 +228,88 @@ namespace {
 		VkResult query_instance_layers()
 		{
 			l->info("Querying instance layers");
-			return VK_SUCCESS;
+			VkResult result;
+
+			uint32_t p_property_count = 0;
+			{
+				if (result = vkEnumerateInstanceLayerProperties(&p_property_count, nullptr); result != VK_SUCCESS) return result;
+				l->debug(std::format("Found %d instance layers {}", p_property_count));
+				if (p_property_count == 0) return result;
+			}
+
+			std::vector<VkLayerProperties> layers;
+			{
+				layers.resize(p_property_count);
+				if (result = vkEnumerateInstanceLayerProperties(&p_property_count, layers.data()); result != VK_SUCCESS) return result;
+				if (!enable_validation_layers) return result;
+			}
+
+			for (VkLayerProperties lp : layers)
+			{
+				l->debug(std::format("Instance layer name: {} layer description: {}", lp.layerName, lp.description));
+				for (const char* layer_name : default_instance_layers)
+				{
+					if (strcmp(layer_name, lp.layerName) == 0)
+					{
+						l->debug(std::format("Adding instance layer: {}", lp.layerName));
+						instance_layer_properties.push_back(layer_name);
+					}
+				}
+			}
+			return result;
 		}
 
 		VkResult query_instance_extensions()
 		{
 			l->info("Querying instance extensions");
-			return VK_SUCCESS;
+			VkResult result;
+
+			uint32_t p_property_count = 0;
+			{
+				if (result = vkEnumerateInstanceExtensionProperties(nullptr, &p_property_count, nullptr); result != VK_SUCCESS) return result;
+				l->debug(std::format("Found {} instance extensions", p_property_count));
+				if (p_property_count == 0) return result;
+			}
+
+			std::vector<VkExtensionProperties> extensions;
+			{
+				extensions.resize(p_property_count);
+				if (result = vkEnumerateInstanceExtensionProperties(nullptr, &p_property_count, extensions.data()); result != VK_SUCCESS) return result;
+				l->debug(std::format("num required instance extensions: {}", std::size(default_instance_extensions)));
+			}
+
+			{
+				// Setup required instance extensions
+				uint32_t extension_count;
+				const auto extension_names = SDL_Vulkan_GetInstanceExtensions(&extension_count);
+				for (uint32_t i = 0; i < extension_count; i++)
+				{
+					l->debug(std::format("pushing back required SDL instance extension with name: {}", extension_names[i]));
+					instance_extensions.push_back(extension_names[i]);
+				}
+				for (uint32_t i = 0; i < std::size(default_instance_extensions); i++)
+				{
+					l->debug(std::format("pushing back required rosy instance extension with name: {}", default_instance_extensions[i]));
+					instance_extensions.push_back(default_instance_extensions[i]);
+				}
+			}
+			l->debug(std::format("num instanceExtensions: {}", instance_extensions.size()));
+
+			std::vector<const char*> required_instance_extensions(std::begin(instance_extensions), std::end(instance_extensions));
+			for (auto [extensionName, specVersion] : extensions)
+			{
+				l->debug(std::format("Instance extension name: {}", extensionName));
+				for (const char* extension_name : instance_extensions)
+				{
+					if (strcmp(extension_name, extensionName) == 0)
+					{
+						l->debug(std::format("Requiring instance extension: {}", extension_name));
+						std::erase(required_instance_extensions, extension_name);
+					}
+				}
+			}
+			if (required_instance_extensions.size() != 0) return VK_ERROR_EXTENSION_NOT_PRESENT;
+			return result;
 		}
 
 		VkResult init_instance()
