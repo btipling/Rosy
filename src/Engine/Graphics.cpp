@@ -79,6 +79,7 @@ namespace {
 		VmaAllocator allocator;
 
 		VkDebugUtilsMessengerEXT debug_messenger;
+		VkSurfaceKHR surface;
 
 
 		SDL_Window* window;
@@ -259,6 +260,11 @@ namespace {
 		{
 			// Deinit acquired resources in the opposite order in which they were created
 
+			if (graphics_created_bitmask & graphics_created_bit_surface)
+			{
+				SDL_Vulkan_DestroySurface(instance, surface, nullptr);
+			}
+
 			if (graphics_created_bitmask & graphics_created_bit_debug_messenger)
 			{
 				vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
@@ -438,6 +444,11 @@ namespace {
 		VkResult init_surface()
 		{
 			l->info("Initializing SDL Surface");
+			if (!SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface))
+			{
+				l->error(std::format("Failed to create SDL Vulkan surface: {}", SDL_GetError()));
+				return VK_ERROR_INITIALIZATION_FAILED;
+			}
 			graphics_created_bitmask |= graphics_created_bit_surface;
 			return VK_SUCCESS;
 		}
