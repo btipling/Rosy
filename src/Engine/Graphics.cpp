@@ -660,7 +660,7 @@ namespace {
 			for (auto [extensionName, specVersion] : extensions)
 			{
 				l->debug(std::format("Device extension name: {}", extensionName));
-				for (const char* extension_name : required_device_extensions)
+				for (const char* extension_name : default_device_extensions)
 				{
 					if (strcmp(extension_name, extensionName) == 0)
 					{
