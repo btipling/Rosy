@@ -11,20 +11,20 @@ using namespace rosy;
 
 namespace {
 	/// Graphics Device
-	constexpr  uint32_t graphics_created_bit_instance         = 0b00000000000000000000000000000001;
-	constexpr  uint32_t graphics_created_bit_device           = 0b00000000000000000000000000000010;
-	constexpr  uint32_t graphics_created_bit_surface          = 0b00000000000000000000000000000100;
-	constexpr  uint32_t graphics_created_bit_vma              = 0b00000000000000000000000000001000;
-	constexpr  uint32_t graphics_created_bit_debug_messenger  = 0b00000000000000000000000000010000;
-	constexpr  uint32_t graphics_created_bit_fence            = 0b00000000000000000000000000100000;
-	constexpr  uint32_t graphics_created_bit_command_pool     = 0b00000000000000000000000001000000;
-	constexpr  uint32_t graphics_created_bit_draw_image       = 0b00000000000000000000000010000000;
-	constexpr  uint32_t graphics_created_bit_depth_image      = 0b00000000000000000000000100000000;
-	constexpr  uint32_t graphics_created_bit_semaphore        = 0b00000000000000000000001000000000;
-	constexpr  uint32_t graphics_created_bit_swapchain        = 0b00000000000000000000010000000000;
-	constexpr  uint32_t graphics_created_bit_ktx              = 0b00000000000000000000100000000000;
-	constexpr  uint32_t graphics_created_bit_descriptor       = 0b00000000000000000001000000000000;
 
+	constexpr  uint32_t graphics_created_bit_instance        = 0b00000000000000000000000000000001;
+	constexpr  uint32_t graphics_created_bit_device	         = 0b00000000000000000000000000000010;
+	constexpr  uint32_t graphics_created_bit_surface         = 0b00000000000000000000000000000100;
+	constexpr  uint32_t graphics_created_bit_vma             = 0b00000000000000000000000000001000;
+	constexpr  uint32_t graphics_created_bit_debug_messenger = 0b00000000000000000000000000010000;
+	constexpr  uint32_t graphics_created_bit_fence           = 0b00000000000000000000000000100000;
+	constexpr  uint32_t graphics_created_bit_command_pool    = 0b00000000000000000000000001000000;
+	constexpr  uint32_t graphics_created_bit_draw_image      = 0b00000000000000000000000010000000;
+	constexpr  uint32_t graphics_created_bit_depth_image     = 0b00000000000000000000000100000000;
+	constexpr  uint32_t graphics_created_bit_semaphore       = 0b00000000000000000000001000000000;
+	constexpr  uint32_t graphics_created_bit_swapchain       = 0b00000000000000000000010000000000;
+	constexpr  uint32_t graphics_created_bit_ktx             = 0b00000000000000000000100000000000;
+	constexpr  uint32_t graphics_created_bit_descriptor      = 0b00000000000000000001000000000000;
 
 	const char* default_instance_layers[] = {
 		"VK_LAYER_LUNARG_api_dump",
@@ -37,15 +37,35 @@ namespace {
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 	};
 
+	rosy::log const* debug_callback_logger = nullptr; // Exists only for the purpose of the callback.
+#pragma warning(disable:4100)
+	VkBool32 VKAPI_CALL debug_callback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+		VkDebugUtilsMessageSeverityFlagsEXT message_type,
+		const VkDebugUtilsMessengerCallbackDataEXT* p_callback_data,
+		void* p_user_data)
+	{
+		if (!debug_callback_logger) return VK_FALSE;
+		debug_callback_logger->warn(std::format("Validation layer debug callback: {}", p_callback_data->pMessage));
+		return VK_FALSE;
+	}
+#pragma warning(default:4100)
+
 	struct graphics_device
 	{
 		rosy::log const* l{ nullptr };
-		uint32_t graphics_created_bitmask{0};
+		uint32_t graphics_created_bitmask{ 0 };
 		bool enable_validation_layers{ true };
 		std::vector<const char*> instance_layer_properties;
 		std::vector<const char*> device_layer_properties;
 		std::vector<const char*> instance_extensions;
 		std::vector<const char*> device_device_extensions;
+
+		VkInstance instance;
+		VkDevice device;
+		VkPhysicalDevice physical_device;
+		VmaAllocator allocator;
+
 		SDL_Window* window;
 
 		result init()
@@ -220,9 +240,15 @@ namespace {
 			return result::ok;
 		}
 
-		void deinit()
+		void deinit() const
 		{
 			// Deinit acquired resources.
+
+			if (graphics_created_bitmask & graphics_created_bit_instance)
+			{
+				debug_callback_logger = nullptr;
+				vkDestroyInstance(instance, nullptr);
+			}
 		}
 
 		VkResult query_instance_layers()
@@ -315,8 +341,51 @@ namespace {
 		VkResult init_instance()
 		{
 			l->info("Initializing instance");
+
+			VkApplicationInfo app_info{
+				.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+				.pApplicationName = "Rosy",
+				.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+				.pEngineName = "Rosy",
+				.engineVersion = VK_MAKE_VERSION(1, 0, 0),
+				.apiVersion = VK_API_VERSION_1_3,
+			};
+
+			constexpr VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info_ext = {
+				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+				.pNext = nullptr,
+				.flags = 0,
+				.messageSeverity =
+					VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+				.messageType =
+					VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+				.pfnUserCallback = debug_callback,
+				.pUserData = nullptr,
+			};
+
+			const VkInstanceCreateInfo create_info{
+				.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+				.pNext = &create_debug_callback_info_ext,
+				.pApplicationInfo = &app_info,
+				.enabledLayerCount = static_cast<uint32_t>(instance_layer_properties.size()),
+				.ppEnabledLayerNames = instance_layer_properties.data(),
+				.enabledExtensionCount = static_cast<uint32_t>(instance_extensions.size()),
+				.ppEnabledExtensionNames = instance_extensions.data(),
+			};
+
+			const VkResult result = vkCreateInstance(&create_info, nullptr, &instance);
+			if (result != VK_SUCCESS) return result;
+			l->debug("Vulkan instance created successfully!");
+			volkLoadInstance(instance);
+
+			// Set the debug callback logger to use the graphics device logger.
+			debug_callback_logger = l;
 			graphics_created_bitmask |= graphics_created_bit_instance;
-			return VK_SUCCESS;
+			return result;
 		}
 
 		VkResult create_debug_callback()
