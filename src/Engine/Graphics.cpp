@@ -565,16 +565,16 @@ namespace {
 				// features
 				VkPhysicalDeviceFeatures features;
 				vkGetPhysicalDeviceFeatures(p_device, &features);
-				if (features.multiDrawIndirect  != VK_TRUE) continue;
+				if (features.multiDrawIndirect != VK_TRUE) continue;
 				if (features.tessellationShader != VK_TRUE) continue;
-				if (features.geometryShader     != VK_TRUE) continue;
+				if (features.geometryShader != VK_TRUE) continue;
 				if (features.shaderInt64 != VK_TRUE) continue;
 
-				if (features.fillModeNonSolid   != VK_TRUE) continue;
-				if (features.wideLines          != VK_TRUE) continue;
+				if (features.fillModeNonSolid != VK_TRUE) continue;
+				if (features.wideLines != VK_TRUE) continue;
 
-				if (features.depthBiasClamp     != VK_TRUE) continue;
-				if (features.depthClamp         != VK_TRUE) continue;
+				if (features.depthBiasClamp != VK_TRUE) continue;
+				if (features.depthClamp != VK_TRUE) continue;
 				if (features.depthBounds != VK_TRUE) continue;
 
 				// memory
@@ -597,9 +597,9 @@ namespace {
 					if (q_props.timestampValidBits < 64) continue;
 
 					if (!(q_props.queueFlags & (
-						VK_QUEUE_GRAPHICS_BIT | 
-						VK_QUEUE_COMPUTE_BIT | 
-						VK_QUEUE_TRANSFER_BIT | 
+						VK_QUEUE_GRAPHICS_BIT |
+						VK_QUEUE_COMPUTE_BIT |
+						VK_QUEUE_TRANSFER_BIT |
 						VK_QUEUE_SPARSE_BINDING_BIT))) continue;
 
 					VkBool32 present_support = false;
@@ -889,22 +889,38 @@ namespace {
 		[[nodiscard]] swap_chain_support_details query_swap_chain_support(const VkPhysicalDevice p_device) const
 		{
 			swap_chain_support_details details = {};
-			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(p_device, surface, &details.capabilities);
+			if (const VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(p_device, surface, &details.capabilities); res != VK_SUCCESS)
+			{
+				l->warn(std::format("Failed to get device surface capabilities: {}", static_cast<uint8_t>(res)));
+				return details;
+			}
 
 			uint32_t format_count;
 			vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, surface, &format_count, nullptr);
 
 			if (format_count != 0) {
 				details.formats.resize(format_count);
-				vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, surface, &format_count, details.formats.data());
+				if (const VkResult res = vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, surface, &format_count, details.formats.data()); res != VK_SUCCESS)
+				{
+					l->warn(std::format("Failed to get device surface formats: {}", static_cast<uint8_t>(res)));
+					return details;
+				}
 			}
 
 			uint32_t present_mode_count;
-			vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, nullptr);
+			if (const VkResult res = vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, nullptr); res != VK_SUCCESS)
+			{
+				l->warn(std::format("Failed to get device surface formats: {}", static_cast<uint8_t>(res)));
+				return details;
+			}
 
 			if (present_mode_count != 0) {
 				details.present_modes.resize(present_mode_count);
-				vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, details.present_modes.data());
+				if (const VkResult res = vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, details.present_modes.data()); res != VK_SUCCESS)
+				{
+					l->warn(std::format("Failed to get device surface present modes: {}", static_cast<uint8_t>(res)));
+					return details;
+				}
 			}
 
 			return details;
