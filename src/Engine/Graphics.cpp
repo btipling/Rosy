@@ -37,6 +37,16 @@ namespace {
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 	};
 
+	const char* default_device_extensions[] = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef PROFILING_ENABLED
+		VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
+#endif
+		VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
+		VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
+		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
+	};
+
 	rosy::log const* debug_callback_logger = nullptr; // Exists only for the purpose of the callback, this is also not thread safe.
 	VkBool32 VKAPI_CALL debug_callback(
 		[[maybe_unused]] const VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -63,6 +73,12 @@ namespace {
 		return VK_FALSE;
 	}
 
+	struct swap_chain_support_details {
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> present_modes;
+	};
+
 	struct graphics_device
 	{
 		rosy::log const* l{ nullptr };
@@ -71,7 +87,7 @@ namespace {
 		std::vector<const char*> instance_layer_properties;
 		std::vector<const char*> device_layer_properties;
 		std::vector<const char*> instance_extensions;
-		std::vector<const char*> device_device_extensions;
+		std::vector<const char*> device_extensions;
 
 		VkInstance instance;
 		VkDevice device;
@@ -80,7 +96,17 @@ namespace {
 
 		VkDebugUtilsMessengerEXT debug_messenger;
 		VkSurfaceKHR surface;
+		VkPhysicalDeviceFeatures required_features{};
 
+		swap_chain_support_details swapchain_details = {};
+
+		VkPhysicalDeviceProperties physical_device_properties;
+		VkPhysicalDeviceFeatures supported_features;
+		VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
+		std::vector<VkQueueFamilyProperties> queue_family_properties;
+		uint32_t queue_count = 0;
+		uint32_t queue_index = 0;
+		std::vector<float> queue_priorities;
 
 		SDL_Window* window;
 
@@ -259,6 +285,11 @@ namespace {
 		void deinit() const
 		{
 			// Deinit acquired resources in the opposite order in which they were created
+
+			if (graphics_created_bitmask & graphics_created_bit_device)
+			{
+				if (const VkResult result = vkDeviceWaitIdle(device); result == VK_SUCCESS) vkDestroyDevice(device, nullptr);
+			}
 
 			if (graphics_created_bitmask & graphics_created_bit_surface)
 			{
@@ -456,26 +487,312 @@ namespace {
 		VkResult init_physical_device()
 		{
 			l->info("Initializing physical device");
-			return VK_SUCCESS;
+			std::vector<VkPhysicalDevice> physical_devices;
+
+			uint32_t physical_device_count = 0;
+			VkResult result = vkEnumeratePhysicalDevices(instance, &physical_device_count, nullptr);
+
+			physical_devices.resize(physical_device_count);
+			vkEnumeratePhysicalDevices(instance, &physical_device_count, &physical_devices[0]);
+
+			// Shader features
+			required_features.multiDrawIndirect  = VK_TRUE;
+			required_features.tessellationShader = VK_TRUE;
+			required_features.geometryShader     = VK_TRUE;
+			required_features.shaderInt64        = VK_TRUE;
+
+			// Rendering features
+			required_features.fillModeNonSolid   = VK_TRUE;
+			required_features.wideLines          = VK_TRUE;
+
+			// Depth features
+			required_features.depthBiasClamp     = VK_TRUE;
+			required_features.depthClamp         = VK_TRUE;
+			required_features.depthBounds        = VK_TRUE;
+
+			for (const VkPhysicalDevice& p_device : physical_devices)
+			{
+				// get device properties
+				VkPhysicalDeviceProperties device_properties;
+				vkGetPhysicalDeviceProperties(p_device, &device_properties);
+
+				bool swap_chain_adequate = false;
+				swap_chain_support_details swap_chain_support = query_swap_chain_support(p_device);
+				swap_chain_adequate = !swap_chain_support.formats.empty() && !swap_chain_support.present_modes.empty();
+				if (!swap_chain_adequate) continue;
+
+				// shader objects required
+				VkPhysicalDeviceShaderObjectFeaturesEXT shader_object_features{};
+				shader_object_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+				shader_object_features.pNext = nullptr;
+
+				VkPhysicalDeviceDepthClipEnableFeaturesEXT  depth_clip_features{};
+				depth_clip_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT;
+				depth_clip_features.pNext = &shader_object_features;
+
+				VkPhysicalDeviceFeatures2 device_features2{};
+				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				device_features2.pNext = &depth_clip_features;
+				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
+
+				if (!shader_object_features.shaderObject) continue;
+
+				// dynamic rendering required
+				VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features{};
+				buffer_device_address_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+				buffer_device_address_features.pNext = nullptr;
+
+				device_features2 = {};
+				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				device_features2.pNext = &buffer_device_address_features;
+				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
+
+				if (!buffer_device_address_features.bufferDeviceAddress) continue;
+
+
+				// data device address required
+				VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_features{};
+				dynamic_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+				dynamic_rendering_features.pNext = nullptr;
+
+				device_features2 = {};
+				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				device_features2.pNext = &dynamic_rendering_features;
+				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
+
+				if (!dynamic_rendering_features.dynamicRendering) continue;
+
+				// features
+				VkPhysicalDeviceFeatures features;
+				vkGetPhysicalDeviceFeatures(p_device, &features);
+				if (features.multiDrawIndirect != VK_TRUE) continue;
+				if (features.tessellationShader != VK_TRUE) continue;
+				if (features.geometryShader != VK_TRUE) continue;
+				if (features.shaderInt64 != VK_TRUE) continue;
+
+				if (features.fillModeNonSolid != VK_TRUE) continue;
+				if (features.wideLines != VK_TRUE) continue;
+
+				if (features.depthBiasClamp != VK_TRUE) continue;
+				if (features.depthClamp != VK_TRUE) continue;
+				if (features.depthBounds != VK_TRUE) continue;
+
+				// memory
+				VkPhysicalDeviceMemoryProperties mem_props;
+				vkGetPhysicalDeviceMemoryProperties(p_device, &mem_props);
+
+				// queues
+				uint32_t new_queue_count = 0;
+				uint32_t new_queue_index = 0;
+				std::vector<VkQueueFamilyProperties> current_queue_family_properties_data;
+				{
+					vkGetPhysicalDeviceQueueFamilyProperties(p_device, &new_queue_count, nullptr);
+					current_queue_family_properties_data.resize(new_queue_count);
+					vkGetPhysicalDeviceQueueFamilyProperties(p_device, &new_queue_count, &current_queue_family_properties_data[0]);
+				}
+
+				for (std::uint32_t i = 0; i < current_queue_family_properties_data.size(); ++i)
+				{
+					VkQueueFamilyProperties q_props = current_queue_family_properties_data[i];
+					if (q_props.timestampValidBits < 64) continue;
+
+					if (!(q_props.queueFlags & (
+						VK_QUEUE_GRAPHICS_BIT |
+						VK_QUEUE_COMPUTE_BIT |
+						VK_QUEUE_TRANSFER_BIT |
+						VK_QUEUE_SPARSE_BINDING_BIT))) continue;
+
+					VkBool32 present_support = false;
+					vkGetPhysicalDeviceSurfaceSupportKHR(p_device, i, surface, &present_support);
+					if (!present_support) continue;
+					// Get the physical device with the largest queue count if all other requirements have been met.
+					if (q_props.queueCount > new_queue_count)
+					{
+						new_queue_index = i;
+						new_queue_count = q_props.queueCount;
+						physical_device = p_device;
+						physical_device_properties = device_properties;
+						supported_features = features;
+						physical_device_memory_properties = mem_props;
+						queue_index = new_queue_index;
+						queue_count = new_queue_count;
+						queue_family_properties = current_queue_family_properties_data;
+					}
+				}
+			}
+			l->debug("Vulkan physical device created successfully!");
+			return result;
 		}
 
-		VkResult query_device_layers()
+		[[nodiscard]] VkResult query_device_layers() const
 		{
 			l->info("Querying device layers");
-			return VK_SUCCESS;
+			uint32_t p_property_count = 0;
+			VkResult result = vkEnumerateDeviceLayerProperties(physical_device, &p_property_count, nullptr);
+			if (result != VK_SUCCESS) return result;
+			l->debug(std::format("Found {} device layers", p_property_count));
+			if (p_property_count == 0) return result;
+			std::vector<VkLayerProperties> layers;
+			layers.resize(p_property_count);
+			result = vkEnumerateDeviceLayerProperties(physical_device, &p_property_count, layers.data());
+			if (result != VK_SUCCESS) return result;
+			for (VkLayerProperties lp : layers)
+			{
+				l->debug(std::format("Device layer name: {} layer description: {}", lp.layerName, lp.description));
+			}
+			return result;
 		}
 
 		VkResult query_device_extensions()
 		{
 			l->info("Querying device extensions");
-			return VK_SUCCESS;
+
+			uint32_t p_property_count = 0;
+
+			VkResult result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &p_property_count, nullptr);
+			if (result != VK_SUCCESS) return result;
+
+			l->debug(std::format("Found {} device extensions", p_property_count));
+			if (p_property_count == 0) return result;
+
+			std::vector<VkExtensionProperties> extensions;
+			extensions.resize(p_property_count);
+
+			result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &p_property_count, extensions.data());
+			if (result != VK_SUCCESS) return result;
+
+			// validate required device extensions
+			std::vector<const char*> required_device_extensions(std::begin(default_device_extensions), std::end(default_device_extensions));
+
+			for (auto [extensionName, specVersion] : extensions)
+			{
+				l->debug(std::format("Device extension name: {}", extensionName));
+				for (const char* extension_name : default_device_extensions)
+				{
+					if (strcmp(extension_name, extensionName) == 0)
+					{
+						l->debug(std::format("Requiring device extension: {}", extension_name));
+						device_extensions.push_back(extension_name);
+						std::erase(required_device_extensions, extension_name);
+					}
+				}
+			}
+
+			if (required_device_extensions.size() != 0)
+			{
+				return VK_ERROR_EXTENSION_NOT_PRESENT;
+			}
+			return result;
 		}
 
 		VkResult init_device()
 		{
 			l->info("Initializing device");
+
+			VkDeviceQueueCreateInfo device_queue_create_info{};
+			device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			device_queue_create_info.pNext = nullptr;
+			device_queue_create_info.flags = 0;
+			device_queue_create_info.queueFamilyIndex = queue_index;
+			queue_priorities.resize(queue_count, 0.5f);
+			device_queue_create_info.pQueuePriorities = queue_priorities.data();
+			device_queue_create_info.queueCount = queue_count;
+
+			VkPhysicalDeviceVulkan13Features vulkan13_features{};
+			vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+			vulkan13_features.pNext = nullptr;
+			vulkan13_features.dynamicRendering = VK_TRUE;
+			vulkan13_features.synchronization2 = VK_TRUE;
+			vulkan13_features.maintenance4 = VK_TRUE;
+
+			VkPhysicalDeviceVulkan12Features vulkan12_features{};
+			vulkan12_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+			vulkan12_features.pNext = &vulkan13_features;
+			vulkan12_features.bufferDeviceAddress = VK_TRUE;
+			vulkan12_features.descriptorIndexing = VK_TRUE;
+			vulkan12_features.shaderInputAttachmentArrayDynamicIndexing = VK_TRUE;
+			vulkan12_features.shaderUniformTexelBufferArrayDynamicIndexing = VK_TRUE;
+			vulkan12_features.shaderStorageTexelBufferArrayDynamicIndexing = VK_TRUE;
+			vulkan12_features.shaderUniformBufferArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderUniformTexelBufferArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.shaderStorageTexelBufferArrayNonUniformIndexing = VK_TRUE;
+			vulkan12_features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+			vulkan12_features.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+			vulkan12_features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+			vulkan12_features.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
+			vulkan12_features.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+			vulkan12_features.descriptorBindingPartiallyBound = VK_TRUE;
+			vulkan12_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+			vulkan12_features.runtimeDescriptorArray = VK_TRUE;
+			vulkan12_features.samplerFilterMinmax = VK_TRUE;
+			vulkan12_features.scalarBlockLayout = VK_TRUE;
+			vulkan12_features.imagelessFramebuffer = VK_TRUE;
+			vulkan12_features.uniformBufferStandardLayout = VK_TRUE;
+			vulkan12_features.shaderSubgroupExtendedTypes = VK_TRUE;
+#ifdef PROFILING_ENABLED
+			vulkan12_features.hostQueryReset = VK_TRUE;
+#endif
+
+			VkPhysicalDeviceVulkan11Features vulkan11_features{};
+			vulkan11_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+			vulkan11_features.pNext = &vulkan12_features;
+			vulkan11_features.variablePointers = VK_TRUE;
+			vulkan11_features.variablePointersStorageBuffer = VK_TRUE;
+			vulkan11_features.multiview = VK_FALSE;
+			vulkan11_features.multiviewGeometryShader = VK_FALSE;
+			vulkan11_features.multiviewTessellationShader = VK_FALSE;
+
+			VkPhysicalDeviceShaderObjectFeaturesEXT enable_shader_object = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,
+				.pNext = &vulkan11_features,
+				.shaderObject = VK_TRUE
+			};
+
+			VkPhysicalDeviceDepthClipEnableFeaturesEXT  enable_depth_clip_object = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
+				.pNext = &enable_shader_object,
+				.depthClipEnable = VK_TRUE
+			};
+
+			VkDeviceCreateInfo device_create_info = {};
+			device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+			device_create_info.pNext = &enable_depth_clip_object;
+			device_create_info.flags = 0;
+			device_create_info.queueCreateInfoCount = 1;
+			device_create_info.pQueueCreateInfos = &device_queue_create_info;
+			device_create_info.enabledLayerCount = 0;
+			device_create_info.ppEnabledLayerNames = nullptr;
+			device_create_info.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size());
+			device_create_info.ppEnabledExtensionNames = device_extensions.data();
+			device_create_info.pEnabledFeatures = &required_features;
+
+			VkResult result = vkCreateDevice(physical_device, &device_create_info, nullptr, &device);
+			if (result != VK_SUCCESS) return result;
+
+			l->debug("Vulkan device created successfully!");
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_INSTANCE;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(instance);
+				debug_name.pObjectName = "rosy instance";
+				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+			}
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_DEVICE;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(device);
+				debug_name.pObjectName = "rosy device";
+				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+			}
 			graphics_created_bitmask |= graphics_created_bit_device;
-			return VK_SUCCESS;
+			return result;
 		}
 
 		VkResult init_tracy()
@@ -567,6 +884,46 @@ namespace {
 			l->info("Initializing ktx");
 			graphics_created_bitmask |= graphics_created_bit_ktx;
 			return VK_SUCCESS;
+		}
+
+		[[nodiscard]] swap_chain_support_details query_swap_chain_support(const VkPhysicalDevice p_device) const
+		{
+			swap_chain_support_details details = {};
+			if (const VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(p_device, surface, &details.capabilities); res != VK_SUCCESS)
+			{
+				l->warn(std::format("Failed to get device surface capabilities: {}", static_cast<uint8_t>(res)));
+				return details;
+			}
+
+			uint32_t format_count;
+			vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, surface, &format_count, nullptr);
+
+			if (format_count != 0) {
+				details.formats.resize(format_count);
+				if (const VkResult res = vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, surface, &format_count, details.formats.data()); res != VK_SUCCESS)
+				{
+					l->warn(std::format("Failed to get device surface formats: {}", static_cast<uint8_t>(res)));
+					return details;
+				}
+			}
+
+			uint32_t present_mode_count;
+			if (const VkResult res = vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, nullptr); res != VK_SUCCESS)
+			{
+				l->warn(std::format("Failed to get device surface formats: {}", static_cast<uint8_t>(res)));
+				return details;
+			}
+
+			if (present_mode_count != 0) {
+				details.present_modes.resize(present_mode_count);
+				if (const VkResult res = vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, details.present_modes.data()); res != VK_SUCCESS)
+				{
+					l->warn(std::format("Failed to get device surface present modes: {}", static_cast<uint8_t>(res)));
+					return details;
+				}
+			}
+
+			return details;
 		}
 	};
 
