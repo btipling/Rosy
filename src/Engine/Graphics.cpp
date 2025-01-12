@@ -655,12 +655,12 @@ namespace {
 			if (result != VK_SUCCESS) return result;
 
 			// validate required device extensions
-			std::vector<const char*> required_device_extensions(std::begin(device_extensions), std::end(device_extensions));
+			std::vector<const char*> required_device_extensions(std::begin(default_device_extensions), std::end(default_device_extensions));
 
 			for (auto [extensionName, specVersion] : extensions)
 			{
 				l->debug(std::format("Device extension name: {}", extensionName));
-				for (const char* extension_name : device_extensions)
+				for (const char* extension_name : required_device_extensions)
 				{
 					if (strcmp(extension_name, extensionName) == 0)
 					{
