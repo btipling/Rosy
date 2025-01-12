@@ -6,7 +6,7 @@ This is a hobby project to build a game engine and eventually a game in my spare
 ## Building
 This project will likely not build for anyone else at this time.
 
-* shared_libs is where the .lib files should go for third party dependencies
+* libs is where the .lib files should go for third party dependencies
 * src/x64/Debug is where .dll files for third party dependencies should go
 * SDL_PATH, KTX_PATH etc describe required environment variables.
 * [SDL3](https://github.com/libsdl-org/SDL) dll and lib needed
