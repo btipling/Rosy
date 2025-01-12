@@ -104,8 +104,8 @@ namespace {
 		VkPhysicalDeviceFeatures supported_features;
 		VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
 		std::vector<VkQueueFamilyProperties> queue_family_properties;
-		uint32_t queue_count = 0;
-		uint32_t queue_index = 0;
+		uint32_t queue_count{ 0 };
+		uint32_t queue_index{ 0 };
 		std::vector<float> queue_priorities;
 
 		SDL_Window* window;
@@ -509,8 +509,7 @@ namespace {
 			required_features.depthBiasClamp     = VK_TRUE;
 			required_features.depthClamp         = VK_TRUE;
 			required_features.depthBounds        = VK_TRUE;
-
-			uint32_t new_queue_count = 0;
+			
 			for (const VkPhysicalDevice& p_device : physical_devices)
 			{
 				// get device properties
@@ -583,6 +582,7 @@ namespace {
 				vkGetPhysicalDeviceMemoryProperties(p_device, &mem_props);
 
 				// queues
+				uint32_t new_queue_count = 0;
 				uint32_t new_queue_index = 0;
 				std::vector<VkQueueFamilyProperties> current_queue_family_properties_data;
 				{
@@ -606,7 +606,7 @@ namespace {
 					vkGetPhysicalDeviceSurfaceSupportKHR(p_device, i, surface, &present_support);
 					if (!present_support) continue;
 					// Get the physical device with the largest queue count if all other requirements have been met.
-					if (q_props.queueCount > new_queue_count)
+					if (q_props.queueCount > queue_count)
 					{
 						new_queue_index = i;
 						new_queue_count = q_props.queueCount;
