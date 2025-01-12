@@ -63,6 +63,12 @@ namespace {
 		return VK_FALSE;
 	}
 
+	struct swap_chain_support_details {
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> present_modes;
+	};
+
 	struct graphics_device
 	{
 		rosy::log const* l{ nullptr };
@@ -80,7 +86,16 @@ namespace {
 
 		VkDebugUtilsMessengerEXT debug_messenger;
 		VkSurfaceKHR surface;
+		VkPhysicalDeviceFeatures required_features{};
 
+		swap_chain_support_details swapchain_details = {};
+
+		VkPhysicalDeviceProperties physical_device_properties;
+		VkPhysicalDeviceFeatures supported_features;
+		VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
+		std::vector<VkQueueFamilyProperties> queue_family_properties;
+		uint32_t queue_count = 0;
+		uint32_t queue_index = 0;
 
 		SDL_Window* window;
 
@@ -456,7 +471,134 @@ namespace {
 		VkResult init_physical_device()
 		{
 			l->info("Initializing physical device");
-			return VK_SUCCESS;
+			std::vector<VkPhysicalDevice> physical_devices;
+
+			uint32_t physical_device_count = 0;
+			VkResult result = vkEnumeratePhysicalDevices(instance, &physical_device_count, nullptr);
+
+			physical_devices.resize(physical_device_count);
+			vkEnumeratePhysicalDevices(instance, &physical_device_count, &physical_devices[0]);
+
+			required_features.multiDrawIndirect  = VK_TRUE;
+			required_features.tessellationShader = VK_TRUE;
+			required_features.geometryShader     = VK_TRUE;
+			required_features.fillModeNonSolid   = VK_TRUE;
+			required_features.wideLines          = VK_TRUE;
+			required_features.shaderInt64        = VK_TRUE;
+			required_features.depthBiasClamp     = VK_TRUE;
+			required_features.depthClamp         = VK_TRUE;
+			required_features.depthBounds        = VK_TRUE;
+
+			for (const VkPhysicalDevice& p_device : physical_devices)
+			{
+				// get device properties
+				VkPhysicalDeviceProperties device_properties;
+				vkGetPhysicalDeviceProperties(p_device, &device_properties);
+
+				bool swap_chain_adequate = false;
+				swap_chain_support_details swap_chain_support = query_swap_chain_support(p_device);
+				swap_chain_adequate = !swap_chain_support.formats.empty() && !swap_chain_support.present_modes.empty();
+				if (!swap_chain_adequate) continue;
+
+				// shader objects required
+				VkPhysicalDeviceShaderObjectFeaturesEXT shader_object_features{};
+				shader_object_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+				shader_object_features.pNext = nullptr;
+
+				VkPhysicalDeviceDepthClipEnableFeaturesEXT  depth_clip_features{};
+				depth_clip_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT;
+				depth_clip_features.pNext = &shader_object_features;
+
+				VkPhysicalDeviceFeatures2 device_features2{};
+				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				device_features2.pNext = &depth_clip_features;
+				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
+
+				if (!shader_object_features.shaderObject) continue;
+
+				// dynamic rendering required
+				VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features{};
+				buffer_device_address_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+				buffer_device_address_features.pNext = nullptr;
+
+				device_features2 = {};
+				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				device_features2.pNext = &buffer_device_address_features;
+				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
+
+				if (!buffer_device_address_features.bufferDeviceAddress) continue;
+
+
+				// data device address required
+				VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_features{};
+				dynamic_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+				dynamic_rendering_features.pNext = nullptr;
+
+				device_features2 = {};
+				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				device_features2.pNext = &dynamic_rendering_features;
+				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
+
+				if (!dynamic_rendering_features.dynamicRendering) continue;
+
+				// features
+				VkPhysicalDeviceFeatures features;
+				vkGetPhysicalDeviceFeatures(p_device, &features);
+				if (features.multiDrawIndirect  != VK_TRUE) continue;
+				if (features.tessellationShader != VK_TRUE) continue;
+				if (features.geometryShader     != VK_TRUE) continue;
+				if (features.fillModeNonSolid   != VK_TRUE) continue;
+				if (features.wideLines          != VK_TRUE) continue;
+				if (features.shaderInt64        != VK_TRUE) continue;
+				if (features.depthBiasClamp     != VK_TRUE) continue;
+				if (features.depthClamp         != VK_TRUE) continue;
+				if (features.depthBounds != VK_TRUE) continue;
+
+				// memory
+				VkPhysicalDeviceMemoryProperties mem_props;
+				vkGetPhysicalDeviceMemoryProperties(p_device, &mem_props);
+
+				// queues
+				uint32_t new_queue_count = 0;
+				uint32_t new_queue_index = 0;
+				std::vector<VkQueueFamilyProperties> current_queue_family_properties_data;
+				{
+					vkGetPhysicalDeviceQueueFamilyProperties(p_device, &new_queue_count, nullptr);
+					current_queue_family_properties_data.resize(new_queue_count);
+					vkGetPhysicalDeviceQueueFamilyProperties(p_device, &new_queue_count, &current_queue_family_properties_data[0]);
+				}
+
+				for (std::uint32_t i = 0; i < current_queue_family_properties_data.size(); ++i)
+				{
+					VkQueueFamilyProperties q_props = current_queue_family_properties_data[i];
+					if (q_props.timestampValidBits < 64) continue;
+
+					if (!(q_props.queueFlags & (
+						VK_QUEUE_GRAPHICS_BIT | 
+						VK_QUEUE_COMPUTE_BIT | 
+						VK_QUEUE_TRANSFER_BIT | 
+						VK_QUEUE_SPARSE_BINDING_BIT))) continue;
+
+					VkBool32 present_support = false;
+					vkGetPhysicalDeviceSurfaceSupportKHR(p_device, i, surface, &present_support);
+					if (!present_support) continue;
+					// Get the physical device with the largest queue count if all other requirements have been met.
+					if (q_props.queueCount > new_queue_count)
+					{
+						new_queue_index = i;
+						new_queue_count = q_props.queueCount;
+						physical_device = p_device;
+						physical_device_properties = device_properties;
+						supported_features = features;
+						physical_device_memory_properties = mem_props;
+						queue_index = new_queue_index;
+						queue_count = new_queue_count;
+						queue_family_properties = current_queue_family_properties_data;
+					}
+				}
+			}
+			l->debug("Vulkan physical device created successfully!");
+			return result;
 		}
 
 		VkResult query_device_layers()
@@ -567,6 +709,30 @@ namespace {
 			l->info("Initializing ktx");
 			graphics_created_bitmask |= graphics_created_bit_ktx;
 			return VK_SUCCESS;
+		}
+
+		[[nodiscard]] swap_chain_support_details query_swap_chain_support(const VkPhysicalDevice p_device) const
+		{
+			swap_chain_support_details details = {};
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(p_device, surface, &details.capabilities);
+
+			uint32_t format_count;
+			vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, surface, &format_count, nullptr);
+
+			if (format_count != 0) {
+				details.formats.resize(format_count);
+				vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, surface, &format_count, details.formats.data());
+			}
+
+			uint32_t present_mode_count;
+			vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, nullptr);
+
+			if (present_mode_count != 0) {
+				details.present_modes.resize(present_mode_count);
+				vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, details.present_modes.data());
+			}
+
+			return details;
 		}
 	};
 
