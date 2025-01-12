@@ -1,7 +1,11 @@
 #include "Engine.h"
 #include <format>
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_vulkan.h>
+#include <tracy/Tracy.hpp>
+#ifdef TRACY_ENABLED
+#include <client/TracyProfiler.hpp>
+#endif
+
 
 using namespace rosy;
 
@@ -115,6 +119,7 @@ result engine::run()
 			}
 		}
 		if (!should_run) break;
+		FrameMark;
 	}
 	return result::ok;
 }
