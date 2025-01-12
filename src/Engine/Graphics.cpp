@@ -7,7 +7,17 @@
 #include "vma/vk_mem_alloc.h"
 #include <SDL3/SDL_vulkan.h>
 
+#pragma warning(disable: 4100 4459)
+#include <tracy/Tracy.hpp>
+#include <tracy/TracyVulkan.hpp>
+#pragma warning(default: 4100 4459)
+
 using namespace rosy;
+
+namespace tracy {
+	// ReSharper disable once CppInconsistentNaming
+	class VkCtx;
+}
 
 namespace {
 	/// Graphics Device
@@ -93,6 +103,8 @@ namespace {
 		VkDevice device;
 		VkPhysicalDevice physical_device;
 		VmaAllocator allocator;
+
+		tracy::VkCtx* tracy_ctx{ nullptr };
 
 		VkDebugUtilsMessengerEXT debug_messenger;
 		VkSurfaceKHR surface;
@@ -286,6 +298,9 @@ namespace {
 		{
 			// Deinit acquired resources in the opposite order in which they were created
 
+			if (tracy_ctx != nullptr) {
+				TracyVkDestroy(tracy_ctx);
+			}
 			if (graphics_created_bitmask & graphics_created_bit_device)
 			{
 				if (const VkResult result = vkDeviceWaitIdle(device); result == VK_SUCCESS) vkDestroyDevice(device, nullptr);
@@ -664,12 +679,13 @@ namespace {
 			// validate required device extensions
 			std::vector<const char*> required_device_extensions(std::begin(default_device_extensions), std::end(default_device_extensions));
 
-			for (auto [extensionName, specVersion] : extensions)
+			// ReSharper disable once CppUseStructuredBinding
+			for (VkExtensionProperties properties : extensions)
 			{
-				l->debug(std::format("Device extension name: {}", extensionName));
+				l->debug(std::format("Device extension name: {}", properties.extensionName));
 				for (const char* extension_name : default_device_extensions)
 				{
-					if (strcmp(extension_name, extensionName) == 0)
+					if (strcmp(extension_name, properties.extensionName) == 0)
 					{
 						l->debug(std::format("Requiring device extension: {}", extension_name));
 						device_extensions.push_back(extension_name);
@@ -798,6 +814,12 @@ namespace {
 		VkResult init_tracy()
 		{
 			l->info("Initializing Tracy");
+			tracy_ctx = TracyVkContextHostCalibrated(
+				physical_device,
+				device,
+				vkResetQueryPool,
+				vkGetPhysicalDeviceCalibrateableTimeDomainsEXT,
+				vkGetCalibratedTimestampsEXT);
 			return VK_SUCCESS;
 		}
 
@@ -907,7 +929,7 @@ namespace {
 				}
 			}
 
-			uint32_t present_mode_count;
+			uint32_t present_mode_count{0};
 			if (const VkResult res = vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, nullptr); res != VK_SUCCESS)
 			{
 				l->warn(std::format("Failed to get device surface formats: {}", static_cast<uint8_t>(res)));

@@ -50,6 +50,9 @@
     <ClCompile Include="Volk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\libs\tracy\TracyClient.cpp" DisableSpecificWarnings="4100;4459">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\libs\SDL3.lib" />
