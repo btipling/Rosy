@@ -495,12 +495,17 @@ namespace {
 			physical_devices.resize(physical_device_count);
 			vkEnumeratePhysicalDevices(instance, &physical_device_count, &physical_devices[0]);
 
+			// Shader features
 			required_features.multiDrawIndirect  = VK_TRUE;
 			required_features.tessellationShader = VK_TRUE;
 			required_features.geometryShader     = VK_TRUE;
+			required_features.shaderInt64        = VK_TRUE;
+
+			// Rendering features
 			required_features.fillModeNonSolid   = VK_TRUE;
 			required_features.wideLines          = VK_TRUE;
-			required_features.shaderInt64        = VK_TRUE;
+
+			// Depth features
 			required_features.depthBiasClamp     = VK_TRUE;
 			required_features.depthClamp         = VK_TRUE;
 			required_features.depthBounds        = VK_TRUE;
@@ -563,9 +568,11 @@ namespace {
 				if (features.multiDrawIndirect  != VK_TRUE) continue;
 				if (features.tessellationShader != VK_TRUE) continue;
 				if (features.geometryShader     != VK_TRUE) continue;
+				if (features.shaderInt64 != VK_TRUE) continue;
+
 				if (features.fillModeNonSolid   != VK_TRUE) continue;
 				if (features.wideLines          != VK_TRUE) continue;
-				if (features.shaderInt64        != VK_TRUE) continue;
+
 				if (features.depthBiasClamp     != VK_TRUE) continue;
 				if (features.depthClamp         != VK_TRUE) continue;
 				if (features.depthBounds != VK_TRUE) continue;
