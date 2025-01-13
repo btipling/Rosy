@@ -1515,7 +1515,7 @@ namespace {
 			return VK_SUCCESS;
 		}
 
-		[[nodiscard]] VkResult init_command_buffers() const
+		[[nodiscard]] VkResult init_command_buffers()
 		{
 			l->info("Initializing command buffer");
 
@@ -1531,6 +1531,7 @@ namespace {
 
 					VkCommandBuffer command_buffer{};
 					if (const VkResult result = vkAllocateCommandBuffers(device, &alloc_info, &command_buffer); result != VK_SUCCESS) return result;
+					frame_datas[i].command_buffer = command_buffer;
 					{
 						const auto obj_name = std::format("{} rosy command_pool", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
