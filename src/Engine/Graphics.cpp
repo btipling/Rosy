@@ -1508,9 +1508,34 @@ namespace {
 			return VK_SUCCESS;
 		}
 
-		VkResult init_command_buffers()
+		[[nodiscard]] VkResult init_command_buffers() const
 		{
 			l->info("Initializing command buffer");
+
+			for (size_t i = 0; i < max_frames_in_flight; i++)
+			{
+				{
+					// render command buffer
+					VkCommandBufferAllocateInfo alloc_info{};
+					alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+					alloc_info.commandPool = frame_datas[i].command_pool;
+					alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+					alloc_info.commandBufferCount = 1;
+
+					VkCommandBuffer command_buffer{};
+					if (const VkResult result = vkAllocateCommandBuffers(device, &alloc_info, &command_buffer); result != VK_SUCCESS) return result;
+					{
+						const auto obj_name = std::format("{} rosy command_pool", i);
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(command_buffer);
+						debug_name.pObjectName = obj_name.c_str();
+						if (const auto result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					}
+				}
+			}
 			return VK_SUCCESS;
 		}
 
