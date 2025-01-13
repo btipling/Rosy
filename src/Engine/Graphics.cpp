@@ -1076,7 +1076,7 @@ namespace {
 			}
 		}
 
-		VkResult create_swapchain(const VkSwapchainKHR old_swapchain)
+		VkResult create_swapchain()
 		{
 			l->info("Creating swap chain");
 
@@ -1120,7 +1120,7 @@ namespace {
 				swapchain_create_info.presentMode = swapchain_present_mode;
 				swapchain_create_info.clipped = VK_TRUE;
 
-				swapchain_create_info.oldSwapchain = old_swapchain;
+				swapchain_create_info.oldSwapchain = nullptr;
 
 				if (const VkResult result = vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain); result != VK_SUCCESS) return result;
 				graphics_created_bitmask |= graphics_created_bit_swapchain;
@@ -1135,10 +1135,6 @@ namespace {
 				}
 			}
 
-			if (old_swapchain != VK_NULL_HANDLE)
-			{
-				destroy_swapchain();
-			}
 			{
 				swapchain_extent = extent;
 
@@ -1174,13 +1170,13 @@ namespace {
 		{
 			vkDeviceWaitIdle(device);
 			destroy_swapchain();
-			return create_swapchain(VK_NULL_HANDLE);
+			return create_swapchain();
 		}
 
 		VkResult init_swap_chain()
 		{
 			l->info("Initializing swap chain");
-			create_swapchain(VK_NULL_HANDLE);
+			create_swapchain();
 			return VK_SUCCESS;
 		}
 
