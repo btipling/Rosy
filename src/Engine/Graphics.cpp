@@ -280,6 +280,8 @@ namespace {
 		allocated_image depth_image;
 		allocated_csm shadow_map_image;
 
+		VkFence immediate_fence{nullptr};
+
 		SDL_Window* window{ nullptr };
 
 		result init(const config new_cfg)
@@ -458,6 +460,11 @@ namespace {
 		void deinit()
 		{
 			// Deinit acquired resources in the opposite order in which they were created
+
+			if (graphics_created_bitmask & graphics_created_bit_fence)
+			{
+				vkDestroyFence(device, immediate_fence, nullptr);
+			}
 
 			for (const frame_data fd : frame_datas)
 			{
@@ -1542,6 +1549,83 @@ namespace {
 		VkResult init_sync_objects()
 		{
 			l->info("Initializing sync objects");
+
+			VkSemaphoreCreateInfo semaphore_info{};
+			semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+			VkFenceCreateInfo fence_info{};
+			fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+			VkResult result;
+			for (size_t i = 0; i < max_frames_in_flight; i++)
+			{
+				{
+					VkSemaphore semaphore;
+					result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
+					if (result != VK_SUCCESS) return result;
+					frame_datas[i].image_available_semaphore = semaphore;
+					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_image_semaphore;
+					{
+						const auto obj_name = std::format("{} rosy image_available_semaphore", i);
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_SEMAPHORE;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(semaphore);
+						debug_name.pObjectName = obj_name.c_str();
+						if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					}
+				}
+				{
+					VkSemaphore semaphore;
+					result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
+					if (result != VK_SUCCESS) return result;
+					frame_datas[i].render_finished_semaphore = semaphore;
+					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_pass_semaphore;
+					{
+						const auto obj_name = std::format("{} rosy render_finished_semaphore", i);
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_SEMAPHORE;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(semaphore);
+						debug_name.pObjectName = obj_name.c_str();
+						if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					}
+				}
+				{
+					VkFence fence;
+					result = vkCreateFence(device, &fence_info, nullptr, &fence);
+					if (result != VK_SUCCESS) return result;
+					frame_datas[i].in_flight_fence = fence;
+					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_fence;
+					{
+						const auto obj_name = std::format("{} rosy in_flight_fence", i);
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_FENCE;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(fence);
+						debug_name.pObjectName = obj_name.c_str();
+						if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					}
+				}
+			}
+			{
+				result = vkCreateFence(device, &fence_info, nullptr, &immediate_fence);
+				if (result != VK_SUCCESS) return result;
+				graphics_created_bitmask |= graphics_created_bit_fence;
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_FENCE;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_fence);
+					debug_name.pObjectName = "rosy immediate_fence";
+					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				}
+			}
 			return VK_SUCCESS;
 		}
 
