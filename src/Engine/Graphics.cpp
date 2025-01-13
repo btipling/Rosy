@@ -210,9 +210,9 @@ namespace {
 		VkPhysicalDevice physical_device{ nullptr };
 		VmaAllocator allocator{ nullptr };
 
-		VkPhysicalDeviceProperties physical_device_properties;
-		VkPhysicalDeviceFeatures supported_features;
-		VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
+		VkPhysicalDeviceProperties physical_device_properties{};
+		VkPhysicalDeviceFeatures supported_features{};
+		VkPhysicalDeviceMemoryProperties physical_device_memory_properties{};
 		std::vector<VkQueueFamilyProperties> queue_family_properties;
 		uint32_t queue_count{ 0 };
 		uint32_t queue_index{ 0 };
@@ -220,13 +220,13 @@ namespace {
 
 		tracy::VkCtx* tracy_ctx{ nullptr };
 
-		VkQueue present_queue;
+		VkQueue present_queue{};
 
 		swap_chain_support_details swapchain_details{};
 		VkSwapchainKHR swapchain{ nullptr };
 		VkSurfaceFormatKHR swapchain_image_format{};
-		VkPresentModeKHR swapchain_present_mode;
-		uint8_t swap_chain_image_count = 0;
+		VkPresentModeKHR swapchain_present_mode{};
+		uint8_t swap_chain_image_count{ 0 };
 		std::vector<frame_data> frame_datas;
 		std::vector<VkImage> swap_chain_images;
 		std::vector<VkImageView> swap_chain_image_views;
@@ -235,16 +235,16 @@ namespace {
 		descriptor_set_manager* desc_storage_images{ nullptr };
 		descriptor_set_manager* desc_sampled_images{ nullptr };
 		descriptor_set_manager* desc_samples{ nullptr };
-		VkDescriptorSetLayout descriptor_set_layout;
-		VkDescriptorPool descriptor_pool;
+		VkDescriptorSetLayout descriptor_set_layout{ nullptr };
+		VkDescriptorPool descriptor_pool{ nullptr };
 		std::vector<VkDescriptorPoolSize> pool_sizes;
-		VkDescriptorSet descriptor_set;
+		VkDescriptorSet descriptor_set{};
 
-		VkDebugUtilsMessengerEXT debug_messenger;
-		VkSurfaceKHR surface;
+		VkDebugUtilsMessengerEXT debug_messenger{ nullptr };
+		VkSurfaceKHR surface{ nullptr };
 		VkPhysicalDeviceFeatures required_features{};
 
-		SDL_Window* window;
+		SDL_Window* window{ nullptr };
 
 		result init()
 		{
