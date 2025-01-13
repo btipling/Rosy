@@ -173,9 +173,9 @@ namespace {
 
 		VkQueue present_queue;
 
-		descriptor_set_manager *desc_storage_images{};
-		descriptor_set_manager *desc_sampled_images{};
-		descriptor_set_manager *desc_samples{};
+		descriptor_set_manager* desc_storage_images{};
+		descriptor_set_manager* desc_sampled_images{};
+		descriptor_set_manager* desc_samples{};
 		VkDescriptorSetLayout descriptor_set_layout;
 		VkDescriptorPool descriptor_pool;
 		std::vector<VkDescriptorPoolSize> pool_sizes;
@@ -634,7 +634,7 @@ namespace {
 			required_features.depthBiasClamp     = VK_TRUE;
 			required_features.depthClamp         = VK_TRUE;
 			required_features.depthBounds        = VK_TRUE;
-			
+
 			for (const VkPhysicalDevice& p_device : physical_devices)
 			{
 				// get device properties
@@ -1027,7 +1027,7 @@ namespace {
 			  {.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, .descriptorCount = descriptor_max_storage_image_descriptors},
 			  {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .descriptorCount = descriptor_max_sampled_image_descriptors},
 			  {.type = VK_DESCRIPTOR_TYPE_SAMPLER, .descriptorCount = descriptor_max_sample_descriptors},
-			});
+				});
 
 			VkDescriptorPoolCreateInfo pool_create_info{};
 			pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1041,15 +1041,15 @@ namespace {
 			graphics_created_bitmask |= graphics_created_bit_descriptor_set;
 
 			const auto bindings = std::vector<VkDescriptorSetLayoutBinding>({
-				  {desc_storage_images->binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, descriptor_max_storage_image_descriptors, VK_SHADER_STAGE_ALL},
-				  {desc_sampled_images->binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptor_max_sampled_image_descriptors, VK_SHADER_STAGE_ALL},
-				  {desc_samples->binding, VK_DESCRIPTOR_TYPE_SAMPLER, descriptor_max_sample_descriptors, VK_SHADER_STAGE_ALL},
+				{desc_storage_images->binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, descriptor_max_storage_image_descriptors, VK_SHADER_STAGE_ALL},
+				{desc_sampled_images->binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptor_max_sampled_image_descriptors, VK_SHADER_STAGE_ALL},
+				{desc_samples->binding, VK_DESCRIPTOR_TYPE_SAMPLER, descriptor_max_sample_descriptors, VK_SHADER_STAGE_ALL},
 				});
 
 			const auto bindings_flags = std::vector<VkDescriptorBindingFlags>({
-			  {VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
-			  {VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
-			  {VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+				{VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+				{VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+				{VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
 				});
 
 			if (bindings.size() != bindings_flags.size()) return VK_ERROR_INITIALIZATION_FAILED;
@@ -1157,7 +1157,7 @@ namespace {
 				}
 			}
 
-			uint32_t present_mode_count{0};
+			uint32_t present_mode_count{ 0 };
 			if (const VkResult res = vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, nullptr); res != VK_SUCCESS)
 			{
 				l->warn(std::format("Failed to get device surface formats: {}", static_cast<uint8_t>(res)));
