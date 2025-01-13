@@ -1176,8 +1176,7 @@ namespace {
 		VkResult init_swap_chain()
 		{
 			l->info("Initializing swap chain");
-			create_swapchain();
-			return VK_SUCCESS;
+			return create_swapchain();
 		}
 
 		VkResult init_draw_image()
