@@ -21,6 +21,7 @@ result engine::init()
 
 	l->info("Engine init begin");
 
+	config cfg{};
 	// SDL Window initialization.
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO))
@@ -42,6 +43,8 @@ result engine::init()
 		SDL_Rect display_bounds = {};
 		if (SDL_GetDisplayBounds(*display_ids, &display_bounds)) {
 			l->debug("Got display bounds");
+			cfg.max_window_width = display_bounds.w;
+			cfg.max_window_height = display_bounds.h;
 			width = static_cast<int>(std::floor(static_cast<float>(display_bounds.w) * 0.75));
 			height = static_cast<int>(std::floor(static_cast<float>(display_bounds.h) * 0.75));
 		}
@@ -68,7 +71,7 @@ result engine::init()
 			l->error("Error allocating graphics engine");
 			return result::allocation_failure;
 		}
-		if (auto const res = gfx->init(window, l); res != result::ok)
+		if (auto const res = gfx->init(window, l, cfg); res != result::ok)
 		{
 			l->error(std::format("Graphics creation failed: {}", static_cast<uint8_t>(res)));
 			return res;

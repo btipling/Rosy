@@ -13,7 +13,7 @@ namespace rosy
 	{
 		log const* l{ nullptr };
 
-		result init(SDL_Window* new_window, log const* new_log);
+		result init(SDL_Window* new_window, log const* new_log, config cfg);
 		void deinit();
 	};
 }
