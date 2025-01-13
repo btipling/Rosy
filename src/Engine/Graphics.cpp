@@ -69,6 +69,7 @@ namespace {
 	};
 
 	////  Descriptor Set Manager
+
 	struct descriptor_set_manager
 	{
 		uint32_t binding{ 0 };
