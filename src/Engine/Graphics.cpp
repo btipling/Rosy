@@ -87,20 +87,22 @@ namespace {
 
 	/// Graphics Device
 
-	constexpr  uint32_t graphics_created_bit_instance        = 0b00000000000000000000000000000001;
-	constexpr  uint32_t graphics_created_bit_device	         = 0b00000000000000000000000000000010;
-	constexpr  uint32_t graphics_created_bit_surface         = 0b00000000000000000000000000000100;
-	constexpr  uint32_t graphics_created_bit_vma             = 0b00000000000000000000000000001000;
-	constexpr  uint32_t graphics_created_bit_debug_messenger = 0b00000000000000000000000000010000;
-	constexpr  uint32_t graphics_created_bit_fence           = 0b00000000000000000000000000100000;
-	constexpr  uint32_t graphics_created_bit_command_pool    = 0b00000000000000000000000001000000;
-	constexpr  uint32_t graphics_created_bit_draw_image      = 0b00000000000000000000000010000000;
-	constexpr  uint32_t graphics_created_bit_depth_image     = 0b00000000000000000000000100000000;
-	constexpr  uint32_t graphics_created_bit_semaphore       = 0b00000000000000000000001000000000;
-	constexpr  uint32_t graphics_created_bit_swapchain       = 0b00000000000000000000010000000000;
-	constexpr  uint32_t graphics_created_bit_ktx             = 0b00000000000000000000100000000000;
-	constexpr  uint32_t graphics_created_bit_descriptor_set  = 0b00000000000000000001000000000000;
-	constexpr  uint32_t graphics_created_bit_descriptor_pool = 0b00000000000000000010000000000000;
+	constexpr  uint32_t graphics_created_bit_instance         = 0b00000000000000000000000000000001;
+	constexpr  uint32_t graphics_created_bit_device	          = 0b00000000000000000000000000000010;
+	constexpr  uint32_t graphics_created_bit_surface          = 0b00000000000000000000000000000100;
+	constexpr  uint32_t graphics_created_bit_vma              = 0b00000000000000000000000000001000;
+	constexpr  uint32_t graphics_created_bit_debug_messenger  = 0b00000000000000000000000000010000;
+	constexpr  uint32_t graphics_created_bit_fence            = 0b00000000000000000000000000100000;
+	constexpr  uint32_t graphics_created_bit_command_pool     = 0b00000000000000000000000001000000;
+	constexpr  uint32_t graphics_created_bit_draw_image       = 0b00000000000000000000000010000000;
+	constexpr  uint32_t graphics_created_bit_depth_image      = 0b00000000000000000000000100000000;
+	constexpr  uint32_t graphics_created_bit_semaphore        = 0b00000000000000000000001000000000;
+	constexpr  uint32_t graphics_created_bit_swapchain        = 0b00000000000000000000010000000000;
+	constexpr  uint32_t graphics_created_bit_ktx              = 0b00000000000000000000100000000000;
+	constexpr  uint32_t graphics_created_bit_descriptor_set   = 0b00000000000000000001000000000000;
+	constexpr  uint32_t graphics_created_bit_descriptor_pool  = 0b00000000000000000010000000000000;
+	constexpr  uint32_t graphics_created_bit_draw_image_view  = 0b00000000000000000100000000000000;
+	constexpr  uint32_t graphics_created_bit_depth_image_view = 0b00000000000000001000000000000000;
 
 	const char* default_instance_layers[] = {
 		"VK_LAYER_LUNARG_api_dump",
@@ -195,9 +197,39 @@ namespace {
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
+	struct allocated_image
+	{
+		VkImage image;
+		VkImageView image_view;
+		VmaAllocation allocation;
+		VkExtent3D image_extent;
+		VkFormat image_format;
+	};
+
+	struct allocated_csm
+	{
+		VkImage image;
+		VkImageView image_view_near;
+		VkImageView image_view_middle;
+		VkImageView image_view_far;
+		VmaAllocation allocation;
+		VkExtent3D image_extent;
+		VkFormat image_format;
+		VkSampler viewer_sampler;
+		VkSampler shadow_sampler;
+		VkDescriptorSet imgui_ds_near;
+		VkDescriptorSet imgui_ds_middle;
+		VkDescriptorSet imgui_ds_far;
+		uint32_t ds_index_sampler;
+		uint32_t ds_index_near;
+		uint32_t ds_index_middle;
+		uint32_t ds_index_far;
+	};
+
 	struct graphics_device
 	{
 		rosy::log const* l{ nullptr };
+		config cfg{};
 		uint32_t graphics_created_bitmask{ 0 };
 		bool enable_validation_layers{ true };
 		std::vector<const char*> instance_layer_properties;
@@ -244,10 +276,15 @@ namespace {
 		VkSurfaceKHR surface{ nullptr };
 		VkPhysicalDeviceFeatures required_features{};
 
+		allocated_image draw_image;
+		allocated_image depth_image;
+		allocated_csm shadow_map_image;
+
 		SDL_Window* window{ nullptr };
 
-		result init()
+		result init(const config new_cfg)
 		{
+			cfg = new_cfg;
 			VkResult vk_result = volkInitialize();
 			if (vk_result != VK_SUCCESS)
 			{
@@ -421,6 +458,26 @@ namespace {
 		void deinit()
 		{
 			// Deinit acquired resources in the opposite order in which they were created
+
+			if (graphics_created_bitmask & graphics_created_bit_depth_image_view)
+			{
+				vkDestroyImageView(device, depth_image.image_view, nullptr);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_depth_image)
+			{
+				vmaDestroyImage(allocator, depth_image.image, depth_image.allocation);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_draw_image_view)
+			{
+				vkDestroyImageView(device, draw_image.image_view, nullptr);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_draw_image)
+			{
+				vmaDestroyImage(allocator, draw_image.image, draw_image.allocation);
+			}
 
 			if (desc_storage_images != nullptr)
 			{
@@ -1182,8 +1239,143 @@ namespace {
 		VkResult init_draw_image()
 		{
 			l->info("Initializing draw image");
-			graphics_created_bitmask |= graphics_created_bit_draw_image;
-			return VK_SUCCESS;
+
+			VkResult result = VK_SUCCESS;
+			const VkExtent3D draw_image_extent = {
+				.width = static_cast<uint32_t>(cfg.max_window_width),
+				.height = static_cast<uint32_t>(cfg.max_window_height),
+				.depth = 1
+			};
+
+			VmaAllocationCreateInfo r_img_alloc_info{};
+			r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+			r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+			{
+				// Draw image creation.
+				draw_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
+				draw_image.image_extent = draw_image_extent;
+
+				VkImageUsageFlags draw_image_usages{};
+				draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+				draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+				draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+				draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+				{
+					VkImageCreateInfo draw_info{};
+					draw_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+					draw_info.pNext = nullptr;
+					draw_info.imageType = VK_IMAGE_TYPE_2D;
+					draw_info.format = draw_image.image_format;
+					draw_info.extent = draw_image_extent;
+					draw_info.mipLevels = 1;
+					draw_info.arrayLayers = 1;
+					draw_info.samples = VK_SAMPLE_COUNT_1_BIT;
+					draw_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+					draw_info.usage = draw_image_usages;
+
+					if (result = vmaCreateImage(allocator, &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation, nullptr); result != VK_SUCCESS) return result;
+					graphics_created_bitmask |= graphics_created_bit_draw_image;
+				}
+				{
+					VkImageViewCreateInfo draw_view_create_info{};
+					draw_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					draw_view_create_info.pNext = nullptr;
+					draw_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					draw_view_create_info.image = draw_image.image;
+					draw_view_create_info.format = draw_image.image_format;
+					draw_view_create_info.subresourceRange.baseMipLevel = 0;
+					draw_view_create_info.subresourceRange.levelCount = 1;
+					draw_view_create_info.subresourceRange.baseArrayLayer = 0;
+					draw_view_create_info.subresourceRange.layerCount = 1;
+					draw_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+					result = vkCreateImageView(device, &draw_view_create_info, nullptr, &draw_image.image_view);
+					if (result != VK_SUCCESS) return result;
+					graphics_created_bitmask |= graphics_created_bit_draw_image_view;
+				}
+
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_IMAGE;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(draw_image.image);
+					debug_name.pObjectName = "rosy draw image";
+					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				}
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(draw_image.image_view);
+					debug_name.pObjectName = "rosy draw image view";
+					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				}
+			}
+			{
+				// Depth image creation.
+				depth_image.image_format = VK_FORMAT_D32_SFLOAT;
+				depth_image.image_extent = draw_image_extent;
+				VkImageUsageFlags depth_image_usages{};
+				depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+				{
+					VkImageCreateInfo depth_image_info{};
+					depth_image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+					depth_image_info.pNext = nullptr;
+					depth_image_info.imageType = VK_IMAGE_TYPE_2D;
+					depth_image_info.format = depth_image.image_format;
+					depth_image_info.extent = depth_image.image_extent;
+					depth_image_info.mipLevels = 1;
+					depth_image_info.arrayLayers = 1;
+					depth_image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+					depth_image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+					depth_image_info.usage = depth_image_usages;
+
+					if (result = vmaCreateImage(allocator, &depth_image_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation, nullptr); result != VK_SUCCESS) return result;
+					graphics_created_bitmask |= graphics_created_bit_depth_image;
+				}
+				{
+					VkImageViewCreateInfo depth_view_create_info{};
+					depth_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					depth_view_create_info.pNext = nullptr;
+					depth_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					depth_view_create_info.image = depth_image.image;
+					depth_view_create_info.format = depth_image.image_format;
+					depth_view_create_info.subresourceRange.baseMipLevel = 0;
+					depth_view_create_info.subresourceRange.levelCount = 1;
+					depth_view_create_info.subresourceRange.baseArrayLayer = 0;
+					depth_view_create_info.subresourceRange.layerCount = 1;
+					depth_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+					result = vkCreateImageView(device, &depth_view_create_info, nullptr, &depth_image.image_view);
+					if (result != VK_SUCCESS) return result;
+					graphics_created_bitmask |= graphics_created_bit_depth_image_view;
+				}
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_IMAGE;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(depth_image.image);
+					debug_name.pObjectName = "rosy depth image";
+					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				}
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(depth_image.image_view);
+					debug_name.pObjectName = "rosy depth image view";
+					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				}
+			}
+
+			return result;
 		}
 
 		VkResult init_descriptors()
@@ -1376,7 +1568,7 @@ namespace {
 
 //// Graphics
 
-result graphics::init(SDL_Window* new_window, log const* new_log)
+result graphics::init(SDL_Window* new_window, log const* new_log, config cfg)
 {
 	if (new_window == nullptr)
 	{
@@ -1400,7 +1592,7 @@ result graphics::init(SDL_Window* new_window, log const* new_log)
 		}
 		gd->l = new_log;
 		gd->window = new_window;
-		if (const auto res = gd->init(); res != result::ok)
+		if (const auto res = gd->init(cfg); res != result::ok)
 		{
 			l->error("graphics_device initialization failed");
 			return result::graphics_init_failure;
