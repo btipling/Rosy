@@ -96,13 +96,15 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_command_pool     = 0b00000000000000000000000001000000;
 	constexpr  uint32_t graphics_created_bit_draw_image       = 0b00000000000000000000000010000000;
 	constexpr  uint32_t graphics_created_bit_depth_image      = 0b00000000000000000000000100000000;
-	constexpr  uint32_t graphics_created_bit_semaphore        = 0b00000000000000000000001000000000;
+	constexpr  uint32_t graphics_created_bit_unused           = 0b00000000000000000000001000000000;
 	constexpr  uint32_t graphics_created_bit_swapchain        = 0b00000000000000000000010000000000;
 	constexpr  uint32_t graphics_created_bit_ktx              = 0b00000000000000000000100000000000;
 	constexpr  uint32_t graphics_created_bit_descriptor_set   = 0b00000000000000000001000000000000;
 	constexpr  uint32_t graphics_created_bit_descriptor_pool  = 0b00000000000000000010000000000000;
 	constexpr  uint32_t graphics_created_bit_draw_image_view  = 0b00000000000000000100000000000000;
 	constexpr  uint32_t graphics_created_bit_depth_image_view = 0b00000000000000001000000000000000;
+	constexpr  uint32_t graphics_created_bit_image_semaphore  = 0b00000000000000010000000000000000;
+	constexpr  uint32_t graphics_created_bit_pass_semaphore   = 0b00000000000000100000000000000000;
 
 	const char* default_instance_layers[] = {
 		"VK_LAYER_LUNARG_api_dump",
@@ -161,14 +163,12 @@ namespace {
 
 	struct frame_data
 	{
-		//std::optional<VkCommandBuffer> shadow_pass_command_buffer = std::nullopt;
-		//std::optional<VkCommandBuffer> render_command_buffer = std::nullopt;
-		//std::optional<VkSemaphore> image_available_semaphore = std::nullopt;
-		//std::optional<VkSemaphore> shadow_pass_semaphore = std::nullopt;
-		//std::optional<VkSemaphore> render_finished_semaphore = std::nullopt;
-		//std::optional<VkFence> shadow_pass_fence = std::nullopt;
-		//std::optional<VkFence> in_flight_fence = std::nullopt;
-		//std::optional<VkCommandPool> command_pool = std::nullopt;
+		uint32_t frame_graphics_created_bitmask{ 0 };
+		VkCommandBuffer command_buffer{ nullptr };
+		VkSemaphore image_available_semaphore{ nullptr };
+		VkSemaphore render_finished_semaphore{};
+		VkFence in_flight_fence{ nullptr };
+		VkCommandPool command_pool{ nullptr };
 	};
 
 	VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats)
@@ -458,6 +458,14 @@ namespace {
 		void deinit()
 		{
 			// Deinit acquired resources in the opposite order in which they were created
+
+			for (const frame_data fd : frame_datas)
+			{
+				if (fd.frame_graphics_created_bitmask & graphics_created_bit_fence) vkDestroyFence(device, fd.in_flight_fence, nullptr);
+				if (fd.frame_graphics_created_bitmask & graphics_created_bit_image_semaphore)  vkDestroySemaphore(device, fd.image_available_semaphore, nullptr);
+				if (fd.frame_graphics_created_bitmask & graphics_created_bit_pass_semaphore) vkDestroySemaphore( device, fd.render_finished_semaphore, nullptr);
+				if (fd.frame_graphics_created_bitmask & graphics_created_bit_command_pool) vkDestroyCommandPool(device, fd.command_pool, nullptr);
+			}
 
 			if (graphics_created_bitmask & graphics_created_bit_depth_image_view)
 			{
@@ -1473,7 +1481,30 @@ namespace {
 		VkResult init_command_pool()
 		{
 			l->info("Initializing command pool");
-			graphics_created_bitmask |= graphics_created_bit_command_pool;
+			VkCommandPoolCreateInfo pool_info{};
+			pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+			pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+			pool_info.queueFamilyIndex = queue_index;
+
+			for (size_t i = 0; i < max_frames_in_flight; i++)
+			{
+				VkCommandPool command_pool{};
+				if (const VkResult result = vkCreateCommandPool(device, &pool_info, nullptr, &command_pool); result !=
+					VK_SUCCESS)
+					return result;
+				frame_datas[i].command_pool = command_pool;
+				frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_command_pool;
+				{
+					const auto obj_name = std::format("{} rosy command_pool", i);
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(command_pool);
+					debug_name.pObjectName = obj_name.c_str();
+					if (const auto result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				}
+			}
 			return VK_SUCCESS;
 		}
 
