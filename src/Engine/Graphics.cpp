@@ -1238,7 +1238,9 @@ namespace {
 
 		VkResult init_draw_image()
 		{
-			l->info("Initializing draw image"); VkResult result;
+			l->info("Initializing draw image");
+
+			VkResult result = VK_SUCCESS;
 			const VkExtent3D draw_image_extent = {
 				.width = static_cast<uint32_t>(cfg.max_window_width),
 				.height = static_cast<uint32_t>(cfg.max_window_height),
