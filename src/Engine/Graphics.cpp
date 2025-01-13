@@ -1533,7 +1533,7 @@ namespace {
 					if (const VkResult result = vkAllocateCommandBuffers(device, &alloc_info, &command_buffer); result != VK_SUCCESS) return result;
 					frame_datas[i].command_buffer = command_buffer;
 					{
-						const auto obj_name = std::format("{} rosy command_pool", i);
+						const auto obj_name = std::format("{} rosy command_buffer", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
