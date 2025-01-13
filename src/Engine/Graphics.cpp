@@ -1140,9 +1140,9 @@ namespace {
 
 				swap_chain_images.clear();
 				auto count = static_cast<uint32_t>(swap_chain_image_count);
-				vkGetSwapchainImagesKHR(device, swapchain, &count, nullptr);
+				if (const auto result = vkGetSwapchainImagesKHR(device, swapchain, &count, nullptr); result != VK_SUCCESS) return result;
 				swap_chain_images.resize(swap_chain_image_count);
-				vkGetSwapchainImagesKHR(device, swapchain, &count, swap_chain_images.data());
+				if (const auto result = vkGetSwapchainImagesKHR(device, swapchain, &count, swap_chain_images.data())) return result;
 
 				for (size_t i = 0; i < swap_chain_images.size(); i++)
 				{
