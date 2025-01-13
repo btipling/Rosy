@@ -463,6 +463,14 @@ namespace {
 		{
 			// Deinit acquired resources in the opposite order in which they were created
 
+			if (graphics_created_bitmask & graphics_created_bit_device)
+			{
+				if (const VkResult result = vkDeviceWaitIdle(device); result != VK_SUCCESS)
+				{
+					l->error(std::format("Failed to wait device to be idle: {}", static_cast<uint8_t>(result)));
+				}
+			}
+
 			if (graphics_created_bitmask & graphics_created_bit_command_pool)
 			{
 				vkDestroyCommandPool(device, immediate_command_pool, nullptr);
@@ -517,14 +525,6 @@ namespace {
 			{
 				delete desc_samples;
 				desc_samples = nullptr;
-			}
-
-			if (graphics_created_bitmask & graphics_created_bit_device)
-			{
-				if (const VkResult result = vkDeviceWaitIdle(device); result != VK_SUCCESS)
-				{
-					l->error(std::format("Failed to wait device to be idle: {}", static_cast<uint8_t>(result)));
-				}
 			}
 
 			destroy_swapchain();
