@@ -2,14 +2,14 @@
 
 #include <format>
 #include <vector>
+#include <queue>
+#include <stack>
 
 #include "volk/volk.h"
 #include "vma/vk_mem_alloc.h"
 #include <SDL3/SDL_vulkan.h>
 
 #pragma warning(disable: 4100 4459)
-#include <queue>
-#include <stack>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
