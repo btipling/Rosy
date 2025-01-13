@@ -10,6 +10,7 @@
 #include <SDL3/SDL_vulkan.h>
 
 #pragma warning(disable: 4100 4459)
+#include <algorithm>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
@@ -122,6 +123,8 @@ namespace {
 		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 	};
 
+	constexpr uint8_t max_frames_in_flight = 2;
+
 	rosy::log const* debug_callback_logger = nullptr; // Exists only for the purpose of the callback, this is also not thread safe.
 	VkBool32 VKAPI_CALL debug_callback(
 		[[maybe_unused]] const VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -154,6 +157,44 @@ namespace {
 		std::vector<VkPresentModeKHR> present_modes;
 	};
 
+	struct frame_data
+	{
+		//std::optional<VkCommandBuffer> shadow_pass_command_buffer = std::nullopt;
+		//std::optional<VkCommandBuffer> render_command_buffer = std::nullopt;
+		//std::optional<VkSemaphore> image_available_semaphore = std::nullopt;
+		//std::optional<VkSemaphore> shadow_pass_semaphore = std::nullopt;
+		//std::optional<VkSemaphore> render_finished_semaphore = std::nullopt;
+		//std::optional<VkFence> shadow_pass_fence = std::nullopt;
+		//std::optional<VkFence> in_flight_fence = std::nullopt;
+		//std::optional<VkCommandPool> command_pool = std::nullopt;
+	};
+
+	VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats)
+	{
+		for (const auto& available_format : available_formats)
+		{
+			if (available_format.format == VK_FORMAT_B8G8R8A8_SRGB && available_format.colorSpace ==
+				VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			{
+				return available_format;
+			}
+		}
+		return available_formats[0];
+	}
+
+	VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes)
+	{
+		for (const auto& available_present_mode : available_present_modes)
+		{
+			if (available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
+			{
+				return available_present_mode;
+			}
+		}
+
+		return VK_PRESENT_MODE_FIFO_KHR;
+	}
+
 	struct graphics_device
 	{
 		rosy::log const* l{ nullptr };
@@ -169,33 +210,41 @@ namespace {
 		VkPhysicalDevice physical_device{ nullptr };
 		VmaAllocator allocator{ nullptr };
 
-		tracy::VkCtx* tracy_ctx{ nullptr };
-
-		VkQueue present_queue;
-
-		descriptor_set_manager* desc_storage_images{};
-		descriptor_set_manager* desc_sampled_images{};
-		descriptor_set_manager* desc_samples{};
-		VkDescriptorSetLayout descriptor_set_layout;
-		VkDescriptorPool descriptor_pool;
-		std::vector<VkDescriptorPoolSize> pool_sizes;
-		VkDescriptorSet descriptor_set;
-
-		VkDebugUtilsMessengerEXT debug_messenger;
-		VkSurfaceKHR surface;
-		VkPhysicalDeviceFeatures required_features{};
-
-		swap_chain_support_details swapchain_details = {};
-
-		VkPhysicalDeviceProperties physical_device_properties;
-		VkPhysicalDeviceFeatures supported_features;
-		VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
+		VkPhysicalDeviceProperties physical_device_properties{};
+		VkPhysicalDeviceFeatures supported_features{};
+		VkPhysicalDeviceMemoryProperties physical_device_memory_properties{};
 		std::vector<VkQueueFamilyProperties> queue_family_properties;
 		uint32_t queue_count{ 0 };
 		uint32_t queue_index{ 0 };
 		std::vector<float> queue_priorities;
 
-		SDL_Window* window;
+		tracy::VkCtx* tracy_ctx{ nullptr };
+
+		VkQueue present_queue{};
+
+		swap_chain_support_details swapchain_details{};
+		VkSwapchainKHR swapchain{ nullptr };
+		VkSurfaceFormatKHR swapchain_image_format{};
+		VkPresentModeKHR swapchain_present_mode{};
+		uint8_t swap_chain_image_count{ 0 };
+		std::vector<frame_data> frame_datas;
+		std::vector<VkImage> swap_chain_images;
+		std::vector<VkImageView> swap_chain_image_views;
+		VkExtent2D swapchain_extent{};
+
+		descriptor_set_manager* desc_storage_images{ nullptr };
+		descriptor_set_manager* desc_sampled_images{ nullptr };
+		descriptor_set_manager* desc_samples{ nullptr };
+		VkDescriptorSetLayout descriptor_set_layout{ nullptr };
+		VkDescriptorPool descriptor_pool{ nullptr };
+		std::vector<VkDescriptorPoolSize> pool_sizes;
+		VkDescriptorSet descriptor_set{};
+
+		VkDebugUtilsMessengerEXT debug_messenger{ nullptr };
+		VkSurfaceKHR surface{ nullptr };
+		VkPhysicalDeviceFeatures required_features{};
+
+		SDL_Window* window{ nullptr };
 
 		result init()
 		{
@@ -378,16 +427,19 @@ namespace {
 				delete desc_storage_images;
 				desc_storage_images = nullptr;
 			}
+
 			if (desc_sampled_images != nullptr)
 			{
 				delete desc_sampled_images;
 				desc_sampled_images = nullptr;
 			}
+
 			if (desc_samples != nullptr)
 			{
 				delete desc_samples;
 				desc_samples = nullptr;
 			}
+
 			if (graphics_created_bitmask & graphics_created_bit_device)
 			{
 				if (const VkResult result = vkDeviceWaitIdle(device); result != VK_SUCCESS)
@@ -396,26 +448,33 @@ namespace {
 				}
 			}
 
+			destroy_swapchain();
+
 			if (graphics_created_bitmask & graphics_created_bit_descriptor_set)
 			{
 				vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 			}
+
 			if (graphics_created_bitmask & graphics_created_bit_descriptor_pool)
 			{
 				vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
 			}
+
 			if (graphics_created_bitmask & graphics_created_bit_vma)
 			{
 				vmaDestroyAllocator(allocator);
 			}
+
 			if (tracy_ctx != nullptr) {
 				TracyVkDestroy(tracy_ctx);
 				tracy_ctx = nullptr;
 			}
+
 			if (graphics_created_bitmask & graphics_created_bit_device)
 			{
 				if (const VkResult result = vkDeviceWaitIdle(device); result == VK_SUCCESS) vkDestroyDevice(device, nullptr);
 			}
+
 			if (graphics_created_bitmask & graphics_created_bit_surface)
 			{
 				SDL_Vulkan_DestroySurface(instance, surface, nullptr);
@@ -979,11 +1038,145 @@ namespace {
 			return VK_SUCCESS;
 		}
 
+		VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities) const
+		{
+			if (constexpr uint32_t max_u32 = (std::numeric_limits<uint32_t>::max)(); capabilities.currentExtent.width !=
+				max_u32)
+			{
+				return capabilities.currentExtent;
+			}
+			int width, height;
+			SDL_GetWindowSizeInPixels(window, &width, &height);
+
+			VkExtent2D actual_extent = {
+				static_cast<uint32_t>(width),
+				static_cast<uint32_t>(height)
+			};
+
+			actual_extent.width = std::clamp(actual_extent.width, capabilities.minImageExtent.width,
+				capabilities.maxImageExtent.width);
+			actual_extent.height = std::clamp(actual_extent.height, capabilities.minImageExtent.height,
+				capabilities.maxImageExtent.height);
+
+			return actual_extent;
+		}
+
+		void destroy_swapchain()
+		{
+			vkDeviceWaitIdle(device);
+			for (const VkImageView image_view : swap_chain_image_views)
+			{
+				vkDestroyImageView(device, image_view, nullptr);
+			}
+			swap_chain_image_views.clear();
+			if (graphics_created_bitmask & graphics_created_bit_swapchain)
+			{
+				vkDestroySwapchainKHR(device, swapchain, nullptr);
+				graphics_created_bitmask &= ~graphics_created_bit_swapchain;
+			}
+		}
+
+		VkResult create_swapchain()
+		{
+			l->info("Creating swap chain");
+
+			{
+				swapchain_details = query_swap_chain_support(physical_device);
+
+				swapchain_image_format = choose_swap_surface_format(swapchain_details.formats);
+				swapchain_present_mode = choose_swap_present_mode(swapchain_details.present_modes);
+
+				swap_chain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.minImageCount);
+				if (swapchain_details.capabilities.maxImageCount > 0 && swap_chain_image_count > swapchain_details.capabilities.
+					maxImageCount)
+				{
+					swap_chain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.maxImageCount);
+				}
+				frame_datas.resize(std::min(max_frames_in_flight, swap_chain_image_count));
+			}
+
+			const VkExtent2D extent = choose_swap_extent(swapchain_details.capabilities);
+
+			{
+				VkSwapchainCreateInfoKHR swapchain_create_info{};
+				swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+				swapchain_create_info.surface = surface;
+				swapchain_create_info.minImageCount = swap_chain_image_count;
+				swapchain_create_info.imageFormat = swapchain_image_format.format;
+				swapchain_create_info.imageColorSpace = swapchain_image_format.colorSpace;
+				swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+				swapchain_create_info.imageExtent = extent;
+				swapchain_create_info.imageArrayLayers = 1;
+				swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+				// Just one queue family right now.
+				swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+				swapchain_create_info.queueFamilyIndexCount = 0;
+				swapchain_create_info.pQueueFamilyIndices = nullptr;
+
+				swapchain_create_info.preTransform = swapchain_details.capabilities.currentTransform;
+
+				swapchain_create_info.presentMode = swapchain_present_mode;
+				swapchain_create_info.clipped = VK_TRUE;
+
+				swapchain_create_info.oldSwapchain = nullptr;
+
+				if (const VkResult result = vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain); result != VK_SUCCESS) return result;
+				graphics_created_bitmask |= graphics_created_bit_swapchain;
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(swapchain);
+					debug_name.pObjectName = "rosy swapchain";
+					if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				}
+			}
+
+			{
+				swapchain_extent = extent;
+
+				swap_chain_images.clear();
+				auto count = static_cast<uint32_t>(swap_chain_image_count);
+				if (const auto result = vkGetSwapchainImagesKHR(device, swapchain, &count, nullptr); result != VK_SUCCESS) return result;
+				swap_chain_images.resize(swap_chain_image_count);
+				if (const auto result = vkGetSwapchainImagesKHR(device, swapchain, &count, swap_chain_images.data()); result != VK_SUCCESS) return result;
+
+				for (size_t i = 0; i < swap_chain_images.size(); i++)
+				{
+					VkImageViewCreateInfo swap_chain_image_view_create_info{};
+					swap_chain_image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					swap_chain_image_view_create_info.pNext = nullptr;
+					swap_chain_image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					swap_chain_image_view_create_info.image = swap_chain_images[i];
+					swap_chain_image_view_create_info.format = swapchain_image_format.format;
+					swap_chain_image_view_create_info.subresourceRange.baseMipLevel = 0;
+					swap_chain_image_view_create_info.subresourceRange.levelCount = 1;
+					swap_chain_image_view_create_info.subresourceRange.baseArrayLayer = 0;
+					swap_chain_image_view_create_info.subresourceRange.layerCount = 1;
+					swap_chain_image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					VkImageView image_view{};
+					if (const VkResult result = vkCreateImageView(device, &swap_chain_image_view_create_info, nullptr, &image_view); result != VK_SUCCESS) return result;
+					// don't initially size these so we can clean this up nicely if any fail
+					swap_chain_image_views.push_back(image_view);
+				}
+			}
+			return VK_SUCCESS;
+		}
+
+		VkResult resize_swapchain()
+		{
+			vkDeviceWaitIdle(device);
+			destroy_swapchain();
+			return create_swapchain();
+		}
+
 		VkResult init_swap_chain()
 		{
 			l->info("Initializing swap chain");
-			graphics_created_bitmask |= graphics_created_bit_swapchain;
-			return VK_SUCCESS;
+			return create_swapchain();
 		}
 
 		VkResult init_draw_image()
@@ -999,7 +1192,7 @@ namespace {
 
 			// Descriptor set managers
 			{
-				desc_storage_images = new(std::nothrow) descriptor_set_manager{};
+				desc_storage_images = new(std::nothrow) descriptor_set_manager;
 				if (desc_storage_images == nullptr)
 				{
 					return VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -1007,7 +1200,7 @@ namespace {
 				desc_storage_images->init(descriptor_max_storage_image_descriptors, descriptor_storage_image_binding);
 			}
 			{
-				desc_sampled_images = new(std::nothrow) descriptor_set_manager{};
+				desc_sampled_images = new(std::nothrow) descriptor_set_manager;
 				if (desc_sampled_images == nullptr)
 				{
 					return VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -1015,7 +1208,7 @@ namespace {
 				desc_sampled_images->init(descriptor_max_sampled_image_descriptors, descriptor_sampled_image_binding);
 			}
 			{
-				desc_samples = new(std::nothrow) descriptor_set_manager{};
+				desc_samples = new(std::nothrow) descriptor_set_manager;
 				if (desc_samples == nullptr)
 				{
 					return VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -1199,7 +1392,7 @@ result graphics::init(SDL_Window* new_window, log const* new_log)
 	}
 	{
 		// Init graphics device
-		gd = new(std::nothrow) graphics_device{};
+		gd = new(std::nothrow) graphics_device;
 		if (gd == nullptr)
 		{
 			l->error("graphics_device allocation failed");
