@@ -281,6 +281,8 @@ namespace {
 		allocated_csm shadow_map_image;
 
 		VkFence immediate_fence{nullptr};
+		VkCommandBuffer immediate_command_buffer{ nullptr };
+		VkCommandPool immediate_command_pool{ nullptr };
 
 		SDL_Window* window{ nullptr };
 
@@ -460,6 +462,11 @@ namespace {
 		void deinit()
 		{
 			// Deinit acquired resources in the opposite order in which they were created
+
+			if (graphics_created_bitmask & graphics_created_bit_command_pool)
+			{
+				vkDestroyCommandPool(device, immediate_command_pool, nullptr);
+			}
 
 			if (graphics_created_bitmask & graphics_created_bit_fence)
 			{
@@ -1646,6 +1653,43 @@ namespace {
 		VkResult init_commands()
 		{
 			l->info("Initializing commands");
+
+			VkCommandPoolCreateInfo pool_info{};
+			pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+			pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+			pool_info.queueFamilyIndex = queue_index;
+
+			VkResult result = vkCreateCommandPool(device, &pool_info, nullptr, &immediate_command_pool);
+			graphics_created_bitmask |= graphics_created_bit_command_pool;
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_command_pool);
+				debug_name.pObjectName = "rosy immediate command pool";
+				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+			}
+
+			// allocate the command data for immediate submits
+			VkCommandBufferAllocateInfo alloc_info{};
+			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			alloc_info.commandPool = immediate_command_pool;
+			alloc_info.commandBufferCount = 1;
+			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+			result = vkAllocateCommandBuffers(device, &alloc_info, &immediate_command_buffer);
+			if (result != VK_SUCCESS) return result;
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_command_buffer);
+				debug_name.pObjectName = "rosy immediate command buffer";
+				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+			}
+
 			return VK_SUCCESS;
 		}
 
