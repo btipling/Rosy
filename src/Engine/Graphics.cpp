@@ -2,6 +2,8 @@
 
 #include <format>
 #include <vector>
+#include <queue>
+#include <stack>
 
 #include "volk/volk.h"
 #include "vma/vk_mem_alloc.h"
@@ -20,6 +22,68 @@ namespace tracy {
 }
 
 namespace {
+
+	////  Descriptor Set Allocator
+
+	constexpr uint32_t descriptor_sampled_image_binding{ 0 };
+	constexpr uint32_t descriptor_sample_binding{ 1 };
+	constexpr uint32_t descriptor_storage_image_binding{ 2 };
+
+	constexpr uint32_t descriptor_max_storage_image_descriptors{ 100'000 };
+	constexpr uint32_t descriptor_max_sampled_image_descriptors{ 100'000 };
+	constexpr uint32_t descriptor_max_sample_descriptors{ 1000 };
+
+	struct descriptor_set_allocator
+	{
+		uint32_t max_indexes{ 1000 };
+		std::stack<uint32_t> recycled_indexes;
+		uint32_t num_allocated{ 0 };
+
+		result allocate(uint32_t* index)
+		{
+			uint32_t new_index = num_allocated;
+			if (recycled_indexes.empty())
+			{
+				if (num_allocated >= max_indexes)
+					return rosy::result::overflow;
+				num_allocated += 1;
+			}
+			else
+			{
+				new_index = recycled_indexes.top();
+				recycled_indexes.pop();
+			}
+			*index = new_index;
+			return rosy::result::ok;
+		}
+
+		void free(const uint32_t index)
+		{
+			recycled_indexes.push(index);
+		}
+		void reset()
+		{
+			while (!recycled_indexes.empty()) recycled_indexes.pop();
+			num_allocated = 0;
+		}
+	};
+
+	////  Descriptor Set Manager
+
+	struct descriptor_set_manager
+	{
+		uint32_t binding{ 0 };
+		descriptor_set_allocator allocator;
+
+		result init(const uint32_t new_max_indexes, const uint32_t new_binding)
+		{
+			binding = new_binding;
+			allocator = descriptor_set_allocator{};
+			allocator.max_indexes = new_max_indexes;
+			return result::ok;
+		}
+	};
+
 	/// Graphics Device
 
 	constexpr  uint32_t graphics_created_bit_instance        = 0b00000000000000000000000000000001;
@@ -34,7 +98,8 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_semaphore       = 0b00000000000000000000001000000000;
 	constexpr  uint32_t graphics_created_bit_swapchain       = 0b00000000000000000000010000000000;
 	constexpr  uint32_t graphics_created_bit_ktx             = 0b00000000000000000000100000000000;
-	constexpr  uint32_t graphics_created_bit_descriptor      = 0b00000000000000000001000000000000;
+	constexpr  uint32_t graphics_created_bit_descriptor_set  = 0b00000000000000000001000000000000;
+	constexpr  uint32_t graphics_created_bit_descriptor_pool = 0b00000000000000000010000000000000;
 
 	const char* default_instance_layers[] = {
 		"VK_LAYER_LUNARG_api_dump",
@@ -99,12 +164,22 @@ namespace {
 		std::vector<const char*> instance_extensions;
 		std::vector<const char*> device_extensions;
 
-		VkInstance instance;
-		VkDevice device;
-		VkPhysicalDevice physical_device;
-		VmaAllocator allocator;
+		VkInstance instance{ nullptr };
+		VkDevice device{ nullptr };
+		VkPhysicalDevice physical_device{ nullptr };
+		VmaAllocator allocator{ nullptr };
 
 		tracy::VkCtx* tracy_ctx{ nullptr };
+
+		VkQueue present_queue;
+
+		descriptor_set_manager* desc_storage_images{};
+		descriptor_set_manager* desc_sampled_images{};
+		descriptor_set_manager* desc_samples{};
+		VkDescriptorSetLayout descriptor_set_layout;
+		VkDescriptorPool descriptor_pool;
+		std::vector<VkDescriptorPoolSize> pool_sizes;
+		VkDescriptorSet descriptor_set;
 
 		VkDebugUtilsMessengerEXT debug_messenger;
 		VkSurfaceKHR surface;
@@ -294,18 +369,53 @@ namespace {
 			return result::ok;
 		}
 
-		void deinit() const
+		void deinit()
 		{
 			// Deinit acquired resources in the opposite order in which they were created
 
+			if (desc_storage_images != nullptr)
+			{
+				delete desc_storage_images;
+				desc_storage_images = nullptr;
+			}
+			if (desc_sampled_images != nullptr)
+			{
+				delete desc_sampled_images;
+				desc_sampled_images = nullptr;
+			}
+			if (desc_samples != nullptr)
+			{
+				delete desc_samples;
+				desc_samples = nullptr;
+			}
+			if (graphics_created_bitmask & graphics_created_bit_device)
+			{
+				if (const VkResult result = vkDeviceWaitIdle(device); result != VK_SUCCESS)
+				{
+					l->error(std::format("Failed to wait device to be idle: {}", static_cast<uint8_t>(result)));
+				}
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_descriptor_set)
+			{
+				vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
+			}
+			if (graphics_created_bitmask & graphics_created_bit_descriptor_pool)
+			{
+				vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
+			}
+			if (graphics_created_bitmask & graphics_created_bit_vma)
+			{
+				vmaDestroyAllocator(allocator);
+			}
 			if (tracy_ctx != nullptr) {
 				TracyVkDestroy(tracy_ctx);
+				tracy_ctx = nullptr;
 			}
 			if (graphics_created_bitmask & graphics_created_bit_device)
 			{
 				if (const VkResult result = vkDeviceWaitIdle(device); result == VK_SUCCESS) vkDestroyDevice(device, nullptr);
 			}
-
 			if (graphics_created_bitmask & graphics_created_bit_surface)
 			{
 				SDL_Vulkan_DestroySurface(instance, surface, nullptr);
@@ -524,7 +634,7 @@ namespace {
 			required_features.depthBiasClamp     = VK_TRUE;
 			required_features.depthClamp         = VK_TRUE;
 			required_features.depthBounds        = VK_TRUE;
-			
+
 			for (const VkPhysicalDevice& p_device : physical_devices)
 			{
 				// get device properties
@@ -826,6 +936,22 @@ namespace {
 		VkResult init_allocator()
 		{
 			l->info("Initializing VMA");
+
+			constexpr VkDeviceSize device_size{ 0 };
+			VmaVulkanFunctions vulkan_functions{};
+			vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+			vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+
+			VmaAllocatorCreateInfo allocator_create_info{};
+			allocator_create_info.vulkanApiVersion = VK_API_VERSION_1_3;
+			allocator_create_info.physicalDevice = physical_device;
+			allocator_create_info.device = device;
+			allocator_create_info.instance = instance;
+			allocator_create_info.pVulkanFunctions = &vulkan_functions;
+			allocator_create_info.preferredLargeHeapBlockSize = device_size;
+			allocator_create_info.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+
+			vmaCreateAllocator(&allocator_create_info, &allocator);
 			graphics_created_bitmask |= graphics_created_bit_vma;
 			return VK_SUCCESS;
 		}
@@ -833,6 +959,23 @@ namespace {
 		VkResult init_presentation_queue()
 		{
 			l->info("Initializing presentation queue");
+			{
+				VkDeviceQueueInfo2 get_info{};
+				get_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
+				get_info.flags = 0;
+				get_info.queueFamilyIndex = queue_index;
+				get_info.queueIndex = 0;
+				vkGetDeviceQueue2(device, &get_info, &present_queue);
+			}
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_QUEUE;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(present_queue);
+				debug_name.pObjectName = "rosy present queue";
+				if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+			}
 			return VK_SUCCESS;
 		}
 
@@ -853,7 +996,92 @@ namespace {
 		VkResult init_descriptors()
 		{
 			l->info("Initializing descriptors");
-			graphics_created_bitmask |= graphics_created_bit_descriptor;
+
+			// Descriptor set managers
+			{
+				desc_storage_images = new(std::nothrow) descriptor_set_manager{};
+				if (desc_storage_images == nullptr)
+				{
+					return VK_ERROR_OUT_OF_HOST_MEMORY;
+				}
+				desc_storage_images->init(descriptor_max_storage_image_descriptors, descriptor_storage_image_binding);
+			}
+			{
+				desc_sampled_images = new(std::nothrow) descriptor_set_manager{};
+				if (desc_sampled_images == nullptr)
+				{
+					return VK_ERROR_OUT_OF_HOST_MEMORY;
+				}
+				desc_sampled_images->init(descriptor_max_sampled_image_descriptors, descriptor_sampled_image_binding);
+			}
+			{
+				desc_samples = new(std::nothrow) descriptor_set_manager{};
+				if (desc_samples == nullptr)
+				{
+					return VK_ERROR_OUT_OF_HOST_MEMORY;
+				}
+				desc_samples->init(descriptor_max_sample_descriptors, descriptor_sample_binding);
+			}
+
+			pool_sizes = std::vector<VkDescriptorPoolSize>({
+			  {.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, .descriptorCount = descriptor_max_storage_image_descriptors},
+			  {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .descriptorCount = descriptor_max_sampled_image_descriptors},
+			  {.type = VK_DESCRIPTOR_TYPE_SAMPLER, .descriptorCount = descriptor_max_sample_descriptors},
+				});
+
+			VkDescriptorPoolCreateInfo pool_create_info{};
+			pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+			pool_create_info.maxSets = 1;
+			pool_create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
+			pool_create_info.pPoolSizes = pool_sizes.data();
+
+			VkResult result = vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool);
+			if (result != VK_SUCCESS) return result;
+			graphics_created_bitmask |= graphics_created_bit_descriptor_set;
+
+			const auto bindings = std::vector<VkDescriptorSetLayoutBinding>({
+				{desc_storage_images->binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, descriptor_max_storage_image_descriptors, VK_SHADER_STAGE_ALL},
+				{desc_sampled_images->binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptor_max_sampled_image_descriptors, VK_SHADER_STAGE_ALL},
+				{desc_samples->binding, VK_DESCRIPTOR_TYPE_SAMPLER, descriptor_max_sample_descriptors, VK_SHADER_STAGE_ALL},
+				});
+
+			const auto bindings_flags = std::vector<VkDescriptorBindingFlags>({
+				{VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+				{VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+				{VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+				});
+
+			if (bindings.size() != bindings_flags.size()) return VK_ERROR_INITIALIZATION_FAILED;
+			if (pool_sizes.size() != bindings_flags.size()) return VK_ERROR_INITIALIZATION_FAILED;
+
+			VkDescriptorSetLayoutBindingFlagsCreateInfo layout_flags{};
+			layout_flags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+			layout_flags.bindingCount = static_cast<uint32_t>(bindings_flags.size());
+			layout_flags.pBindingFlags = bindings_flags.data();
+
+			VkDescriptorSetLayoutCreateInfo layout_create_info{};
+			layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layout_create_info.pNext = &layout_flags;
+			layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+			layout_create_info.bindingCount = static_cast<uint32_t>(bindings.size());
+			layout_create_info.pBindings = bindings.data();
+
+			VkDescriptorSetLayout set_layout{};
+			result = vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &set_layout);
+			if (result != VK_SUCCESS) return result;
+			descriptor_set_layout = set_layout;
+
+			VkDescriptorSetAllocateInfo set_create_info{};
+			set_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			set_create_info.descriptorPool = descriptor_pool;
+			set_create_info.descriptorSetCount = 1;
+			set_create_info.pSetLayouts = &set_layout;
+
+			result = vkAllocateDescriptorSets(device, &set_create_info, &descriptor_set);
+			if (result != VK_SUCCESS) return result;
+
+			graphics_created_bitmask |= graphics_created_bit_descriptor_pool;
 			return VK_SUCCESS;
 		}
 
@@ -929,7 +1157,7 @@ namespace {
 				}
 			}
 
-			uint32_t present_mode_count{0};
+			uint32_t present_mode_count{ 0 };
 			if (const VkResult res = vkGetPhysicalDeviceSurfacePresentModesKHR(p_device, surface, &present_mode_count, nullptr); res != VK_SUCCESS)
 			{
 				l->warn(std::format("Failed to get device surface formats: {}", static_cast<uint8_t>(res)));
@@ -957,7 +1185,11 @@ namespace {
 
 result graphics::init(SDL_Window* new_window, log const* new_log)
 {
-	if (!new_window || !new_log)
+	if (new_window == nullptr)
+	{
+		return result::invalid_argument;
+	}
+	if (new_log == nullptr)
 	{
 		return result::invalid_argument;
 	}
