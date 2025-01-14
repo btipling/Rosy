@@ -830,16 +830,6 @@ namespace {
 
 				if (!dynamic_rendering_features.dynamicRendering) continue;
 
-				//VkPhysicalDeviceHostQueryResetFeatures host_query_reset_features{};
-				//host_query_reset_features.pNext = nullptr;
-
-				//device_features2 = {};
-				//device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-				//device_features2.pNext = &host_query_reset_features;
-				//vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
-
-				//if (!host_query_reset_features.hostQueryReset) continue;
-
 				// features
 				VkPhysicalDeviceFeatures features;
 				vkGetPhysicalDeviceFeatures(p_device, &features);
