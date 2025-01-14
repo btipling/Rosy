@@ -107,7 +107,7 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_pass_semaphore   = 0b00000000000000100000000000000000;
 
 	const char* default_instance_layers[] = {
-		"VK_LAYER_LUNARG_api_dump",
+		//"VK_LAYER_LUNARG_api_dump",
 		"VK_LAYER_KHRONOS_validation",
 		"VK_LAYER_KHRONOS_shader_object",
 		"VK_LAYER_KHRONOS_synchronization2",
@@ -119,7 +119,7 @@ namespace {
 
 	const char* default_device_extensions[] = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-#ifdef PROFILING_ENABLED
+#ifdef TRACY_ENABLE
 		VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
 #endif
 		VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
