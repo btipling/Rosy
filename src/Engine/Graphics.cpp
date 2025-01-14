@@ -263,10 +263,10 @@ namespace {
 		VkSwapchainKHR swapchain{ nullptr };
 		VkSurfaceFormatKHR swapchain_image_format{};
 		VkPresentModeKHR swapchain_present_mode{};
-		uint8_t swap_chain_image_count{ 0 };
+		uint8_t swapchain_image_count{ 0 };
 		std::vector<frame_data> frame_datas;
-		std::vector<VkImage> swap_chain_images;
-		std::vector<VkImageView> swap_chain_image_views;
+		std::vector<VkImage> swapchain_images;
+		std::vector<VkImageView> swapchain_image_views;
 		VkExtent2D swapchain_extent{};
 
 		descriptor_set_manager* desc_storage_images{ nullptr };
@@ -386,11 +386,11 @@ namespace {
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_swap_chain();
+			vk_result = init_swapchain();
 			if (vk_result != VK_SUCCESS)
 			{
 				l->error(std::format("Failed to init swap chain! {}", static_cast<uint8_t>(vk_result)));
-				return result::graphics_init_failure;
+				return result::graphics_swapchain_failure;
 			}
 
 			vk_result = init_draw_image();
@@ -818,7 +818,6 @@ namespace {
 
 				if (!buffer_device_address_features.bufferDeviceAddress) continue;
 
-
 				// data device address required
 				VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_features{};
 				dynamic_rendering_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
@@ -1002,7 +1001,7 @@ namespace {
 			vulkan12_features.imagelessFramebuffer = VK_TRUE;
 			vulkan12_features.uniformBufferStandardLayout = VK_TRUE;
 			vulkan12_features.shaderSubgroupExtendedTypes = VK_TRUE;
-#ifdef PROFILING_ENABLED
+#ifdef TRACY_ENABLE
 			vulkan12_features.hostQueryReset = VK_TRUE;
 #endif
 
@@ -1149,11 +1148,11 @@ namespace {
 		void destroy_swapchain()
 		{
 			vkDeviceWaitIdle(device);
-			for (const VkImageView image_view : swap_chain_image_views)
+			for (const VkImageView image_view : swapchain_image_views)
 			{
 				vkDestroyImageView(device, image_view, nullptr);
 			}
-			swap_chain_image_views.clear();
+			swapchain_image_views.clear();
 			if (graphics_created_bitmask & graphics_created_bit_swapchain)
 			{
 				vkDestroySwapchainKHR(device, swapchain, nullptr);
@@ -1163,21 +1162,19 @@ namespace {
 
 		VkResult create_swapchain()
 		{
-			l->info("Creating swap chain");
-
 			{
 				swapchain_details = query_swap_chain_support(physical_device);
 
 				swapchain_image_format = choose_swap_surface_format(swapchain_details.formats);
 				swapchain_present_mode = choose_swap_present_mode(swapchain_details.present_modes);
 
-				swap_chain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.minImageCount);
-				if (swapchain_details.capabilities.maxImageCount > 0 && swap_chain_image_count > swapchain_details.capabilities.
+				swapchain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.minImageCount);
+				if (swapchain_details.capabilities.maxImageCount > 0 && swapchain_image_count > swapchain_details.capabilities.
 					maxImageCount)
 				{
-					swap_chain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.maxImageCount);
+					swapchain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.maxImageCount);
 				}
-				frame_datas.resize(std::min(max_frames_in_flight, swap_chain_image_count));
+				frame_datas.resize(std::min(max_frames_in_flight, swapchain_image_count));
 			}
 
 			const VkExtent2D extent = choose_swap_extent(swapchain_details.capabilities);
@@ -1186,7 +1183,7 @@ namespace {
 				VkSwapchainCreateInfoKHR swapchain_create_info{};
 				swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 				swapchain_create_info.surface = surface;
-				swapchain_create_info.minImageCount = swap_chain_image_count;
+				swapchain_create_info.minImageCount = swapchain_image_count;
 				swapchain_create_info.imageFormat = swapchain_image_format.format;
 				swapchain_create_info.imageColorSpace = swapchain_image_format.colorSpace;
 				swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -1223,19 +1220,19 @@ namespace {
 			{
 				swapchain_extent = extent;
 
-				swap_chain_images.clear();
-				auto count = static_cast<uint32_t>(swap_chain_image_count);
+				swapchain_images.clear();
+				auto count = static_cast<uint32_t>(swapchain_image_count);
 				if (const auto result = vkGetSwapchainImagesKHR(device, swapchain, &count, nullptr); result != VK_SUCCESS) return result;
-				swap_chain_images.resize(swap_chain_image_count);
-				if (const auto result = vkGetSwapchainImagesKHR(device, swapchain, &count, swap_chain_images.data()); result != VK_SUCCESS) return result;
+				swapchain_images.resize(swapchain_image_count);
+				if (const auto result = vkGetSwapchainImagesKHR(device, swapchain, &count, swapchain_images.data()); result != VK_SUCCESS) return result;
 
-				for (size_t i = 0; i < swap_chain_images.size(); i++)
+				for (size_t i = 0; i < swapchain_images.size(); i++)
 				{
 					VkImageViewCreateInfo swap_chain_image_view_create_info{};
 					swap_chain_image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 					swap_chain_image_view_create_info.pNext = nullptr;
 					swap_chain_image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-					swap_chain_image_view_create_info.image = swap_chain_images[i];
+					swap_chain_image_view_create_info.image = swapchain_images[i];
 					swap_chain_image_view_create_info.format = swapchain_image_format.format;
 					swap_chain_image_view_create_info.subresourceRange.baseMipLevel = 0;
 					swap_chain_image_view_create_info.subresourceRange.levelCount = 1;
@@ -1245,20 +1242,25 @@ namespace {
 					VkImageView image_view{};
 					if (const VkResult result = vkCreateImageView(device, &swap_chain_image_view_create_info, nullptr, &image_view); result != VK_SUCCESS) return result;
 					// don't initially size these so we can clean this up nicely if any fail
-					swap_chain_image_views.push_back(image_view);
+					swapchain_image_views.push_back(image_view);
 				}
 			}
 			return VK_SUCCESS;
 		}
 
-		VkResult resize_swapchain()
+		result resize_swapchain()
 		{
 			vkDeviceWaitIdle(device);
 			destroy_swapchain();
-			return create_swapchain();
+			if (const auto res = create_swapchain(); res != VK_SUCCESS)
+			{
+				l->error(std::format("Error recreating swapchain on resize: {}", static_cast<uint8_t>(res)));
+				return result::graphics_swapchain_failure;
+			}
+			return result::ok;
 		}
 
-		VkResult init_swap_chain()
+		VkResult init_swapchain()
 		{
 			l->info("Initializing swap chain");
 			return create_swapchain();
@@ -1768,6 +1770,8 @@ namespace {
 				return result::graphics_frame_failure;
 			}
 
+			VkImage swapchain_image = swapchain_images[swapchain_image_index];
+
 			{
 				draw_extent.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * static_cast<uint32_t>(render_scale);
 				draw_extent.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * static_cast<uint32_t>(render_scale);
@@ -1911,7 +1915,7 @@ namespace {
 					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					.srcQueueFamilyIndex = 0,
 					.dstQueueFamilyIndex = 0,
-					.image = swap_chain_images[swapchain_image_index],
+					.image = swapchain_image,
 					.subresourceRange = subresource_range,
 				};
 
@@ -1956,7 +1960,7 @@ namespace {
 					.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
 					.pNext = nullptr
 				};
-				blit_info.dstImage = swap_chain_images[current_frame];
+				blit_info.dstImage = swapchain_image;
 				blit_info.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 				blit_info.srcImage = draw_image.image;
 				blit_info.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -1987,7 +1991,7 @@ namespace {
 					.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 					.srcQueueFamilyIndex = 0,
 					.dstQueueFamilyIndex = 0,
-					.image = swap_chain_images[swapchain_image_index],
+					.image = swapchain_image,
 					.subresourceRange = subresource_range,
 				};
 
@@ -2128,6 +2132,11 @@ result graphics::init(SDL_Window* new_window, log const* new_log, config cfg)
 result graphics::render()
 {
 	return gd->render();
+}
+
+result graphics::resize()
+{
+	return gd->resize_swapchain();
 }
 
 void graphics::deinit()

@@ -15,6 +15,7 @@ namespace rosy
 
 		result init(SDL_Window* new_window, log const* new_log, config cfg);
 		result render();
+		result resize();
 		void deinit();
 	};
 }

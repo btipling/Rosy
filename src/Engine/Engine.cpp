@@ -1,5 +1,8 @@
 #include "Engine.h"
+
+#include <chrono>
 #include <format>
+#include <thread>
 #include <SDL3/SDL.h>
 #include <tracy/Tracy.hpp>
 #ifdef TRACY_ENABLED
@@ -10,6 +13,22 @@
 using namespace rosy;
 
 //// Engine
+
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-use-anonymous-namespace)
+	const auto eng = static_cast<engine*>(userdata);
+	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
+	switch (event->type) {
+	case SDL_EVENT_WINDOW_RESIZED:
+		if (result res = eng->gfx->resize(); res != result::ok) {
+			eng->l->error(std::format("resizing-event: rhi failed to resize swapchain {}\n", static_cast<uint8_t>(res)));
+			return false;
+		}
+		eng->gfx->render();
+		break;
+	}
+	return true;
+}
 
 result engine::init()
 {
@@ -59,6 +78,12 @@ result engine::init()
 		if (!window)
 		{
 			l->error(std::format("Window creation failed: {}", SDL_GetError()));
+			return result::error;
+		}
+
+		if(!SDL_AddEventWatch(event_handler, static_cast<void*>(this)))
+		{
+			l->error(std::format("Failed to add event watcher: {}", SDL_GetError()));
 			return result::error;
 		}
 	}
@@ -112,6 +137,7 @@ result engine::run()
 {
 	l->info("Engine run!");
 	bool should_run = true;
+	bool should_render = true;
 	SDL_Event event{};
 	while (should_run)
 	{
@@ -120,6 +146,17 @@ result engine::run()
 				should_run = false;
 				break;
 			}
+			if (event.type == SDL_EVENT_WINDOW_MINIMIZED) {
+				should_render = false;
+				break;
+			}
+			if (event.type == SDL_EVENT_WINDOW_RESTORED) {
+				should_render = true;
+			}
+		}
+		if (!should_render) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			continue;
 		}
 		if (!should_run) break;
 		if (const auto res = gfx->render(); res != result::ok) {
