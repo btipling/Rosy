@@ -197,12 +197,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\libs\tracy\TracyClient.cpp" />
+    <ClCompile Include="..\libs\VMA.cpp" />
+    <ClCompile Include="..\libs\Volk.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Telemetry.cpp" />
-    <ClCompile Include="VMA.cpp" />
-    <ClCompile Include="Volk.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\libs\SDL3.lib" />
