@@ -1911,7 +1911,7 @@ namespace {
 					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					.srcQueueFamilyIndex = 0,
 					.dstQueueFamilyIndex = 0,
-					.image = swap_chain_images[current_frame],
+					.image = swap_chain_images[swapchain_image_index],
 					.subresourceRange = subresource_range,
 				};
 
@@ -1987,7 +1987,7 @@ namespace {
 					.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 					.srcQueueFamilyIndex = 0,
 					.dstQueueFamilyIndex = 0,
-					.image = swap_chain_images[current_frame],
+					.image = swap_chain_images[swapchain_image_index],
 					.subresourceRange = subresource_range,
 				};
 
