@@ -122,6 +122,9 @@ result engine::run()
 			}
 		}
 		if (!should_run) break;
+		if (const auto res = gfx->render(); res != result::ok) {
+			return res;
+		}
 		FrameMark;
 	}
 	return result::ok;

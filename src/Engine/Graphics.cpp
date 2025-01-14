@@ -1745,6 +1745,13 @@ namespace {
 
 			return details;
 		}
+
+		// ReSharper disable once CppMemberFunctionMayBeConst
+		result render()
+		{
+			l->debug("Rendering frame");
+			return result::ok;
+		}
 	};
 
 	graphics_device* gd{ nullptr };
@@ -1788,6 +1795,11 @@ result graphics::init(SDL_Window* new_window, log const* new_log, config cfg)
 
 
 	return result::ok;
+}
+
+result graphics::render()
+{
+	return gd->render();
 }
 
 void graphics::deinit()
