@@ -10,6 +10,7 @@ namespace rosy
 		invalid_argument,
 		allocation_failure,
 		graphics_init_failure,
+		graphics_frame_failure,
 		overflow,
 	};
 

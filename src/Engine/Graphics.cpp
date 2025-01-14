@@ -232,6 +232,11 @@ namespace {
 		config cfg{};
 		uint32_t graphics_created_bitmask{ 0 };
 		bool enable_validation_layers{ true };
+
+		uint32_t current_frame{ 0 };
+		uint32_t swapchain_image_index{ 0 };
+		VkExtent2D draw_extent = {};
+
 		std::vector<const char*> instance_layer_properties;
 		std::vector<const char*> device_layer_properties;
 		std::vector<const char*> instance_extensions;
@@ -279,6 +284,7 @@ namespace {
 		allocated_image draw_image;
 		allocated_image depth_image;
 		allocated_csm shadow_map_image;
+		float render_scale = 1.f;
 
 		VkFence immediate_fence{nullptr};
 		VkCommandBuffer immediate_command_buffer{ nullptr };
@@ -1749,7 +1755,330 @@ namespace {
 		// ReSharper disable once CppMemberFunctionMayBeConst
 		result render()
 		{
-			l->debug("Rendering frame");
+			const frame_data cf = frame_datas[current_frame];
+
+			if (const auto res = vkWaitForFences(device, 1, &cf.in_flight_fence, true, 1'000'000'000); res != VK_SUCCESS)
+			{
+				l->error(std::format("Error waiting for in-flight fence: {}", static_cast<uint8_t>(res)));
+				return result::graphics_frame_failure;
+			}
+
+			if (const auto res = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, cf.image_available_semaphore, VK_NULL_HANDLE, &swapchain_image_index); res != VK_SUCCESS)
+			{
+				l->error(std::format("Error waiting acquiring next image: {}", static_cast<uint8_t>(res)));
+				return result::graphics_frame_failure;
+			}
+
+			{
+				draw_extent.width = std::min(swapchain_extent.width, draw_image.image_extent.width) * static_cast<uint32_t>(render_scale);
+				draw_extent.height = std::min(swapchain_extent.height, draw_image.image_extent.height) * static_cast<uint32_t>(render_scale);
+			}
+
+			if (const auto res = vkResetFences(device, 1, &cf.in_flight_fence); res != VK_SUCCESS)
+			{
+				l->error(std::format("Error resetting in-flight fence: {}", static_cast<uint8_t>(res)));
+				return result::graphics_frame_failure;
+			}
+
+			if (const auto res = vkResetCommandBuffer(cf.command_buffer, 0); res != VK_SUCCESS)
+			{
+				l->error(std::format("Error resetting command buffer: {}", static_cast<uint8_t>(res)));
+				return result::graphics_frame_failure;
+			}
+
+			{
+				constexpr VkCommandBufferBeginInfo begin_info{
+					.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+					.pNext = nullptr,
+					.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+					.pInheritanceInfo = nullptr,
+				};
+				if (const auto res = vkBeginCommandBuffer(cf.command_buffer, &begin_info); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error begin recording command buffer: {}", static_cast<uint8_t>(res)));
+					return result::graphics_frame_failure;
+				}
+			}
+
+			{
+				constexpr VkImageSubresourceRange subresource_range{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = VK_REMAINING_MIP_LEVELS,
+					.baseArrayLayer = 0,
+					.layerCount = VK_REMAINING_ARRAY_LAYERS,
+				};
+
+				VkImageMemoryBarrier2 image_barrier = {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+					.pNext = nullptr,
+					.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+					.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+					.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+					.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+					.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+					.newLayout = VK_IMAGE_LAYOUT_GENERAL,
+					.srcQueueFamilyIndex = 0,
+					.dstQueueFamilyIndex = 0,
+					.image = draw_image.image,
+					.subresourceRange = subresource_range,
+				};
+
+				const VkDependencyInfo dependency_info{
+					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+					.pNext = nullptr,
+					.dependencyFlags = 0,
+					.memoryBarrierCount = 0,
+					.pMemoryBarriers = nullptr,
+					.bufferMemoryBarrierCount = 0,
+					.pBufferMemoryBarriers = nullptr,
+					.imageMemoryBarrierCount = 1,
+					.pImageMemoryBarriers = &image_barrier,
+				};
+
+				vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+			}
+
+			{
+				constexpr VkImageSubresourceRange subresource_range{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = VK_REMAINING_MIP_LEVELS,
+					.baseArrayLayer = 0,
+					.layerCount = VK_REMAINING_ARRAY_LAYERS,
+				};
+
+				VkClearColorValue clear_value;
+				clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
+				vkCmdClearColorImage(cf.command_buffer, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
+			}
+
+			{
+				constexpr VkImageSubresourceRange subresource_range{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = VK_REMAINING_MIP_LEVELS,
+					.baseArrayLayer = 0,
+					.layerCount = VK_REMAINING_ARRAY_LAYERS,
+				};
+
+				VkImageMemoryBarrier2 image_barrier = {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+					.pNext = nullptr,
+					.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+					.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+					.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+					.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+					.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					.srcQueueFamilyIndex = 0,
+					.dstQueueFamilyIndex = 0,
+					.image = draw_image.image,
+					.subresourceRange = subresource_range,
+				};
+
+				const VkDependencyInfo dependency_info{
+					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+					.pNext = nullptr,
+					.dependencyFlags = 0,
+					.memoryBarrierCount = 0,
+					.pMemoryBarriers = nullptr,
+					.bufferMemoryBarrierCount = 0,
+					.pBufferMemoryBarriers = nullptr,
+					.imageMemoryBarrierCount = 1,
+					.pImageMemoryBarriers = &image_barrier,
+				};
+
+				vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+			}
+
+			{
+				constexpr VkImageSubresourceRange subresource_range{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = VK_REMAINING_MIP_LEVELS,
+					.baseArrayLayer = 0,
+					.layerCount = VK_REMAINING_ARRAY_LAYERS,
+				};
+
+				VkImageMemoryBarrier2 image_barrier = {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+					.pNext = nullptr,
+					.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+					.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+					.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+					.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+					.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					.srcQueueFamilyIndex = 0,
+					.dstQueueFamilyIndex = 0,
+					.image = swap_chain_images[current_frame],
+					.subresourceRange = subresource_range,
+				};
+
+				const VkDependencyInfo dependency_info{
+					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+					.pNext = nullptr,
+					.dependencyFlags = 0,
+					.memoryBarrierCount = 0,
+					.pMemoryBarriers = nullptr,
+					.bufferMemoryBarrierCount = 0,
+					.pBufferMemoryBarriers = nullptr,
+					.imageMemoryBarrierCount = 1,
+					.pImageMemoryBarriers = &image_barrier,
+				};
+
+				vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+			}
+
+			{
+				VkImageBlit2 blit_region = {};
+				blit_region.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
+				blit_region.pNext = nullptr;
+				blit_region.srcOffsets[1].x = static_cast<int32_t>(draw_extent.width);
+				blit_region.srcOffsets[1].y = static_cast<int32_t>(draw_extent.height);
+				blit_region.srcOffsets[1].z = 1;
+
+				blit_region.dstOffsets[1].x = static_cast<int32_t>(swapchain_extent.width);
+				blit_region.dstOffsets[1].y = static_cast<int32_t>(swapchain_extent.height);
+				blit_region.dstOffsets[1].z = 1;
+
+				blit_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit_region.srcSubresource.baseArrayLayer = 0;
+				blit_region.srcSubresource.layerCount = 1;
+				blit_region.srcSubresource.mipLevel = 0;
+
+				blit_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit_region.dstSubresource.baseArrayLayer = 0;
+				blit_region.dstSubresource.layerCount = 1;
+				blit_region.dstSubresource.mipLevel = 0;
+
+				VkBlitImageInfo2 blit_info{
+					.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
+					.pNext = nullptr
+				};
+				blit_info.dstImage = swap_chain_images[current_frame];
+				blit_info.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				blit_info.srcImage = draw_image.image;
+				blit_info.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				blit_info.filter = VK_FILTER_LINEAR;
+				blit_info.regionCount = 1;
+				blit_info.pRegions = &blit_region;
+
+				vkCmdBlitImage2(cf.command_buffer, &blit_info);
+			}
+
+			{
+				constexpr VkImageSubresourceRange subresource_range{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = VK_REMAINING_MIP_LEVELS,
+					.baseArrayLayer = 0,
+					.layerCount = VK_REMAINING_ARRAY_LAYERS,
+				};
+
+				VkImageMemoryBarrier2 image_barrier = {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+					.pNext = nullptr,
+					.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+					.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+					.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+					.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+					.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+					.srcQueueFamilyIndex = 0,
+					.dstQueueFamilyIndex = 0,
+					.image = swap_chain_images[current_frame],
+					.subresourceRange = subresource_range,
+				};
+
+				const VkDependencyInfo dependency_info{
+					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+					.pNext = nullptr,
+					.dependencyFlags = 0,
+					.memoryBarrierCount = 0,
+					.pMemoryBarriers = nullptr,
+					.bufferMemoryBarrierCount = 0,
+					.pBufferMemoryBarriers = nullptr,
+					.imageMemoryBarrierCount = 1,
+					.pImageMemoryBarriers = &image_barrier,
+				};
+
+				vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+			}
+
+			if (const auto res = vkEndCommandBuffer(cf.command_buffer); res != VK_SUCCESS)
+			{
+				l->error(std::format("Error ending command buffer recording: {}", static_cast<uint8_t>(res)));
+				return result::graphics_frame_failure;
+			}
+
+			{
+				VkCommandBufferSubmitInfo cmd_buffer_submit_info{
+					.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+					.pNext = nullptr,
+					.commandBuffer = cf.command_buffer,
+					.deviceMask = 0,
+				};
+
+				VkSemaphoreSubmitInfo wait_info{
+					.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+					.pNext = nullptr,
+					.semaphore = cf.image_available_semaphore,
+					.value = 1,
+					.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
+					.deviceIndex = 0,
+				};
+
+				VkSemaphoreSubmitInfo signal_info{
+					.sType= VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+					.pNext= nullptr,
+					.semaphore= cf.render_finished_semaphore,
+					.value= 1,
+					.stageMask= VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+					.deviceIndex= 0,
+				};
+
+				VkSubmitInfo2 submit_info{
+					.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+					.pNext = nullptr,
+					.flags = 0,
+					.waitSemaphoreInfoCount = 1,
+					.pWaitSemaphoreInfos = &wait_info,
+					.commandBufferInfoCount = 1,
+					.pCommandBufferInfos = &cmd_buffer_submit_info,
+					.signalSemaphoreInfoCount = 1,
+					.pSignalSemaphoreInfos = &signal_info,
+				};
+
+				if (const auto res = vkQueueSubmit2(present_queue, 1, &submit_info, cf.in_flight_fence); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error submitting to present queue: {}", static_cast<uint8_t>(res)));
+					return result::graphics_frame_failure;
+				}
+			}
+
+			{
+				VkSwapchainKHR swap_chains[] = { swapchain };
+				VkPresentInfoKHR present_info{
+					.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+					.pNext = nullptr,
+					.waitSemaphoreCount = 1,
+					.pWaitSemaphores = &cf.render_finished_semaphore,
+					.swapchainCount = 1,
+					.pSwapchains = swap_chains,
+					.pImageIndices = &swapchain_image_index,
+					.pResults = nullptr,
+				};
+
+				if (const auto res = vkQueuePresentKHR(present_queue, &present_info); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error presenting to swapchain: {}", static_cast<uint8_t>(res)));
+					return result::graphics_frame_failure;
+				}
+			}
+
+			current_frame = (current_frame + 1) % max_frames_in_flight;
 			return result::ok;
 		}
 	};
