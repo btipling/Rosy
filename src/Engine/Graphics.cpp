@@ -1752,7 +1752,6 @@ namespace {
 			return details;
 		}
 
-		// ReSharper disable once CppMemberFunctionMayBeConst
 		result render()
 		{
 			const frame_data cf = frame_datas[current_frame];
