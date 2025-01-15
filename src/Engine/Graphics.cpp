@@ -1746,6 +1746,11 @@ namespace {
 
 			int displays_count = 0;
 			const auto display_ids = SDL_GetDisplays(&displays_count);
+			if (display_ids == nullptr || displays_count <= 0)
+			{
+				l->error("Failed to get SDL display info");
+				return VK_ERROR_INITIALIZATION_FAILED;
+			}
 			const float content_scale = SDL_GetDisplayContentScale(*display_ids);
 
 			ImGuiIO& io = ImGui::GetIO();
