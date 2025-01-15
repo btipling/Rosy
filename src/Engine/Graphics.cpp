@@ -14,6 +14,9 @@
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
+#include "imgui.h"
+#include "backends/imgui_impl_sdl3.h"
+#include "backends/imgui_impl_vulkan.h"
 
 using namespace rosy;
 
@@ -96,7 +99,7 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_command_pool     = 0b00000000000000000000000001000000;
 	constexpr  uint32_t graphics_created_bit_draw_image       = 0b00000000000000000000000010000000;
 	constexpr  uint32_t graphics_created_bit_depth_image      = 0b00000000000000000000000100000000;
-	constexpr  uint32_t graphics_created_bit_unused           = 0b00000000000000000000001000000000;
+	constexpr  uint32_t graphics_created_bit_ui_pool          = 0b00000000000000000000001000000000;
 	constexpr  uint32_t graphics_created_bit_swapchain        = 0b00000000000000000000010000000000;
 	constexpr  uint32_t graphics_created_bit_ktx              = 0b00000000000000000000100000000000;
 	constexpr  uint32_t graphics_created_bit_descriptor_set   = 0b00000000000000000001000000000000;
@@ -105,6 +108,9 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_depth_image_view = 0b00000000000000001000000000000000;
 	constexpr  uint32_t graphics_created_bit_image_semaphore  = 0b00000000000000010000000000000000;
 	constexpr  uint32_t graphics_created_bit_pass_semaphore   = 0b00000000000000100000000000000000;
+	constexpr  uint32_t graphics_created_bit_imgui_sdl        = 0b00000000000001000000000000000000;
+	constexpr  uint32_t graphics_created_bit_imgui_vk         = 0b00000000000010000000000000000000;
+	constexpr  uint32_t graphics_created_bit_imgui_ctx        = 0b00000000000100000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -286,7 +292,9 @@ namespace {
 		allocated_csm shadow_map_image;
 		float render_scale = 1.f;
 
-		VkFence immediate_fence{nullptr};
+		VkDescriptorPool ui_pool{ nullptr };
+
+		VkFence immediate_fence{ nullptr };
 		VkCommandBuffer immediate_command_buffer{ nullptr };
 		VkCommandPool immediate_command_pool{ nullptr };
 
@@ -477,6 +485,26 @@ namespace {
 				}
 			}
 
+			if (graphics_created_bitmask & graphics_created_bit_imgui_vk)
+			{
+				ImGui_ImplVulkan_Shutdown();
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_imgui_sdl)
+			{
+				ImGui_ImplSDL3_Shutdown();
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_imgui_ctx)
+			{
+				ImGui::DestroyContext();
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_ui_pool)
+			{
+				vkDestroyDescriptorPool(device, ui_pool, nullptr);
+			}
+
 			if (graphics_created_bitmask & graphics_created_bit_command_pool)
 			{
 				vkDestroyCommandPool(device, immediate_command_pool, nullptr);
@@ -491,7 +519,7 @@ namespace {
 			{
 				if (fd.frame_graphics_created_bitmask & graphics_created_bit_fence) vkDestroyFence(device, fd.in_flight_fence, nullptr);
 				if (fd.frame_graphics_created_bitmask & graphics_created_bit_image_semaphore)  vkDestroySemaphore(device, fd.image_available_semaphore, nullptr);
-				if (fd.frame_graphics_created_bitmask & graphics_created_bit_pass_semaphore) vkDestroySemaphore( device, fd.render_finished_semaphore, nullptr);
+				if (fd.frame_graphics_created_bitmask & graphics_created_bit_pass_semaphore) vkDestroySemaphore(device, fd.render_finished_semaphore, nullptr);
 				if (fd.frame_graphics_created_bitmask & graphics_created_bit_command_pool) vkDestroyCommandPool(device, fd.command_pool, nullptr);
 			}
 
@@ -1648,6 +1676,86 @@ namespace {
 		VkResult init_ui()
 		{
 			l->info("Initializing UI");
+
+			const VkDescriptorPoolSize imgui_pool_sizes[] = {
+				{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+				{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+			};
+
+			VkDescriptorPoolCreateInfo pool_info{};
+			pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+			pool_info.maxSets = 1000;
+			pool_info.poolSizeCount = static_cast<uint32_t>(std::size(imgui_pool_sizes));
+			pool_info.pPoolSizes = imgui_pool_sizes;
+
+			if (const VkResult result = vkCreateDescriptorPool(device, &pool_info, nullptr, &ui_pool); result != VK_SUCCESS) return result;
+			graphics_created_bitmask |= graphics_created_bit_ui_pool;
+
+			if (const auto ctx = ImGui::CreateContext(); ctx == nullptr)
+			{
+				l->error("Imgui create context failed");
+				return VK_ERROR_INITIALIZATION_FAILED;
+			}
+			graphics_created_bitmask |= graphics_created_bit_imgui_ctx;
+
+			if (!ImGui_ImplSDL3_InitForVulkan(window))
+			{
+				l->error("Imgui Vulkan SDL3 init failed");
+				return VK_ERROR_INITIALIZATION_FAILED;
+			}
+			graphics_created_bitmask |= graphics_created_bit_imgui_sdl;
+
+			ImGui_ImplVulkan_InitInfo init_info{};
+			init_info.Instance = instance;
+			init_info.PhysicalDevice = physical_device;
+			init_info.Device = device;
+			init_info.Queue = present_queue;
+			init_info.DescriptorPool = ui_pool;
+			init_info.MinImageCount = 2;
+			init_info.ImageCount = 2;
+			init_info.UseDynamicRendering = true;
+
+			init_info.PipelineRenderingCreateInfo = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
+			init_info.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+			init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &draw_image.image_format;
+
+			init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+			if (!ImGui_ImplVulkan_Init(&init_info))
+			{
+				l->error("Failed to init imgui");
+				return VK_ERROR_INITIALIZATION_FAILED;
+			}
+			graphics_created_bitmask |= graphics_created_bit_imgui_vk;
+
+			if (!ImGui_ImplVulkan_CreateFontsTexture())
+			{
+				l->error("Failed to init imgui font texture");
+				return VK_ERROR_INITIALIZATION_FAILED;
+			}
+
+			int displays_count = 0;
+			const auto display_ids = SDL_GetDisplays(&displays_count);
+			if (display_ids == nullptr || displays_count <= 0)
+			{
+				l->error("Failed to get SDL display info");
+				return VK_ERROR_INITIALIZATION_FAILED;
+			}
+			const float content_scale = SDL_GetDisplayContentScale(*display_ids);
+
+			ImGuiIO& io = ImGui::GetIO();
+			io.FontGlobalScale = content_scale;
+
 			return VK_SUCCESS;
 		}
 
@@ -1802,173 +1910,243 @@ namespace {
 					return result::graphics_frame_failure;
 				}
 			}
-
 			{
-				constexpr VkImageSubresourceRange subresource_range{
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = VK_REMAINING_MIP_LEVELS,
-					.baseArrayLayer = 0,
-					.layerCount = VK_REMAINING_ARRAY_LAYERS,
-				};
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
 
-				VkImageMemoryBarrier2 image_barrier = {
-					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-					.pNext = nullptr,
-					.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-					.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-					.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-					.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
-					.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-					.newLayout = VK_IMAGE_LAYOUT_GENERAL,
-					.srcQueueFamilyIndex = 0,
-					.dstQueueFamilyIndex = 0,
-					.image = draw_image.image,
-					.subresourceRange = subresource_range,
-				};
+					VkImageMemoryBarrier2 image_barrier = {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = VK_IMAGE_LAYOUT_GENERAL,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = draw_image.image,
+						.subresourceRange = subresource_range,
+					};
 
-				const VkDependencyInfo dependency_info{
-					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-					.pNext = nullptr,
-					.dependencyFlags = 0,
-					.memoryBarrierCount = 0,
-					.pMemoryBarriers = nullptr,
-					.bufferMemoryBarrierCount = 0,
-					.pBufferMemoryBarriers = nullptr,
-					.imageMemoryBarrierCount = 1,
-					.pImageMemoryBarriers = &image_barrier,
-				};
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 0,
+						.pBufferMemoryBarriers = nullptr,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers = &image_barrier,
+					};
 
-				vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
+
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
+
+					VkClearColorValue clear_value;
+					clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
+					vkCmdClearColorImage(cf.command_buffer, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
+				}
 			}
 
 			{
-				constexpr VkImageSubresourceRange subresource_range{
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = VK_REMAINING_MIP_LEVELS,
-					.baseArrayLayer = 0,
-					.layerCount = VK_REMAINING_ARRAY_LAYERS,
-				};
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
 
-				VkClearColorValue clear_value;
-				clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
-				vkCmdClearColorImage(cf.command_buffer, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
+					VkImageMemoryBarrier2 image_barrier = {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+						.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = draw_image.image,
+						.subresourceRange = subresource_range,
+					};
+
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 0,
+						.pBufferMemoryBarriers = nullptr,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers = &image_barrier,
+					};
+
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
+
+				{
+					{
+						VkRenderingAttachmentInfo color_attachment{};
+						color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+						color_attachment.pNext = nullptr;
+						color_attachment.imageView = draw_image.image_view;
+						color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+						color_attachment.resolveMode = VK_RESOLVE_MODE_NONE;
+						color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+						color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+						const auto render_area = VkRect2D{ VkOffset2D{0, 0}, swapchain_extent };
+						VkRenderingInfo render_info{};
+						render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+						render_info.pNext = nullptr;
+						render_info.renderArea = render_area;
+						render_info.layerCount = 1;
+						render_info.colorAttachmentCount = 1;
+						render_info.pColorAttachments = &color_attachment;
+						render_info.pDepthAttachment = nullptr;
+						render_info.pStencilAttachment = nullptr;
+						vkCmdBeginRendering(cf.command_buffer, &render_info);
+					}
+					ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cf.command_buffer);
+					vkCmdEndRendering(cf.command_buffer);
+				}
 			}
-
 			{
-				constexpr VkImageSubresourceRange subresource_range{
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = VK_REMAINING_MIP_LEVELS,
-					.baseArrayLayer = 0,
-					.layerCount = VK_REMAINING_ARRAY_LAYERS,
-				};
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
 
-				VkImageMemoryBarrier2 image_barrier = {
-					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-					.pNext = nullptr,
-					.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-					.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-					.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-					.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
-					.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
-					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-					.srcQueueFamilyIndex = 0,
-					.dstQueueFamilyIndex = 0,
-					.image = draw_image.image,
-					.subresourceRange = subresource_range,
-				};
+					VkImageMemoryBarrier2 image_barrier = {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = draw_image.image,
+						.subresourceRange = subresource_range,
+					};
 
-				const VkDependencyInfo dependency_info{
-					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-					.pNext = nullptr,
-					.dependencyFlags = 0,
-					.memoryBarrierCount = 0,
-					.pMemoryBarriers = nullptr,
-					.bufferMemoryBarrierCount = 0,
-					.pBufferMemoryBarriers = nullptr,
-					.imageMemoryBarrierCount = 1,
-					.pImageMemoryBarriers = &image_barrier,
-				};
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 0,
+						.pBufferMemoryBarriers = nullptr,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers = &image_barrier,
+					};
 
-				vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
-			}
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
 
-			{
-				constexpr VkImageSubresourceRange subresource_range{
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = VK_REMAINING_MIP_LEVELS,
-					.baseArrayLayer = 0,
-					.layerCount = VK_REMAINING_ARRAY_LAYERS,
-				};
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
 
-				VkImageMemoryBarrier2 image_barrier = {
-					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-					.pNext = nullptr,
-					.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-					.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-					.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-					.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
-					.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					.srcQueueFamilyIndex = 0,
-					.dstQueueFamilyIndex = 0,
-					.image = swapchain_image,
-					.subresourceRange = subresource_range,
-				};
+					VkImageMemoryBarrier2 image_barrier = {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = swapchain_image,
+						.subresourceRange = subresource_range,
+					};
 
-				const VkDependencyInfo dependency_info{
-					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-					.pNext = nullptr,
-					.dependencyFlags = 0,
-					.memoryBarrierCount = 0,
-					.pMemoryBarriers = nullptr,
-					.bufferMemoryBarrierCount = 0,
-					.pBufferMemoryBarriers = nullptr,
-					.imageMemoryBarrierCount = 1,
-					.pImageMemoryBarriers = &image_barrier,
-				};
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 0,
+						.pBufferMemoryBarriers = nullptr,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers = &image_barrier,
+					};
 
-				vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
-			}
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
 
-			{
-				VkImageBlit2 blit_region = {};
-				blit_region.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
-				blit_region.pNext = nullptr;
-				blit_region.srcOffsets[1].x = static_cast<int32_t>(draw_extent.width);
-				blit_region.srcOffsets[1].y = static_cast<int32_t>(draw_extent.height);
-				blit_region.srcOffsets[1].z = 1;
+				{
+					VkImageBlit2 blit_region = {};
+					blit_region.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
+					blit_region.pNext = nullptr;
+					blit_region.srcOffsets[1].x = static_cast<int32_t>(draw_extent.width);
+					blit_region.srcOffsets[1].y = static_cast<int32_t>(draw_extent.height);
+					blit_region.srcOffsets[1].z = 1;
 
-				blit_region.dstOffsets[1].x = static_cast<int32_t>(swapchain_extent.width);
-				blit_region.dstOffsets[1].y = static_cast<int32_t>(swapchain_extent.height);
-				blit_region.dstOffsets[1].z = 1;
+					blit_region.dstOffsets[1].x = static_cast<int32_t>(swapchain_extent.width);
+					blit_region.dstOffsets[1].y = static_cast<int32_t>(swapchain_extent.height);
+					blit_region.dstOffsets[1].z = 1;
 
-				blit_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				blit_region.srcSubresource.baseArrayLayer = 0;
-				blit_region.srcSubresource.layerCount = 1;
-				blit_region.srcSubresource.mipLevel = 0;
+					blit_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					blit_region.srcSubresource.baseArrayLayer = 0;
+					blit_region.srcSubresource.layerCount = 1;
+					blit_region.srcSubresource.mipLevel = 0;
 
-				blit_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				blit_region.dstSubresource.baseArrayLayer = 0;
-				blit_region.dstSubresource.layerCount = 1;
-				blit_region.dstSubresource.mipLevel = 0;
+					blit_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					blit_region.dstSubresource.baseArrayLayer = 0;
+					blit_region.dstSubresource.layerCount = 1;
+					blit_region.dstSubresource.mipLevel = 0;
 
-				VkBlitImageInfo2 blit_info{
-					.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
-					.pNext = nullptr
-				};
-				blit_info.dstImage = swapchain_image;
-				blit_info.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				blit_info.srcImage = draw_image.image;
-				blit_info.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-				blit_info.filter = VK_FILTER_LINEAR;
-				blit_info.regionCount = 1;
-				blit_info.pRegions = &blit_region;
+					VkBlitImageInfo2 blit_info{
+						.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
+						.pNext = nullptr
+					};
+					blit_info.dstImage = swapchain_image;
+					blit_info.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+					blit_info.srcImage = draw_image.image;
+					blit_info.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+					blit_info.filter = VK_FILTER_LINEAR;
+					blit_info.regionCount = 1;
+					blit_info.pRegions = &blit_region;
 
-				vkCmdBlitImage2(cf.command_buffer, &blit_info);
+					vkCmdBlitImage2(cf.command_buffer, &blit_info);
+				}
 			}
 
 			{
@@ -2082,6 +2260,7 @@ namespace {
 			}
 
 			current_frame = (current_frame + 1) % max_frames_in_flight;
+
 			return result::ok;
 		}
 	};
@@ -2131,6 +2310,15 @@ result graphics::init(SDL_Window* new_window, log const* new_log, config cfg)
 
 result graphics::render()
 {
+	{
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplSDL3_NewFrame();
+		ImGui::NewFrame();
+	}
+	{
+		ImGui::ShowDemoWindow();
+		ImGui::Render();
+	}
 	return gd->render();
 }
 

@@ -16,7 +16,7 @@ namespace rosy
 		graphics* gfx{ nullptr };
 
 		result init();
-		result run();
+		result run() const;
 		void deinit();
 	};
 }

@@ -4,6 +4,8 @@
 #include <format>
 #include <thread>
 #include <SDL3/SDL.h>
+#include "imgui.h"
+#include "backends/imgui_impl_sdl3.h"
 #include <tracy/Tracy.hpp>
 #ifdef TRACY_ENABLED
 #include <client/TracyProfiler.hpp>
@@ -133,7 +135,7 @@ void engine::deinit()
 	}
 }
 
-result engine::run()
+result engine::run() const
 {
 	l->info("Engine run!");
 	bool should_run = true;
@@ -153,16 +155,20 @@ result engine::run()
 			if (event.type == SDL_EVENT_WINDOW_RESTORED) {
 				should_render = true;
 			}
+			ImGui_ImplSDL3_ProcessEvent(&event);
 		}
 		if (!should_render) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			continue;
 		}
 		if (!should_run) break;
-		if (const auto res = gfx->render(); res != result::ok) {
-			return res;
+
+		{
+			if (const auto res = gfx->render(); res != result::ok) {
+				return res;
+			}
+			FrameMark;
 		}
-		FrameMark;
 	}
 	return result::ok;
 }
