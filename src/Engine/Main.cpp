@@ -1,9 +1,8 @@
 #include "Engine.h"
-#pragma warning(disable:4100)
 
 using namespace rosy;
 
-int main(int argc, char* argv[])
+int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 {
 	rosy::engine engine{};
 	if (const result res = engine.init(); res != result::ok) {
