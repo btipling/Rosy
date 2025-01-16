@@ -17,9 +17,12 @@ rosy::result asset::write()
 	}
 
 	const std::array<size_t, 2> sizes{positions.size(), triangles.size()};
-	const size_t res = fwrite(&sizes, sizeof(sizes), 1, stream);
-
-	std::cout << std::format("wrote {} elements", res) << '\n';
+	size_t res = fwrite(&sizes, sizeof(sizes), 1, stream);
+	std::cout << std::format("wrote {} sizes", res) << '\n';
+	res = fwrite(positions.data(), sizeof(position), positions.size(), stream);
+	std::cout << std::format("wrote {} positions", res) << '\n';
+	res = fwrite(triangles.data(), sizeof(position), triangles.size(), stream);
+	std::cout << std::format("wrote {} triangles", res) << '\n';
 
 	int num_closed = _fcloseall();
 
@@ -41,15 +44,15 @@ rosy::result asset::read()
 
 	std::array<size_t, 2> sizes{0, 0};
 
-	const size_t res1 = fread(&sizes, sizeof(sizes), 1, stream);
+	size_t res = fread(&sizes, sizeof(sizes), 1, stream);
+	std::cout << std::format("read {} sizes", res) << '\n';
+	positions.resize(sizes[0]);
+	triangles.resize(sizes[1]);
+	res = fread(positions.data(), sizeof(position), sizes[0], stream);
+	std::cout << std::format("read {} positions", res) << '\n';
+	res = fread(triangles.data(), sizeof(triangle), sizes[1], stream);
+	std::cout << std::format("read {} triangles", res) << '\n';
 
-	std::cout << std::format("foo read {} elements", res1) << '\n';
-
-	//std::array<char, 3> bar{};
-
-	//const size_t res2 = fread(&bar, sizeof(bar), 1, stream);
-
-	//std::cout << std::format("read {} elements", res2) << '\n';
 
 	int num_closed = _fcloseall();
 

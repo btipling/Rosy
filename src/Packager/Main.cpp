@@ -1,4 +1,5 @@
 #include "Asset.h"
+#include <iostream>
 
 using namespace rosy_packager;
 
@@ -30,8 +31,21 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 	if (const auto res = a.write(); res != rosy::result::ok) {
 		return EXIT_FAILURE;
 	}
-	if (const auto res = a.read(); res != rosy::result::ok) {
+
+	asset b{};
+	b.path = "triangle.rsy";
+	if (const auto res = b.read(); res != rosy::result::ok) {
 		return EXIT_FAILURE;
+	}
+	std::cout << "Parsed positions:" << '\n';
+	for (auto [vertex, normal]: b.positions)
+	{
+		std::cout << std::format("vertex: {} normal: {}", vertex, normal) << '\n';
+	}
+	std::cout << "Parsed triangles:" << '\n';
+	for (auto [indexes] : b.triangles)
+	{
+		std::cout << std::format("indexes: {}", indexes) << '\n';
 	}
 	return 0;
 }
