@@ -50,7 +50,7 @@ rosy::result asset::read()
 	triangles.resize(sizes[1]);
 	res = fread(positions.data(), sizeof(position), sizes[0], stream);
 	std::cout << std::format("read {} positions", res) << '\n';
-	res = fread(triangles.data(), sizeof(triangle), sizes[1], stream);
+	res = fread(triangles.data(), sizeof(position), sizes[1], stream);
 	std::cout << std::format("read {} triangles", res) << '\n';
 
 

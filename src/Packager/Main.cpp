@@ -21,7 +21,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 	};
 
 	constexpr triangle t1{
-		.indexes = {0, 1, 2},
+		.indices = {0, 1, 2},
 	};
 
 	asset a{};
@@ -43,9 +43,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 		std::cout << std::format("vertex: {} normal: {}", vertex, normal) << '\n';
 	}
 	std::cout << "Parsed triangles:" << '\n';
-	for (auto [indexes] : b.triangles)
+	for (auto [indices] : b.triangles)
 	{
-		std::cout << std::format("indexes: {}", indexes) << '\n';
+		std::cout << std::format("indices: {}", indices) << '\n';
 	}
 	return 0;
 }

@@ -13,7 +13,7 @@ namespace rosy_packager {
 
 	struct triangle
 	{
-		std::array<uint32_t, 3> indexes{ 0, 1, 2 };
+		std::array<uint32_t, 3> indices{ 0, 1, 2 };
 	};
 
 	struct asset

@@ -39,23 +39,23 @@ namespace {
 
 	struct descriptor_set_allocator
 	{
-		uint32_t max_indexes{ 1000 };
-		std::stack<uint32_t> recycled_indexes;
+		uint32_t max_indices{ 1000 };
+		std::stack<uint32_t> recycled_indices;
 		uint32_t num_allocated{ 0 };
 
 		result allocate(uint32_t* index)
 		{
 			uint32_t new_index = num_allocated;
-			if (recycled_indexes.empty())
+			if (recycled_indices.empty())
 			{
-				if (num_allocated >= max_indexes)
+				if (num_allocated >= max_indices)
 					return rosy::result::overflow;
 				num_allocated += 1;
 			}
 			else
 			{
-				new_index = recycled_indexes.top();
-				recycled_indexes.pop();
+				new_index = recycled_indices.top();
+				recycled_indices.pop();
 			}
 			*index = new_index;
 			return rosy::result::ok;
@@ -63,11 +63,11 @@ namespace {
 
 		void free(const uint32_t index)
 		{
-			recycled_indexes.push(index);
+			recycled_indices.push(index);
 		}
 		void reset()
 		{
-			while (!recycled_indexes.empty()) recycled_indexes.pop();
+			while (!recycled_indices.empty()) recycled_indices.pop();
 			num_allocated = 0;
 		}
 	};
@@ -79,11 +79,11 @@ namespace {
 		uint32_t binding{ 0 };
 		descriptor_set_allocator allocator;
 
-		result init(const uint32_t new_max_indexes, const uint32_t new_binding)
+		result init(const uint32_t new_max_indices, const uint32_t new_binding)
 		{
 			binding = new_binding;
 			allocator = descriptor_set_allocator{};
-			allocator.max_indexes = new_max_indexes;
+			allocator.max_indices = new_max_indices;
 			return result::ok;
 		}
 	};
