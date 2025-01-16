@@ -62,7 +62,7 @@ rosy::result asset::read()
 
 	{
 		std::cout << std::format("current file path: {}", std::filesystem::current_path().string()) << '\n';
-		if (const errno_t err = fopen_s(&stream, path.c_str(), "r"); err != 0)
+		if (const errno_t err = fopen_s(&stream, path.c_str(), "rb"); err != 0)
 		{
 			std::cerr << std::format("failed to open {}, {}", path, err) << '\n';
 			return rosy::result::error;
