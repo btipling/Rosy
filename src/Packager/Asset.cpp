@@ -21,10 +21,10 @@ rosy::result asset::write()
 	std::cout << std::format("wrote {} sizes", res) << '\n';
 	res = fwrite(positions.data(), sizeof(position), positions.size(), stream);
 	std::cout << std::format("wrote {} positions", res) << '\n';
-	res = fwrite(triangles.data(), sizeof(position), triangles.size(), stream);
+	res = fwrite(triangles.data(), sizeof(triangle), triangles.size(), stream);
 	std::cout << std::format("wrote {} triangles", res) << '\n';
 
-	int num_closed = _fcloseall();
+	int num_closed = fclose(stream);
 
 	std::cout << std::format("closed {} files", num_closed) << '\n';
 
@@ -50,11 +50,10 @@ rosy::result asset::read()
 	triangles.resize(sizes[1]);
 	res = fread(positions.data(), sizeof(position), sizes[0], stream);
 	std::cout << std::format("read {} positions", res) << '\n';
-	res = fread(triangles.data(), sizeof(position), sizes[1], stream);
+	res = fread(triangles.data(), sizeof(triangle), sizes[1], stream);
 	std::cout << std::format("read {} triangles", res) << '\n';
 
-
-	int num_closed = _fcloseall();
+	int num_closed = fclose(stream);
 
 	std::cout << std::format("closed {} files", num_closed) << '\n';
 	std::cout << std::format("result: {}", sizes) << '\n';
