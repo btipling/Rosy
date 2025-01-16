@@ -21,6 +21,21 @@ rosy::result asset::write()
 	const size_t num_triangles{ triangles.size() };
 
 	{
+		constexpr size_t num_headers = 1;
+		constexpr file_header header{
+			.magic = rosy_format,
+			.version = current_version,
+			.endianness = std::endian::native == std::endian::little ? 1 : 0,
+		};
+		size_t res = fwrite(&header, sizeof(header), num_headers, stream);
+		if (res != num_headers) {
+			std::cerr << std::format("failed to write, wrote {}/{} headers", res, num_headers) << '\n';
+			return rosy::result::error;
+		}
+		std::cout << std::format("wrote {} headers", res) << '\n';
+	}
+
+	{
 		constexpr size_t num_sizes = 1;
 		const std::array<size_t, 2> sizes{ num_positions, num_triangles };
 		size_t res = fwrite(&sizes, sizeof(sizes), num_sizes, stream);
@@ -71,6 +86,33 @@ rosy::result asset::read()
 
 	size_t num_positions{ 0 };
 	size_t num_triangles{ 0 };
+
+	{
+		constexpr size_t num_headers = 1;
+		file_header header{
+			.magic = 0, 
+			.version = 0,
+			.endianness = 0,
+		};
+		size_t res = fread(&header, sizeof(header), num_headers, stream);
+		if (res != num_headers) {
+			std::cerr << std::format("failed to read, wrote {}/{} headers", res, num_headers) << '\n';
+			return rosy::result::error;
+		}
+		if (header.version != current_version)
+		{
+			std::cerr << std::format("failed to read, version mismatch file is version {} current version is {}", header.version, current_version) << '\n';
+			return rosy::result::error;
+		}
+		constexpr uint32_t is_little_endian = std::endian::native == std::endian::little ? 1 : 0;
+		if (header.endianness != is_little_endian)
+		{
+			std::cerr << std::format("failed to read, version mismatch file is version {} current version is {}", header.version, current_version) << '\n';
+			return rosy::result::error;
+		}
+		std::cout << std::format("wrote {} headers", res) << '\n';
+		std::cout << std::format("format version: {} is little endian: {}", header.version, is_little_endian) << '\n';
+	}
 
 	{
 		constexpr size_t num_sizes = 1;
