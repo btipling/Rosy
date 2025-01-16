@@ -57,6 +57,9 @@
     <ClInclude Include="..\libs\imgui\backends\imgui_impl_vulkan.h">
       <Filter>Dependencies</Filter>
     </ClInclude>
+    <ClInclude Include="..\Packager\Asset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -100,6 +103,9 @@
     </ClCompile>
     <ClCompile Include="..\libs\imgui\backends\imgui_impl_vulkan.cpp">
       <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Packager\Asset.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

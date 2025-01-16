@@ -1,4 +1,5 @@
 #include "Engine.h"
+#include "../Packager/Asset.h"
 
 #include <chrono>
 #include <format>
@@ -41,6 +42,14 @@ result engine::init()
 	}
 
 	l->info("Engine init begin");
+	rosy_packager::asset a{};
+	a.path = "../Packager/triangle.rsy";
+	{
+		if (const auto res = a.read(); res != result::ok) {
+			l->error("Failed to read the assets!");
+			return result::error;
+		}
+	}
 
 	config cfg{};
 	// SDL Window initialization.
@@ -101,6 +110,11 @@ result engine::init()
 		if (auto const res = gfx->init(window, l, cfg); res != result::ok)
 		{
 			l->error(std::format("Graphics creation failed: {}", static_cast<uint8_t>(res)));
+			return res;
+		}
+		if (auto const res = gfx->set_asset(a); res != result::ok)
+		{
+			l->error(std::format("Asset setting failed: {}", static_cast<uint8_t>(res)));
 			return res;
 		}
 	}

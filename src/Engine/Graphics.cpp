@@ -1,5 +1,4 @@
 #include "Graphics.h"
-
 #include <format>
 #include <vector>
 #include <queue>
@@ -2305,6 +2304,12 @@ result graphics::init(SDL_Window* new_window, log const* new_log, config cfg)
 	l->info("Graphics init done");
 
 
+	return result::ok;
+}
+
+result graphics::set_asset([[maybe_unused]] const rosy_packager::asset& a)
+{
+	l->debug("Setting asset!");
 	return result::ok;
 }
 

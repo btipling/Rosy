@@ -1,6 +1,7 @@
 #pragma once
 #include "Types.h"
 #include "Telemetry.h"
+#include "../Packager/Asset.h"
 
 // ReSharper disable once CppInconsistentNaming
 typedef struct SDL_Window SDL_Window;
@@ -14,6 +15,7 @@ namespace rosy
 		log const* l{ nullptr };
 
 		result init(SDL_Window* new_window, log const* new_log, config cfg);
+		result set_asset(const rosy_packager::asset& a);
 		result render();
 		result resize();
 		void deinit();
