@@ -112,6 +112,8 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_imgui_ctx        = 0b00000000000100000000000000000000;
 	constexpr  uint32_t graphics_created_bit_vertex_buffer    = 0b00000000001000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_index_buffer     = 0b00000000010000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_shaders          = 0b00000000100000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_pipeline_layout  = 0b00000001000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -246,6 +248,16 @@ namespace {
 		allocated_buffer index_buffer;
 		allocated_buffer vertex_buffer;
 		VkDeviceAddress vertex_buffer_address;
+		std::vector<VkShaderEXT> shaders;
+		VkPipelineLayout layout;
+	};
+
+	struct gpu_draw_push_constants
+	{
+		//VkDeviceAddress scene_buffer{ 0 };
+		VkDeviceAddress vertex_buffer{ 0 };
+		//VkDeviceAddress render_buffer{ 0 };
+		//VkDeviceAddress material_buffer{ 0 };
 	};
 
 	struct graphics_device
@@ -498,6 +510,19 @@ namespace {
 		void deinit()
 		{
 			// Deinit acquired resources in the opposite order in which they were created
+
+			if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_pipeline_layout)
+			{
+				vkDestroyPipelineLayout(device, gpu_mesh.layout, nullptr);
+			}
+
+			if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_shaders)
+			{
+				for (const VkShaderEXT shader : gpu_mesh.shaders)
+				{
+					vkDestroyShaderEXT(device, shader, nullptr);
+				}
+			}
 
 			if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_index_buffer)
 			{
@@ -1577,7 +1602,7 @@ namespace {
 				frame_datas[i].command_pool = command_pool;
 				frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_command_pool;
 				{
-					const auto obj_name = std::format("{} rosy command_pool", i);
+					const auto obj_name = std::format("rosy command_pool {}", i);
 					VkDebugUtilsObjectNameInfoEXT debug_name{};
 					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 					debug_name.pNext = nullptr;
@@ -1608,7 +1633,7 @@ namespace {
 					if (const VkResult result = vkAllocateCommandBuffers(device, &alloc_info, &command_buffer); result != VK_SUCCESS) return result;
 					frame_datas[i].command_buffer = command_buffer;
 					{
-						const auto obj_name = std::format("{} rosy command_buffer", i);
+						const auto obj_name = std::format("rosy command_buffer {}", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
@@ -1643,7 +1668,7 @@ namespace {
 					frame_datas[i].image_available_semaphore = semaphore;
 					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_image_semaphore;
 					{
-						const auto obj_name = std::format("{} rosy image_available_semaphore", i);
+						const auto obj_name = std::format("rosy image_available_semaphore {}", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
@@ -1660,7 +1685,7 @@ namespace {
 					frame_datas[i].render_finished_semaphore = semaphore;
 					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_pass_semaphore;
 					{
-						const auto obj_name = std::format("{} rosy render_finished_semaphore", i);
+						const auto obj_name = std::format("rosy render_finished_semaphore {}", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
@@ -1677,7 +1702,7 @@ namespace {
 					frame_datas[i].in_flight_fence = fence;
 					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_fence;
 					{
-						const auto obj_name = std::format("{} rosy in_flight_fence", i);
+						const auto obj_name = std::format("rosy in_flight_fence {}", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
@@ -1911,7 +1936,7 @@ namespace {
 
 				if (
 					const VkResult res = vmaCreateBuffer(
-						allocator, &buffer_info, &vma_alloc_info, &gpu_mesh.vertex_buffer.buffer, &gpu_mesh.vertex_buffer.allocation, 
+						allocator, &buffer_info, &vma_alloc_info, &gpu_mesh.vertex_buffer.buffer, &gpu_mesh.vertex_buffer.allocation,
 						&gpu_mesh.vertex_buffer.info
 					); res != VK_SUCCESS)
 				{
@@ -2077,7 +2102,7 @@ namespace {
 			submit_info.commandBufferInfoCount = 1;
 			submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
 
-			
+
 			if (VkResult res = vkQueueSubmit2(present_queue, 1, &submit_info, immediate_fence); res != VK_SUCCESS)
 			{
 				l->error(std::format("Error submitting immediate command to present queue: {}", static_cast<uint8_t>(res)));
@@ -2090,6 +2115,129 @@ namespace {
 				return result::error;
 			}
 			vmaDestroyBuffer(allocator, staging.buffer, staging.allocation);
+
+			{
+				if (a.shaders.empty())
+				{
+					l->error("No shader loaded");
+					return result::error;
+				}
+				std::vector<VkShaderCreateInfoEXT> shader_create_info;
+				const auto [path, source] = a.shaders[0];
+
+				if (source.empty())
+				{
+					l->error("No source in shader");
+					return result::error;
+				}
+
+				std::vector<VkDescriptorSetLayout> layouts{};
+				layouts.push_back(descriptor_set_layout);
+
+				VkPushConstantRange push_constant_range{
+					.stageFlags = VK_SHADER_STAGE_ALL,
+					.offset = 0,
+					.size = sizeof(gpu_draw_push_constants),
+				};
+
+				shader_create_info.push_back({
+					.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+					.pNext = nullptr,
+					.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
+					.stage = VK_SHADER_STAGE_VERTEX_BIT,
+					.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT,
+					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
+					.codeSize = source.size(),
+					.pCode = source.data(),
+					.pName = "main",
+					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
+					.pSetLayouts = layouts.data(),
+					.pushConstantRangeCount = 1,
+					.pPushConstantRanges = &push_constant_range,
+					.pSpecializationInfo = nullptr,
+					});
+				shader_create_info.push_back({
+					.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+					.pNext = nullptr,
+					.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
+					.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+					.nextStage = 0,
+					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
+					.codeSize = source.size(),
+					.pCode = source.data(),
+					.pName = "main",
+					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
+					.pSetLayouts = layouts.data(),
+					.pushConstantRangeCount = 1,
+					.pPushConstantRanges = &push_constant_range,
+					.pSpecializationInfo = nullptr,
+					});
+
+				gpu_mesh.shaders.resize(shader_create_info.size());
+
+				if (const VkResult res = vkCreateShadersEXT(device, static_cast<uint32_t>(shader_create_info.size()), shader_create_info.data(), nullptr, gpu_mesh.shaders.data()); res != VK_SUCCESS) {
+					l->error(std::format("Error creating shaders: {}", static_cast<uint8_t>(res)));
+					return result::error;
+				}
+				gpu_mesh.graphics_created_bitmask |= graphics_created_bit_shaders;
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_SHADER_EXT;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(gpu_mesh.shaders.data()[0]);
+					debug_name.pObjectName = "rosy vertex shader";
+					if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating vertex shader name: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+				}
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_SHADER_EXT;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(gpu_mesh.shaders.data()[1]);
+					debug_name.pObjectName = "rosy fragment shader";
+					if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating fragment shader name: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+				}
+				{
+					VkPipelineLayoutCreateInfo pl_info{
+						.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+						.pNext = nullptr,
+						.flags = 0,
+						.setLayoutCount = static_cast<uint32_t>(layouts.size()),
+						.pSetLayouts = layouts.data(),
+						.pushConstantRangeCount = 1,
+						.pPushConstantRanges = &push_constant_range,
+					};
+					if (const VkResult res = vkCreatePipelineLayout(device, &pl_info, nullptr, &gpu_mesh.layout); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating shader pipeline layout: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+					gpu_mesh.graphics_created_bitmask |= graphics_created_bit_pipeline_layout;
+					{
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_PIPELINE_LAYOUT;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(gpu_mesh.layout);
+						debug_name.pObjectName = "rosy shader pipeline layout";
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating shader pipeline layout name: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+					}
+				}
+
+			}
 			return result::ok;
 		}
 
@@ -2542,7 +2690,10 @@ result graphics::init(SDL_Window* new_window, log const* new_log, config cfg)
 result graphics::set_asset(const rosy_packager::asset& a)
 {
 	l->debug("Setting asset!");
-	gd->set_asset(a);
+	if (const auto res = gd->set_asset(a); res != result::ok)
+	{
+		return res;
+	}
 	return result::ok;
 }
 

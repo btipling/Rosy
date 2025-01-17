@@ -41,6 +41,6 @@ namespace rosy_packager {
 
 		rosy::result write();
 		rosy::result read();
-		rosy::result read_shaders() const;
+		rosy::result read_shaders();
 	};
 }
