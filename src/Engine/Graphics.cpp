@@ -509,6 +509,18 @@ namespace {
 
 		void deinit()
 		{
+			// WAIT FOR DEVICE IDLE BEGIN **** 
+
+			if (graphics_created_bitmask & graphics_created_bit_device)
+			{
+				if (const VkResult result = vkDeviceWaitIdle(device); result != VK_SUCCESS)
+				{
+					l->error(std::format("Failed to wait device to be idle: {}", static_cast<uint8_t>(result)));
+				}
+			}
+
+			// WAIT FOR DEVICE IDLE END **** 
+
 			// Deinit acquired resources in the opposite order in which they were created
 
 			if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_pipeline_layout)
@@ -532,14 +544,6 @@ namespace {
 			if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_vertex_buffer)
 			{
 				vmaDestroyBuffer(allocator, gpu_mesh.vertex_buffer.buffer, gpu_mesh.vertex_buffer.allocation);
-			}
-
-			if (graphics_created_bitmask & graphics_created_bit_device)
-			{
-				if (const VkResult result = vkDeviceWaitIdle(device); result != VK_SUCCESS)
-				{
-					l->error(std::format("Failed to wait device to be idle: {}", static_cast<uint8_t>(result)));
-				}
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_imgui_vk)
@@ -2459,6 +2463,8 @@ namespace {
 							vkCmdSetDepthBoundsTestEnableEXT(cf.command_buffer, VK_FALSE);
 							vkCmdSetDepthBiasEnableEXT(cf.command_buffer, VK_FALSE);
 							vkCmdSetStencilTestEnableEXT(cf.command_buffer, VK_FALSE);
+							vkCmdSetDepthClipEnableEXT(cf.command_buffer, VK_FALSE);
+							vkCmdSetDepthClampEnableEXT(cf.command_buffer, VK_FALSE);
 							vkCmdSetLogicOpEnableEXT(cf.command_buffer, VK_FALSE);
 							vkCmdSetDepthBounds(cf.command_buffer, 0.0f, 1.0f);
 							vkCmdSetAlphaToCoverageEnableEXT(cf.command_buffer, VK_FALSE);
@@ -2467,6 +2473,26 @@ namespace {
 							constexpr auto enable = VK_FALSE;
 							vkCmdSetColorBlendEnableEXT(cf.command_buffer, 0, 1, &enable);
 						}
+					}
+					{
+						constexpr VkShaderStageFlagBits stages[2] =
+						{
+							VK_SHADER_STAGE_VERTEX_BIT,
+							VK_SHADER_STAGE_FRAGMENT_BIT
+						};
+						vkCmdBindShadersEXT(cf.command_buffer, 2, stages, gpu_mesh.shaders.data());
+						constexpr VkShaderStageFlagBits unused_stages[4] =
+						{
+							VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+							VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+							VK_SHADER_STAGE_GEOMETRY_BIT,
+						};
+						vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
+						vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gpu_mesh.layout, 0, 1, &descriptor_set, 0, nullptr);
+						gpu_draw_push_constants pc{ .vertex_buffer = gpu_mesh.vertex_buffer_address };
+						vkCmdPushConstants(cf.command_buffer, gpu_mesh.layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
+						vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+						vkCmdDrawIndexed(cf.command_buffer, 3, 1, 0, 0, 0);
 					}
 					ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cf.command_buffer);
 					vkCmdEndRendering(cf.command_buffer);
