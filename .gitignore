@@ -377,3 +377,4 @@ imgui.ini
 *.dll
 *.spv
 *.gltf
+*.rsy

@@ -21,6 +21,12 @@ namespace rosy_packager {
 		std::array<float, 3> normal{ 0.f, 0.f, 0.f };
 	};
 
+	struct shader
+	{
+		std::string path{};
+		std::vector<char> source;
+	};
+
 	struct triangle
 	{
 		std::array<uint32_t, 3> indices{ 0, 1, 2 };
@@ -28,11 +34,13 @@ namespace rosy_packager {
 
 	struct asset
 	{
-		std::string path{"."};
+		std::string path{};
 		std::vector<position> positions;
 		std::vector<triangle> triangles;
+		std::vector<shader> shaders;
 
 		rosy::result write();
 		rosy::result read();
+		rosy::result read_shaders() const;
 	};
 }

@@ -1,5 +1,6 @@
 #include "Asset.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 
 using namespace rosy_packager;
@@ -152,6 +153,27 @@ rosy::result asset::read()
 	int num_closed = fclose(stream);
 
 	std::cout << std::format("closed {} files", num_closed) << '\n';
+	return rosy::result::ok;
+}
+
+rosy::result asset::read_shaders() const
+{
+	// ReSharper disable once CppUseStructuredBinding
+	for (shader s: shaders)
+	{
+		std::ifstream file(s.path, std::ios::ate | std::ios::binary);
+
+		if (!file.is_open()) {
+			std::cerr << std::format("failed to read shader {}", s.path) << '\n';
+			return rosy::result::error;
+		}
+
+		const std::streamsize file_size = file.tellg();
+		std::vector<char> buffer(file_size);
+		file.seekg(0);
+		file.read(s.source.data(), file_size);
+		file.close();
+	}
 	return rosy::result::ok;
 }
 
