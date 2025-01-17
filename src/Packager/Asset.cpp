@@ -170,6 +170,7 @@ rosy::result asset::read_shaders() const
 
 		const std::streamsize file_size = file.tellg();
 		std::vector<char> buffer(file_size);
+		s.source.resize(file_size);
 		file.seekg(0);
 		file.read(s.source.data(), file_size);
 		file.close();

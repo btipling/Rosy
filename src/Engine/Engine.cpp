@@ -45,8 +45,17 @@ result engine::init()
 	rosy_packager::asset a{};
 	a.path = "../Packager/triangle.rsy";
 	{
-		if (const auto res = a.read(); res != result::ok) {
+		if (const auto res = a.read(); res != result::ok)
+		{
 			l->error("Failed to read the assets!");
+			return result::error;
+		}
+	}
+	a.shaders.push_back({ .path = "../shaders/out/basic.spv" });
+	{
+		if (const auto res = a.read_shaders(); res != result::ok)
+		{
+			l->error("Failed to read shaders!");
 			return result::error;
 		}
 	}
