@@ -12,6 +12,9 @@ namespace rosy
 		graphics_init_failure,
 		graphics_frame_failure,
 		graphics_swapchain_failure,
+		open_failed,
+		write_failed,
+		read_failed,
 		overflow,
 	};
 

@@ -12,12 +12,12 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 
 	constexpr position p2{
 		.vertex = {0.f, -0.5f, 0.f},
-		.normal = {1.f, 0.f, 0.f},
+		.normal = {0.f, 1.f, 0.f},
 	};
 
 	constexpr position p3{
 		.vertex = {0.5f, 0.f, 0.f},
-		.normal = {1.f, 0.f, 0.f},
+		.normal = {0.f, 0.f, 1.f},
 	};
 
 	constexpr triangle t1{

@@ -30,4 +30,16 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\shaders\debug.slang" />
+    <None Include="..\shaders\mesh.slang" />
+    <None Include="..\shaders\shadow.slang" />
+    <None Include="..\shaders\skybox.slang" />
+    <None Include="..\shaders\skybox_cube.slang" />
+    <None Include="..\shaders\data.slang" />
+    <None Include="..\shaders\pcf.slang" />
+    <None Include="..\shaders\basic.slang" />
+    <None Include="..\shaders\script_compile.ps1" />
+    <None Include="..\shaders\script_shader_watcher.ps1" />
+  </ItemGroup>
 </Project>

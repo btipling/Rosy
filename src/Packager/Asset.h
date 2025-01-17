@@ -1,24 +1,30 @@
 #pragma once
 #include <array>
-#include <format>
+#include <string>
 #include <vector>
 #include "../Engine/Types.h"
 
 namespace rosy_packager {
 
-	constexpr uint32_t rosy_format{ 0x52535946 };  // "RSYF" in hex
+	constexpr uint32_t rosy_format{ 0x52535946 };  // "RSYF"
 	constexpr uint32_t current_version{ 1 };
 
 	struct file_header {
-		uint32_t magic;      // Magic number to identify the format
-		uint32_t version;    // Format version
-		uint32_t endianness; // Storage endianness
+		uint32_t magic;
+		uint32_t version;
+		uint32_t endianness;
 	};
 
 	struct position
 	{
 		std::array<float, 3> vertex{ 0.f, 0.f, 0.f };
 		std::array<float, 3> normal{ 0.f, 0.f, 0.f };
+	};
+
+	struct shader
+	{
+		std::string path{};
+		std::vector<char> source;
 	};
 
 	struct triangle
@@ -28,11 +34,13 @@ namespace rosy_packager {
 
 	struct asset
 	{
-		std::string path{"."};
+		std::string path{};
 		std::vector<position> positions;
 		std::vector<triangle> triangles;
+		std::vector<shader> shaders;
 
 		rosy::result write();
 		rosy::result read();
+		rosy::result read_shaders();
 	};
 }
