@@ -135,8 +135,8 @@ rosy::result asset::read()
 	{
 		size_t res = fread(positions.data(), sizeof(position), num_positions, stream);
 		if (res != num_positions) {
-			std::cerr << std::format("failed to write, wrote {}/{} positions", res, num_positions) << '\n';
-			return rosy::result::write_failed;
+			std::cerr << std::format("failed to read {}/{} positions", res, num_positions) << '\n';
+			return rosy::result::read_failed;
 		}
 		std::cout << std::format("read {} positions", res) << '\n';
 	}
@@ -144,8 +144,8 @@ rosy::result asset::read()
 	{
 		size_t res = fread(triangles.data(), sizeof(triangle), num_triangles, stream);
 		if (res != num_triangles) {
-			std::cerr << std::format("failed to write, wrote {}/{} triangles", res, num_triangles) << '\n';
-			return rosy::result::write_failed;
+			std::cerr << std::format("failed to read {}/{} triangles", res, num_triangles) << '\n';
+			return rosy::result::read_failed;
 		}
 		std::cout << std::format("read {} triangles", res) << '\n';
 	}
