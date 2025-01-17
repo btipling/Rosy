@@ -231,6 +231,13 @@ namespace {
 		uint32_t ds_index_far;
 	};
 
+	struct allocated_buffer
+	{
+		VkBuffer buffer;
+		VmaAllocation allocation;
+		VmaAllocationInfo info;
+	};
+
 	struct graphics_device
 	{
 		rosy::log const* l{ nullptr };
@@ -1861,6 +1868,11 @@ namespace {
 			return details;
 		}
 
+		result set_asset([[maybe_unused]] const rosy_packager::asset& a)
+		{
+			return result::ok;
+		}
+
 		result render()
 		{
 			const frame_data cf = frame_datas[current_frame];
@@ -2307,9 +2319,10 @@ result graphics::init(SDL_Window* new_window, log const* new_log, config cfg)
 	return result::ok;
 }
 
-result graphics::set_asset([[maybe_unused]] const rosy_packager::asset& a)
+result graphics::set_asset(const rosy_packager::asset& a)
 {
 	l->debug("Setting asset!");
+	gd->set_asset(a);
 	return result::ok;
 }
 
