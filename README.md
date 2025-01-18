@@ -24,6 +24,7 @@ This project will likely not build for anyone else at this time.
     * Add a reference to the fastgltf project on Packager
     * Both the Packager and Engine need the src/libs/fastgltf/include included in Additional include directories in project settings
     * Hopefull the last three steps just already work since it's committed to the project and solution files.
+* TODO: Use git submodules for all of this.
 
 Assets are not included in the repository and the application will immediately halt without them.
 
