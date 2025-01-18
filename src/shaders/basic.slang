@@ -21,6 +21,6 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 Fragment fragmentMain(BasicVertex basicVertex: BasicVertex) : SV_Target
 {
     Fragment output;
-    output.color = float4(basicVertex.normal, 1.0);
+    output.color = float4(basicVertex.normal * 0.5 + 0.5, 1.0);
     return output;
 }

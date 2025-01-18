@@ -134,9 +134,9 @@ namespace {
 #endif
 		VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
 		VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
-		VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
-		VK_KHR_MAINTENANCE_6_EXTENSION_NAME,
-		VK_KHR_MAINTENANCE_7_EXTENSION_NAME,
+		//VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
+		//VK_KHR_MAINTENANCE_6_EXTENSION_NAME,
+		//VK_KHR_MAINTENANCE_7_EXTENSION_NAME,
 		//VK_KHR_MAINTENANCE_8_EXTENSION_NAME,
 		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 	};
@@ -255,6 +255,7 @@ namespace {
 		VkDeviceAddress vertex_buffer_address;
 		std::vector<VkShaderEXT> shaders;
 		VkPipelineLayout layout;
+		uint32_t num_indices{ 0 };
 	};
 
 	struct gpu_draw_push_constants
@@ -1976,6 +1977,7 @@ namespace {
 
 			// *** SETTING INDEX BUFFER *** //
 			const size_t index_buffer_size = a.triangles.size() * sizeof(rosy_packager::triangle);
+			gpu_mesh.num_indices = static_cast<uint32_t>(a.triangles.size()) * 3;
 			{
 				VkBufferCreateInfo buffer_info{};
 				buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2495,7 +2497,7 @@ namespace {
 						gpu_draw_push_constants pc{ .vertex_buffer = gpu_mesh.vertex_buffer_address };
 						vkCmdPushConstants(cf.command_buffer, gpu_mesh.layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
 						vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-						vkCmdDrawIndexed(cf.command_buffer, 3, 1, 0, 0, 0);
+						vkCmdDrawIndexed(cf.command_buffer, gpu_mesh.num_indices, 1, 0, 0, 0);
 					}
 					ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cf.command_buffer);
 					vkCmdEndRendering(cf.command_buffer);
