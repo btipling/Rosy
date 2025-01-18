@@ -742,13 +742,12 @@ namespace {
 
 			std::vector<const char*> required_instance_extensions(std::begin(instance_extensions), std::end(instance_extensions));
 
-			// ReSharper disable once CppUseStructuredBinding
-			for (VkExtensionProperties properties : extensions)
+			for (auto& [extensionName, specVersion] : extensions)
 			{
-				l->debug(std::format("Instance extension name: {}", properties.extensionName));
+				l->debug(std::format("Instance extension name: {}", extensionName));
 				for (const char* extension_name : instance_extensions)
 				{
-					if (strcmp(extension_name, properties.extensionName) == 0)
+					if (strcmp(extension_name, extensionName) == 0)
 					{
 						l->debug(std::format("Requiring instance extension: {}", extension_name));
 						std::erase(required_instance_extensions, extension_name);
@@ -1026,13 +1025,12 @@ namespace {
 			// validate required device extensions
 			std::vector<const char*> required_device_extensions(std::begin(default_device_extensions), std::end(default_device_extensions));
 
-			// ReSharper disable once CppUseStructuredBinding
-			for (VkExtensionProperties properties : extensions)
+			for (auto& [extensionName, specVersion] : extensions)
 			{
-				l->debug(std::format("Device extension name: {}", properties.extensionName));
+				l->debug(std::format("Device extension name: {}", extensionName));
 				for (const char* extension_name : default_device_extensions)
 				{
-					if (strcmp(extension_name, properties.extensionName) == 0)
+					if (strcmp(extension_name, extensionName) == 0)
 					{
 						l->debug(std::format("Requiring device extension: {}", extension_name));
 						device_extensions.push_back(extension_name);
@@ -2132,7 +2130,7 @@ namespace {
 					return result::error;
 				}
 				std::vector<VkShaderCreateInfoEXT> shader_create_info;
-				const auto [path, source] = a.shaders[0];
+				const auto& [path, source] = a.shaders[0];
 
 				if (source.empty())
 				{

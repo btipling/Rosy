@@ -8,13 +8,13 @@ using namespace rosy_packager;
 
 rosy::result asset::write()
 {
-	FILE* stream;
+	FILE* stream{nullptr};
 
 	std::cout << std::format("current file path: {}", std::filesystem::current_path().string()) << '\n';
 
-	if (const errno_t err = fopen_s(&stream, path.c_str(), "wb"); err != 0)
+	if (const errno_t err = fopen_s(&stream, asset_path.c_str(), "wb"); err != 0)
 	{
-		std::cerr << std::format("failed to open {}, {}", path, err) << '\n';
+		std::cerr << std::format("failed to open {}, {}", asset_path, err) << '\n';
 		return rosy::result::open_failed;
 	}
 
@@ -74,13 +74,13 @@ rosy::result asset::write()
 
 rosy::result asset::read()
 {
-	FILE* stream;
+	FILE* stream{nullptr};
 
 	{
 		std::cout << std::format("current file path: {}", std::filesystem::current_path().string()) << '\n';
-		if (const errno_t err = fopen_s(&stream, path.c_str(), "rb"); err != 0)
+		if (const errno_t err = fopen_s(&stream, asset_path.c_str(), "rb"); err != 0)
 		{
-			std::cerr << std::format("failed to open {}, {}", path, err) << '\n';
+			std::cerr << std::format("failed to open {}, {}", asset_path, err) << '\n';
 			return rosy::result::open_failed;
 		}
 	}

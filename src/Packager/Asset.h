@@ -34,7 +34,8 @@ namespace rosy_packager {
 
 	struct asset
 	{
-		std::string path{};
+		std::string source_path{};
+		std::string asset_path{};
 		std::vector<position> positions;
 		std::vector<triangle> triangles;
 		std::vector<shader> shaders;
