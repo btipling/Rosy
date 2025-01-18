@@ -144,7 +144,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\tracy;$(SDL_PATH)\include;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;$(ProjectDir)\..\libs\tracy;$(SDL_PATH)\include;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\imgui</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -223,6 +223,11 @@
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\libs\SDL3.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\libs\fastgltf\build\fastgltf.vcxproj">
+      <Project>{7b86b1e5-5648-3cc2-a377-063a7c9d37ae}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

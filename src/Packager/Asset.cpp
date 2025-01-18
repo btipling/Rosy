@@ -2,12 +2,19 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <fastgltf/core.hpp>
 
 using namespace rosy_packager;
 
 
 rosy::result asset::import()
 {
+	auto gltf_file = fastgltf::GltfDataBuffer::FromPath(source_path);
+	if (gltf_file.error() != fastgltf::Error::None)
+	{
+		std::cerr << std::format("failed to open gltf file {}, {}", source_path, getErrorMessage(gltf_file.error())) << '\n';
+		return rosy::result::read_failed;
+	}
 	return rosy::result::ok;
 }
 

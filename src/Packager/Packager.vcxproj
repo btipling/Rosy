@@ -107,6 +107,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,6 +149,11 @@
     <None Include="..\shaders\shadow.slang" />
     <None Include="..\shaders\skybox.slang" />
     <None Include="..\shaders\skybox_cube.slang" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\libs\fastgltf\build\fastgltf.vcxproj">
+      <Project>{7b86b1e5-5648-3cc2-a377-063a7c9d37ae}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
