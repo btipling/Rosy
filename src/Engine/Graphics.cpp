@@ -6,6 +6,7 @@
 
 #include "volk/volk.h"
 #include "vma/vk_mem_alloc.h"
+#include "vulkan/vk_enum_string_helper.h"
 #include <SDL3/SDL_vulkan.h>
 
 #pragma warning(disable: 4100 4459)
@@ -133,6 +134,10 @@ namespace {
 #endif
 		VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
 		VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
+		VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
+		VK_KHR_MAINTENANCE_6_EXTENSION_NAME,
+		VK_KHR_MAINTENANCE_7_EXTENSION_NAME,
+		//VK_KHR_MAINTENANCE_8_EXTENSION_NAME,
 		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 	};
 
@@ -340,168 +345,168 @@ namespace {
 			VkResult vk_result = volkInitialize();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to initialize volk! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to initialize volk! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = query_instance_layers();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to query instance layers! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to query instance layers! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = query_instance_extensions();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to query instance extensions! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to query instance extensions! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_instance();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create Vulkan instance! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to create Vulkan instance! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = create_debug_callback();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create Vulkan debug callback! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to create Vulkan debug callback! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_surface();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create surface! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to create surface! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_physical_device();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create Vulkan physical device! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to create Vulkan physical device! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = query_device_layers();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to query device layers! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to query device layers! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = query_device_extensions();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to query device extensions! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to query device extensions! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_device();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create Vulkan device {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to create Vulkan device {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_tracy();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init tracy! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init tracy! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_allocator();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init vma! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init vma! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_presentation_queue();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to get presentation queue! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to get presentation queue! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_swapchain();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init swap chain! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init swap chain! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_swapchain_failure;
 			}
 
 			vk_result = init_draw_image();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init draw image! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init draw image! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_descriptors();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init draw descriptors! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init draw descriptors! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_command_pool();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init command pool! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init command pool! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_command_buffers();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init command buffers! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init command buffers! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_sync_objects();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init sync objects! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init sync objects! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_ui();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init UI! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init UI! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_csm_image();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init csm! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init csm! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_commands();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init commands! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init commands! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_data();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init data! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init data! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 
 			vk_result = init_ktx();
 			if (vk_result != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init ktx! {}", static_cast<uint8_t>(vk_result)));
+				l->error(std::format("Failed to init ktx! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
 				return result::graphics_init_failure;
 			}
 			return result::ok;
