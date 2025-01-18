@@ -15,13 +15,15 @@ This project will likely not build for anyone else at this time.
 * [KTX](https://github.com/KhronosGroup/KTX-Software/tree/main)
     * KTX_PATH needs to be set and built and the dll and lib needed to be added.
 * The Vulkan SDK must be installed and the VULKAN_SDK environment variable must be set.
-* [fastgltf](https://github.com/spnda/fastgltf) must be statically linked
+* [fastgltf](https://github.com/spnda/fastgltf) must be [statically linked](https://learn.microsoft.com/en-us/cpp/build/walkthrough-creating-and-using-a-static-library-cpp?view=msvc-170#UseLibInApp)
     * `cd src/libs`
     * `git clone git@github.com:spnda/fastgltf.git`
     * `cd fastgltf`
     * `cmake -B build`
     * Add .\src\libs\fastgltf\build\fastgltf.vcxproj as a project on Engine 
     * Add a reference to the fastgltf project on Packager
+    * Both the Packager and Engine need the src/libs/fastgltf/include included in Additional include directories in project settings
+    * Hopefull the last three steps just already work since it's committed to the project and solution files.
 
 Assets are not included in the repository and the application will immediately halt without them.
 
