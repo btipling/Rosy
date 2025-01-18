@@ -35,37 +35,22 @@ int main(const int argc, char* argv[])
 	output_path.replace_extension(".rsy");
 	std::cout << std::format("Parsing {} as {}", source_path.string(), output_path.string()) << '\n';
 
-	constexpr position p1{
-		.vertex = {-0.5f, 0.f, 0.f},
-		.normal = {1.f, 0.f, 0.f},
-	};
-
-	constexpr position p2{
-		.vertex = {0.f, -0.5f, 0.f},
-		.normal = {0.f, 1.f, 0.f},
-	};
-
-	constexpr position p3{
-		.vertex = {0.5f, 0.f, 0.f},
-		.normal = {0.f, 0.f, 1.f},
-	};
-
-	constexpr triangle t1{
-		.indices = {0, 1, 2},
-	};
+	
 
 	asset a{};
 	a.source_path = source_path.string();
 	a.asset_path = output_path.string();
-	a.import();
-	a.positions = { p1, p2, p3 };
-	a.triangles = { t1 };
+	if (const auto res = a.import(); res != rosy::result::ok)
+	{
+		std::cerr << std::format("Error importing gltf {}", static_cast<uint8_t>(res)) << '\n';
+		return EXIT_FAILURE;
+	}
 	if (const auto res = a.write(); res != rosy::result::ok) {
 		return EXIT_FAILURE;
 	}
 
 	asset b{};
-	b.asset_path = "triangle.rsy";
+	b.asset_path = output_path.string();
 	if (const auto res = b.read(); res != rosy::result::ok) {
 		return EXIT_FAILURE;
 	}
