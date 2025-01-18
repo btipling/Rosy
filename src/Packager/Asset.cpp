@@ -6,6 +6,11 @@
 using namespace rosy_packager;
 
 
+rosy::result asset::import()
+{
+	return rosy::result::ok;
+}
+
 rosy::result asset::write()
 {
 	FILE* stream{nullptr};

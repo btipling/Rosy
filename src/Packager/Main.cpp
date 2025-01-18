@@ -56,7 +56,7 @@ int main(const int argc, char* argv[])
 
 	asset a{};
 	a.source_path = source_path.string();
-	a.asset_path = "triangle.rsy";
+	a.asset_path = output_path.string();
 	a.positions = { p1, p2, p3 };
 	a.triangles = { t1 };
 	if (const auto res = a.write(); res != rosy::result::ok) {

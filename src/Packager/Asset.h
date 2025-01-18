@@ -40,6 +40,7 @@ namespace rosy_packager {
 		std::vector<triangle> triangles;
 		std::vector<shader> shaders;
 
+		rosy::result import();
 		rosy::result write();
 		rosy::result read();
 		rosy::result read_shaders();
