@@ -1,4 +1,4 @@
-#include "Asset.h"
+#include "Gltf.h"
 #include <iostream>
 #include <filesystem>
 
@@ -37,15 +37,19 @@ int main(const int argc, char* argv[])
 
 	
 
-	asset a{};
-	a.source_path = source_path.string();
-	a.asset_path = output_path.string();
-	if (const auto res = a.import(); res != rosy::result::ok)
+	gltf g{};
+	{
+		asset a{};
+		a.asset_path = output_path.string();
+		g.source_path = source_path.string();
+		g.gltf_asset = a;
+	}
+	if (const auto res = g.import(); res != rosy::result::ok)
 	{
 		std::cerr << std::format("Error importing gltf {}", static_cast<uint8_t>(res)) << '\n';
 		return EXIT_FAILURE;
 	}
-	if (const auto res = a.write(); res != rosy::result::ok) {
+	if (const auto res = g.gltf_asset.write(); res != rosy::result::ok) {
 		return EXIT_FAILURE;
 	}
 

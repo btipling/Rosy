@@ -34,13 +34,11 @@ namespace rosy_packager {
 
 	struct asset
 	{
-		std::string source_path{};
 		std::string asset_path{};
 		std::vector<position> positions;
 		std::vector<triangle> triangles;
 		std::vector<shader> shaders;
 
-		rosy::result import();
 		rosy::result write();
 		rosy::result read();
 		rosy::result read_shaders();

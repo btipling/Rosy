@@ -132,11 +132,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Asset.cpp" />
+    <ClCompile Include="Gltf.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Engine\Types.h" />
     <ClInclude Include="Asset.h" />
+    <ClInclude Include="Gltf.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\basic.slang" />
