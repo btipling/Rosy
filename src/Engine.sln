@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "Engine\Engine.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Packager", "Packager\Packager.vcxproj", "{776398E5-306F-4DEC-82AD-5A823D7B9BA3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fastgltf", "libs\fastgltf\build\fastgltf.vcxproj", "{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,18 @@ Global
 		{776398E5-306F-4DEC-82AD-5A823D7B9BA3}.Release|x64.Build.0 = Release|x64
 		{776398E5-306F-4DEC-82AD-5A823D7B9BA3}.Release|x86.ActiveCfg = Release|Win32
 		{776398E5-306F-4DEC-82AD-5A823D7B9BA3}.Release|x86.Build.0 = Release|Win32
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Debug|x64.ActiveCfg = Debug|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Debug|x64.Build.0 = Debug|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Debug|x86.ActiveCfg = Debug|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Debug|x86.Build.0 = Debug|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x64.ActiveCfg = RelWithDebInfo|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x64.Build.0 = RelWithDebInfo|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x86.ActiveCfg = RelWithDebInfo|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x86.Build.0 = RelWithDebInfo|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Release|x64.ActiveCfg = Release|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Release|x64.Build.0 = Release|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Release|x86.ActiveCfg = Release|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

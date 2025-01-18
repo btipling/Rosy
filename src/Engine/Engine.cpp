@@ -43,7 +43,7 @@ result engine::init()
 
 	l->info("Engine init begin");
 	rosy_packager::asset a{};
-	a.path = "../Packager/triangle.rsy";
+	a.asset_path = "../assets/demo_cube/demo_cube.rsy";
 	{
 		if (const auto res = a.read(); res != result::ok)
 		{
