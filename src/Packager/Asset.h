@@ -30,6 +30,17 @@ namespace rosy_packager {
 		size_t material{ 0 };
 	};
 
+	struct node
+	{
+		std::vector<uint32_t> child_nodes;
+		std::array<float, 16> transform;
+		std::uint32_t mesh_id; // if larger than meshes list, it means the node doesn't have a mesh
+	};
+
+	struct scene
+	{
+		std::vector<uint32_t> nodes;
+	};
 
 	struct position
 	{
@@ -56,7 +67,10 @@ namespace rosy_packager {
 		std::string asset_path{};
 		std::vector<mesh> meshes;
 		std::vector<material> materials;
+		std::vector<scene> scenes;
+		std::vector<node> nodes;
 		std::vector<shader> shaders;
+		uint32_t default_scene{ 0 };
 
 		rosy::result write();
 		rosy::result read();
