@@ -68,7 +68,7 @@ rosy::result asset::write()
 	// WRITE MATERIALS
 
 	{
-		size_t res = fwrite(materials.data(), sizeof(position), materials.size(), stream);
+		size_t res = fwrite(materials.data(), sizeof(material), materials.size(), stream);
 		if (res != num_materials) {
 			std::cerr << std::format("failed to write {}/{} materials", res, num_materials) << '\n';
 			return rosy::result::write_failed;
@@ -207,7 +207,7 @@ rosy::result asset::read()
 
 	// READ GLTF MATERIALS
 	{
-		size_t res = fread(materials.data(), sizeof(position), num_materials, stream);
+		size_t res = fread(materials.data(), sizeof(material), num_materials, stream);
 		if (res != num_materials) {
 			std::cerr << std::format("failed to read {}/{} materials", res, num_materials) << '\n';
 			return rosy::result::read_failed;
