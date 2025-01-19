@@ -59,9 +59,9 @@ int main(const int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 	std::cout << "Parsed positions:" << '\n';
-	for (auto& [vertex, normal]: b.positions)
+	for (auto& [vertex, normal, color]: b.positions)
 	{
-		std::cout << std::format("vertex: {} normal: {}", vertex, normal) << '\n';
+		std::cout << std::format("vertex: {} normal: {} color: {}", vertex, normal, color) << '\n';
 	}
 	std::cout << "Parsed triangles:" << '\n';
 	for (auto& [indices] : b.triangles)
