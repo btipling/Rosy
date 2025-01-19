@@ -292,6 +292,7 @@ namespace {
 		config cfg{};
 		uint32_t graphics_created_bitmask{ 0 };
 		bool enable_validation_layers{ true };
+		bool render_ui{ true };
 
 		uint32_t current_frame{ 0 };
 		uint32_t swapchain_image_index{ 0 };
@@ -2638,7 +2639,9 @@ namespace {
 						vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 						vkCmdDrawIndexed(cf.command_buffer, gpu_mesh.num_indices, 1, 0, 0, 0);
 					}
-					ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cf.command_buffer);
+					if (render_ui) {
+						ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cf.command_buffer);
+					}
 					vkCmdEndRendering(cf.command_buffer);
 				}
 			}
@@ -2961,7 +2964,7 @@ result graphics::update(const std::array<float, 16>& v, const std::array<float, 
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result graphics::render()
+result graphics::render(bool render_ui)
 {
 	{
 		ImGui_ImplVulkan_NewFrame();
@@ -2972,6 +2975,7 @@ result graphics::render()
 		ImGui::ShowDemoWindow();
 		ImGui::Render();
 	}
+	gd->render_ui = render_ui;
 	return gd->render();
 }
 

@@ -16,9 +16,10 @@ namespace rosy
 		SDL_Window* window{ nullptr };
 		camera* cam{ nullptr };
 		graphics* gfx{ nullptr };
+		bool render_ui{ true };
 
 		[[nodiscard]] result init();
-		[[nodiscard]] result run() const;
+		[[nodiscard]] result run();
 		void deinit();
 	};
 }

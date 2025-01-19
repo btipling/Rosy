@@ -24,10 +24,13 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 	switch (event->type) {
 	case SDL_EVENT_WINDOW_RESIZED:
 		if (result res = eng->gfx->resize(); res != result::ok) {
-			eng->l->error(std::format("resizing-event: rhi failed to resize swapchain {}\n", static_cast<uint8_t>(res)));
+			eng->l->error(std::format("resizing-event: gfx failed to resize swapchain {}\n", static_cast<uint8_t>(res)));
 			return false;
 		}
-		eng->gfx->render();
+		if (result res = eng->gfx->render(eng->render_ui); res != result::ok) {
+			eng->l->error(std::format("resizing-event: gfx failed to render {}\n", static_cast<uint8_t>(res)));
+			return false;
+		}
 		break;
 	}
 	return true;
@@ -176,7 +179,7 @@ void engine::deinit()
 	}
 }
 
-result engine::run() const
+result engine::run()
 {
 	l->info("Engine run!");
 	bool should_run = true;
@@ -197,16 +200,23 @@ result engine::run() const
 				should_render = true;
 			}
 			ImGui_ImplSDL3_ProcessEvent(&event);
-			if (const auto res = cam->process_sdl_event(event, true); res != result::ok) {
+			if (event.type == SDL_EVENT_KEY_UP) {
+				if (event.key.key == SDLK_F1)
+				{
+					render_ui = !render_ui;
+				}
+			}
+			if (const auto res = cam->process_sdl_event(event, !render_ui); res != result::ok) {
 				return res;
 			}
+
 		}
 		if (!should_render) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			continue;
 		}
 		if (!should_run) break;
-
+		if (!render_ui) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		{
 			if (const auto res = cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
 				return res;
@@ -214,7 +224,7 @@ result engine::run() const
 			if (const auto res = gfx->update(cam->v, cam->p, cam->vp, cam->position); res != result::ok) {
 				return res;
 			}
-			if (const auto res = gfx->render(); res != result::ok) {
+			if (const auto res = gfx->render(render_ui); res != result::ok) {
 				return res;
 			}
 			FrameMark;
