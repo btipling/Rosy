@@ -201,7 +201,7 @@ result engine::run()
 			}
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			if (event.type == SDL_EVENT_KEY_UP) {
-				if (event.key.key == SDLK_F1)
+				if (event.key.key == SDLK_TAB)
 				{
 					render_ui = !render_ui;
 				}
