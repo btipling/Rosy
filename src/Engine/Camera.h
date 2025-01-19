@@ -10,17 +10,24 @@ namespace rosy
 	{
 		log const* l{ nullptr };
 
-		double g; // projection plane distance
-		double s; // aspect ratio
-		double n; // near plane
-		double f; // far plane
-		double fov; // field of view
+		float starting_x{ 0 };
+		float starting_y{ 0 };
+		float starting_z{ 0 };
+
+		double g{ 0.5f }; // projection plane distance
+		double s{ 1.f }; // aspect ratio
+		double n{ 0.1f }; // near plane
+		double f{ 1000.f }; // far plane
+		double fov{ 70.0f }; // field of view
 		std::array<float, 16> p; // projection
 		std::array<float, 16> v; // view
 		std::array<float, 16> vp; // view projection
 		std::array<float, 16> r; // camera rotation
+		std::array<float, 4> position; // camera projection
+
 		result init(log const* new_log, config cfg);
-		void deinit();
-		result process_sdl_event(const SDL_Event& event);
+		void deinit() const;
+		result update(float viewport_width, float viewport_height);
+		result process_sdl_event(const SDL_Event& event, bool mouse_enabled);
 	};
 }

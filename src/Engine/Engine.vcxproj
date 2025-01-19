@@ -202,6 +202,7 @@
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="Math.h" />
     <ClInclude Include="Telemetry.h" />
     <ClInclude Include="Types.h" />
   </ItemGroup>
