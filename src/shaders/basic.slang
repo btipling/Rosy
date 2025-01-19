@@ -5,14 +5,16 @@ import data;
 [shader("vertex")]
 BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 {
+    SceneData sd = *BasicPushConstants.sd;
     BasicInputVertex v = *(BasicPushConstants.v + uiVertexId);
+
     float4 posWorld = float4(v.position, 1.0);
 
     BasicVertexStageOutput output;
 
     output.basicVertex.normal = v.normal;
 
-    output.sv_position = float4(v.position, 1.f);
+    output.sv_position = mul(sd.viewproj, posWorld);
 
     return output;
 }

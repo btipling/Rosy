@@ -24,10 +24,13 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 	switch (event->type) {
 	case SDL_EVENT_WINDOW_RESIZED:
 		if (result res = eng->gfx->resize(); res != result::ok) {
-			eng->l->error(std::format("resizing-event: rhi failed to resize swapchain {}\n", static_cast<uint8_t>(res)));
+			eng->l->error(std::format("resizing-event: gfx failed to resize swapchain {}\n", static_cast<uint8_t>(res)));
 			return false;
 		}
-		eng->gfx->render();
+		if (result res = eng->render(); res != result::ok) {
+			eng->l->error(std::format("resizing-event: gfx failed to render {}\n", static_cast<uint8_t>(res)));
+			return false;
+		}
 		break;
 	}
 	return true;
@@ -43,20 +46,22 @@ result engine::init()
 
 	l->info("Engine init begin");
 	rosy_packager::asset a{};
-	a.asset_path = "../assets/demo_cube/demo_cube.rsy";
 	{
-		if (const auto res = a.read(); res != result::ok)
+		a.asset_path = "../assets/demo_cube/demo_cube.rsy";
 		{
-			l->error("Failed to read the assets!");
-			return result::error;
+			if (const auto res = a.read(); res != result::ok)
+			{
+				l->error("Failed to read the assets!");
+				return result::error;
+			}
 		}
-	}
-	a.shaders.push_back({ .path = "../shaders/out/basic.spv" });
-	{
-		if (const auto res = a.read_shaders(); res != result::ok)
+		a.shaders.push_back({ .path = "../shaders/out/basic.spv" });
 		{
-			l->error("Failed to read shaders!");
-			return result::error;
+			if (const auto res = a.read_shaders(); res != result::ok)
+			{
+				l->error("Failed to read shaders!");
+				return result::error;
+			}
 		}
 	}
 
@@ -108,6 +113,22 @@ result engine::init()
 		}
 	}
 
+	// Camera initialization
+	{
+
+		cam = new(std::nothrow) camera{};
+		if (cam == nullptr)
+		{
+			l->error("Error allocating camera");
+			return result::allocation_failure;
+		}
+		if (auto const res = cam->init(l, cfg); res != result::ok)
+		{
+			l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
+			return res;
+		}
+	}
+
 	// Graphics engine initialization
 	{
 		gfx = new(std::nothrow) graphics{};
@@ -143,6 +164,13 @@ void engine::deinit()
 		gfx = nullptr;
 	}
 
+	if (cam)
+	{
+		cam->deinit();
+		delete cam;
+		cam = nullptr;
+	}
+
 	if (window) {
 		SDL_DestroyWindow(window);
 		window = nullptr;
@@ -158,7 +186,7 @@ void engine::deinit()
 	}
 }
 
-result engine::run() const
+result engine::run()
 {
 	l->info("Engine run!");
 	bool should_run = true;
@@ -179,19 +207,44 @@ result engine::run() const
 				should_render = true;
 			}
 			ImGui_ImplSDL3_ProcessEvent(&event);
+			if (event.type == SDL_EVENT_KEY_UP) {
+				if (event.key.key == SDLK_C)
+				{
+					render_ui = !render_ui;
+					SDL_SetWindowRelativeMouseMode(window, !render_ui);
+				}
+			}
+			if (const auto res = cam->process_sdl_event(event, !render_ui); res != result::ok) {
+				return res;
+			}
+
 		}
 		if (!should_render) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			continue;
 		}
 		if (!should_run) break;
-
-		{
-			if (const auto res = gfx->render(); res != result::ok) {
-				return res;
-			}
-			FrameMark;
+		if (!render_ui) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+		if (const auto res = render(); res != result::ok) {
+			l->error(std::format("render failed: {}", static_cast<uint8_t>(res)));
+			return res;
 		}
 	}
+
+	return result::ok;
+}
+
+result engine::render() const
+{
+	if (const auto res = cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
+		return res;
+	}
+	if (const auto res = gfx->update(cam->v, cam->p, cam->vp, cam->position); res != result::ok) {
+		return res;
+	}
+	if (const auto res = gfx->render(render_ui); res != result::ok) {
+		return res;
+	}
+	FrameMark;
 	return result::ok;
 }

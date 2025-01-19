@@ -2,6 +2,7 @@
 #include "Types.h"
 #include "Telemetry.h"
 #include "Graphics.h"
+#include "Camera.h"
 
 
 // ReSharper disable once CppInconsistentNaming
@@ -11,12 +12,15 @@ namespace rosy
 {
 	struct engine
 	{
-		SDL_Window* window{ nullptr };
 		log* l{ nullptr };
+		SDL_Window* window{ nullptr };
+		camera* cam{ nullptr };
 		graphics* gfx{ nullptr };
+		bool render_ui{ true };
 
-		result init();
-		result run() const;
+		[[nodiscard]] result init();
+		[[nodiscard]] result run();
+		[[nodiscard]] result render() const;
 		void deinit();
 	};
 }
