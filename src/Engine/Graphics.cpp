@@ -114,6 +114,7 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_index_buffer     = 0b00000000010000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_shaders          = 0b00000000100000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_pipeline_layout  = 0b00000001000000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_scene_buffer     = 0b00000010000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -212,6 +213,18 @@ namespace {
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
+
+	struct gpu_scene_data
+	{
+		std::array<float, 16> view = { 0 };
+		std::array<float, 16> proj = { 0 };
+		std::array<float, 16> view_projection = { 0 };
+		std::array<float, 4> sunlight = { 0 };
+		std::array<float, 4> camera_position = { 0 };
+		std::array<float, 4> ambient_color = { 0 };
+		std::array<float, 4> sunlight_color = { 0 };
+	};
+
 	struct allocated_image
 	{
 		VkImage image;
@@ -259,9 +272,16 @@ namespace {
 		uint32_t num_indices{ 0 };
 	};
 
+	struct gpu_scene_buffers
+	{
+		allocated_buffer scene_buffer;
+		VkDeviceAddress scene_buffer_address;
+		size_t buffer_size;
+	};
+
 	struct gpu_draw_push_constants
 	{
-		//VkDeviceAddress scene_buffer{ 0 };
+		VkDeviceAddress scene_buffer{ 0 };
 		VkDeviceAddress vertex_buffer{ 0 };
 		//VkDeviceAddress render_buffer{ 0 };
 		//VkDeviceAddress material_buffer{ 0 };
@@ -337,7 +357,7 @@ namespace {
 
 		// Buffers
 		gpu_mesh_buffers gpu_mesh{};
-		allocated_buffer scene_buffer{};
+		gpu_scene_buffers scene_buffer{};
 		allocated_buffer material_buffer{};
 		allocated_buffer surface_buffer{};
 
@@ -529,6 +549,11 @@ namespace {
 			// WAIT FOR DEVICE IDLE END **** 
 
 			// Deinit acquired resources in the opposite order in which they were created
+
+			if (graphics_created_bitmask & graphics_created_bit_scene_buffer)
+			{
+				vmaDestroyBuffer(allocator, scene_buffer.scene_buffer.buffer, scene_buffer.scene_buffer.allocation);
+			}
 
 			if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_pipeline_layout)
 			{
@@ -1878,6 +1903,50 @@ namespace {
 		VkResult init_data()
 		{
 			l->info("Initializing data");
+
+			scene_buffer.buffer_size = sizeof(gpu_scene_data);
+			VkBufferCreateInfo buffer_info{};
+			buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			buffer_info.pNext = nullptr;
+			buffer_info.size = scene_buffer.buffer_size;
+			buffer_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+			VmaAllocationCreateInfo vma_alloc_info{};
+			vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+			vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+			if (
+				const VkResult res = vmaCreateBuffer(
+					allocator, &buffer_info, &vma_alloc_info, &scene_buffer.scene_buffer.buffer, &scene_buffer.scene_buffer.allocation,
+					&scene_buffer.scene_buffer.info
+				); res != VK_SUCCESS)
+			{
+				l->error(std::format("Error uploading scene buffer: {}", static_cast<uint8_t>(res)));
+				return res;
+			}
+			graphics_created_bitmask |= graphics_created_bit_scene_buffer;
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(scene_buffer.scene_buffer.buffer);
+				debug_name.pObjectName = "rosy scene buffer";
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error creating scene buffer name: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
+			{
+				VkBufferDeviceAddressInfo device_address_info{};
+				device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+				device_address_info.buffer = scene_buffer.scene_buffer.buffer;
+
+				// *** SETTING SCENE BUFFER ADDRESS *** //
+				scene_buffer.scene_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
+			}
+
 			return VK_SUCCESS;
 		}
 
@@ -2495,7 +2564,10 @@ namespace {
 						};
 						vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 						vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gpu_mesh.layout, 0, 1, &descriptor_set, 0, nullptr);
-						gpu_draw_push_constants pc{ .vertex_buffer = gpu_mesh.vertex_buffer_address };
+						gpu_draw_push_constants pc{
+							.scene_buffer = scene_buffer.scene_buffer_address,
+							.vertex_buffer = gpu_mesh.vertex_buffer_address,
+						};
 						vkCmdPushConstants(cf.command_buffer, gpu_mesh.layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
 						vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 						vkCmdDrawIndexed(cf.command_buffer, gpu_mesh.num_indices, 1, 0, 0, 0);
