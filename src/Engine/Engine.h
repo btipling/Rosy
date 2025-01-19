@@ -20,6 +20,7 @@ namespace rosy
 
 		[[nodiscard]] result init();
 		[[nodiscard]] result run();
+		[[nodiscard]] result render() const;
 		void deinit();
 	};
 }

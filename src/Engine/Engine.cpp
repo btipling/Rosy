@@ -27,7 +27,7 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 			eng->l->error(std::format("resizing-event: gfx failed to resize swapchain {}\n", static_cast<uint8_t>(res)));
 			return false;
 		}
-		if (result res = eng->gfx->render(eng->render_ui); res != result::ok) {
+		if (result res = eng->render(); res != result::ok) {
 			eng->l->error(std::format("resizing-event: gfx failed to render {}\n", static_cast<uint8_t>(res)));
 			return false;
 		}
@@ -218,19 +218,26 @@ result engine::run()
 		}
 		if (!should_run) break;
 		if (!render_ui) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-		{
-			if (const auto res = cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
-				return res;
-			}
-			if (const auto res = gfx->update(cam->v, cam->p, cam->vp, cam->position); res != result::ok) {
-				return res;
-			}
-			if (const auto res = gfx->render(render_ui); res != result::ok) {
-				return res;
-			}
-			FrameMark;
+		if (const auto res = render(); res != result::ok) {
+			l->error(std::format("render failed: {}", static_cast<uint8_t>(res)));
+			return res;
 		}
 	}
 
+	return result::ok;
+}
+
+result engine::render() const
+{
+	if (const auto res = cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
+		return res;
+	}
+	if (const auto res = gfx->update(cam->v, cam->p, cam->vp, cam->position); res != result::ok) {
+		return res;
+	}
+	if (const auto res = gfx->render(render_ui); res != result::ok) {
+		return res;
+	}
+	FrameMark;
 	return result::ok;
 }
