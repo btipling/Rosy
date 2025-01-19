@@ -17,28 +17,19 @@ $shaders = @(
     "basic"
 )
 
-$jobs = $shaders | ForEach-Object {
+$shaders | ForEach-Object {
     $shader = $_
-    
-    Start-Job -ScriptBlock {
-        param($slangc, $scriptRoot, $shader)
-        $result = & $slangc $scriptRoot/$shader.slang `
-            -matrix-layout-column-major `
-            -profile sm_6_6 `
-            -target spirv `
-            -o out/$shader.spv 
-        if ($LASTEXITCODE -ne 0) {
-                Write-Error "Failed to compile $shader.slang"
-                exit 1
-        }
-        Write-Host "Compiled $shader.slang successfully"
+    $result = & $slangc $PSScriptRoot/$shader.slang `
+        -matrix-layout-column-major `
+        -profile sm_6_6 `
+        -target spirv `
+        -o out/$shader.spv 2>&1
+    Write-Host ($result | Format-Table | Out-String)
+    if ($LASTEXITCODE -ne 0) {
+            Write-Host "Failed to compile $shader.slang"
+            exit 1
+    }
+    Write-Host "Compiled $shader.slang successfully"
         
-    } -ArgumentList $slangc.Source, $PSScriptRoot, $shader
 }
-
-$jobs | Wait-Job | Receive-Job
-if ($LASTEXITCODE -ne 0) {
-    exit 1
-}
-
 Write-Host "Compiled all shaders successfully"
