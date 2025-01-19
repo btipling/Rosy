@@ -144,7 +144,7 @@ namespace {
 		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 	};
 
-	constexpr uint8_t max_frames_in_flight = 2;
+	constexpr uint8_t max_frames_in_flight = 3;
 
 	rosy::log const* debug_callback_logger = nullptr; // Exists only for the purpose of the callback, this is also not thread safe.
 	VkBool32 VKAPI_CALL debug_callback(
@@ -1321,12 +1321,12 @@ namespace {
 				swapchain_present_mode = choose_swap_present_mode(swapchain_details.present_modes);
 
 				swapchain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.minImageCount);
-				if (swapchain_details.capabilities.maxImageCount > 0 && swapchain_image_count > swapchain_details.capabilities.
-					maxImageCount)
+				if (swapchain_details.capabilities.maxImageCount > 0 && swapchain_image_count < swapchain_details.capabilities.maxImageCount)
 				{
 					swapchain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.maxImageCount);
 				}
-				frame_datas.resize(std::min(max_frames_in_flight, swapchain_image_count));
+				swapchain_image_count = std::min(max_frames_in_flight, swapchain_image_count);
+				frame_datas.resize(swapchain_image_count);
 			}
 
 			const VkExtent2D extent = choose_swap_extent(swapchain_details.capabilities);
@@ -1700,7 +1700,7 @@ namespace {
 			pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 			pool_info.queueFamilyIndex = queue_index;
 
-			for (size_t i = 0; i < max_frames_in_flight; i++)
+			for (size_t i = 0; i < swapchain_image_count; i++)
 			{
 				VkCommandPool command_pool{};
 				if (const VkResult result = vkCreateCommandPool(device, &pool_info, nullptr, &command_pool); result !=
@@ -1726,7 +1726,7 @@ namespace {
 		{
 			l->info("Initializing command buffer");
 
-			for (size_t i = 0; i < max_frames_in_flight; i++)
+			for (size_t i = 0; i < swapchain_image_count; i++)
 			{
 				{
 					// render command buffer
@@ -1766,7 +1766,7 @@ namespace {
 			fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 			VkResult result;
-			for (size_t i = 0; i < max_frames_in_flight; i++)
+			for (size_t i = 0; i < swapchain_image_count; i++)
 			{
 				{
 					VkSemaphore semaphore;
@@ -3055,7 +3055,7 @@ namespace {
 				}
 			}
 
-			current_frame = (current_frame + 1) % max_frames_in_flight;
+			current_frame = (current_frame + 1) % swapchain_image_count;
 
 			return result::ok;
 		}
