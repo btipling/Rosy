@@ -44,7 +44,7 @@ rosy::result gltf::import()
 				std::cout << "No baseColorTexture in a material" << '\n';
 			}
 			{
-				auto c = mat.pbrData.baseColorFactor;
+				fastgltf::math::nvec4 c = mat.pbrData.baseColorFactor;
 				m.base_color_factor = { c[0], c[1], c[2], c[3] };
 				m.double_sided = mat.doubleSided;
 				m.metallic_factor = mat.pbrData.metallicFactor;

@@ -231,7 +231,7 @@ rosy::result asset::read()
 			size_t res = fread(&mesh_sizes, sizeof(mesh_sizes), lookup_sizes, stream);
 			if (res != lookup_sizes) {
 				std::cerr << std::format("failed to read {}/{} num_mesh_sizes", res, lookup_sizes) << '\n';
-				return rosy::result::write_failed;
+				return rosy::result::read_failed;
 			}
 			num_positions = mesh_sizes[0];
 			num_indices = mesh_sizes[1];
