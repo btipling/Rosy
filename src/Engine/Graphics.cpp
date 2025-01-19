@@ -2774,8 +2774,9 @@ result graphics::init(SDL_Window* new_window, log const* new_log, config cfg)
 		}
 	}
 
+	viewport_width = gd->swapchain_extent.width;
+	viewport_height = gd->swapchain_extent.height;
 	l->info("Graphics init done");
-
 
 	return result::ok;
 }
@@ -2822,5 +2823,13 @@ result graphics::render()
 
 result graphics::resize()
 {
-	return gd->resize_swapchain();
+	if (const auto res = gd->resize_swapchain(); res != result::ok)
+	{
+		return res;
+	}
+
+	viewport_width = gd->swapchain_extent.width;
+	viewport_height = gd->swapchain_extent.height;
+
+	return result::ok;
 }

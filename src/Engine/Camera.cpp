@@ -408,7 +408,7 @@ void camera::deinit() const
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::update(const float viewport_width, const float viewport_height)
+result camera::update(const uint32_t viewport_width, const uint32_t viewport_height)
 {
 	if (const auto res = sc->update(); res != result::ok)
 	{

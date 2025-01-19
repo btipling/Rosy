@@ -27,7 +27,7 @@ namespace rosy
 
 		result init(log const* new_log, config cfg);
 		void deinit() const;
-		result update(float viewport_width, float viewport_height);
+		result update(uint32_t viewport_width, uint32_t viewport_height);
 		result process_sdl_event(const SDL_Event& event, bool mouse_enabled);
 	};
 }
