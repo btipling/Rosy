@@ -63,10 +63,7 @@ int main(const int argc, char* argv[])
 	{
 		std::cout << std::format("vertex: {} normal: {} color: {}", vertex, normal, color) << '\n';
 	}
-	std::cout << "Parsed triangles:" << '\n';
-	for (auto& [indices] : b.triangles)
-	{
-		std::cout << std::format("indices: {}", indices) << '\n';
-	}
+	std::cout << "Parsed indices:" << '\n';
+	std::cout << std::format("indices: {}", b.indices) << '\n';
 	return 0;
 }

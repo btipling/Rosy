@@ -2113,8 +2113,8 @@ namespace {
 			}
 
 			// *** SETTING INDEX BUFFER *** //
-			const size_t index_buffer_size = a.triangles.size() * sizeof(rosy_packager::triangle);
-			gpu_mesh.num_indices = static_cast<uint32_t>(a.triangles.size()) * 3;
+			const size_t index_buffer_size = a.indices.size() * sizeof(uint32_t);
+			gpu_mesh.num_indices = static_cast<uint32_t>(a.indices.size());
 			{
 				VkBufferCreateInfo buffer_info{};
 				buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2185,7 +2185,7 @@ namespace {
 			}
 
 			memcpy(staging.info.pMappedData, a.positions.data(), vertex_buffer_size);
-			memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, a.triangles.data(), index_buffer_size);
+			memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, a.indices.data(), index_buffer_size);
 
 
 			if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)

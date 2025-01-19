@@ -30,12 +30,12 @@ rosy::result gltf::import()
 		return rosy::result::error;
 	}
 	gltf_asset.positions.clear();
-	gltf_asset.triangles.clear();
+	gltf_asset.indices.clear();
 
 	for (fastgltf::Mesh& mesh : gltf.meshes) {
 		for (size_t i = 0; i < mesh.primitives.size(); i++) {  // NOLINT(modernize-loop-convert) - mesh.primitives RAII issues.
 			{
-				auto position_it = mesh.primitives[i].findAttribute("POSITION");
+				const auto position_it = mesh.primitives[i].findAttribute("POSITION");
 				auto& pos_accessor = gltf.accessors[position_it->accessorIndex];
 
 				uint32_t initial_vtx = static_cast<uint32_t>(gltf_asset.positions.size());
@@ -43,19 +43,11 @@ rosy::result gltf::import()
 
 				{
 					fastgltf::Accessor& index_accessor = gltf.accessors[mesh.primitives[i].indicesAccessor.value()];
-					gltf_asset.triangles.reserve(gltf_asset.triangles.size() + index_accessor.count / 3);
+					gltf_asset.indices.reserve(gltf_asset.indices.size() + index_accessor.count);
 
-					triangle t{};
-					size_t ti{ 0 };
 					fastgltf::iterateAccessor<std::uint32_t>(gltf, index_accessor,
 						[&](const std::uint32_t idx) {
-							t.indices[ti] = idx + initial_vtx;
-							ti += 1;
-							if (ti > 2)
-							{
-								gltf_asset.triangles.push_back(t);
-								ti = 0;
-							}
+							gltf_asset.indices.push_back(idx + initial_vtx);
 						});
 				}
 

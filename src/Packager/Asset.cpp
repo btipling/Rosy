@@ -18,7 +18,7 @@ rosy::result asset::write()
 	}
 
 	const size_t num_positions{ positions.size() };
-	const size_t num_triangles{ triangles.size() };
+	const size_t num_indices{ indices.size() };
 
 	{
 		constexpr size_t num_headers = 1;
@@ -37,7 +37,7 @@ rosy::result asset::write()
 
 	{
 		constexpr size_t num_sizes = 1;
-		const std::array<size_t, 2> sizes{ num_positions, num_triangles };
+		const std::array<size_t, 2> sizes{ num_positions, num_indices };
 		size_t res = fwrite(&sizes, sizeof(sizes), num_sizes, stream);
 		if (res != num_sizes) {
 			std::cerr << std::format("failed to write, wrote {}/{} sizes", res, num_sizes) << '\n';
@@ -56,12 +56,12 @@ rosy::result asset::write()
 	}
 
 	{
-		size_t res = fwrite(triangles.data(), sizeof(triangle), triangles.size(), stream);
-		if (res != num_triangles) {
-			std::cerr << std::format("failed to write, wrote {}/{} triangles", res, num_triangles) << '\n';
+		size_t res = fwrite(indices.data(), sizeof(uint32_t), indices.size(), stream);
+		if (res != num_indices) {
+			std::cerr << std::format("failed to write, wrote {}/{} indices", res, num_indices) << '\n';
 			return rosy::result::write_failed;
 		}
-		std::cout << std::format("wrote {} triangles", res) << '\n';
+		std::cout << std::format("wrote {} indices", res) << '\n';
 	}
 
 	int num_closed = fclose(stream);
@@ -85,7 +85,7 @@ rosy::result asset::read()
 	}
 
 	size_t num_positions{ 0 };
-	size_t num_triangles{ 0 };
+	size_t num_indices{ 0 };
 
 	{
 		constexpr size_t num_headers = 1;
@@ -125,11 +125,11 @@ rosy::result asset::read()
 		std::cout << std::format("read {} sizes", res) << '\n';
 
 		num_positions = sizes[0];
-		num_triangles= sizes[1];
+		num_indices= sizes[1];
 	}
 
 	positions.resize(num_positions);
-	triangles.resize(num_triangles);
+	indices.resize(num_indices);
 
 	{
 		size_t res = fread(positions.data(), sizeof(position), num_positions, stream);
@@ -141,12 +141,12 @@ rosy::result asset::read()
 	}
 
 	{
-		size_t res = fread(triangles.data(), sizeof(triangle), num_triangles, stream);
-		if (res != num_triangles) {
-			std::cerr << std::format("failed to read {}/{} triangles", res, num_triangles) << '\n';
+		size_t res = fread(indices.data(), sizeof(uint32_t), num_indices, stream);
+		if (res != num_indices) {
+			std::cerr << std::format("failed to read {}/{} indices", res, num_indices) << '\n';
 			return rosy::result::read_failed;
 		}
-		std::cout << std::format("read {} triangles", res) << '\n';
+		std::cout << std::format("read {} indices", res) << '\n';
 	}
 
 	int num_closed = fclose(stream);
