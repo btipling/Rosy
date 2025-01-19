@@ -283,6 +283,7 @@ namespace {
 		std::vector<VkShaderEXT> shaders;
 		VkPipelineLayout layout;
 		uint32_t num_indices{ 0 };
+		size_t material_index{ 0 };
 	};
 
 	struct gpu_scene_buffers
@@ -297,7 +298,7 @@ namespace {
 		VkDeviceAddress scene_buffer{ 0 };
 		VkDeviceAddress vertex_buffer{ 0 };
 		//VkDeviceAddress render_buffer{ 0 };
-		//VkDeviceAddress material_buffer{ 0 };
+		VkDeviceAddress material_buffer{ 0 };
 	};
 
 	struct graphics_device
@@ -2242,8 +2243,11 @@ namespace {
 				vmaDestroyBuffer(allocator, staging.buffer, staging.allocation);
 			}
 
+			// TODO: this needs to iterate over mesh surfaces and not hard code the first mesh and surface
 			// Hard code to first mesh to start
 			const rosy_packager::mesh m{ a.meshes[0] };
+			const rosy_packager::surface s{ m.surfaces[0] };
+			gpu_mesh.material_index = s.material;
 
 			// *** SETTING VERTEX BUFFER *** //
 			const size_t vertex_buffer_size = m.positions.size() * sizeof(rosy_packager::position);
@@ -2812,6 +2816,7 @@ namespace {
 						gpu_draw_push_constants pc{
 							.scene_buffer = scene_buffer.scene_buffer_address,
 							.vertex_buffer = gpu_mesh.vertex_buffer_address,
+							.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * gpu_mesh.material_index),
 						};
 						vkCmdPushConstants(cf.command_buffer, gpu_mesh.layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
 						vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);

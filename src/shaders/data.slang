@@ -77,9 +77,16 @@ public struct Fragment
     public float4 color;
 };
 
+public struct BasicMaterialData {
+    public float4 color;
+    public float metallicFactor;
+    public float roughnessFactor;
+};
+
 public struct BasicPushConstant {
     public SceneData *sd;
     public BasicInputVertex *v;
+    public BasicMaterialData *md;
 }
 
 public struct PushConstant {
