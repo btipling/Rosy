@@ -115,6 +115,7 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_shaders          = 0b00000000100000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_pipeline_layout  = 0b00000001000000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_scene_buffer     = 0b00000010000000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_materials_buffer = 0b00000100000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -260,6 +261,19 @@ namespace {
 		VmaAllocationInfo info;
 	};
 
+	struct gpu_material
+	{
+		std::array<float, 4> color;
+		float metallic_factor{ 0.f };
+		float roughness_factor{ 0.f };
+	};
+
+	struct gpu_material_buffer
+	{
+		allocated_buffer material_buffer;
+		VkDeviceAddress material_buffer_address;
+	};
+
 	struct gpu_mesh_buffers
 	{
 		uint32_t graphics_created_bitmask{ 0 };
@@ -358,7 +372,7 @@ namespace {
 		// Buffers
 		gpu_mesh_buffers gpu_mesh{};
 		gpu_scene_buffers scene_buffer{};
-		allocated_buffer material_buffer{};
+		gpu_material_buffer material_buffer{};
 		allocated_buffer surface_buffer{};
 
 		result init(const config new_cfg)
@@ -576,6 +590,11 @@ namespace {
 			if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_vertex_buffer)
 			{
 				vmaDestroyBuffer(allocator, gpu_mesh.vertex_buffer.buffer, gpu_mesh.vertex_buffer.allocation);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_materials_buffer)
+			{
+				vmaDestroyBuffer(allocator, material_buffer.material_buffer.buffer, material_buffer.material_buffer.allocation);
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_imgui_vk)
@@ -2066,6 +2085,162 @@ namespace {
 
 		result set_asset(const rosy_packager::asset& a)
 		{
+
+			// *** SETTING MATERIAL BUFFER *** //
+			{
+				std::vector<gpu_material> materials{};
+				materials.reserve(a.materials.size());
+				for (rosy_packager::material m : a.materials)
+				{
+					materials.push_back({
+						.color = m.base_color_factor,
+						.metallic_factor = m.metallic_factor,
+						.roughness_factor = m.roughness_factor,
+						});
+				}
+
+				const size_t material_buffer_size = materials.size() * sizeof(materials);
+				{
+					VkBufferCreateInfo buffer_info{};
+					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+					buffer_info.pNext = nullptr;
+					buffer_info.size = material_buffer_size;
+					buffer_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+					VmaAllocationCreateInfo vma_alloc_info{};
+					vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+					vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+					if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &material_buffer.material_buffer.buffer, &material_buffer.material_buffer.allocation, &material_buffer.material_buffer.info); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating materials buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+					{
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.buffer);
+						debug_name.pObjectName = "rosy material buffer";
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating material buffer name: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+					}
+				}
+
+				{
+					VkBufferDeviceAddressInfo device_address_info{};
+					device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+					device_address_info.buffer = material_buffer.material_buffer.buffer;
+
+					// *** SETTING MATERIAL BUFFER ADDRESS *** //
+					material_buffer.material_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
+				}
+
+				allocated_buffer staging{};
+				{
+					VkBufferCreateInfo buffer_info{};
+					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+					buffer_info.pNext = nullptr;
+					buffer_info.size = material_buffer_size;
+					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+					VmaAllocationCreateInfo vma_alloc_info{};
+					vma_alloc_info.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+					vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+					if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &staging.buffer, &staging.allocation, &staging.info); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating materials staging buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+					graphics_created_bitmask |= graphics_created_bit_materials_buffer;
+					{
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.buffer);
+						debug_name.pObjectName = "rosy material staging buffer";
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating material staging buffer name: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+					}
+				}
+
+				memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
+
+				{
+					if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error resetting immediate fence for materials buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					if (VkResult res =  vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error resetting immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					VkCommandBufferBeginInfo begin_info{};
+					begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+					begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+					if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error beginning immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					VkBufferCopy vertex_copy{ 0 };
+					vertex_copy.dstOffset = 0;
+					vertex_copy.srcOffset = 0;
+					vertex_copy.size = material_buffer_size;
+
+					vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, material_buffer.material_buffer.buffer, 1, &vertex_copy);
+
+					if (VkResult res = vkEndCommandBuffer(immediate_command_buffer); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error ending immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
+					cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+					cmd_buffer_submit_info.pNext = nullptr;
+					cmd_buffer_submit_info.commandBuffer = immediate_command_buffer;
+					cmd_buffer_submit_info.deviceMask = 0;
+					VkSubmitInfo2 submit_info{};
+					submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+					submit_info.pNext = nullptr;
+
+					submit_info.waitSemaphoreInfoCount = 0;
+					submit_info.pWaitSemaphoreInfos = nullptr;
+					submit_info.signalSemaphoreInfoCount = 0;
+					submit_info.pSignalSemaphoreInfos = nullptr;
+					submit_info.commandBufferInfoCount = 1;
+					submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
+
+					if (VkResult res = vkQueueSubmit2(present_queue, 1, &submit_info, immediate_fence); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error submitting staging buffer for materials buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					if (VkResult res = vkWaitForFences(device, 1, &immediate_fence, true, 9999999999); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error waiting for immediate fence for materials buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+				}
+				vmaDestroyBuffer(allocator, staging.buffer, staging.allocation);
+			}
 
 			// Hard code to first mesh to start
 			const rosy_packager::mesh m{ a.meshes[0] };
