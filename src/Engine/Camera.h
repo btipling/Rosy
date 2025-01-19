@@ -18,7 +18,7 @@ namespace rosy
 		double s{ 1.f }; // aspect ratio
 		double n{ 0.1f }; // near plane
 		double f{ 1000.f }; // far plane
-		double fov{ 70.0f }; // field of view
+		double fov{ 70.f }; // field of view
 		std::array<float, 16> p; // projection
 		std::array<float, 16> v; // view
 		std::array<float, 16> vp; // view projection

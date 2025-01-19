@@ -2964,7 +2964,7 @@ result graphics::update(const std::array<float, 16>& v, const std::array<float, 
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result graphics::render(bool render_ui)
+result graphics::render(const bool render_ui)
 {
 	{
 		ImGui_ImplVulkan_NewFrame();

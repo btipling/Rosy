@@ -102,7 +102,7 @@ namespace
 
 	static double acceleration(const state& state, [[maybe_unused]] double t) {
 		constexpr double dampening = -0.05;
-		constexpr double scale = 0.95;
+		constexpr double scale = 0.1;
 		return dampening * state.velocity / (1.0 + std::abs(state.velocity) / scale);
 	}
 
@@ -202,6 +202,7 @@ namespace
 			movements.clear();
 		}
 
+		// ReSharper disable once CppMemberFunctionMayBeStatic
 		glm::mat4 get_projection([[maybe_unused]] double g, const double s, const double n, const double f, const double fov)
 		{
 			// Assuming VK NDC in camera for now.
@@ -241,7 +242,7 @@ namespace
 
 		void integrate_all()
 		{
-			constexpr double base_velocity = 0.00050;
+			constexpr double base_velocity = 0.0004;
 			if (velocity.x != 0)
 			{
 				integrate(movement::direction::horizontal, velocity.x * base_velocity);
@@ -414,7 +415,9 @@ result camera::update(const uint32_t viewport_width, const uint32_t viewport_hei
 	{
 		return res;
 	}
-	const auto proj = sc->get_projection(g, viewport_width / viewport_height, n, f, glm::radians(fov));
+	const float w = static_cast<float>(viewport_width);
+	const float h = static_cast<float>(viewport_height);
+	const auto proj = sc->get_projection(g, w / h, n, f, glm::radians(fov));
 	const auto view = sc->get_view_matrix();
 	p = mat4_to_array(proj);
 	v = mat4_to_array(view);
