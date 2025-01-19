@@ -47,7 +47,7 @@ result engine::init()
 	l->info("Engine init begin");
 	rosy_packager::asset a{};
 	{
-		a.asset_path = "../assets/demo_cube/demo_cube.rsy";
+		a.asset_path = "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.rsy";
 		{
 			if (const auto res = a.read(); res != result::ok)
 			{
