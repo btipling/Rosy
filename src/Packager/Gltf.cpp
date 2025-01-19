@@ -115,8 +115,8 @@ rosy::result gltf::import()
 				new_surface.material = 0;
 			}
 			new_mesh.surfaces.push_back(new_surface);
-			gltf_asset.meshes.push_back(new_mesh);
 		}
+		gltf_asset.meshes.push_back(new_mesh);
 	}
 	return rosy::result::ok;
 }
