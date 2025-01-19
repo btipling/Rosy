@@ -8,7 +8,9 @@ public struct BasicVertexStageOutput
 
 public struct BasicVertex
 {
+    public float4 vertex;
     public float3 normal;
+    public float4 color;
 };
 
 public struct VertexStageOutput
@@ -29,6 +31,7 @@ public struct InputVertex {
 public struct BasicInputVertex {
     public float3 position;
     public float3 normal;
+    public float4 color;
 };
 
 public struct RenderData {
@@ -74,9 +77,16 @@ public struct Fragment
     public float4 color;
 };
 
+public struct BasicMaterialData {
+    public float4 color;
+    public float metallicFactor;
+    public float roughnessFactor;
+};
+
 public struct BasicPushConstant {
     public SceneData *sd;
     public BasicInputVertex *v;
+    public BasicMaterialData *md;
 }
 
 public struct PushConstant {

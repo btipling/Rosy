@@ -15,10 +15,34 @@ namespace rosy_packager {
 		uint32_t endianness;
 	};
 
+	struct material
+	{
+		uint8_t double_sided{ 0 };
+		std::array<float, 4> base_color_factor{ 0.f };
+		float metallic_factor{ 0.f };
+		float roughness_factor{ 0.f };
+	};
+
+	struct surface
+	{
+		uint32_t start_index{ 0 };
+		uint32_t count{ 0 };
+		size_t material{ 0 };
+	};
+
+
 	struct position
 	{
 		std::array<float, 3> vertex{ 0.f, 0.f, 0.f };
 		std::array<float, 3> normal{ 0.f, 0.f, 0.f };
+		std::array<float, 4> color{ 1.f, 0.f, 0.f, 1.f };
+	};
+
+	struct mesh
+	{
+		std::vector<position> positions;
+		std::vector<uint32_t> indices;
+		std::vector<surface> surfaces;
 	};
 
 	struct shader
@@ -27,16 +51,11 @@ namespace rosy_packager {
 		std::vector<char> source;
 	};
 
-	struct triangle
-	{
-		std::array<uint32_t, 3> indices{ 0, 1, 2 };
-	};
-
 	struct asset
 	{
 		std::string asset_path{};
-		std::vector<position> positions;
-		std::vector<triangle> triangles;
+		std::vector<mesh> meshes;
+		std::vector<material> materials;
 		std::vector<shader> shaders;
 
 		rosy::result write();

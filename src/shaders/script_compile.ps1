@@ -1,10 +1,35 @@
+$slangc = Get-Command "slangc.exe" -ErrorAction SilentlyContinue
+if (-not $slangc) {
+    Write-Error "slangc.exe not found in PATH"
+    exit 1
+}
 
 if (-not (Test-Path -Path "out")) {
     New-Item -ItemType Directory -Path "out" | Out-Null
 }
-& "slangc.exe" $PSScriptRoot/skybox_cube.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/skybox_cube.spv 
-& "slangc.exe" $PSScriptRoot/shadow.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/shadow.spv 
-& "slangc.exe" $PSScriptRoot/skybox.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/skybox.spv 
-& "slangc.exe" $PSScriptRoot/mesh.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/mesh.spv 
-& "slangc.exe" $PSScriptRoot/debug.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/debug.spv 
-& "slangc.exe" $PSScriptRoot/basic.slang -matrix-layout-column-major -profile sm_6_6 -target spirv -o out/basic.spv 
+
+$shaders = @(
+    "skybox_cube",
+    "shadow",
+    "skybox",
+    "mesh",
+    "debug",
+    "basic"
+)
+
+$shaders | ForEach-Object {
+    $shader = $_
+    $result = & $slangc $PSScriptRoot/$shader.slang `
+        -matrix-layout-column-major `
+        -profile sm_6_6 `
+        -target spirv `
+        -o out/$shader.spv 2>&1
+    Write-Host ($result | Format-Table | Out-String)
+    if ($LASTEXITCODE -ne 0) {
+            Write-Host "Failed to compile $shader.slang"
+            exit 1
+    }
+    Write-Host "Compiled $shader.slang successfully"
+        
+}
+Write-Host "Compiled all shaders successfully"
