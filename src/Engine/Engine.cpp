@@ -164,6 +164,13 @@ void engine::deinit()
 		gfx = nullptr;
 	}
 
+	if (cam)
+	{
+		cam->deinit();
+		delete cam;
+		cam = nullptr;
+	}
+
 	if (window) {
 		SDL_DestroyWindow(window);
 		window = nullptr;
