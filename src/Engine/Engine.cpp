@@ -201,9 +201,10 @@ result engine::run()
 			}
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			if (event.type == SDL_EVENT_KEY_UP) {
-				if (event.key.key == SDLK_TAB)
+				if (event.key.key == SDLK_C)
 				{
 					render_ui = !render_ui;
+					SDL_SetWindowRelativeMouseMode(window, !render_ui);
 				}
 			}
 			if (const auto res = cam->process_sdl_event(event, !render_ui); res != result::ok) {

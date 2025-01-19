@@ -102,7 +102,7 @@ namespace
 
 	static double acceleration(const state& state, [[maybe_unused]] double t) {
 		constexpr double dampening = -0.05;
-		constexpr double scale = 0.5;
+		constexpr double scale = 0.95;
 		return dampening * state.velocity / (1.0 + std::abs(state.velocity) / scale);
 	}
 
