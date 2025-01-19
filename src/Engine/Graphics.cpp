@@ -2163,7 +2163,7 @@ namespace {
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
 						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-						debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.buffer);
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(staging.buffer);
 						debug_name.pObjectName = "rosy material staging buffer";
 						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
 						{
