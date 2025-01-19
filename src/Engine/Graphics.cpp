@@ -3,14 +3,13 @@
 #include <vector>
 #include <queue>
 #include <stack>
+#include <algorithm>
 
 #include "volk/volk.h"
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vk_enum_string_helper.h"
 #include <SDL3/SDL_vulkan.h>
-
 #pragma warning(disable: 4100 4459)
-#include <algorithm>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
@@ -2781,6 +2780,22 @@ result graphics::init(SDL_Window* new_window, log const* new_log, config cfg)
 	return result::ok;
 }
 
+void graphics::deinit()
+{
+	l->info("Graphics deinit start");
+
+	if (gd)
+	{
+		gd->deinit();
+		delete gd;
+		gd = nullptr;
+	}
+
+	l->info("Graphics deinit end");
+	l = nullptr;
+}
+
+
 result graphics::set_asset(const rosy_packager::asset& a)
 {
 	l->debug("Setting asset!");
@@ -2809,19 +2824,3 @@ result graphics::resize()
 {
 	return gd->resize_swapchain();
 }
-
-void graphics::deinit()
-{
-	l->info("Graphics deinit start");
-
-	if (gd)
-	{
-		gd->deinit();
-		delete gd;
-		gd = nullptr;
-	}
-
-	l->info("Graphics deinit end");
-	l = nullptr;
-}
-

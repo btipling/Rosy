@@ -43,20 +43,22 @@ result engine::init()
 
 	l->info("Engine init begin");
 	rosy_packager::asset a{};
-	a.asset_path = "../assets/demo_cube/demo_cube.rsy";
 	{
-		if (const auto res = a.read(); res != result::ok)
+		a.asset_path = "../assets/demo_cube/demo_cube.rsy";
 		{
-			l->error("Failed to read the assets!");
-			return result::error;
+			if (const auto res = a.read(); res != result::ok)
+			{
+				l->error("Failed to read the assets!");
+				return result::error;
+			}
 		}
-	}
-	a.shaders.push_back({ .path = "../shaders/out/basic.spv" });
-	{
-		if (const auto res = a.read_shaders(); res != result::ok)
+		a.shaders.push_back({ .path = "../shaders/out/basic.spv" });
 		{
-			l->error("Failed to read shaders!");
-			return result::error;
+			if (const auto res = a.read_shaders(); res != result::ok)
+			{
+				l->error("Failed to read shaders!");
+				return result::error;
+			}
 		}
 	}
 
@@ -105,6 +107,22 @@ result engine::init()
 		{
 			l->error(std::format("Failed to add event watcher: {}", SDL_GetError()));
 			return result::error;
+		}
+	}
+
+	// Camera initialization
+	{
+
+		cam = new(std::nothrow) camera{};
+		if (cam == nullptr)
+		{
+			l->error("Error allocating camera");
+			return result::allocation_failure;
+		}
+		if (auto const res = cam->init(l, cfg); res != result::ok)
+		{
+			l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
+			return res;
 		}
 	}
 

@@ -198,6 +198,7 @@
     <ClInclude Include="..\libs\imgui\imstb_textedit.h" />
     <ClInclude Include="..\libs\imgui\imstb_truetype.h" />
     <ClInclude Include="..\Packager\Asset.h" />
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="Main.h" />
@@ -216,6 +217,7 @@
     <ClCompile Include="..\libs\VMA.cpp" />
     <ClCompile Include="..\libs\Volk.cpp" />
     <ClCompile Include="..\Packager\Asset.cpp" />
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -223,11 +225,6 @@
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\libs\SDL3.lib" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\libs\fastgltf\build\fastgltf.vcxproj">
-      <Project>{7b86b1e5-5648-3cc2-a377-063a7c9d37ae}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
