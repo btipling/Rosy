@@ -18,6 +18,7 @@ namespace rosy
 
 		result init(SDL_Window* new_window, log const* new_log, config cfg);
 		result set_asset(const rosy_packager::asset& a);
+		result update(const std::array<float, 16>& v, const std::array<float, 16>& p, const std::array<float, 16>& vp, std::array<float, 4> cam_pos);
 		result render();
 		result resize();
 		void deinit();

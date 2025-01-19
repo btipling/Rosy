@@ -213,7 +213,6 @@ namespace {
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
-
 	struct gpu_scene_data
 	{
 		std::array<float, 16> view = { 0 };
@@ -2935,8 +2934,7 @@ void graphics::deinit()
 	l = nullptr;
 }
 
-
-result graphics::set_asset(const rosy_packager::asset& a)
+result graphics::set_asset(const rosy_packager::asset& a) const
 {
 	l->debug("Setting asset!");
 	if (const auto res = gd->set_asset(a); res != result::ok)
@@ -2946,6 +2944,23 @@ result graphics::set_asset(const rosy_packager::asset& a)
 	return result::ok;
 }
 
+// ReSharper disable once CppMemberFunctionMayBeStatic
+result graphics::update(const std::array<float, 16>& v, const std::array<float, 16>& p, const std::array<float, 16>& vp, const std::array<float, 4> cam_pos)
+{
+	const gpu_scene_data sd {
+		.view = v,
+		.proj = p,
+		.view_projection = vp,
+		.sunlight = { 0.25f, 0.98f, 0.1f },
+		.camera_position = cam_pos,
+		.ambient_color = { 0.33f,  0.33f, 0.33f, 0.33f, },
+		.sunlight_color = { 0.77f, 0.77f, 0.f, 1.f },
+	};
+	memcpy(gd->scene_buffer.scene_buffer.info.pMappedData, &sd, sizeof(sd));
+	return result::ok;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeStatic
 result graphics::render()
 {
 	{
