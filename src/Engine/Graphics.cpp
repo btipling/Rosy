@@ -1174,6 +1174,19 @@ namespace {
 				VkDebugUtilsObjectNameInfoEXT debug_name{};
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_PHYSICAL_DEVICE;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(physical_device);
+				debug_name.pObjectName = "rosy physical device";
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error creating physical device name: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DEVICE;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(device);
 				debug_name.pObjectName = "rosy device";
@@ -1241,7 +1254,7 @@ namespace {
 			return VK_SUCCESS;
 		}
 
-		VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities) const
+		[[nodiscard]] VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities) const
 		{
 			if (constexpr uint32_t max_u32 = (std::numeric_limits<uint32_t>::max)(); capabilities.currentExtent.width !=
 				max_u32)
@@ -1572,7 +1585,21 @@ namespace {
 
 			VkResult result = vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool);
 			if (result != VK_SUCCESS) return result;
-			graphics_created_bitmask |= graphics_created_bit_descriptor_set;
+			graphics_created_bitmask |= graphics_created_bit_descriptor_pool;
+
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(descriptor_pool);
+				debug_name.pObjectName = "rosy descriptor pool";
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error creating descriptor pool name: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
 
 			const auto bindings = std::vector<VkDescriptorSetLayoutBinding>({
 				{desc_storage_images->binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, descriptor_max_storage_image_descriptors, VK_SHADER_STAGE_ALL},
@@ -1601,21 +1628,47 @@ namespace {
 			layout_create_info.bindingCount = static_cast<uint32_t>(bindings.size());
 			layout_create_info.pBindings = bindings.data();
 
-			VkDescriptorSetLayout set_layout{};
-			result = vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &set_layout);
+			result = vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layout);
 			if (result != VK_SUCCESS) return result;
-			descriptor_set_layout = set_layout;
+
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(descriptor_set_layout);
+				debug_name.pObjectName = "rosy descriptor set layout";
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error creating descriptor set layout name: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
 
 			VkDescriptorSetAllocateInfo set_create_info{};
 			set_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			set_create_info.descriptorPool = descriptor_pool;
 			set_create_info.descriptorSetCount = 1;
-			set_create_info.pSetLayouts = &set_layout;
+			set_create_info.pSetLayouts = &descriptor_set_layout;
 
 			result = vkAllocateDescriptorSets(device, &set_create_info, &descriptor_set);
 			if (result != VK_SUCCESS) return result;
+			graphics_created_bitmask |= graphics_created_bit_descriptor_set;
 
-			graphics_created_bitmask |= graphics_created_bit_descriptor_pool;
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(descriptor_set);
+				debug_name.pObjectName = "rosy descriptor set";
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error creating descriptor set name: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
+
 			return VK_SUCCESS;
 		}
 
@@ -1636,7 +1689,7 @@ namespace {
 				frame_datas[i].command_pool = command_pool;
 				frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_command_pool;
 				{
-					const auto obj_name = std::format("rosy command_pool {}", i);
+					const auto obj_name = std::format("rosy command pool {}", i);
 					VkDebugUtilsObjectNameInfoEXT debug_name{};
 					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 					debug_name.pNext = nullptr;
@@ -1667,7 +1720,7 @@ namespace {
 					if (const VkResult result = vkAllocateCommandBuffers(device, &alloc_info, &command_buffer); result != VK_SUCCESS) return result;
 					frame_datas[i].command_buffer = command_buffer;
 					{
-						const auto obj_name = std::format("rosy command_buffer {}", i);
+						const auto obj_name = std::format("rosy command buffer {}", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
@@ -1702,7 +1755,7 @@ namespace {
 					frame_datas[i].image_available_semaphore = semaphore;
 					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_image_semaphore;
 					{
-						const auto obj_name = std::format("rosy image_available_semaphore {}", i);
+						const auto obj_name = std::format("rosy image available semaphore {}", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
@@ -1719,7 +1772,7 @@ namespace {
 					frame_datas[i].render_finished_semaphore = semaphore;
 					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_pass_semaphore;
 					{
-						const auto obj_name = std::format("rosy render_finished_semaphore {}", i);
+						const auto obj_name = std::format("rosy render finished semaphore {}", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
@@ -1736,7 +1789,7 @@ namespace {
 					frame_datas[i].in_flight_fence = fence;
 					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_fence;
 					{
-						const auto obj_name = std::format("rosy in_flight_fence {}", i);
+						const auto obj_name = std::format("rosy in flight fence {}", i);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
@@ -1757,7 +1810,7 @@ namespace {
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_FENCE;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_fence);
-					debug_name.pObjectName = "rosy immediate_fence";
+					debug_name.pObjectName = "rosy immediate fence";
 					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
 				}
 			}
@@ -1791,6 +1844,20 @@ namespace {
 
 			if (const VkResult result = vkCreateDescriptorPool(device, &pool_info, nullptr, &ui_pool); result != VK_SUCCESS) return result;
 			graphics_created_bitmask |= graphics_created_bit_ui_pool;
+
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(ui_pool);
+				debug_name.pObjectName = "rosy ui descriptor pool";
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error creating ui descriptor pool name: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
 
 			if (const auto ctx = ImGui::CreateContext(); ctx == nullptr)
 			{
