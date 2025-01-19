@@ -11,9 +11,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float4 posWorld = float4(v.position, 1.0);
 
     BasicVertexStageOutput output;
-
     output.basicVertex.normal = v.normal;
-
+    output.basicVertex.color = v.color;
     output.sv_position = mul(sd.viewproj, posWorld);
 
     return output;

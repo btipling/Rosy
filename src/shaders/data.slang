@@ -9,6 +9,7 @@ public struct BasicVertexStageOutput
 public struct BasicVertex
 {
     public float3 normal;
+    public float4 color;
 };
 
 public struct VertexStageOutput
@@ -29,6 +30,7 @@ public struct InputVertex {
 public struct BasicInputVertex {
     public float3 position;
     public float3 normal;
+    public float4 color;
 };
 
 public struct RenderData {
