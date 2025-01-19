@@ -2066,8 +2066,12 @@ namespace {
 
 		result set_asset(const rosy_packager::asset& a)
 		{
+
+			// Hard code to first mesh to start
+			const rosy_packager::mesh m{ a.meshes[0] };
+
 			// *** SETTING VERTEX BUFFER *** //
-			const size_t vertex_buffer_size = a.positions.size() * sizeof(rosy_packager::position);
+			const size_t vertex_buffer_size = m.positions.size() * sizeof(rosy_packager::position);
 			{
 				VkBufferCreateInfo buffer_info{};
 				buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2113,8 +2117,8 @@ namespace {
 			}
 
 			// *** SETTING INDEX BUFFER *** //
-			const size_t index_buffer_size = a.indices.size() * sizeof(uint32_t);
-			gpu_mesh.num_indices = static_cast<uint32_t>(a.indices.size());
+			const size_t index_buffer_size = m.indices.size() * sizeof(uint32_t);
+			gpu_mesh.num_indices = static_cast<uint32_t>(m.indices.size());
 			{
 				VkBufferCreateInfo buffer_info{};
 				buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2184,9 +2188,8 @@ namespace {
 				}
 			}
 
-			memcpy(staging.info.pMappedData, a.positions.data(), vertex_buffer_size);
-			memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, a.indices.data(), index_buffer_size);
-
+			memcpy(staging.info.pMappedData, m.positions.data(), vertex_buffer_size);
+			memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, m.indices.data(), index_buffer_size);
 
 			if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
 			{

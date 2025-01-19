@@ -30,11 +30,19 @@ namespace rosy_packager {
 		size_t material{ 0 };
 	};
 
+
 	struct position
 	{
 		std::array<float, 3> vertex{ 0.f, 0.f, 0.f };
 		std::array<float, 3> normal{ 0.f, 0.f, 0.f };
 		std::array<float, 4> color{ 1.f, 0.f, 0.f, 1.f };
+	};
+
+	struct mesh
+	{
+		std::vector<position> positions;
+		std::vector<uint32_t> indices;
+		std::vector<surface> surfaces;
 	};
 
 	struct shader
@@ -46,9 +54,7 @@ namespace rosy_packager {
 	struct asset
 	{
 		std::string asset_path{};
-		std::vector<position> positions;
-		std::vector<uint32_t> indices;
-		std::vector<material> surfaces;
+		std::vector<mesh> meshes;
 		std::vector<material> materials;
 		std::vector<shader> shaders;
 

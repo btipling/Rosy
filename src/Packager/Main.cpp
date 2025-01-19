@@ -58,12 +58,16 @@ int main(const int argc, char* argv[])
 	if (const auto res = b.read(); res != rosy::result::ok) {
 		return EXIT_FAILURE;
 	}
-	std::cout << "Parsed positions:" << '\n';
-	for (auto& [vertex, normal, color]: b.positions)
+	std::cout << "Parsed meshes:" << '\n';
+	for (auto& m : b.meshes)
+	{
+		
+	for (auto& [vertex, normal, color]: m.positions)
 	{
 		std::cout << std::format("vertex: {} normal: {} color: {}", vertex, normal, color) << '\n';
 	}
 	std::cout << "Parsed indices:" << '\n';
-	std::cout << std::format("indices: {}", b.indices) << '\n';
+	std::cout << std::format("indices: {}", m.indices) << '\n';
+	}
 	return 0;
 }

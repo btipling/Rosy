@@ -7,7 +7,7 @@ using namespace rosy_packager;
 
 rosy::result gltf::import()
 {
-	std::filesystem::path file_path{ source_path };
+	const std::filesystem::path file_path{ source_path };
 	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
 		fastgltf::Options::AllowDouble |
 		fastgltf::Options::LoadExternalBuffers |
@@ -29,44 +29,67 @@ rosy::result gltf::import()
 		std::cerr << std::format("import - failed to load {}, {}", source_path, err) << '\n';
 		return rosy::result::error;
 	}
-	gltf_asset.positions.clear();
-	gltf_asset.indices.clear();
 
-	for (fastgltf::Mesh& mesh : gltf.meshes) {
-		for (size_t i = 0; i < mesh.primitives.size(); i++) {  // NOLINT(modernize-loop-convert) - mesh.primitives RAII issues.
+	for (fastgltf::Mesh& fast_gltf_mesh : gltf.meshes) {
+		mesh new_mesh{};
+		for (auto& primitive : fast_gltf_mesh.primitives)
+		{
+			// PRIMITIVE SURFACE
+			surface new_surface{};
+			new_surface.start_index = static_cast<uint32_t>(new_mesh.indices.size());
+			new_surface.count = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
+
+			const auto position_it = primitive.findAttribute("POSITION");
+			auto& pos_accessor = gltf.accessors[position_it->accessorIndex];
+
+			uint32_t initial_vtx = static_cast<uint32_t>(new_mesh.positions.size());
+			new_mesh.positions.resize(new_mesh.positions.size() + pos_accessor.count);
+
+			// PRIMITIVE INDEX
 			{
-				const auto position_it = mesh.primitives[i].findAttribute("POSITION");
-				auto& pos_accessor = gltf.accessors[position_it->accessorIndex];
+				fastgltf::Accessor& index_accessor = gltf.accessors[primitive.indicesAccessor.value()];
+				new_mesh.indices.reserve(new_mesh.indices.size() + index_accessor.count);
 
-				uint32_t initial_vtx = static_cast<uint32_t>(gltf_asset.positions.size());
-				gltf_asset.positions.resize(gltf_asset.positions.size() + pos_accessor.count);
-
-				{
-					fastgltf::Accessor& index_accessor = gltf.accessors[mesh.primitives[i].indicesAccessor.value()];
-					gltf_asset.indices.reserve(gltf_asset.indices.size() + index_accessor.count);
-
-					fastgltf::iterateAccessor<std::uint32_t>(gltf, index_accessor,
-						[&](const std::uint32_t idx) {
-							gltf_asset.indices.push_back(idx + initial_vtx);
-						});
-				}
-
-				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, pos_accessor,
-					[&](const fastgltf::math::fvec3& v, const size_t index) {
-						position new_position{};
-						new_position.vertex = { v[0], v[1], v[2] };
-						new_position.normal = { 1.0f, 0.0f, 0.0f };
-						gltf_asset.positions[initial_vtx + index] = new_position;
+				fastgltf::iterateAccessor<std::uint32_t>(gltf, index_accessor,
+					[&](const std::uint32_t idx) {
+						new_mesh.indices.push_back(idx + initial_vtx);
 					});
-
-				if (auto normals = mesh.primitives[i].findAttribute("NORMAL"); normals != mesh.primitives[i].attributes.end()) {
-					fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, gltf.accessors[normals->accessorIndex],
-						[&](const fastgltf::math::fvec3 n, const size_t index) {
-							gltf_asset.positions[initial_vtx + index].normal = { n[0], n[1], n[2] };
-						});
-				}
-
 			}
+
+			// PRIMITIVE VERTEX
+			fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, pos_accessor,
+				[&](const fastgltf::math::fvec3& v, const size_t index) {
+					position new_position{};
+					new_position.vertex = { v[0], v[1], v[2] };
+					new_position.normal = { 1.0f, 0.0f, 0.0f };
+					new_mesh.positions[initial_vtx + index] = new_position;
+				});
+
+			// PRIMITIVE NORMAL
+			if (const auto normals = primitive.findAttribute("NORMAL"); normals != primitive.attributes.end()) {
+				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, gltf.accessors[normals->accessorIndex],
+					[&](const fastgltf::math::fvec3& n, const size_t index) {
+						new_mesh.positions[initial_vtx + index].normal = { n[0], n[1], n[2] };
+					});
+			}
+
+			// PRIMITIVE COLOR
+			if (auto colors = primitive.findAttribute("COLOR_0"); colors != primitive.attributes.end()) {
+				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[colors->accessorIndex],
+					[&](const fastgltf::math::fvec4& c, const size_t index) {
+						new_mesh.positions[initial_vtx + index].color = { c[0], c[1], c[2], c[3]};
+					});
+			}
+
+			// PRIMITIVE MATERIAL
+			if (primitive.materialIndex.has_value()) {
+				new_surface.material = primitive.materialIndex.value();
+			}
+			else {
+				new_surface.material = 0;
+			}
+			new_mesh.surfaces.push_back(new_surface);
+			gltf_asset.meshes.push_back(new_mesh);
 		}
 	}
 	return rosy::result::ok;
