@@ -30,6 +30,32 @@ rosy::result gltf::import()
 		return rosy::result::error;
 	}
 
+	// MATERIALS
+
+	{
+		for (fastgltf::Material& mat : gltf.materials) {
+			material m{};
+			if (mat.pbrData.baseColorTexture.has_value()) {
+				auto image_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
+				auto sampler_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value();
+				std::cout << std::format("materials image index: {} sample index: {}", image_index, sampler_index) << '\n';
+			} else
+			{
+				std::cout << "No baseColorTexture in a material" << '\n';
+			}
+			{
+				auto c = mat.pbrData.baseColorFactor;
+				m.base_color_factor = { c[0], c[1], c[2], c[3] };
+				m.double_sided = mat.doubleSided;
+				m.metallic_factor = mat.pbrData.metallicFactor;
+				m.roughness_factor = mat.pbrData.roughnessFactor;
+			}
+			gltf_asset.materials.push_back(m);
+		}
+	}
+
+	// MESHES
+
 	for (fastgltf::Mesh& fast_gltf_mesh : gltf.meshes) {
 		mesh new_mesh{};
 		for (auto& primitive : fast_gltf_mesh.primitives)

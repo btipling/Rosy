@@ -156,7 +156,6 @@ rosy::result asset::read()
 		}
 	}
 
-
 	// READ RSY FORMAT HEADER
 	{
 		constexpr size_t num_headers = 1;
@@ -280,6 +279,7 @@ rosy::result asset::read()
 		}
 
 		// ADD MESH TO ASSET
+
 		meshes.push_back(m);
 	}
 
