@@ -2574,7 +2574,7 @@ namespace {
 						{
 
 							vkCmdSetFrontFaceEXT(cf.command_buffer, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-							vkCmdSetCullModeEXT(cf.command_buffer, false);
+							vkCmdSetCullModeEXT(cf.command_buffer, VK_TRUE);
 							vkCmdSetPolygonModeEXT(cf.command_buffer, VK_POLYGON_MODE_FILL);
 						}
 
