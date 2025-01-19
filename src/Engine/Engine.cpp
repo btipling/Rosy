@@ -197,7 +197,9 @@ result engine::run() const
 				should_render = true;
 			}
 			ImGui_ImplSDL3_ProcessEvent(&event);
-			cam->process_sdl_event(event, true);
+			if (const auto res = cam->process_sdl_event(event, true); res != result::ok) {
+				return res;
+			}
 		}
 		if (!should_render) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -209,11 +211,15 @@ result engine::run() const
 			if (const auto res = cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
 				return res;
 			}
+			if (const auto res = gfx->update(cam->v, cam->p, cam->vp, cam->position); res != result::ok) {
+				return res;
+			}
 			if (const auto res = gfx->render(); res != result::ok) {
 				return res;
 			}
 			FrameMark;
 		}
 	}
+
 	return result::ok;
 }

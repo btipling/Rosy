@@ -17,7 +17,7 @@ namespace rosy
 		uint32_t viewport_height{ 0 };
 
 		result init(SDL_Window* new_window, log const* new_log, config cfg);
-		result set_asset(const rosy_packager::asset& a);
+		result set_asset(const rosy_packager::asset& a) const;
 		result update(const std::array<float, 16>& v, const std::array<float, 16>& p, const std::array<float, 16>& vp, std::array<float, 4> cam_pos);
 		result render();
 		result resize();
