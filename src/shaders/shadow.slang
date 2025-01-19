@@ -12,16 +12,16 @@ ShadowOutput shadowVertexMain(uint uiVertexId: SV_VertexID)
     float4x4 worldMat = rd.transform;
     float3x3 worldMat3 = (float3x3)worldMat;
 
-    float4x4 proj = sd.shadowproj_near;
-    if (ShadowConstants.pass_number == 1) {
-        proj = sd.shadowproj_middle;
-    } else if (ShadowConstants.pass_number == 2) {
-        proj = sd.shadowproj_far;
-    }
+//    float4x4 proj = sd.shadowproj_near;
+//    if (ShadowConstants.pass_number == 1) {
+//        proj = sd.shadowproj_middle;
+//    } else if (ShadowConstants.pass_number == 2) {
+//        proj = sd.shadowproj_far;
+//    }
 
     ShadowOutput output;
     float4 posWorld = float4(v.position, 1.0);
-    output.sv_position = mul(mul(proj, worldMat), posWorld);
+    output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
 
     return output;
 }

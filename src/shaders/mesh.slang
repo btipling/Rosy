@@ -31,27 +31,6 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         0, 0, 0, 1
     };
 
-    output.csm.near = mul(
-        mul(
-            mul(ndc_to_tc, sd.shadowproj_near), 
-            worldMat),
-        posWorld
-    );
-    output.csm.middle = mul(
-        mul(
-            mul(ndc_to_tc,sd.shadowproj_middle), 
-            worldMat
-        ), 
-        posWorld
-    );
-    output.csm.far = mul(
-        mul(
-            mul(ndc_to_tc,sd.shadowproj_far), 
-            worldMat
-        ), 
-        posWorld
-    );
-
     output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
 
     return output;
@@ -61,7 +40,7 @@ VertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 Fragment fragmentMain(CoarseVertex coarseVertex: CoarseVertex, CSM csm: CSM, float4 fragCoord: SV_Position) : SV_Target
 {
     SceneData sd = *PushConstants.sd;
-    float3 sunlight = float3(sd.sunlight[2][0], sd.sunlight[2][1], -sd.sunlight[2][2]);
+    float3 sunlight = float3(sd.sunlight[0], sd.sunlight[1], -sd.sunlight[2]);
     float3 color = coarseVertex.color;
     float3 V = normalize(sd.cameraPosition.xyz - coarseVertex.vertex.xyz);
     float3 L = -sunlight;
@@ -84,29 +63,7 @@ Fragment fragmentMain(CoarseVertex coarseVertex: CoarseVertex, CSM csm: CSM, flo
     SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
     float4 imageTextureColor = matImageTexture.Sample(matSampler, coarseVertex.textureCoordinates);
 
-    uint csm_sampler_i = sd.csm_index_sampler;
-
-    SamplerState shadowSampler = imageSampler[NonUniformResourceIndex(csm_sampler_i)];
-
-    bool inShadow = false;
-    float nearDistance = 7.f;
-    float middleDistance = 20.f;
-    float shadowFactor = 1.f;
-    if (distanceX < nearDistance && distanceY < nearDistance) {
-        uint csm_near_i = sd.csm_index_near;
-        texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csm_near_i)];
-        shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
-    } else if (distanceX < middleDistance && distanceY < middleDistance) {
-        uint csm_middle_i = sd.csm_index_middle;
-        texture2D shadowMiddleImage = imageTexture[NonUniformResourceIndex(csm_middle_i)];
-        shadowFactor = pcf(fragCoord, csm.middle, shadowMiddleImage, shadowSampler);
-    } else {
-        uint csm_far_i = sd.csm_index_far;
-        texture2D shadowFarImage = imageTexture[NonUniformResourceIndex(csm_far_i)];
-        shadowFactor = pcf(fragCoord, csm.far, shadowFarImage, shadowSampler);
-    }
-
-    float4 outFragColor = imageTextureColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
+    float4 outFragColor = imageTextureColor * float4(ambientLight * sunLight, 1.0);
 
     Fragment output;
     output.color = outFragColor;
