@@ -23,6 +23,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 Fragment fragmentMain(BasicVertex basicVertex: BasicVertex) : SV_Target
 {
     SceneData sd = *BasicPushConstants.sd;
+    BasicMaterialData md = *BasicPushConstants.md;
     float3 sunlight = float3(sd.sunlight[0], sd.sunlight[1], sd.sunlight[2]);
     float3 V = normalize(sd.cameraPosition.xyz - basicVertex.vertex.xyz);
     float3 L = sunlight;
@@ -35,9 +36,9 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex) : SV_Target
     float3 ambientLight = sd.ambientColor.xyz;
     float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
-    float4 outFragColor = basicVertex.color * float4(ambientLight * sunLight, 1.0);
+    float4 outFragColor = md.color * float4(ambientLight * sunLight, 1.0);
 
     Fragment output;
-    output.color =outFragColor;
+    output.color = outFragColor;
     return output;
 }

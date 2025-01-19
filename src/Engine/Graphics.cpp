@@ -3140,7 +3140,7 @@ result graphics::update(const std::array<float, 16>& v, const std::array<float, 
 		.sunlight = { 0.25f, 0.98f, 0.1f },
 		.camera_position = cam_pos,
 		.ambient_color = { 0.33f,  0.33f, 0.33f, 0.33f, },
-		.sunlight_color = { 0.77f, 0.77f, 0.f, 1.f },
+		.sunlight_color = { 0.77f, 0.77f, 0.77f, 1.f },
 	};
 	memcpy(gd->scene_buffer.scene_buffer.info.pMappedData, &sd, sizeof(sd));
 	return result::ok;
