@@ -80,7 +80,11 @@ rosy::result asset::write()
 			std::cerr << std::format("failed to write {}/{} num_gltf_sizes", res, lookup_sizes) << '\n';
 			return rosy::result::write_failed;
 		}
-		std::cout << std::format("wrote {} sizes, num_materials: {} num_meshes: {}", res, num_materials, num_meshes) << '\n';
+		std::cout << std::format("wrote {} sizes, num_materials: {} num_scenes: {}, num_nodes: {} num_meshes: {}", res, 
+			num_materials,
+			num_scenes,
+			num_nodes,
+			num_meshes) << '\n';
 	}
 
 	// WRITE MATERIALS
@@ -94,6 +98,26 @@ rosy::result asset::write()
 		std::cout << std::format("wrote {} materials", res) << '\n';
 	}
 
+	// WRITE ALL THE SCENES ONE AT A TIME
+
+	for (const auto& [scene_nodes] : scenes) {
+
+		// WRITE ONE SCENE SIZE
+
+		const size_t num_scene_nodes{ scene_nodes.size() };
+		{
+			constexpr size_t lookup_sizes = 1;
+			const std::array<size_t, 1> scene_sizes{ num_scene_nodes };
+			size_t res = fwrite(&scene_sizes, sizeof(scene_sizes), lookup_sizes, stream);
+			if (res != lookup_sizes) {
+				std::cerr << std::format("failed to write {}/{} scene_sizes", res, lookup_sizes) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format(
+				"wrote {} sizes, num_nodes: {}",
+				res, num_scene_nodes) << '\n';
+		}
+	}
 
 	// WRITE ALL MESHES ONE AT A TIME
 
@@ -231,6 +255,7 @@ rosy::result asset::read()
 	meshes.reserve(num_meshes);
 
 	// READ GLTF MATERIALS
+
 	{
 		size_t res = fread(materials.data(), sizeof(material), num_materials, stream);
 		if (res != num_materials) {
@@ -238,6 +263,29 @@ rosy::result asset::read()
 			return rosy::result::read_failed;
 		}
 		std::cout << std::format("read {} positions", res) << '\n';
+	}
+
+	// READ ALL THE SCENES ONE AT A TIME
+
+	for (size_t i{ 0 }; i < num_scenes; i++) {
+		scene{};
+
+		// READ ONE SCENE SIZE
+
+		size_t num_scene_nodes{ 0 };
+		{
+			constexpr size_t lookup_sizes = 1;
+			std::array<size_t, 3> scene_sizes{ 0, 0, 0 };
+			size_t res = fread(&scene_sizes, sizeof(scene_sizes), lookup_sizes, stream);
+			if (res != lookup_sizes) {
+				std::cerr << std::format("failed to read {}/{} scene_sizes", res, lookup_sizes) << '\n';
+				return rosy::result::read_failed;
+			}
+			num_scene_nodes = scene_sizes[0];
+			std::cout << std::format(
+				"read {} sizes, num_nodes: {} for scene",
+				res, num_scene_nodes) << '\n';
+		}
 	}
 
 	// READ ALL MESHES ONE AT A TIME
