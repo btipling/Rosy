@@ -137,7 +137,7 @@ rosy::result gltf::import()
 		node n{};
 		n.mesh_id = static_cast<uint32_t>(gltf_node.meshIndex.value_or(SIZE_MAX));
 
-		auto [tr, ro, sc] = std::get<fastgltf::TRS>(gltf_node.transform);
+		auto& [tr, ro, sc] = std::get<fastgltf::TRS>(gltf_node.transform);
 
 		const auto tm = translate(fastgltf::math::fmat4x4(1.0f), tr);
 		const auto rm = fastgltf::math::fmat4x4(asMatrix(ro));

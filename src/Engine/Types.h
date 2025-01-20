@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <cstdint>
 
 namespace rosy
@@ -32,6 +33,20 @@ namespace rosy
 		int max_window_height = 0;
 		uint32_t device_vendor = 4318;
 		bool enable_validation_layers = true;
+	};
+
+	struct geometry_object_data
+	{
+		size_t mesh_index{ 0 };
+		size_t material_index{ 0 };
+		uint32_t index_count{ 0 };
+		uint32_t first_index{ 0 };
+	};
+
+	struct world_object
+	{
+		geometry_object_data geo_data{};
+		std::array<float, 16> transform;
 	};
 
 }

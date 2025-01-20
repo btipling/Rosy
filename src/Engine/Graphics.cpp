@@ -280,8 +280,6 @@ namespace {
 		allocated_buffer index_buffer;
 		allocated_buffer vertex_buffer;
 		VkDeviceAddress vertex_buffer_address;
-		std::vector<VkShaderEXT> shaders;
-		VkPipelineLayout layout;
 		uint32_t num_indices{ 0 };
 		size_t material_index{ 0 };
 	};
@@ -309,13 +307,15 @@ namespace {
 	};
 
 	struct render_object {
+
 		uint32_t index_count;
 		uint32_t first_index;
-		VkBuffer index_buffer;
-
 		size_t material_index;
 		size_t mesh_index;
+
 		std::array<float, 16> transform;
+
+		VkBuffer index_buffer;
 		VkDeviceAddress scene_buffer_address{ 0 };
 		VkDeviceAddress vertex_buffer_address{ 0 };
 		VkDeviceAddress render_buffer_address{ 0 };
@@ -396,6 +396,9 @@ namespace {
 		gpu_scene_buffers scene_buffer{};
 		gpu_material_buffer material_buffer{};
 		allocated_buffer surface_buffer{};
+
+		std::vector<VkShaderEXT> scene_shaders;
+		VkPipelineLayout scene_layout;
 
 		result init(const config new_cfg)
 		{
@@ -591,14 +594,14 @@ namespace {
 				vmaDestroyBuffer(allocator, scene_buffer.scene_buffer.buffer, scene_buffer.scene_buffer.allocation);
 			}
 
-			if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_pipeline_layout)
+			if (graphics_created_bitmask & graphics_created_bit_pipeline_layout)
 			{
-				vkDestroyPipelineLayout(device, gpu_mesh.layout, nullptr);
+				vkDestroyPipelineLayout(device, scene_layout, nullptr);
 			}
 
-			if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_shaders)
+			if (graphics_created_bitmask & graphics_created_bit_shaders)
 			{
-				for (const VkShaderEXT shader : gpu_mesh.shaders)
+				for (const VkShaderEXT shader : scene_shaders)
 				{
 					vkDestroyShaderEXT(device, shader, nullptr);
 				}
@@ -2522,19 +2525,19 @@ namespace {
 					.pSpecializationInfo = nullptr,
 					});
 
-				gpu_mesh.shaders.resize(shader_create_info.size());
+				scene_shaders.resize(shader_create_info.size());
 
-				if (const VkResult res = vkCreateShadersEXT(device, static_cast<uint32_t>(shader_create_info.size()), shader_create_info.data(), nullptr, gpu_mesh.shaders.data()); res != VK_SUCCESS) {
+				if (const VkResult res = vkCreateShadersEXT(device, static_cast<uint32_t>(shader_create_info.size()), shader_create_info.data(), nullptr, scene_shaders.data()); res != VK_SUCCESS) {
 					l->error(std::format("Error creating shaders: {}", static_cast<uint8_t>(res)));
 					return result::error;
 				}
-				gpu_mesh.graphics_created_bitmask |= graphics_created_bit_shaders;
+				graphics_created_bitmask |= graphics_created_bit_shaders;
 				{
 					VkDebugUtilsObjectNameInfoEXT debug_name{};
 					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_SHADER_EXT;
-					debug_name.objectHandle = reinterpret_cast<uint64_t>(gpu_mesh.shaders.data()[0]);
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(scene_shaders.data()[0]);
 					debug_name.pObjectName = "rosy vertex shader";
 					if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
 					{
@@ -2547,7 +2550,7 @@ namespace {
 					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_SHADER_EXT;
-					debug_name.objectHandle = reinterpret_cast<uint64_t>(gpu_mesh.shaders.data()[1]);
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(scene_shaders.data()[1]);
 					debug_name.pObjectName = "rosy fragment shader";
 					if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
 					{
@@ -2565,18 +2568,18 @@ namespace {
 						.pushConstantRangeCount = 1,
 						.pPushConstantRanges = &push_constant_range,
 					};
-					if (const VkResult res = vkCreatePipelineLayout(device, &pl_info, nullptr, &gpu_mesh.layout); res != VK_SUCCESS)
+					if (const VkResult res = vkCreatePipelineLayout(device, &pl_info, nullptr, &scene_layout); res != VK_SUCCESS)
 					{
 						l->error(std::format("Error creating shader pipeline layout: {}", static_cast<uint8_t>(res)));
 						return result::error;
 					}
-					gpu_mesh.graphics_created_bitmask |= graphics_created_bit_pipeline_layout;
+					graphics_created_bitmask |= graphics_created_bit_pipeline_layout;
 					{
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
 						debug_name.objectType = VK_OBJECT_TYPE_PIPELINE_LAYOUT;
-						debug_name.objectHandle = reinterpret_cast<uint64_t>(gpu_mesh.layout);
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(scene_layout);
 						debug_name.pObjectName = "rosy shader pipeline layout";
 						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
 						{
@@ -2825,7 +2828,7 @@ namespace {
 							VK_SHADER_STAGE_VERTEX_BIT,
 							VK_SHADER_STAGE_FRAGMENT_BIT
 						};
-						vkCmdBindShadersEXT(cf.command_buffer, 2, stages, gpu_mesh.shaders.data());
+						vkCmdBindShadersEXT(cf.command_buffer, 2, stages, scene_shaders.data());
 						constexpr VkShaderStageFlagBits unused_stages[4] =
 						{
 							VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
@@ -2833,13 +2836,13 @@ namespace {
 							VK_SHADER_STAGE_GEOMETRY_BIT,
 						};
 						vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
-						vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gpu_mesh.layout, 0, 1, &descriptor_set, 0, nullptr);
+						vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
 						gpu_draw_push_constants pc{
 							.scene_buffer = scene_buffer.scene_buffer_address,
 							.vertex_buffer = gpu_mesh.vertex_buffer_address,
 							.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * gpu_mesh.material_index),
 						};
-						vkCmdPushConstants(cf.command_buffer, gpu_mesh.layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
+						vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
 						vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 						vkCmdDrawIndexed(cf.command_buffer, gpu_mesh.num_indices, 1, 0, 0, 0);
 					}
