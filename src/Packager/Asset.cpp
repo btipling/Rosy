@@ -24,15 +24,15 @@ using namespace rosy_packager;
 // 6. Per mesh:
 // 6.a Mesh size layout: std::array<size_t,3>
 		// index 0 - num positions -> a std::vector<position> of positions size given
-	    // index 1 - num indices -> a std::vector<uint32_t> of indices size given
-	    // index 2 - num surfaces -> a std::vector<surface> of surfaces size given
+		// index 1 - num indices -> a std::vector<uint32_t> of indices size given
+		// index 2 - num surfaces -> a std::vector<surface> of surfaces size given
 
 rosy::result asset::write()
 {
 
 	// OPEN FILE FOR WRITING BINARY
 
-	FILE* stream{nullptr};
+	FILE* stream{ nullptr };
 
 	std::cout << std::format("current file path: {}", std::filesystem::current_path().string()) << '\n';
 
@@ -62,12 +62,19 @@ rosy::result asset::write()
 
 	// WRITE GLTF SIZES FOR MATERIALS AND MESHES
 
-	const size_t num_materials{ materials.size() };
-	// ReSharper disable once CppTooWideScope
-	const size_t num_meshes{ meshes.size() };
 	{
+		const size_t num_materials{ materials.size() };
+		const size_t num_scenes{ scenes.size() };
+		const size_t num_nodes{ nodes.size() };
+		const size_t num_meshes{ meshes.size() };
+
 		constexpr size_t lookup_sizes = 1;
-		const std::array<size_t, 2> sizes{ num_materials, num_meshes };
+		const std::array<size_t, 4> sizes{
+			num_materials,
+			num_scenes,
+			num_nodes,
+			num_meshes,
+		};
 		size_t res = fwrite(&sizes, sizeof(sizes), lookup_sizes, stream);
 		if (res != lookup_sizes) {
 			std::cerr << std::format("failed to write {}/{} num_gltf_sizes", res, lookup_sizes) << '\n';
@@ -80,8 +87,8 @@ rosy::result asset::write()
 
 	{
 		size_t res = fwrite(materials.data(), sizeof(material), materials.size(), stream);
-		if (res != num_materials) {
-			std::cerr << std::format("failed to write {}/{} materials", res, num_materials) << '\n';
+		if (res != materials.size()) {
+			std::cerr << std::format("failed to write {}/{} materials", res, materials.size()) << '\n';
 			return rosy::result::write_failed;
 		}
 		std::cout << std::format("wrote {} materials", res) << '\n';
@@ -94,7 +101,7 @@ rosy::result asset::write()
 
 		// WRITE ONE MESH SIZE
 
-		const size_t num_positions{ positions.size()};
+		const size_t num_positions{ positions.size() };
 		const size_t num_indices{ indices.size() };
 		const size_t num_surfaces{ surfaces.size() };
 		{
@@ -156,7 +163,7 @@ rosy::result asset::read()
 
 	// OPEN FILE FOR READING BINARY
 
-	FILE* stream{nullptr};
+	FILE* stream{ nullptr };
 
 	{
 		std::cout << std::format("current file path: {}", std::filesystem::current_path().string()) << '\n';
@@ -171,7 +178,7 @@ rosy::result asset::read()
 	{
 		constexpr size_t num_headers = 1;
 		file_header header{
-			.magic = 0, 
+			.magic = 0,
 			.version = 0,
 			.endianness = 0,
 			.root_scene = 0,
@@ -201,10 +208,12 @@ rosy::result asset::read()
 	// WRITE GLTF SIZES FOR MATERIALS AND MESHES
 
 	size_t num_materials{ 0 };
+	size_t num_scenes{ 0 };
+	size_t num_nodes{ 0 };
 	size_t num_meshes{ 0 };
 	{
 		constexpr size_t lookup_sizes = 1;
-		std::array<size_t, 2> num_gltf_sizes{ 0, 0 };
+		std::array<size_t, 4> num_gltf_sizes{ 0, 0, 0, 0 };
 		size_t res = fread(&num_gltf_sizes, sizeof(num_gltf_sizes), lookup_sizes, stream);
 		if (res != lookup_sizes) {
 			std::cerr << std::format("failed to read {}/{} num_gltf_sizes", res, lookup_sizes) << '\n';
@@ -213,7 +222,9 @@ rosy::result asset::read()
 		std::cout << std::format("read {} sizes", res) << '\n';
 
 		num_materials = num_gltf_sizes[0];
-		num_meshes= num_gltf_sizes[1];
+		num_scenes = num_gltf_sizes[1];
+		num_nodes = num_gltf_sizes[2];
+		num_meshes = num_gltf_sizes[3];
 	}
 
 	materials.resize(num_materials);
@@ -303,10 +314,10 @@ rosy::result asset::read()
 	return rosy::result::ok;
 }
 
-rosy::result asset::read_shaders() 
+rosy::result asset::read_shaders()
 {
 	// ReSharper disable once CppUseStructuredBinding
-	for (shader & s: shaders)
+	for (shader& s : shaders)
 	{
 		std::ifstream file(s.path, std::ios::ate | std::ios::binary);
 
