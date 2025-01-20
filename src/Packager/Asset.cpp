@@ -248,7 +248,7 @@ rosy::result asset::write()
 		// WRITE ONE MESH CHILD MESHES
 
 		{
-			size_t res = fwrite(surfaces.data(), sizeof(uint32_t), child_meshes.size(), stream);
+			size_t res = fwrite(child_meshes.data(), sizeof(uint32_t), child_meshes.size(), stream);
 			if (res != child_meshes.size()) {
 				std::cerr << std::format("failed to write {}/{} child meshes", res, child_meshes.size()) << '\n';
 				return rosy::result::write_failed;
