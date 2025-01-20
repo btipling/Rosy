@@ -38,6 +38,7 @@ namespace rosy
 
 	struct surface_graphics_data
 	{
+		size_t mesh_index{ 0 };
 		size_t graphics_object_index{ 0 };
 		size_t material_index{ 0 };
 		uint32_t index_count{ 0 };

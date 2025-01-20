@@ -282,7 +282,6 @@ namespace {
 		allocated_buffer vertex_buffer;
 		VkDeviceAddress vertex_buffer_address;
 		uint32_t num_indices{ 0 };
-		size_t material_index{ 0 };
 	};
 
 	struct gpu_scene_buffers
@@ -2272,8 +2271,6 @@ namespace {
 			size_t mesh_index{ 0 };
 			for (const auto& [asset_positions, asset_indices, asset_surfaces, child_meshes] : a.meshes) {
 				gpu_mesh_buffers gpu_mesh{};
-				const rosy_packager::surface s{ asset_surfaces[0] };
-				gpu_mesh.material_index = s.material;
 
 				// *** SETTING VERTEX BUFFER *** //
 				const size_t vertex_buffer_size = asset_positions.size() * sizeof(rosy_packager::position);
@@ -3012,11 +3009,12 @@ namespace {
 						vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 						vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
 						{
-							auto& gpu_mesh = gpu_meshes[0];
+							auto& surface_graphic = surface_graphics[0];
+							auto& gpu_mesh = gpu_meshes[surface_graphic.mesh_index];
 							gpu_draw_push_constants pc{
 								.scene_buffer = scene_buffer.scene_buffer_address,
 								.vertex_buffer = gpu_mesh.vertex_buffer_address,
-								.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * gpu_mesh.material_index),
+								.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * surface_graphic.material_index),
 							};
 							vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
 							vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);

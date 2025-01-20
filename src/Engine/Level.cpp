@@ -82,6 +82,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				for (const auto& current_surface : current_mesh.surfaces)
 				{
 					surface_graphics_data sgd{};
+					sgd.mesh_index = current_mesh_index;
 					sgd.graphics_object_index = go_index;
 					sgd.material_index = current_surface.material;
 					sgd.index_count = current_surface.count;
