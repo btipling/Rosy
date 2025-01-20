@@ -34,10 +34,18 @@ struct stack_item
 
 std::array<float, 16> mat4_to_array(glm::mat4 m)
 {
-	std::array<float, 16> rv{};
+	std::array<float, 16> a{};
 	const auto pos_r = glm::value_ptr(m);
-	for (uint64_t i{ 0 }; i < 16; i++) rv[i] = pos_r[i];
-	return rv;
+	for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
+	return a;
+}
+
+glm::mat4 array_to_mat4(std::array<float, 16> a)
+{
+	glm::mat4 m{};
+	const auto pos_r = glm::value_ptr(m);
+	for (uint64_t i{ 0 }; i < 16; i++) pos_r[i] = a[i];
+	return m;
 }
 
 result level::set_asset(const rosy_packager::asset& new_asset)
@@ -64,8 +72,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		const stack_item current_stack_item = queue.front();
 		queue.pop();
 
-		glm::mat4 node_transform = glm::mat4(1.f);
-		memcpy(glm::value_ptr(node_transform), current_stack_item.stack_node.transform.data(), current_stack_item.stack_node.transform.size());
+		glm::mat4 node_transform = array_to_mat4(current_stack_item.stack_node.transform);
 
 		if (current_stack_item.stack_node.mesh_id < new_asset.meshes.size()) {
 			mesh_queue.push(current_stack_item.stack_node.mesh_id);

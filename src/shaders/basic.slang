@@ -7,6 +7,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 {
     SceneData sd = *BasicPushConstants.sd;
     BasicInputVertex v = *(BasicPushConstants.v + uiVertexId);
+    BasicGraphicsData gd = *BasicPushConstants.gd;
+    float4x4 worldMat = gd.transform;
 
     float4 posWorld = float4(v.position, 1.0);
 
@@ -14,7 +16,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.vertex = float4(v.position, 1.f);
     output.basicVertex.normal = v.normal;
     output.basicVertex.color = v.color;
-    output.sv_position = mul(sd.viewproj, posWorld);
+
+    output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
 
     return output;
 }

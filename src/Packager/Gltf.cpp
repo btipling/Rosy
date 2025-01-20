@@ -141,14 +141,15 @@ rosy::result gltf::import()
 
 		const auto tm = translate(fastgltf::math::fmat4x4(1.0f), tr);
 		const auto rm = fastgltf::math::fmat4x4(asMatrix(ro));
-		const auto sm = scale(fastgltf::math::fmat4x4(1.0f), tr);
+		const auto sm = scale(fastgltf::math::fmat4x4(1.0f), sc);
 		const auto transform = tm * rm * sm;
 
-		const auto dt = transform.data();
-		for (size_t i{ 0 }; i < n.transform.size(); i++)
+		for (size_t i{ 0 }; i < 4; i++)
 		{
-			const float v = *(dt + i);
-			n.transform[i] = v;
+			for (size_t j{ 0 }; j < 4; j++)
+			{
+				n.transform[i * 4 + j] = transform[i][j];
+			}
 		}
 		n.child_nodes.reserve(gltf_node.children.size());
 		for (size_t node_index : gltf_node.children)
