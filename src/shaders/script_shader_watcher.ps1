@@ -25,8 +25,6 @@ function Watch-File {
             $output = &.\script_compile.ps1
             if ($LASTEXITCODE -ne 0) {
                 Write-Host "Shader compilation failed; $output"
-                # $global:should_quit = $true
-                exit 1
             }
         }
         catch {

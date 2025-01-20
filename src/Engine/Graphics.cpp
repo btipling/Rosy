@@ -3009,17 +3009,24 @@ namespace {
 						vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 						vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
 						{
-							auto& surface_graphic = surface_graphics[0];
-							auto& gpu_mesh = gpu_meshes[surface_graphic.mesh_index];
-							gpu_draw_push_constants pc{
-								.scene_buffer = scene_buffer.scene_buffer_address,
-								.vertex_buffer = gpu_mesh.vertex_buffer_address,
-								.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * surface_graphic.graphics_object_index),
-								.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * surface_graphic.material_index),
-							};
-							vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
-							vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-							vkCmdDrawIndexed(cf.command_buffer, gpu_mesh.num_indices, 1, 0, 0, 0);
+							size_t current_mesh_index = UINT64_MAX;
+							for (auto& surface_graphic : surface_graphics)
+							{
+								auto& gpu_mesh = gpu_meshes[surface_graphic.mesh_index];
+								if (surface_graphic.mesh_index != current_mesh_index)
+								{
+									vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+									current_mesh_index = surface_graphic.mesh_index;
+								}
+								gpu_draw_push_constants pc{
+									.scene_buffer = scene_buffer.scene_buffer_address,
+									.vertex_buffer = gpu_mesh.vertex_buffer_address,
+									.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * surface_graphic.graphics_object_index),
+									.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * surface_graphic.material_index),
+								};
+								vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
+								vkCmdDrawIndexed(cf.command_buffer, surface_graphic.index_count, 1, surface_graphic.start_index, 0, 0);
+							}
 						}
 					}
 					if (render_ui) {
@@ -3341,9 +3348,9 @@ result graphics::update(const std::array<float, 16>& v, const std::array<float, 
 		.view = v,
 		.proj = p,
 		.view_projection = vp,
-		.sunlight = { 0.25f, 0.98f, 0.1f },
+		.sunlight = { 0.25f, 0.98f, 5.1f },
 		.camera_position = cam_pos,
-		.ambient_color = { 0.33f,  0.33f, 0.33f, 0.33f, },
+		.ambient_color = { 0.77f,  0.77f, 0.77f, 1.f, },
 		.sunlight_color = { 0.77f, 0.77f, 0.77f, 1.f },
 	};
 	memcpy(gd->scene_buffer.scene_buffer.info.pMappedData, &sd, sizeof(sd));
