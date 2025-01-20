@@ -104,9 +104,9 @@ rosy::result asset::write()
 
 		// WRITE ONE SCENE SIZE
 
-		const size_t num_scene_nodes{ scene_nodes.size() };
 		{
 			constexpr size_t lookup_sizes = 1;
+			const size_t num_scene_nodes{ scene_nodes.size() };
 			const std::array<size_t, 1> scene_sizes{ num_scene_nodes };
 			size_t res = fwrite(&scene_sizes, sizeof(scene_sizes), lookup_sizes, stream);
 			if (res != lookup_sizes) {
@@ -117,6 +117,17 @@ rosy::result asset::write()
 				"wrote {} sizes, num_nodes: {}",
 				res, num_scene_nodes) << '\n';
 		}
+
+		// WRITE ONE SCENE NODES
+
+		{
+			size_t res = fwrite(scene_nodes.data(), sizeof(position), scene_nodes.size(), stream);
+			if (res != scene_nodes.size()) {
+				std::cerr << std::format("failed to write {}/{} scene nodes", res, scene_nodes.size()) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format("wrote {} scene nodes", res) << '\n';
+		}
 	}
 
 	// WRITE ALL MESHES ONE AT A TIME
@@ -125,10 +136,10 @@ rosy::result asset::write()
 
 		// WRITE ONE MESH SIZE
 
-		const size_t num_positions{ positions.size() };
-		const size_t num_indices{ indices.size() };
-		const size_t num_surfaces{ surfaces.size() };
 		{
+			const size_t num_positions{ positions.size() };
+			const size_t num_indices{ indices.size() };
+			const size_t num_surfaces{ surfaces.size() };
 			constexpr size_t lookup_sizes = 1;
 			const std::array<size_t, 3> mesh_sizes{ num_positions, num_indices, num_surfaces };
 			size_t res = fwrite(&mesh_sizes, sizeof(mesh_sizes), lookup_sizes, stream);
@@ -145,8 +156,8 @@ rosy::result asset::write()
 
 		{
 			size_t res = fwrite(positions.data(), sizeof(position), positions.size(), stream);
-			if (res != num_positions) {
-				std::cerr << std::format("failed to write {}/{} positions", res, num_positions) << '\n';
+			if (res != positions.size()) {
+				std::cerr << std::format("failed to write {}/{} positions", res, positions.size()) << '\n';
 				return rosy::result::write_failed;
 			}
 			std::cout << std::format("wrote {} positions", res) << '\n';
@@ -156,8 +167,8 @@ rosy::result asset::write()
 
 		{
 			size_t res = fwrite(indices.data(), sizeof(uint32_t), indices.size(), stream);
-			if (res != num_indices) {
-				std::cerr << std::format("failed to write {}/{} indices", res, num_indices) << '\n';
+			if (res != indices.size()) {
+				std::cerr << std::format("failed to write {}/{} indices", res, indices.size()) << '\n';
 				return rosy::result::write_failed;
 			}
 			std::cout << std::format("wrote {} indices", res) << '\n';
@@ -167,8 +178,8 @@ rosy::result asset::write()
 
 		{
 			size_t res = fwrite(surfaces.data(), sizeof(surface), surfaces.size(), stream);
-			if (res != num_surfaces) {
-				std::cerr << std::format("failed to write {}/{} surfaces", res, num_surfaces) << '\n';
+			if (res != surfaces.size()) {
+				std::cerr << std::format("failed to write {}/{} surfaces", res, surfaces.size()) << '\n';
 				return rosy::result::write_failed;
 			}
 			std::cout << std::format("wrote {} surfaces", res) << '\n';
@@ -268,7 +279,7 @@ rosy::result asset::read()
 	// READ ALL THE SCENES ONE AT A TIME
 
 	for (size_t i{ 0 }; i < num_scenes; i++) {
-		scene{};
+		scene s{};
 
 		// READ ONE SCENE SIZE
 
@@ -285,6 +296,19 @@ rosy::result asset::read()
 			std::cout << std::format(
 				"read {} sizes, num_nodes: {} for scene",
 				res, num_scene_nodes) << '\n';
+		}
+
+		s.nodes.resize(num_scene_nodes);
+
+		// READ ONE SCENE NODES
+
+		{
+			size_t res = fread(s.nodes.data(), sizeof(position), num_scene_nodes, stream);
+			if (res != num_scene_nodes) {
+				std::cerr << std::format("failed to read {}/{} scene nodes", res, num_scene_nodes) << '\n';
+				return rosy::result::read_failed;
+			}
+			std::cout << std::format("read {} scene nodes", res) << '\n';
 		}
 	}
 
