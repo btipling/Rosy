@@ -306,7 +306,7 @@ rosy::result asset::read()
 			return rosy::result::read_failed;
 		}
 		root_scene = header.root_scene;
-		std::cout << std::format("wrote {} headers", res) << '\n';
+		std::cout << std::format("read {} headers", res) << '\n';
 		std::cout << std::format("format version: {} is little endian: {} root scene: {}",
 			header.version, is_little_endian, root_scene) << '\n';
 	}
