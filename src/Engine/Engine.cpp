@@ -129,6 +129,26 @@ result engine::init()
 		}
 	}
 
+	// Level initialization
+	{
+		lvl = new(std::nothrow) level{};
+		if (lvl == nullptr)
+		{
+			l->error("Error allocating level");
+			return result::allocation_failure;
+		}
+		if (auto const res = lvl->init(l, cfg, cam); res != result::ok)
+		{
+			l->error(std::format("Level creation failed: {}", static_cast<uint8_t>(res)));
+			return res;
+		}
+		if (auto const res = lvl->set_asset(a); res != result::ok)
+		{
+			l->error(std::format("Asset setting on level failed: {}", static_cast<uint8_t>(res)));
+			return res;
+		}
+	}
+
 	// Graphics engine initialization
 	{
 		gfx = new(std::nothrow) graphics{};
@@ -144,7 +164,7 @@ result engine::init()
 		}
 		if (auto const res = gfx->set_asset(a); res != result::ok)
 		{
-			l->error(std::format("Asset setting failed: {}", static_cast<uint8_t>(res)));
+			l->error(std::format("Asset setting on graphics failed: {}", static_cast<uint8_t>(res)));
 			return res;
 		}
 	}
@@ -162,6 +182,13 @@ void engine::deinit()
 		gfx->deinit();
 		delete gfx;
 		gfx = nullptr;
+	}
+
+	if (lvl)
+	{
+		lvl->deinit();
+		delete lvl;
+		lvl = nullptr;
 	}
 
 	if (cam)
