@@ -1,4 +1,6 @@
 #include "Asset.h"
+
+#include <cassert>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -127,6 +129,62 @@ rosy::result asset::write()
 				return rosy::result::write_failed;
 			}
 			std::cout << std::format("wrote {} scene nodes", res) << '\n';
+		}
+	}
+
+	// WRITE ALL NODES ONE AT A TIME
+
+	for (const auto& [transform, mesh_id, child_nodes] : nodes) {
+
+		// WRITE ONE NODE SIZE
+
+		constexpr size_t num_transforms{ 1 };
+		constexpr size_t num_mesh_ids{ 1 };
+		{
+			const size_t num_child_nodes{ child_nodes.size() };
+			constexpr size_t lookup_sizes = 1;
+			const std::array<size_t, 3> node_sizes{ num_transforms, num_mesh_ids, num_child_nodes };
+			size_t res = fwrite(&node_sizes, sizeof(node_sizes), lookup_sizes, stream);
+			if (res != lookup_sizes) {
+				std::cerr << std::format("failed to write {}/{} node_sizes", res, lookup_sizes) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format(
+				"wrote {} sizes, num_transforms: {} num_mesh_ids: {} num_child_nodes: {}",
+				res, num_transforms, num_mesh_ids, num_child_nodes) << '\n';
+		}
+
+		// WRITE ONE NODE TRANSFORM
+
+		{
+			size_t res = fwrite(&transform, sizeof(transform), num_transforms, stream);
+			if (res != num_transforms) {
+				std::cerr << std::format("failed to write {}/{} node transforms", res, num_transforms) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format("wrote {} node transforms", res) << '\n';
+		}
+
+		// WRITE ONE NODE MESH INDEX
+
+		{
+			size_t res = fwrite(&mesh_id, sizeof(mesh_id), num_mesh_ids, stream);
+			if (res != num_mesh_ids) {
+				std::cerr << std::format("failed to write {}/{} node mesh ids", res, num_mesh_ids) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format("wrote {} node mesh ids", res) << '\n';
+		}
+
+		// WRITE ONE NODE CHILD NODES
+
+		{
+			size_t res = fwrite(child_nodes.data(), sizeof(uint32_t), child_nodes.size(), stream);
+			if (res != child_nodes.size()) {
+				std::cerr << std::format("failed to write {}/{} node child nodes", res, child_nodes.size()) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format("wrote {} node child nodes", res) << '\n';
 		}
 	}
 
@@ -263,6 +321,8 @@ rosy::result asset::read()
 	}
 
 	materials.resize(num_materials);
+	scenes.reserve(num_scenes);
+	nodes.reserve(num_nodes);
 	meshes.reserve(num_meshes);
 
 	// READ GLTF MATERIALS
@@ -303,13 +363,82 @@ rosy::result asset::read()
 		// READ ONE SCENE NODES
 
 		{
-			size_t res = fread(s.nodes.data(), sizeof(position), num_scene_nodes, stream);
+			size_t res = fread(s.nodes.data(), sizeof(uint32_t), num_scene_nodes, stream);
 			if (res != num_scene_nodes) {
 				std::cerr << std::format("failed to read {}/{} scene nodes", res, num_scene_nodes) << '\n';
 				return rosy::result::read_failed;
 			}
 			std::cout << std::format("read {} scene nodes", res) << '\n';
 		}
+		scenes.push_back(s);
+	}
+
+	// READ ALL NODES ONE AT A TIME
+
+	for (size_t i{ 0 }; i < num_nodes; i++) {
+		node n{};
+
+		// READ ONE NODE SIZE
+
+		size_t num_transforms{ 0 };
+		size_t num_mesh_ids{ 0 };
+		size_t num_child_nodes{ 0 };
+		{
+			constexpr size_t lookup_sizes = 1;
+			std::array<size_t, 3> node_sizes{ 0, 0, 0 };
+			size_t res = fread(&node_sizes, sizeof(node_sizes), lookup_sizes, stream);
+			if (res != lookup_sizes) {
+				std::cerr << std::format("failed to read {}/{} node_sizes", res, lookup_sizes) << '\n';
+				return rosy::result::read_failed;
+			}
+			num_transforms = node_sizes[0];
+			num_mesh_ids = node_sizes[1];
+			num_child_nodes = node_sizes[2];
+			std::cout << std::format(
+				"read {} sizes, num_transforms: {} num_mesh_ids: {} num_child_nodes: {}",
+				res, num_transforms, num_mesh_ids, num_child_nodes) << '\n';
+			assert(num_transforms == 1);
+			assert(num_mesh_ids == 1);
+		}
+
+		n.child_nodes.resize(num_child_nodes);
+
+		// READ ONE NODE TRANSFORM
+
+		{
+			size_t res = fread(&n.transform, sizeof(std::array<float, 16>), num_transforms, stream);
+			if (res != num_transforms) {
+				std::cerr << std::format("failed to read {}/{} node transform", res, num_transforms) << '\n';
+				return rosy::result::read_failed;
+			}
+			std::cout << std::format("read {} node transform", res) << '\n';
+		}
+
+		// READ ONE NODE MESH ID
+
+		{
+			size_t res = fread(&n.mesh_id, sizeof(uint32_t), num_mesh_ids, stream);
+			if (res != num_mesh_ids) {
+				std::cerr << std::format("failed to read {}/{} node mesh ids", res, num_mesh_ids) << '\n';
+				return rosy::result::read_failed;
+			}
+			std::cout << std::format("read {} node mesh ids", res) << '\n';
+		}
+
+		// READ ONE NODE CHILD NODES
+
+		{
+			size_t res = fread(n.child_nodes.data(), sizeof(uint32_t), num_child_nodes, stream);
+			if (res != num_child_nodes) {
+				std::cerr << std::format("failed to read {}/{} node child nodes", res, num_child_nodes) << '\n';
+				return rosy::result::read_failed;
+			}
+			std::cout << std::format("read {} node child nodes", res) << '\n';
+		}
+
+		// ADD MESH TO ASSET
+
+		nodes.push_back(n);
 	}
 
 	// READ ALL MESHES ONE AT A TIME
