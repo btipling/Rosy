@@ -123,7 +123,7 @@ rosy::result asset::write()
 		// WRITE ONE SCENE NODES
 
 		{
-			size_t res = fwrite(scene_nodes.data(), sizeof(position), scene_nodes.size(), stream);
+			size_t res = fwrite(scene_nodes.data(), sizeof(uint32_t), scene_nodes.size(), stream);
 			if (res != scene_nodes.size()) {
 				std::cerr << std::format("failed to write {}/{} scene nodes", res, scene_nodes.size()) << '\n';
 				return rosy::result::write_failed;
@@ -346,7 +346,7 @@ rosy::result asset::read()
 		size_t num_scene_nodes{ 0 };
 		{
 			constexpr size_t lookup_sizes = 1;
-			std::array<size_t, 3> scene_sizes{ 0, 0, 0 };
+			std::array<size_t, 1> scene_sizes{ 0 };
 			size_t res = fread(&scene_sizes, sizeof(scene_sizes), lookup_sizes, stream);
 			if (res != lookup_sizes) {
 				std::cerr << std::format("failed to read {}/{} scene_sizes", res, lookup_sizes) << '\n';

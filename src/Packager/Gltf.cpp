@@ -118,5 +118,17 @@ rosy::result gltf::import()
 		}
 		gltf_asset.meshes.push_back(new_mesh);
 	}
+
+	gltf_asset.scenes.reserve(gltf.scenes.size());
+	for (auto& [nodeIndices, name] : gltf.scenes)
+	{
+		scene s{};
+		s.nodes.reserve(nodeIndices.size());
+		for (size_t node_index : nodeIndices)
+		{
+			s.nodes.push_back(static_cast<uint32_t>(node_index));
+		}
+		gltf_asset.scenes.push_back(s);
+	}
 	return rosy::result::ok;
 }
