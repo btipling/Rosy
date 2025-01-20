@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <vector>
 #include <cstdint>
 
 namespace rosy
@@ -35,7 +36,7 @@ namespace rosy
 		bool enable_validation_layers = true;
 	};
 
-	struct geometry_object_data
+	struct surface_render_data
 	{
 		size_t mesh_index{ 0 };
 		size_t material_index{ 0 };
@@ -45,8 +46,9 @@ namespace rosy
 
 	struct world_object
 	{
-		geometry_object_data geo_data{};
+		std::vector< surface_render_data> surface_data{};
 		std::array<float, 16> transform;
+		std::array<float, 16> normal_transform;
 	};
 
 }
