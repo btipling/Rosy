@@ -93,6 +93,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					mesh_queue.push(child_mesh_index);
 				}
+				graphics_objects.push_back(go);
 			}
 		}
 
