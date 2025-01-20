@@ -116,6 +116,7 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_pipeline_layout  = 0b00000001000000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_scene_buffer     = 0b00000010000000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_materials_buffer = 0b00000100000000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_graphics_buffer  = 0b00001000000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -291,32 +292,25 @@ namespace {
 		size_t buffer_size;
 	};
 
+	struct graphic_objects_buffers
+	{
+		allocated_buffer go_buffer;
+		VkDeviceAddress go_buffer_address;
+		size_t buffer_size;
+	};
+
 	struct gpu_draw_push_constants
 	{
 		VkDeviceAddress scene_buffer{ 0 };
 		VkDeviceAddress vertex_buffer{ 0 };
-		VkDeviceAddress mesh_buffer{ 0 };
+		VkDeviceAddress go_buffer{ 0 };
 		VkDeviceAddress material_buffer{ 0 };
 	};
 
-	struct mesh_data
+	struct graphic_object_data
 	{
 		std::array<float, 16> transform;
-		std::array<float, 16> normal_transform;
-		uint32_t material_index;
-	};
-
-	struct surface_object {
-		uint32_t index_count;
-		uint32_t first_index;
-		size_t material_index;
-		size_t mesh_index;
-
-		VkBuffer index_buffer;
-		VkDeviceAddress scene_buffer_address{ 0 };
-		VkDeviceAddress vertex_buffer_address{ 0 };
-		VkDeviceAddress mesh_buffer_address{ 0 };
-		VkDeviceAddress material_buffer_address{ 0 };
+		//std::array<float, 16> normal_transform;
 	};
 
 	struct graphics_device
@@ -392,7 +386,10 @@ namespace {
 		std::vector<gpu_mesh_buffers> gpu_meshes{};
 		gpu_scene_buffers scene_buffer{};
 		gpu_material_buffer material_buffer{};
-		allocated_buffer surface_buffer{};
+		graphic_objects_buffers graphic_objects_buffer{};
+
+		// Graphic Objects
+		std::vector<surface_graphics_data> surface_graphics{};
 
 		std::vector<VkShaderEXT> scene_shaders;
 		VkPipelineLayout scene_layout;
@@ -614,6 +611,11 @@ namespace {
 				{
 					vmaDestroyBuffer(allocator, gpu_mesh.vertex_buffer.buffer, gpu_mesh.vertex_buffer.allocation);
 				}
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_graphics_buffer)
+			{
+				vmaDestroyBuffer(allocator, graphic_objects_buffer.go_buffer.buffer, graphic_objects_buffer.go_buffer.allocation);
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_materials_buffer)
@@ -2599,6 +2601,172 @@ namespace {
 			return result::ok;
 		}
 
+		result set_graphic_objects(std::vector<graphics_object> graphics_objects)
+		{
+			surface_graphics.clear();
+			std::vector<graphic_object_data> god{};
+			god.reserve(graphics_objects.size());
+			for (const auto& go : graphics_objects)
+			{
+				god.push_back({
+				.transform = go.transform,
+				});
+				for (const auto& s : go.surface_data)
+				{
+					surface_graphics.push_back(s);
+				}
+
+			}
+
+			// *** SETTING GRAPHICS OBJECTS BUFFER *** //
+			{
+
+				const size_t graphic_objects_buffer_size = god.size() * sizeof(graphic_object_data);
+				{
+					VkBufferCreateInfo buffer_info{};
+					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+					buffer_info.pNext = nullptr;
+					buffer_info.size = graphic_objects_buffer_size;
+					buffer_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+					VmaAllocationCreateInfo vma_alloc_info{};
+					vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+					vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+					if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &graphic_objects_buffer.go_buffer.buffer, &graphic_objects_buffer.go_buffer.allocation, &graphic_objects_buffer.go_buffer.info); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating graphics objects buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+					{
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(graphic_objects_buffer.go_buffer.buffer);
+						debug_name.pObjectName = "rosy graphics objects buffer";
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating graphics objects buffer name: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+					}
+				}
+
+				{
+					VkBufferDeviceAddressInfo device_address_info{};
+					device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+					device_address_info.buffer = graphic_objects_buffer.go_buffer.buffer;
+
+					// *** SETTING GRAPHICS OBJECTS BUFFER ADDRESS *** //
+					graphic_objects_buffer.go_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
+				}
+
+				allocated_buffer staging{};
+				{
+					VkBufferCreateInfo buffer_info{};
+					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+					buffer_info.pNext = nullptr;
+					buffer_info.size = graphic_objects_buffer_size;
+					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+					VmaAllocationCreateInfo vma_alloc_info{};
+					vma_alloc_info.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+					vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+					if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &staging.buffer, &staging.allocation, &staging.info); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating graphics objects staging buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+					graphics_created_bitmask |= graphics_created_bit_graphics_buffer;
+					{
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(staging.buffer);
+						debug_name.pObjectName = "rosy material staging buffer";
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating graphics objects staging buffer name: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+					}
+				}
+
+				memcpy(staging.info.pMappedData, god.data(), graphic_objects_buffer_size);
+
+				{
+					if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error resetting immediate fence for graphics objects buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					if (VkResult res =  vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error resetting immediate command buffer for graphics objects buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					VkCommandBufferBeginInfo begin_info{};
+					begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+					begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+					if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error beginning immediate command buffer for graphics objects buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					VkBufferCopy vertex_copy{ 0 };
+					vertex_copy.dstOffset = 0;
+					vertex_copy.srcOffset = 0;
+					vertex_copy.size = graphic_objects_buffer_size;
+
+					vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, graphic_objects_buffer.go_buffer.buffer, 1, &vertex_copy);
+
+					if (VkResult res = vkEndCommandBuffer(immediate_command_buffer); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error ending immediate command buffer for graphics objects buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
+					cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+					cmd_buffer_submit_info.pNext = nullptr;
+					cmd_buffer_submit_info.commandBuffer = immediate_command_buffer;
+					cmd_buffer_submit_info.deviceMask = 0;
+					VkSubmitInfo2 submit_info{};
+					submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+					submit_info.pNext = nullptr;
+
+					submit_info.waitSemaphoreInfoCount = 0;
+					submit_info.pWaitSemaphoreInfos = nullptr;
+					submit_info.signalSemaphoreInfoCount = 0;
+					submit_info.pSignalSemaphoreInfos = nullptr;
+					submit_info.commandBufferInfoCount = 1;
+					submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
+
+					if (VkResult res = vkQueueSubmit2(present_queue, 1, &submit_info, immediate_fence); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error submitting staging buffer for graphics objects buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+
+					if (VkResult res = vkWaitForFences(device, 1, &immediate_fence, true, 9999999999); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error waiting for immediate fence for graphics objects buffer: {}", static_cast<uint8_t>(res)));
+						return result::error;
+					}
+				}
+				vmaDestroyBuffer(allocator, staging.buffer, staging.allocation);
+			}
+
+			return result::ok;
+		}
+
 		result render()
 		{
 			const frame_data cf = frame_datas[current_frame];
@@ -3157,6 +3325,10 @@ result graphics::set_asset(const rosy_packager::asset& a, std::vector<graphics_o
 {
 	l->debug(std::format("Setting asset with {} graphic objects.", graphics_objects.size()));
 	if (const auto res = gd->set_asset(a); res != result::ok)
+	{
+		return res;
+	}
+	if (const auto res = gd->set_graphic_objects(graphics_objects); res != result::ok)
 	{
 		return res;
 	}

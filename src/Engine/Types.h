@@ -46,7 +46,7 @@ namespace rosy
 
 	struct graphics_object
 	{
-		std::vector< surface_graphics_data> surface_data{};
+		std::vector<surface_graphics_data> surface_data{};
 		std::array<float, 16> transform;
 		std::array<float, 16> normal_transform;
 	};
