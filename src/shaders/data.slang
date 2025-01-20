@@ -34,6 +34,10 @@ public struct BasicInputVertex {
     public float4 color;
 };
 
+public struct BasicGraphicsData {
+    public float4x4 transform;
+};
+
 public struct RenderData {
     public float4x4 transform;
     public float3x3 normalTransform;
@@ -86,6 +90,7 @@ public struct BasicMaterialData {
 public struct BasicPushConstant {
     public SceneData *sd;
     public BasicInputVertex *v;
+    public BasicGraphicsData *gd;
     public BasicMaterialData *md;
 }
 

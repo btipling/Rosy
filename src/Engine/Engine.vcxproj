@@ -256,6 +256,7 @@
     <ClInclude Include="..\Packager\Asset.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="Level.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="Math.h" />
@@ -276,6 +277,7 @@
     <ClCompile Include="..\Packager\Asset.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Level.cpp" />
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Telemetry.cpp" />

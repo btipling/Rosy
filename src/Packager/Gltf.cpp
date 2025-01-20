@@ -109,7 +109,7 @@ rosy::result gltf::import()
 
 			// PRIMITIVE MATERIAL
 			if (primitive.materialIndex.has_value()) {
-				new_surface.material = primitive.materialIndex.value();
+				new_surface.material = static_cast<uint32_t>(primitive.materialIndex.value());
 			}
 			else {
 				new_surface.material = 0;
@@ -117,6 +117,46 @@ rosy::result gltf::import()
 			new_mesh.surfaces.push_back(new_surface);
 		}
 		gltf_asset.meshes.push_back(new_mesh);
+	}
+
+	gltf_asset.scenes.reserve(gltf.scenes.size());
+	for (auto& [nodeIndices, name] : gltf.scenes)
+	{
+		scene s{};
+		s.nodes.reserve(nodeIndices.size());
+		for (size_t node_index : nodeIndices)
+		{
+			s.nodes.push_back(static_cast<uint32_t>(node_index));
+		}
+		gltf_asset.scenes.push_back(s);
+	}
+
+	gltf_asset.nodes.reserve(gltf.nodes.size());
+	for (auto& gltf_node : gltf.nodes)
+	{
+		node n{};
+		n.mesh_id = static_cast<uint32_t>(gltf_node.meshIndex.value_or(SIZE_MAX));
+
+		auto& [tr, ro, sc] = std::get<fastgltf::TRS>(gltf_node.transform);
+
+		const auto tm = translate(fastgltf::math::fmat4x4(1.0f), tr);
+		const auto rm = fastgltf::math::fmat4x4(asMatrix(ro));
+		const auto sm = scale(fastgltf::math::fmat4x4(1.0f), sc);
+		const auto transform = tm * rm * sm;
+
+		for (size_t i{ 0 }; i < 4; i++)
+		{
+			for (size_t j{ 0 }; j < 4; j++)
+			{
+				n.transform[i * 4 + j] = transform[i][j];
+			}
+		}
+		n.child_nodes.reserve(gltf_node.children.size());
+		for (size_t node_index : gltf_node.children)
+		{
+			n.child_nodes.push_back(static_cast<uint32_t>(node_index));
+		}
+		gltf_asset.nodes.push_back(n);
 	}
 	return rosy::result::ok;
 }

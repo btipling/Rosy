@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <vector>
 #include <cstdint>
 
 namespace rosy
@@ -32,6 +34,22 @@ namespace rosy
 		int max_window_height = 0;
 		uint32_t device_vendor = 4318;
 		bool enable_validation_layers = true;
+	};
+
+	struct surface_graphics_data
+	{
+		size_t mesh_index{ 0 };
+		size_t graphics_object_index{ 0 };
+		size_t material_index{ 0 };
+		uint32_t index_count{ 0 };
+		uint32_t start_index{ 0 };
+	};
+
+	struct graphics_object
+	{
+		std::vector<surface_graphics_data> surface_data{};
+		std::array<float, 16> transform;
+		std::array<float, 16> normal_transform;
 	};
 
 }

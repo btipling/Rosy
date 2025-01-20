@@ -3,6 +3,7 @@
 #include "Telemetry.h"
 #include "Graphics.h"
 #include "Camera.h"
+#include "Level.h"
 
 
 // ReSharper disable once CppInconsistentNaming
@@ -15,6 +16,7 @@ namespace rosy
 		log* l{ nullptr };
 		SDL_Window* window{ nullptr };
 		camera* cam{ nullptr };
+		level* lvl{ nullptr };
 		graphics* gfx{ nullptr };
 		bool render_ui{ true };
 
