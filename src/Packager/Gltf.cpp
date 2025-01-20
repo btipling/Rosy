@@ -130,5 +130,32 @@ rosy::result gltf::import()
 		}
 		gltf_asset.scenes.push_back(s);
 	}
+
+	gltf_asset.nodes.reserve(gltf.nodes.size());
+	for (auto& gltf_node : gltf.nodes)
+	{
+		node n{};
+		n.mesh_id = static_cast<uint32_t>(gltf_node.meshIndex.value_or(SIZE_MAX));
+
+		auto [tr, ro, sc] = std::get<fastgltf::TRS>(gltf_node.transform);
+
+		const auto tm = translate(fastgltf::math::fmat4x4(1.0f), tr);
+		const auto rm = fastgltf::math::fmat4x4(asMatrix(ro));
+		const auto sm = scale(fastgltf::math::fmat4x4(1.0f), tr);
+		const auto transform = tm * rm * sm;
+
+		const auto dt = transform.data();
+		for (size_t i{ 0 }; i < n.transform.size(); i++)
+		{
+			const float v = *(dt + i);
+			n.transform[i] = v;
+		}
+		n.child_nodes.reserve(gltf_node.children.size());
+		for (size_t node_index : gltf_node.children)
+		{
+			n.child_nodes.push_back(static_cast<uint32_t>(node_index));
+		}
+		gltf_asset.nodes.push_back(n);
+	}
 	return rosy::result::ok;
 }
