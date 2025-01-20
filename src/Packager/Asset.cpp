@@ -9,10 +9,20 @@ using namespace rosy_packager;
 // 1. Header
 // 2. GLTF Size Layouts: std::array<size_t,2> 
 		// index 0 - num materials
-		// index 1 - num meshes
+		// index 1 - num scenes
+		// index 2 - num nodes
+		// index 3 - num meshes
 // 3. a std::vector<material> of material size given
-// 3. Per mesh:
-// 3.a Mesh size layout: std::array<size_t,3>
+// 4. Per scene
+// 4a. Scene size layout std::array<size_t, 1>
+//       // index 0 - num nodes -> a std::vector<uint32_t> of node indices
+// 5. Per Node
+// 5a. Node size layout: std::array<size_t, 3>
+//       // index 0 - num transforms -> always 1 to represent a single std::array<float, 16>
+//       // index 1 -> num mesh ids -> always 1 to represent a single uint32_t
+//       // index 2 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
+// 6. Per mesh:
+// 6.a Mesh size layout: std::array<size_t,3>
 		// index 0 - num positions -> a std::vector<position> of positions size given
 	    // index 1 - num indices -> a std::vector<uint32_t> of indices size given
 	    // index 2 - num surfaces -> a std::vector<surface> of surfaces size given

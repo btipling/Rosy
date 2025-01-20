@@ -33,9 +33,9 @@ namespace rosy_packager {
 
 	struct node
 	{
-		std::vector<uint32_t> child_nodes;
 		std::array<float, 16> transform;
 		std::uint32_t mesh_id; // if larger than meshes list, it means the node doesn't have a mesh
+		std::vector<uint32_t> child_nodes;
 	};
 
 	struct scene
