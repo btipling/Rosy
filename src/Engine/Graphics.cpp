@@ -2268,7 +2268,7 @@ namespace {
 
 			gpu_meshes.reserve(a.meshes.size());
 			size_t mesh_index{ 0 };
-			for (const auto& [asset_positions, asset_indices, asset_surfaces] : a.meshes) {
+			for (const auto& [asset_positions, asset_indices, asset_surfaces, child_meshes] : a.meshes) {
 				gpu_mesh_buffers gpu_mesh{};
 				const rosy_packager::surface s{ asset_surfaces[0] };
 				gpu_mesh.material_index = s.material;

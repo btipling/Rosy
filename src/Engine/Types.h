@@ -41,7 +41,7 @@ namespace rosy
 		size_t mesh_index{ 0 };
 		size_t material_index{ 0 };
 		uint32_t index_count{ 0 };
-		uint32_t first_index{ 0 };
+		uint32_t start_index{ 0 };
 	};
 
 	struct graphics_object

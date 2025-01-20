@@ -24,10 +24,11 @@ using namespace rosy_packager;
 //       // index 1 -> num mesh ids -> always 1 to represent a single uint32_t
 //       // index 2 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
 // 6. Per mesh:
-// 6.a Mesh size layout: std::array<size_t,3>
+// 6.a Mesh size layout: std::array<size_t,4>
 		// index 0 - num positions -> a std::vector<position> of positions size given
 		// index 1 - num indices -> a std::vector<uint32_t> of indices size given
 		// index 2 - num surfaces -> a std::vector<surface> of surfaces size given
+		// index 3 - num child meshes -> a std::vector<uint32_t> of child mesh size given
 
 rosy::result asset::write()
 {
@@ -190,7 +191,7 @@ rosy::result asset::write()
 
 	// WRITE ALL MESHES ONE AT A TIME
 
-	for (const auto& [positions, indices, surfaces] : meshes) {
+	for (const auto& [positions, indices, surfaces, child_meshes] : meshes) {
 
 		// WRITE ONE MESH SIZE
 
@@ -198,16 +199,17 @@ rosy::result asset::write()
 			const size_t num_positions{ positions.size() };
 			const size_t num_indices{ indices.size() };
 			const size_t num_surfaces{ surfaces.size() };
+			const size_t num_child_meshes{ child_meshes.size() };
 			constexpr size_t lookup_sizes = 1;
-			const std::array<size_t, 3> mesh_sizes{ num_positions, num_indices, num_surfaces };
+			const std::array<size_t, 4> mesh_sizes{ num_positions, num_indices, num_surfaces, num_child_meshes };
 			size_t res = fwrite(&mesh_sizes, sizeof(mesh_sizes), lookup_sizes, stream);
 			if (res != lookup_sizes) {
 				std::cerr << std::format("failed to write {}/{} num_mesh_sizes", res, lookup_sizes) << '\n';
 				return rosy::result::write_failed;
 			}
 			std::cout << std::format(
-				"wrote {} sizes, num_positions: {} num_indices: {} num_surfaces: {}",
-				res, num_positions, num_indices, num_surfaces) << '\n';
+				"wrote {} sizes, num_positions: {} num_indices: {} num_surfaces: {}, child_meshes: {}",
+				res, num_positions, num_indices, num_surfaces, num_child_meshes) << '\n';
 		}
 
 		// WRITE ONE MESH POSITIONS
@@ -241,6 +243,17 @@ rosy::result asset::write()
 				return rosy::result::write_failed;
 			}
 			std::cout << std::format("wrote {} surfaces", res) << '\n';
+		}
+
+		// WRITE ONE MESH CHILD MESHES
+
+		{
+			size_t res = fwrite(surfaces.data(), sizeof(uint32_t), child_meshes.size(), stream);
+			if (res != child_meshes.size()) {
+				std::cerr << std::format("failed to write {}/{} child meshes", res, child_meshes.size()) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format("wrote {} child meshes", res) << '\n';
 		}
 	}
 
@@ -451,9 +464,10 @@ rosy::result asset::read()
 		size_t num_positions{ 0 };
 		size_t num_indices{ 0 };
 		size_t num_surfaces{ 0 };
+		size_t num_child_meshes{ 0 };
 		{
 			constexpr size_t lookup_sizes = 1;
-			std::array<size_t, 3> mesh_sizes{ 0, 0, 0 };
+			std::array<size_t, 4> mesh_sizes{ 0, 0, 0, 0 };
 			size_t res = fread(&mesh_sizes, sizeof(mesh_sizes), lookup_sizes, stream);
 			if (res != lookup_sizes) {
 				std::cerr << std::format("failed to read {}/{} num_mesh_sizes", res, lookup_sizes) << '\n';
@@ -462,14 +476,16 @@ rosy::result asset::read()
 			num_positions = mesh_sizes[0];
 			num_indices = mesh_sizes[1];
 			num_surfaces = mesh_sizes[2];
+			num_child_meshes = mesh_sizes[3];
 			std::cout << std::format(
-				"read {} sizes, num_positions: {} num_indices: {} num_surfaces: {}",
-				res, num_positions, num_indices, num_surfaces) << '\n';
+				"read {} sizes, num_positions: {} num_indices: {} num_surfaces: {} num_child_meshes: {}",
+				res, num_positions, num_indices, num_surfaces, num_child_meshes) << '\n';
 		}
 
 		m.positions.resize(num_positions);
 		m.indices.resize(num_indices);
 		m.surfaces.resize(num_surfaces);
+		m.child_meshes.resize(num_child_meshes);
 
 		// READ ONE MESH POSITIONS
 
@@ -502,6 +518,17 @@ rosy::result asset::read()
 				return rosy::result::read_failed;
 			}
 			std::cout << std::format("read {} surfaces", res) << '\n';
+		}
+
+		// READ ONE MESH CHILD MESHES
+
+		{
+			size_t res = fread(m.child_meshes.data(), sizeof(uint32_t), num_child_meshes, stream);
+			if (res != num_child_meshes) {
+				std::cerr << std::format("failed to read {}/{} child meshes", res, num_child_meshes) << '\n';
+				return rosy::result::read_failed;
+			}
+			std::cout << std::format("read {} child meshes", res) << '\n';
 		}
 
 		// ADD MESH TO ASSET

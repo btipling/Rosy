@@ -13,7 +13,7 @@ namespace rosy {
 		std::vector<graphics_object> graphics_objects;
 
 		result init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_cam);
-		result set_asset(rosy_packager::asset new_asset);
+		result set_asset(const rosy_packager::asset& new_asset);
 		void deinit();
 	};
 }

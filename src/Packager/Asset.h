@@ -55,6 +55,7 @@ namespace rosy_packager {
 		std::vector<position> positions;
 		std::vector<uint32_t> indices;
 		std::vector<surface> surfaces;
+		std::vector<uint32_t> child_meshes;
 	};
 
 	struct shader
