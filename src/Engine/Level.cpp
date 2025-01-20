@@ -40,7 +40,7 @@ std::array<float, 16> mat4_to_array(glm::mat4 m)
 	return rv;
 }
 
-result level::set_asset([[maybe_unused]] const rosy_packager::asset& new_asset)
+result level::set_asset(const rosy_packager::asset& new_asset)
 {
 	const size_t root_scene_index = static_cast<size_t>(new_asset.root_scene);
 	if (new_asset.scenes.size() <= root_scene_index) return result::invalid_argument;

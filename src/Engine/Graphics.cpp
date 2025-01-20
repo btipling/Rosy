@@ -3153,9 +3153,9 @@ void graphics::deinit()
 	l = nullptr;
 }
 
-result graphics::set_asset(const rosy_packager::asset& a) const
+result graphics::set_asset(const rosy_packager::asset& a, std::vector<graphics_object> graphics_objects) const
 {
-	l->debug("Setting asset!");
+	l->debug(std::format("Setting asset with {} graphic objects.", graphics_objects.size()));
 	if (const auto res = gd->set_asset(a); res != result::ok)
 	{
 		return res;

@@ -162,7 +162,7 @@ result engine::init()
 			l->error(std::format("Graphics creation failed: {}", static_cast<uint8_t>(res)));
 			return res;
 		}
-		if (auto const res = gfx->set_asset(a); res != result::ok)
+		if (auto const res = gfx->set_asset(a, lvl->graphics_objects); res != result::ok)
 		{
 			l->error(std::format("Asset setting on graphics failed: {}", static_cast<uint8_t>(res)));
 			return res;
