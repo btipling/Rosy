@@ -297,8 +297,29 @@ namespace {
 	{
 		VkDeviceAddress scene_buffer{ 0 };
 		VkDeviceAddress vertex_buffer{ 0 };
-		//VkDeviceAddress render_buffer{ 0 };
+		VkDeviceAddress render_buffer{ 0 };
 		VkDeviceAddress material_buffer{ 0 };
+	};
+
+	struct render_data
+	{
+		std::array<float, 16> transform;
+		std::array<float, 16> normal_transform;
+		uint32_t material_index;
+	};
+
+	struct render_object {
+		uint32_t index_count;
+		uint32_t first_index;
+		VkBuffer index_buffer;
+
+		size_t material_index;
+		size_t mesh_index;
+		std::array<float, 16> transform;
+		VkDeviceAddress scene_buffer_address{ 0 };
+		VkDeviceAddress vertex_buffer_address{ 0 };
+		VkDeviceAddress render_buffer_address{ 0 };
+		VkDeviceAddress material_buffer_address{ 0 };
 	};
 
 	struct graphics_device
