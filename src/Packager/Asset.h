@@ -28,7 +28,7 @@ namespace rosy_packager {
 	{
 		uint32_t start_index{ 0 };
 		uint32_t count{ 0 };
-		size_t material{ 0 };
+		uint32_t material{ 0 };
 	};
 
 	struct node

@@ -109,7 +109,7 @@ rosy::result gltf::import()
 
 			// PRIMITIVE MATERIAL
 			if (primitive.materialIndex.has_value()) {
-				new_surface.material = primitive.materialIndex.value();
+				new_surface.material = static_cast<uint32_t>(primitive.materialIndex.value());
 			}
 			else {
 				new_surface.material = 0;
