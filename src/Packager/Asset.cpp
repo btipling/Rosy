@@ -36,10 +36,11 @@ rosy::result asset::write()
 
 	{
 		constexpr size_t num_headers = 1;
-		constexpr file_header header{
+		const file_header header{
 			.magic = rosy_format,
 			.version = current_version,
 			.endianness = std::endian::native == std::endian::little ? 1 : 0,
+			.root_scene = root_scene,
 		};
 		size_t res = fwrite(&header, sizeof(header), num_headers, stream);
 		if (res != num_headers) {
@@ -163,6 +164,7 @@ rosy::result asset::read()
 			.magic = 0, 
 			.version = 0,
 			.endianness = 0,
+			.root_scene = 0,
 		};
 		size_t res = fread(&header, sizeof(header), num_headers, stream);
 		if (res != num_headers) {
@@ -180,8 +182,10 @@ rosy::result asset::read()
 			std::cerr << std::format("failed to read, endianness mismatch file is {} system is {}", header.endianness, is_little_endian) << '\n';
 			return rosy::result::read_failed;
 		}
+		root_scene = header.root_scene;
 		std::cout << std::format("wrote {} headers", res) << '\n';
-		std::cout << std::format("format version: {} is little endian: {}", header.version, is_little_endian) << '\n';
+		std::cout << std::format("format version: {} is little endian: {} root scene: {}",
+			header.version, is_little_endian, root_scene) << '\n';
 	}
 
 	// WRITE GLTF SIZES FOR MATERIALS AND MESHES

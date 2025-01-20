@@ -13,6 +13,7 @@ namespace rosy_packager {
 		uint32_t magic;
 		uint32_t version;
 		uint32_t endianness;
+		uint32_t root_scene{ 0 };
 	};
 
 	struct material
@@ -70,7 +71,7 @@ namespace rosy_packager {
 		std::vector<scene> scenes;
 		std::vector<node> nodes;
 		std::vector<shader> shaders;
-		uint32_t default_scene{ 0 };
+		uint32_t root_scene{ 0 };
 
 		rosy::result write();
 		rosy::result read();
