@@ -114,6 +114,17 @@ rosy::result asset::write()
 		std::cout << std::format("wrote {} materials", res) << '\n';
 	}
 
+	// WRITE SAMPLERS
+
+	{
+		size_t res = fwrite(samplers.data(), sizeof(sampler), samplers.size(), stream);
+		if (res != samplers.size()) {
+			std::cerr << std::format("failed to write {}/{} samplers", res, samplers.size()) << '\n';
+			return rosy::result::write_failed;
+		}
+		std::cout << std::format("wrote {} samplers", res) << '\n';
+	}
+
 	// WRITE ALL THE SCENES ONE AT A TIME
 
 	for (const auto& [scene_nodes] : scenes) {
@@ -402,7 +413,18 @@ rosy::result asset::read()
 			std::cerr << std::format("failed to read {}/{} materials", res, num_materials) << '\n';
 			return rosy::result::read_failed;
 		}
-		std::cout << std::format("read {} positions", res) << '\n';
+		std::cout << std::format("read {} materials", res) << '\n';
+	}
+
+	// READ GLTF SAMPLERS
+
+	{
+		size_t res = fread(samplers.data(), sizeof(sampler), num_samplers, stream);
+		if (res != num_samplers) {
+			std::cerr << std::format("failed to read {}/{} samplers", res, num_samplers) << '\n';
+			return rosy::result::read_failed;
+		}
+		std::cout << std::format("read {} samplers", res) << '\n';
 	}
 
 	// READ ALL THE SCENES ONE AT A TIME
