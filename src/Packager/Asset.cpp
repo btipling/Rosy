@@ -196,6 +196,39 @@ rosy::result asset::write()
 		}
 	}
 
+	// WRITE ALL IMAGES ONE AT A TIME
+
+	for (const auto& [names] : images) {
+
+		// WRITE ONE IMAGE SIZE
+
+		{
+			const size_t num_chars{ names.size() };
+			constexpr size_t lookup_sizes = 1;
+			const std::array<size_t, 1> image_sizes{ num_chars };
+			size_t res = fwrite(&image_sizes, sizeof(image_sizes), lookup_sizes, stream);
+			if (res != lookup_sizes) {
+				std::cerr << std::format("failed to write {}/{} image_sizes", res, lookup_sizes) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format(
+				"wrote {} sizes, num image name chars: {}",
+				res, num_chars) << '\n';
+		}
+
+		// WRITE ONE IMAGE NAME
+
+		{
+			size_t res = fwrite(names.data(), sizeof(char), names.size(), stream);
+			if (res != names.size()) {
+				std::cerr << std::format("failed to write {}/{} image name chars", res, names.size()) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format("wrote {} image name chars", res) << '\n';
+		}
+
+	}
+
 	// WRITE ALL MESHES ONE AT A TIME
 
 	for (const auto& [positions, indices, surfaces, child_meshes] : meshes) {
@@ -466,6 +499,46 @@ rosy::result asset::read()
 		// ADD MESH TO ASSET
 
 		nodes.push_back(n);
+	}
+
+	// READ ALL IMAGES ONE AT A TIME
+
+	for (size_t i{ 0 }; i < num_images; i++) {
+		image img{};
+
+		// READ ONE IMAGE SIZE
+
+		size_t num_chars{ 0 };
+		{
+			constexpr size_t lookup_sizes = 1;
+			std::array<size_t, 1> image_sizes{ 0 };
+			size_t res = fread(&image_sizes, sizeof(image_sizes), lookup_sizes, stream);
+			if (res != lookup_sizes) {
+				std::cerr << std::format("failed to read {}/{} image_sizes", res, lookup_sizes) << '\n';
+				return rosy::result::read_failed;
+			}
+			num_chars = image_sizes[0];
+			std::cout << std::format(
+				"read {} sizes, num_chars: {}",
+				res, num_chars) << '\n';
+		}
+
+		img.name.resize(num_chars);
+
+		// READ ONE IMAGE NAME
+
+		{
+			size_t res = fread(img.name.data(), sizeof(char), num_chars, stream);
+			if (res != num_chars) {
+				std::cerr << std::format("failed to read {}/{} image name chars", res, num_chars) << '\n';
+				return rosy::result::read_failed;
+			}
+			std::cout << std::format("read {} image name chars", res) << '\n';
+		}
+
+		// ADD IMAGE TO ASSET
+
+		images.push_back(img);
 	}
 
 	// READ ALL MESHES ONE AT A TIME
