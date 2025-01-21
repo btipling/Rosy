@@ -44,12 +44,12 @@ rosy::result gltf::import()
 		for (fastgltf::Material& mat : gltf.materials) {
 			material m{};
 			if (mat.pbrData.baseColorTexture.has_value()) {
-				auto image_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
-				auto sampler_index = gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value();
-				std::cout << std::format("materials image index: {} sample index: {}", image_index, sampler_index) << '\n';
+				m.color_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value());
+				m.color_sampler_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value());
 			} else
 			{
-				std::cout << "No baseColorTexture in a material" << '\n';
+				m.color_image_index = UINT32_MAX;
+				m.color_sampler_index = UINT32_MAX;
 			}
 			{
 				fastgltf::math::nvec4 c = mat.pbrData.baseColorFactor;
