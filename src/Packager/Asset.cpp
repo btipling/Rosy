@@ -26,7 +26,7 @@ using namespace rosy_packager;
 //       // index 2 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
 // 6. Per Image
 // 6a.Image size layout: std::array<size_t, 1>
-//       // index 0 - num characters -> always 1 to represent a single char, images are just a std::vector<char>
+//       // index 0 - num characters -> a std::vector<char> to represent an image name
 // 7. Per mesh:
 // 7.a Mesh size layout: std::array<size_t,4>
 		// index 0 - num positions -> a std::vector<position> of positions size given
