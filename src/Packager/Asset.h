@@ -22,6 +22,8 @@ namespace rosy_packager {
 		std::array<float, 4> base_color_factor{ 0.f };
 		float metallic_factor{ 0.f };
 		float roughness_factor{ 0.f };
+		uint32_t color_image_index{ UINT32_MAX }; // UINT32_MAX == not present
+		uint32_t color_sampler_index{ UINT32_MAX }; // UINT32_MAX == not present
 	};
 
 	struct surface
@@ -34,7 +36,7 @@ namespace rosy_packager {
 	struct node
 	{
 		std::array<float, 16> transform;
-		std::uint32_t mesh_id; // if larger than meshes list, it means the node doesn't have a mesh
+		std::uint32_t mesh_id{UINT32_MAX}; // UINT32_MAX == not present
 		std::vector<uint32_t> child_nodes;
 	};
 
