@@ -11,24 +11,26 @@ using namespace rosy_packager;
 // 1. Header
 // 2. GLTF Size Layouts: std::array<size_t,2> 
 		// index 0 - num materials
-		// index 1 - num scenes
-		// index 2 - num nodes
-		// index 3 - num images
-		// index 4 - num meshes
+		// index 1 - num samplers
+		// index 2 - num scenes
+		// index 3 - num nodes
+		// index 4 - num images
+		// index 5 - num meshes
 // 3. a std::vector<material> of material size given
-// 4. Per scene
-// 4a. Scene size layout std::array<size_t, 1>
+// 4. a std::vector<sampler> of sampler size given
+// 5. Per scene
+// 5a. Scene size layout std::array<size_t, 1>
 //       // index 0 - num nodes -> a std::vector<uint32_t> of node indices
-// 5. Per Node
-// 5a. Node size layout: std::array<size_t, 3>
+// 6. Per Node
+// 6a. Node size layout: std::array<size_t, 3>
 //       // index 0 - num transforms -> always 1 to represent a single std::array<float, 16>
 //       // index 1 -> num mesh ids -> always 1 to represent a single uint32_t
 //       // index 2 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
-// 6. Per Image
-// 6a.Image size layout: std::array<size_t, 1>
+// 7. Per Image
+// 7a.Image size layout: std::array<size_t, 1>
 //       // index 0 - num characters -> a std::vector<char> to represent an image name
-// 7. Per mesh:
-// 7.a Mesh size layout: std::array<size_t,4>
+// 8. Per mesh:
+// 8.a Mesh size layout: std::array<size_t,4>
 		// index 0 - num positions -> a std::vector<position> of positions size given
 		// index 1 - num indices -> a std::vector<uint32_t> of indices size given
 		// index 2 - num surfaces -> a std::vector<surface> of surfaces size given
@@ -67,18 +69,20 @@ rosy::result asset::write()
 		std::cout << std::format("wrote {} headers", res) << '\n';
 	}
 
-	// WRITE GLTF SIZES FOR MATERIALS AND MESHES
+	// WRITE GLTF SIZES FOR ASSET RESOURCES
 
 	{
 		const size_t num_materials{ materials.size() };
+		const size_t num_samplers{ samplers.size() };
 		const size_t num_scenes{ scenes.size() };
 		const size_t num_nodes{ nodes.size() };
 		const size_t num_images{ images.size() };
 		const size_t num_meshes{ meshes.size() };
 
 		constexpr size_t lookup_sizes = 1;
-		const std::array<size_t, 5> sizes{
+		const std::array<size_t, 6> sizes{
 			num_materials,
+			num_samplers,
 			num_scenes,
 			num_nodes,
 			num_images,
@@ -89,8 +93,10 @@ rosy::result asset::write()
 			std::cerr << std::format("failed to write {}/{} num_gltf_sizes", res, lookup_sizes) << '\n';
 			return rosy::result::write_failed;
 		}
-		std::cout << std::format("wrote {} sizes, num_materials: {} num_scenes: {}, num_nodes: {}, num_images: {}, num_meshes: {}", res, 
+		std::cout << std::format("wrote {} sizes, num_materials: {}, num_samplers: {}, num_scenes: {}, num_nodes: {}, num_images: {}, num_meshes: {}",
+			res, 
 			num_materials,
+			num_samplers,
 			num_scenes,
 			num_nodes,
 			num_images,
@@ -356,16 +362,17 @@ rosy::result asset::read()
 			header.version, is_little_endian, root_scene) << '\n';
 	}
 
-	// WRITE GLTF SIZES FOR MATERIALS AND MESHES
+	// WRITE GLTF SIZES FOR ALL ASSET RESOURCES
 
 	size_t num_materials{ 0 };
+	size_t num_samplers{ 0 };
 	size_t num_scenes{ 0 };
 	size_t num_nodes{ 0 };
 	size_t num_images{ 0 };
 	size_t num_meshes{ 0 };
 	{
 		constexpr size_t lookup_sizes = 1;
-		std::array<size_t, 5> num_gltf_sizes{ 0, 0, 0, 0, 0 };
+		std::array<size_t, 6> num_gltf_sizes{ 0, 0, 0, 0, 0, 0 };
 		size_t res = fread(&num_gltf_sizes, sizeof(num_gltf_sizes), lookup_sizes, stream);
 		if (res != lookup_sizes) {
 			std::cerr << std::format("failed to read {}/{} num_gltf_sizes", res, lookup_sizes) << '\n';
@@ -374,13 +381,15 @@ rosy::result asset::read()
 		std::cout << std::format("read {} sizes", res) << '\n';
 
 		num_materials = num_gltf_sizes[0];
-		num_scenes = num_gltf_sizes[1];
-		num_nodes = num_gltf_sizes[2];
-		num_images = num_gltf_sizes[3];
-		num_meshes = num_gltf_sizes[4];
+		num_samplers = num_gltf_sizes[1];
+		num_scenes = num_gltf_sizes[2];
+		num_nodes = num_gltf_sizes[3];
+		num_images = num_gltf_sizes[4];
+		num_meshes = num_gltf_sizes[5];
 	}
 
 	materials.resize(num_materials);
+	samplers.resize(num_samplers);
 	scenes.reserve(num_scenes);
 	nodes.reserve(num_nodes);
 	meshes.reserve(num_meshes);
