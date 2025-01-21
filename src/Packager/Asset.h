@@ -58,6 +58,12 @@ namespace rosy_packager {
 		std::vector<uint32_t> child_meshes;
 	};
 
+	struct image
+	{
+		std::vector<char> name;
+	};
+
+
 	struct shader
 	{
 		std::string path{};
@@ -71,6 +77,7 @@ namespace rosy_packager {
 		std::vector<material> materials;
 		std::vector<scene> scenes;
 		std::vector<node> nodes;
+		std::vector<image> images;
 		std::vector<shader> shaders;
 		uint32_t root_scene{ 0 };
 

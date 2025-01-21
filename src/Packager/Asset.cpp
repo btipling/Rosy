@@ -13,7 +13,8 @@ using namespace rosy_packager;
 		// index 0 - num materials
 		// index 1 - num scenes
 		// index 2 - num nodes
-		// index 3 - num meshes
+		// index 3 - num images
+		// index 4 - num meshes
 // 3. a std::vector<material> of material size given
 // 4. Per scene
 // 4a. Scene size layout std::array<size_t, 1>
@@ -23,8 +24,11 @@ using namespace rosy_packager;
 //       // index 0 - num transforms -> always 1 to represent a single std::array<float, 16>
 //       // index 1 -> num mesh ids -> always 1 to represent a single uint32_t
 //       // index 2 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
-// 6. Per mesh:
-// 6.a Mesh size layout: std::array<size_t,4>
+// 6. Per Image
+// 6a.Image size layout: std::array<size_t, 1>
+//       // index 0 - num characters -> always 1 to represent a single char, images are just a std::vector<char>
+// 7. Per mesh:
+// 7.a Mesh size layout: std::array<size_t,4>
 		// index 0 - num positions -> a std::vector<position> of positions size given
 		// index 1 - num indices -> a std::vector<uint32_t> of indices size given
 		// index 2 - num surfaces -> a std::vector<surface> of surfaces size given

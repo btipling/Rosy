@@ -30,6 +30,14 @@ rosy::result gltf::import()
 		return rosy::result::error;
 	}
 
+	// IMAGES
+	for (auto& [gltf_image_data, gltf_image_name] : gltf.images) {
+		std::cout << std::format("Adding image: {}", gltf_image_name) << '\n';
+		image img{};
+		std::ranges::copy(gltf_image_name, std::back_inserter(img.name));
+		gltf_asset.images.push_back(img);
+	}
+
 	// MATERIALS
 
 	{
