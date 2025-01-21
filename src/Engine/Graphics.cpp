@@ -8,11 +8,14 @@
 #include "volk/volk.h"
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vk_enum_string_helper.h"
+#include <ktxvulkan.h>
 #include <SDL3/SDL_vulkan.h>
 #pragma warning(disable: 4100 4459)
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
+#include <filesystem>
+
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
@@ -100,7 +103,7 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_depth_image      = 0b00000000000000000000000100000000;
 	constexpr  uint32_t graphics_created_bit_ui_pool          = 0b00000000000000000000001000000000;
 	constexpr  uint32_t graphics_created_bit_swapchain        = 0b00000000000000000000010000000000;
-	constexpr  uint32_t graphics_created_bit_ktx              = 0b00000000000000000000100000000000;
+	constexpr  uint32_t graphics_created_bit_ktx_vdi_info     = 0b00000000000000000000100000000000;
 	constexpr  uint32_t graphics_created_bit_descriptor_set   = 0b00000000000000000001000000000000;
 	constexpr  uint32_t graphics_created_bit_descriptor_pool  = 0b00000000000000000010000000000000;
 	constexpr  uint32_t graphics_created_bit_draw_image_view  = 0b00000000000000000100000000000000;
@@ -117,6 +120,8 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_scene_buffer     = 0b00000010000000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_materials_buffer = 0b00000100000000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_graphics_buffer  = 0b00001000000000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_ktx_image        = 0b00010000000000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_ktx_texture      = 0b00100000000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -233,6 +238,13 @@ namespace {
 		VmaAllocation allocation;
 		VkExtent3D image_extent;
 		VkFormat image_format;
+	};
+
+	struct allocated_ktx_image
+	{
+		uint32_t graphics_created_bitmask{ 0 };
+		ktxTexture* texture;
+		ktxVulkanTexture vk_texture;
 	};
 
 	struct allocated_csm
@@ -371,6 +383,7 @@ namespace {
 		allocated_image draw_image;
 		allocated_image depth_image;
 		allocated_csm shadow_map_image;
+		std::vector<allocated_ktx_image> ktx_textures;
 		float render_scale = 1.f;
 
 		VkDescriptorPool ui_pool{ nullptr };
@@ -380,6 +393,7 @@ namespace {
 		VkCommandPool immediate_command_pool{ nullptr };
 
 		SDL_Window* window{ nullptr };
+		ktxVulkanDeviceInfo ktx_vdi_info{};
 
 		// Buffers
 		std::vector<gpu_mesh_buffers> gpu_meshes{};
@@ -581,6 +595,23 @@ namespace {
 			// WAIT FOR DEVICE IDLE END **** 
 
 			// Deinit acquired resources in the opposite order in which they were created
+
+			for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
+			{
+				if (gfx_created_bitmask & graphics_created_bit_ktx_image)
+				{
+					ktxTexture_Destroy(ktx_texture);
+				}
+				if (gfx_created_bitmask & graphics_created_bit_ktx_texture)
+				{
+					ktxVulkanTexture_Destruct(&ktx_vk_texture, device, nullptr);
+				}
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_ktx_vdi_info)
+			{
+				ktxVulkanDeviceInfo_Destruct(&ktx_vdi_info);
+			}
 
 			if (graphics_created_bitmask & graphics_created_bit_scene_buffer)
 			{
@@ -2064,7 +2095,8 @@ namespace {
 		VkResult init_ktx()
 		{
 			l->info("Initializing ktx");
-			graphics_created_bitmask |= graphics_created_bit_ktx;
+			ktxVulkanDeviceInfo_Construct(&ktx_vdi_info, physical_device, device, present_queue, immediate_command_pool, nullptr);
+			graphics_created_bitmask |= graphics_created_bit_ktx_vdi_info;
 			return VK_SUCCESS;
 		}
 
@@ -2122,6 +2154,45 @@ namespace {
 						.metallic_factor = m.metallic_factor,
 						.roughness_factor = m.roughness_factor,
 						});
+				}
+
+				for (const auto& [asset_img_name] : a.images)
+				{
+					const char* ktx_path{};
+					allocated_ktx_image new_ktx_img{};
+
+					std::string img_name{ asset_img_name.begin(), asset_img_name.end() };
+					std::filesystem::path img_path{ a.asset_path };
+					img_path.replace_filename(std::format("{}.ktx2", img_name));
+					l->debug(std::format("source: {} path: {} name: {}", a.asset_path, img_path.string(), img_name));
+					std::wstring image_path_wide{ img_path.c_str() };
+#pragma warning(disable:4244)
+					std::string img_path_staging{ image_path_wide.begin(), image_path_wide.end() };
+#pragma warning(error:4244)
+					ktx_path = img_path_staging.c_str();
+
+					{
+						if (ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile(ktx_path, KTX_TEXTURE_CREATE_NO_FLAGS, &new_ktx_img.texture); ktx_result != KTX_SUCCESS) {
+							l->error(std::format("ktx create texture failure: {}", static_cast<uint8_t>(ktx_result)));
+							return result::create_failed;
+						}
+						new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
+					}
+					;
+					{
+						if (ktx_error_code_e ktx_result = ktxTexture_VkUploadEx(new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
+							VK_IMAGE_TILING_OPTIMAL,
+							VK_IMAGE_USAGE_SAMPLED_BIT,
+							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); ktx_result != KTX_SUCCESS)
+						{
+							ktx_textures.push_back(new_ktx_img);
+							l->error(std::format("ktx create vulkan texture failure: {}", static_cast<uint8_t>(ktx_result)));
+							return result::create_failed;
+						}
+						new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_texture;
+					}
+
+					ktx_textures.push_back(new_ktx_img);
 				}
 
 				const size_t material_buffer_size = materials.size() * sizeof(materials);
@@ -2607,7 +2678,7 @@ namespace {
 			{
 				god.push_back({
 				.transform = go.transform,
-				});
+					});
 				for (const auto& s : go.surface_data)
 				{
 					surface_graphics.push_back(s);
@@ -3344,7 +3415,7 @@ result graphics::set_asset(const rosy_packager::asset& a, std::vector<graphics_o
 // ReSharper disable once CppMemberFunctionMayBeStatic
 result graphics::update(const std::array<float, 16>& v, const std::array<float, 16>& p, const std::array<float, 16>& vp, const std::array<float, 4> cam_pos)
 {
-	const gpu_scene_data sd {
+	const gpu_scene_data sd{
 		.view = v,
 		.proj = p,
 		.view_projection = vp,

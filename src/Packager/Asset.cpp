@@ -338,6 +338,7 @@ rosy::result asset::read()
 	}
 
 	// READ RSY FORMAT HEADER
+
 	{
 		constexpr size_t num_headers = 1;
 		file_header header{
