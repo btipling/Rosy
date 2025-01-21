@@ -73,13 +73,15 @@ rosy::result asset::write()
 		const size_t num_materials{ materials.size() };
 		const size_t num_scenes{ scenes.size() };
 		const size_t num_nodes{ nodes.size() };
+		const size_t num_images{ images.size() };
 		const size_t num_meshes{ meshes.size() };
 
 		constexpr size_t lookup_sizes = 1;
-		const std::array<size_t, 4> sizes{
+		const std::array<size_t, 5> sizes{
 			num_materials,
 			num_scenes,
 			num_nodes,
+			num_images,
 			num_meshes,
 		};
 		size_t res = fwrite(&sizes, sizeof(sizes), lookup_sizes, stream);
@@ -87,10 +89,11 @@ rosy::result asset::write()
 			std::cerr << std::format("failed to write {}/{} num_gltf_sizes", res, lookup_sizes) << '\n';
 			return rosy::result::write_failed;
 		}
-		std::cout << std::format("wrote {} sizes, num_materials: {} num_scenes: {}, num_nodes: {} num_meshes: {}", res, 
+		std::cout << std::format("wrote {} sizes, num_materials: {} num_scenes: {}, num_nodes: {}, num_images: {}, num_meshes: {}", res, 
 			num_materials,
 			num_scenes,
 			num_nodes,
+			num_images,
 			num_meshes) << '\n';
 	}
 
@@ -298,6 +301,11 @@ rosy::result asset::read()
 			std::cerr << std::format("failed to read {}/{} headers", res, num_headers) << '\n';
 			return rosy::result::read_failed;
 		}
+		if (header.magic != rosy_format)
+		{
+			std::cerr << std::format("failed to read, magic mismatch, got: {} should be {}", header.magic, rosy_format) << '\n';
+			return rosy::result::read_failed;
+		}
 		if (header.version != current_version)
 		{
 			std::cerr << std::format("failed to read, version mismatch file is version {} current version is {}", header.version, current_version) << '\n';
@@ -320,10 +328,11 @@ rosy::result asset::read()
 	size_t num_materials{ 0 };
 	size_t num_scenes{ 0 };
 	size_t num_nodes{ 0 };
+	size_t num_images{ 0 };
 	size_t num_meshes{ 0 };
 	{
 		constexpr size_t lookup_sizes = 1;
-		std::array<size_t, 4> num_gltf_sizes{ 0, 0, 0, 0 };
+		std::array<size_t, 5> num_gltf_sizes{ 0, 0, 0, 0, 0 };
 		size_t res = fread(&num_gltf_sizes, sizeof(num_gltf_sizes), lookup_sizes, stream);
 		if (res != lookup_sizes) {
 			std::cerr << std::format("failed to read {}/{} num_gltf_sizes", res, lookup_sizes) << '\n';
@@ -334,7 +343,8 @@ rosy::result asset::read()
 		num_materials = num_gltf_sizes[0];
 		num_scenes = num_gltf_sizes[1];
 		num_nodes = num_gltf_sizes[2];
-		num_meshes = num_gltf_sizes[3];
+		num_images = num_gltf_sizes[3];
+		num_meshes = num_gltf_sizes[4];
 	}
 
 	materials.resize(num_materials);
