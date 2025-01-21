@@ -10,9 +10,9 @@ namespace rosy_packager {
 	constexpr uint32_t current_version{ 1 };
 
 	struct file_header {
-		uint32_t magic;
-		uint32_t version;
-		uint32_t endianness;
+		uint32_t magic{ 0 };
+		uint32_t version{ 0 };
+		uint32_t endianness{ 0 };
 		uint32_t root_scene{ 0 };
 	};
 
@@ -24,6 +24,14 @@ namespace rosy_packager {
 		float roughness_factor{ 0.f };
 		uint32_t color_image_index{ UINT32_MAX }; // UINT32_MAX == not present
 		uint32_t color_sampler_index{ UINT32_MAX }; // UINT32_MAX == not present
+	};
+
+	struct sampler
+	{
+		uint16_t min_filter{ UINT16_MAX }; // UINT16_MAX == not present
+		uint16_t mag_filter{ UINT16_MAX }; // UINT16_MAX == not present
+		uint16_t wrap_s{ 0 };
+		uint16_t wrap_t{ 0 };
 	};
 
 	struct surface
@@ -75,11 +83,12 @@ namespace rosy_packager {
 	struct asset
 	{
 		std::string asset_path{};
-		std::vector<mesh> meshes;
 		std::vector<material> materials;
+		std::vector<sampler> samplers;
 		std::vector<scene> scenes;
 		std::vector<node> nodes;
 		std::vector<image> images;
+		std::vector<mesh> meshes;
 		std::vector<shader> shaders;
 		uint32_t root_scene{ 0 };
 

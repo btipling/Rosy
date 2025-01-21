@@ -46,7 +46,8 @@ rosy::result gltf::import()
 			if (mat.pbrData.baseColorTexture.has_value()) {
 				m.color_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value());
 				m.color_sampler_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value());
-			} else
+			}
+			else
 			{
 				m.color_image_index = UINT32_MAX;
 				m.color_sampler_index = UINT32_MAX;
@@ -59,6 +60,33 @@ rosy::result gltf::import()
 				m.roughness_factor = mat.pbrData.roughnessFactor;
 			}
 			gltf_asset.materials.push_back(m);
+		}
+	}
+
+	// SAMPLERS
+
+	{
+		for (fastgltf::Sampler& gltf_sampler : gltf.samplers) {
+			sampler smp{};
+			if (gltf_sampler.magFilter.has_value())
+			{
+				smp.mag_filter = static_cast<uint16_t>(gltf_sampler.magFilter.value());
+			}
+			else
+			{
+				smp.mag_filter = UINT16_MAX;
+			}
+			if (gltf_sampler.minFilter.has_value())
+			{
+				smp.min_filter = static_cast<uint16_t>(gltf_sampler.minFilter.value());
+			}
+			else
+			{
+				smp.min_filter = UINT16_MAX;
+			}
+			smp.wrap_s = static_cast<uint16_t>(gltf_sampler.wrapS);
+			smp.wrap_t = static_cast<uint16_t>(gltf_sampler.wrapT);
+			gltf_asset.samplers.push_back(smp);
 		}
 	}
 
@@ -111,7 +139,7 @@ rosy::result gltf::import()
 			if (auto colors = primitive.findAttribute("COLOR_0"); colors != primitive.attributes.end()) {
 				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[colors->accessorIndex],
 					[&](const fastgltf::math::fvec4& c, const size_t index) {
-						new_mesh.positions[initial_vtx + index].color = { c[0], c[1], c[2], c[3]};
+						new_mesh.positions[initial_vtx + index].color = { c[0], c[1], c[2], c[3] };
 					});
 			}
 
