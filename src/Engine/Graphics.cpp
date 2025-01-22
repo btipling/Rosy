@@ -222,6 +222,37 @@ namespace {
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
+
+	VkFilter  filter_to_val(const uint16_t filter)
+	{
+		switch (filter)
+		{
+		case 0:
+		case 1:
+		case 2:
+			return VK_FILTER_NEAREST;
+		case 3:
+		case 4:
+		case 5:
+		default:
+			return VK_FILTER_LINEAR;
+		}
+	}
+
+	VkSamplerAddressMode wrap_to_val(const uint16_t wrap)
+	{
+		switch (wrap)
+		{
+		case 0:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case 1:
+			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case 2:
+		default:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		}
+	}
+
 	struct gpu_scene_data
 	{
 		std::array<float, 16> view = { 0 };
@@ -2287,15 +2318,75 @@ namespace {
 			}
 
 			std::set<std::tuple<uint32_t, uint32_t>> samplers_created{};
-
+			std::vector<uint32_t>sampler_desc_indexes;
 			// *** SETTING MATERIAL BUFFER *** //
 			{
 				std::vector<gpu_material> materials{};
 				materials.reserve(a.materials.size());
 				for (rosy_packager::material m : a.materials)
 				{
-					if (m.color_image_index)
-					const std::tuple<uint32_t, uint32_t> sampler_check{};
+					if (m.color_image_index < a.images.size()) {
+
+						assert(ktx_textures.size() > m.color_image_index);
+
+						const auto kt_image = ktx_textures[m.color_image_index];
+						const uint32_t image_index = m.color_sampler_index;
+						uint32_t sampler_index = SDL_MAX_UINT32;
+						if (m.color_sampler_index < a.samplers.size())
+						{
+							sampler_index = m.color_sampler_index;
+							// Check to make sure we haven't made sampler before & only create sampler's we're using.
+							if (samplers.size() <= sampler_index)
+							{
+								const rosy_packager::sampler new_sampler = a.samplers[sampler_index];
+								VkSamplerCreateInfo sampler_create_info = {};
+								sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+								sampler_create_info.pNext = nullptr;
+								sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
+								sampler_create_info.minLod = 0;
+								sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+								sampler_create_info.addressModeU = wrap_to_val(new_sampler.wrap_s);
+								sampler_create_info.addressModeV = wrap_to_val(new_sampler.wrap_t);
+								sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+								sampler_create_info.magFilter = filter_to_val(new_sampler.wrap_s);
+								sampler_create_info.minFilter = filter_to_val(new_sampler.wrap_s);
+								VkSampler created_sampler{};
+								if (const VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &created_sampler); res != VK_SUCCESS)
+								{
+									l->error(std::format("Error creating asset sampler: {}", static_cast<uint8_t>(res)));
+									return result::create_failed;
+								}
+								samplers.push_back(created_sampler);
+								{
+									const auto obj_name = std::format("rosy asset sampler {}", sampler_index);
+									VkDebugUtilsObjectNameInfoEXT debug_name{};
+									debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+									debug_name.pNext = nullptr;
+									debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
+									debug_name.objectHandle = reinterpret_cast<uint64_t>(created_sampler);
+									debug_name.pObjectName = obj_name.c_str();
+									if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+									{
+										l->error(std::format("Error creating asset sampler name: {}", static_cast<uint8_t>(res)));
+										return result::error;
+									}
+								}
+								{
+									uint32_t new_sampler_desc_index{ 0 };
+									if (const result res = desc_samples->allocator.allocate(&new_sampler_desc_index); res != result::ok)
+									{
+										
+									}
+									sampler_desc_indexes.push_back(new_sampler_desc_index);
+								}
+								assert(samplers.size() == sampler_desc_indexes.size());
+							}
+						}
+						const std::tuple<uint32_t, uint32_t> sampler_check{image_index, sampler_index};
+					}
+
 
 					materials.push_back({
 						.color = m.base_color_factor,

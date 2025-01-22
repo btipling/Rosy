@@ -5,6 +5,43 @@
 
 using namespace rosy_packager;
 
+namespace
+{
+	uint16_t filter_to_val(const fastgltf::Filter filter)
+	{
+		switch (filter)
+		{
+		case fastgltf::Filter::Nearest:
+			return 0;
+		case fastgltf::Filter::NearestMipMapNearest:
+			return 1;
+		case fastgltf::Filter::LinearMipMapNearest:
+			return 2;
+		case fastgltf::Filter::Linear:
+			return 3;
+		case fastgltf::Filter::NearestMipMapLinear:
+			return 4;
+		case fastgltf::Filter::LinearMipMapLinear:
+			return 5;
+		}
+		return UINT16_MAX;
+	}
+
+	uint16_t wrap_to_val(const fastgltf::Wrap wrap)
+	{
+		switch (wrap)
+		{
+		case fastgltf::Wrap::ClampToEdge:
+			return 0;
+		case fastgltf::Wrap::MirroredRepeat:
+			return 1;
+		case fastgltf::Wrap::Repeat:
+			return 2;
+		}
+		return UINT16_MAX;
+	}
+}
+
 rosy::result gltf::import()
 {
 	const std::filesystem::path file_path{ source_path };
@@ -70,7 +107,7 @@ rosy::result gltf::import()
 			sampler smp{};
 			if (gltf_sampler.magFilter.has_value())
 			{
-				smp.mag_filter = static_cast<uint16_t>(gltf_sampler.magFilter.value());
+				smp.mag_filter = filter_to_val(gltf_sampler.magFilter.value());
 			}
 			else
 			{
@@ -78,14 +115,14 @@ rosy::result gltf::import()
 			}
 			if (gltf_sampler.minFilter.has_value())
 			{
-				smp.min_filter = static_cast<uint16_t>(gltf_sampler.minFilter.value());
+				smp.min_filter = filter_to_val(gltf_sampler.minFilter.value());
 			}
 			else
 			{
 				smp.min_filter = UINT16_MAX;
 			}
-			smp.wrap_s = static_cast<uint16_t>(gltf_sampler.wrapS);
-			smp.wrap_t = static_cast<uint16_t>(gltf_sampler.wrapT);
+			smp.wrap_s = wrap_to_val(gltf_sampler.wrapS);
+			smp.wrap_t = wrap_to_val(gltf_sampler.wrapT);
 			gltf_asset.samplers.push_back(smp);
 		}
 	}

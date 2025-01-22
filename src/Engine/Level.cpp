@@ -117,14 +117,14 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				go.transform = mat4_to_array(gltf_to_ndc * parent_transform * node_transform);
 				go.surface_data.reserve(current_mesh.surfaces.size());
 				size_t go_index = graphics_objects.size();
-				for (const auto& current_surface : current_mesh.surfaces)
+				for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
 				{
 					surface_graphics_data sgd{};
 					sgd.mesh_index = current_mesh_index;
 					sgd.graphics_object_index = go_index;
-					sgd.material_index = current_surface.material;
-					sgd.index_count = current_surface.count;
-					sgd.start_index = current_surface.start_index;
+					sgd.material_index = sur_material;
+					sgd.index_count = sur_count;
+					sgd.start_index = sur_start_index;
 					go.surface_data.push_back(sgd);
 				}
 
