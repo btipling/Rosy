@@ -2255,9 +2255,7 @@ namespace {
 				img_path.replace_filename(std::format("{}.ktx2", img_name));
 				l->debug(std::format("source: {} path: {} name: {}", a.asset_path, img_path.string(), img_name));
 				std::wstring image_path_wide{ img_path.c_str() };
-#pragma warning(disable:4244)
-				std::string img_path_staging{ image_path_wide.begin(), image_path_wide.end() };
-#pragma warning(error:4244)
+				std::string img_path_staging{ img_path.string() };
 				ktx_path = img_path_staging.c_str();
 
 				{

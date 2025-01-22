@@ -1,5 +1,4 @@
 #include "Asset.h"
-
 #include <cassert>
 #include <filesystem>
 #include <fstream>
@@ -362,7 +361,7 @@ rosy::result asset::read()
 			std::cerr << std::format("failed to read, version mismatch file is version {} current version is {}", header.version, current_version) << '\n';
 			return rosy::result::read_failed;
 		}
-		constexpr uint32_t is_little_endian = std::endian::native == std::endian::little ? 1 : 0;
+		constexpr uint32_t is_little_endian = std::endian::native == std::endian::little ? 1 : 0;  // NOLINT(clang-diagnostic-unreachable-code)
 		if (header.endianness != is_little_endian)
 		{
 			std::cerr << std::format("failed to read, endianness mismatch file is {} system is {}", header.endianness, is_little_endian) << '\n';
