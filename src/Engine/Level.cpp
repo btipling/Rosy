@@ -62,7 +62,6 @@ void level::deinit()
 	}
 }
 
-
 std::array<float, 16> mat4_to_array(glm::mat4 m)
 {
 	std::array<float, 16> a{};

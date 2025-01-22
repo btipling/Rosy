@@ -383,7 +383,6 @@ namespace {
 		allocated_image draw_image;
 		allocated_image depth_image;
 		allocated_csm shadow_map_image;
-		std::vector<allocated_ktx_image> ktx_textures;
 		float render_scale = 1.f;
 
 		VkDescriptorPool ui_pool{ nullptr };
@@ -395,17 +394,19 @@ namespace {
 		SDL_Window* window{ nullptr };
 		ktxVulkanDeviceInfo ktx_vdi_info{};
 
-		// Buffers
+		// Level dependent data
+		std::vector< VkSampler> samplers;
+		std::vector<VkImageView> image_views;
+		std::vector<allocated_ktx_image> ktx_textures;
 		std::vector<gpu_mesh_buffers> gpu_meshes{};
-		gpu_scene_buffers scene_buffer{};
 		gpu_material_buffer material_buffer{};
 		graphic_objects_buffers graphic_objects_buffer{};
-
-		// Graphic Objects
 		std::vector<surface_graphics_data> surface_graphics{};
-
 		std::vector<VkShaderEXT> scene_shaders;
 		VkPipelineLayout scene_layout;
+
+		// Buffers
+		gpu_scene_buffers scene_buffer{};
 
 		result init(const config new_cfg)
 		{
@@ -595,6 +596,16 @@ namespace {
 			// WAIT FOR DEVICE IDLE END **** 
 
 			// Deinit acquired resources in the opposite order in which they were created
+
+			for (const VkSampler& sampler : samplers)
+			{
+				vkDestroySampler(device, sampler, nullptr);
+			}
+
+			for (const VkImageView& image_view : image_views)
+			{
+				vkDestroyImageView(device, image_view, nullptr);
+			}
 
 			for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
 			{
@@ -2192,6 +2203,41 @@ namespace {
 						new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_texture;
 					}
 
+					{
+						VkImageViewCreateInfo image_view_info{};
+						image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+						image_view_info.pNext = nullptr;
+						image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+						image_view_info.image = new_ktx_img.vk_texture.image;
+						image_view_info.format = new_ktx_img.vk_texture.imageFormat;
+						image_view_info.subresourceRange.baseMipLevel = 0;
+						image_view_info.subresourceRange.levelCount = new_ktx_img.vk_texture.levelCount;
+						image_view_info.subresourceRange.baseArrayLayer = 0;
+						image_view_info.subresourceRange.layerCount = new_ktx_img.vk_texture.layerCount;
+						image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+						VkImageView image_view{};
+						if (VkResult res = vkCreateImageView(device, &image_view_info, nullptr, &image_view); res != VK_SUCCESS) {
+							l->error(std::format("asset image view creation failure: {}", static_cast<uint8_t>(res)));
+							return result::create_failed;
+						}
+						const size_t index = image_views.size();
+						image_views.push_back(image_view);
+						{
+							const auto obj_name = std::format("rosy asset image view {}", index);
+							VkDebugUtilsObjectNameInfoEXT debug_name{};
+							debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+							debug_name.pNext = nullptr;
+							debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+							debug_name.objectHandle = reinterpret_cast<uint64_t>(image_view);
+							debug_name.pObjectName = obj_name.c_str();
+							if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+							{
+								l->error(std::format("Error creating asset image view name: {}", static_cast<uint8_t>(res)));
+								return result::error;
+							}
+						}
+					}
+
 					ktx_textures.push_back(new_ktx_img);
 				}
 
@@ -2672,11 +2718,11 @@ namespace {
 		result set_graphic_objects(std::vector<graphics_object> graphics_objects)
 		{
 			surface_graphics.clear();
-			std::vector<graphic_object_data> god{};
-			god.reserve(graphics_objects.size());
+			std::vector<graphic_object_data> go_data{};
+			go_data.reserve(graphics_objects.size());
 			for (const auto& go : graphics_objects)
 			{
-				god.push_back({
+				go_data.push_back({
 				.transform = go.transform,
 					});
 				for (const auto& s : go.surface_data)
@@ -2687,9 +2733,9 @@ namespace {
 			}
 
 			// *** SETTING GRAPHICS OBJECTS BUFFER *** //
-			{
 
-				const size_t graphic_objects_buffer_size = god.size() * sizeof(graphic_object_data);
+			{
+				const size_t graphic_objects_buffer_size = go_data.size() * sizeof(graphic_object_data);
 				{
 					VkBufferCreateInfo buffer_info{};
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2763,7 +2809,7 @@ namespace {
 					}
 				}
 
-				memcpy(staging.info.pMappedData, god.data(), graphic_objects_buffer_size);
+				memcpy(staging.info.pMappedData, go_data.data(), graphic_objects_buffer_size);
 
 				{
 					if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
