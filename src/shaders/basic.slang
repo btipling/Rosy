@@ -17,7 +17,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
-    output.basicVertex.normal = v.normal;
+    output.basicVertex.normal = normalize(mul(float3x3(worldMat), v.normal));
     output.basicVertex.color = v.color;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
 
@@ -41,7 +41,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex) : SV_Target
     float cosPhi = dot(H, N);
 
     float3 ambientLight = sd.ambientColor.xyz;
-    float3 sunLight = float3(0.77f, 0.77f, 0.77f) * max(cosTheta, 0.0);
+    float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
     uint cti = md.color_texture_index;
     uint csi = md.color_sampler_index;
@@ -49,7 +49,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex) : SV_Target
     SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
     float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
 
-    float4 outFragColor = imageTextureColor; // * float4(sunLight, 1.0);
+    float4 outFragColor = imageTextureColor * float4(ambientLight + sunLight, 1.0);
 
     Fragment output;
     output.color = outFragColor;
