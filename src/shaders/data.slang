@@ -11,6 +11,7 @@ public struct BasicVertex
     public float4 vertex;
     public float3 normal;
     public float4 color;
+    public float2 textureCoordinates;
 };
 
 public struct VertexStageOutput
@@ -32,6 +33,7 @@ public struct BasicInputVertex {
     public float3 position;
     public float3 normal;
     public float4 color;
+    public float2 textureCoordinates;
 };
 
 public struct BasicGraphicsData {
@@ -85,6 +87,8 @@ public struct BasicMaterialData {
     public float4 color;
     public float metallicFactor;
     public float roughnessFactor;
+    public uint32_t color_texture_index;
+    public uint32_t color_sampler_index;
 };
 
 public struct BasicPushConstant {

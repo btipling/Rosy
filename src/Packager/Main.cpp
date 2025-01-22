@@ -62,9 +62,9 @@ int main(const int argc, char* argv[])
 	for (auto& m : b.meshes)
 	{
 		
-	for (auto& [vertex, normal, color]: m.positions)
+	for (auto& [vertex, normal, color, texture_coordinates]: m.positions)
 	{
-		std::cout << std::format("vertex: {} normal: {} color: {}", vertex, normal, color) << '\n';
+		std::cout << std::format("vertex: {} normal: {} color: {} tc: {}", vertex, normal, color, texture_coordinates) << '\n';
 	}
 	std::cout << "Parsed indices:" << '\n';
 	std::cout << std::format("indices: {}", m.indices) << '\n';

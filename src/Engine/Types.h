@@ -17,6 +17,7 @@ namespace rosy
 		open_failed,
 		write_failed,
 		read_failed,
+		create_failed,
 		overflow,
 	};
 

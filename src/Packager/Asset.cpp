@@ -1,5 +1,4 @@
 #include "Asset.h"
-
 #include <cassert>
 #include <filesystem>
 #include <fstream>
@@ -11,20 +10,26 @@ using namespace rosy_packager;
 // 1. Header
 // 2. GLTF Size Layouts: std::array<size_t,2> 
 		// index 0 - num materials
-		// index 1 - num scenes
-		// index 2 - num nodes
-		// index 3 - num meshes
+		// index 1 - num samplers
+		// index 2 - num scenes
+		// index 3 - num nodes
+		// index 4 - num images
+		// index 5 - num meshes
 // 3. a std::vector<material> of material size given
-// 4. Per scene
-// 4a. Scene size layout std::array<size_t, 1>
+// 4. a std::vector<sampler> of sampler size given
+// 5. Per scene
+// 5a. Scene size layout std::array<size_t, 1>
 //       // index 0 - num nodes -> a std::vector<uint32_t> of node indices
-// 5. Per Node
-// 5a. Node size layout: std::array<size_t, 3>
+// 6. Per Node
+// 6a. Node size layout: std::array<size_t, 3>
 //       // index 0 - num transforms -> always 1 to represent a single std::array<float, 16>
 //       // index 1 -> num mesh ids -> always 1 to represent a single uint32_t
 //       // index 2 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
-// 6. Per mesh:
-// 6.a Mesh size layout: std::array<size_t,4>
+// 7. Per Image
+// 7a.Image size layout: std::array<size_t, 1>
+//       // index 0 - num characters -> a std::vector<char> to represent an image name
+// 8. Per mesh:
+// 8.a Mesh size layout: std::array<size_t,4>
 		// index 0 - num positions -> a std::vector<position> of positions size given
 		// index 1 - num indices -> a std::vector<uint32_t> of indices size given
 		// index 2 - num surfaces -> a std::vector<surface> of surfaces size given
@@ -63,19 +68,23 @@ rosy::result asset::write()
 		std::cout << std::format("wrote {} headers", res) << '\n';
 	}
 
-	// WRITE GLTF SIZES FOR MATERIALS AND MESHES
+	// WRITE GLTF SIZES FOR ASSET RESOURCES
 
 	{
 		const size_t num_materials{ materials.size() };
+		const size_t num_samplers{ samplers.size() };
 		const size_t num_scenes{ scenes.size() };
 		const size_t num_nodes{ nodes.size() };
+		const size_t num_images{ images.size() };
 		const size_t num_meshes{ meshes.size() };
 
 		constexpr size_t lookup_sizes = 1;
-		const std::array<size_t, 4> sizes{
+		const std::array<size_t, 6> sizes{
 			num_materials,
+			num_samplers,
 			num_scenes,
 			num_nodes,
+			num_images,
 			num_meshes,
 		};
 		size_t res = fwrite(&sizes, sizeof(sizes), lookup_sizes, stream);
@@ -83,10 +92,13 @@ rosy::result asset::write()
 			std::cerr << std::format("failed to write {}/{} num_gltf_sizes", res, lookup_sizes) << '\n';
 			return rosy::result::write_failed;
 		}
-		std::cout << std::format("wrote {} sizes, num_materials: {} num_scenes: {}, num_nodes: {} num_meshes: {}", res, 
+		std::cout << std::format("wrote {} sizes, num_materials: {}, num_samplers: {}, num_scenes: {}, num_nodes: {}, num_images: {}, num_meshes: {}",
+			res, 
 			num_materials,
+			num_samplers,
 			num_scenes,
 			num_nodes,
+			num_images,
 			num_meshes) << '\n';
 	}
 
@@ -99,6 +111,17 @@ rosy::result asset::write()
 			return rosy::result::write_failed;
 		}
 		std::cout << std::format("wrote {} materials", res) << '\n';
+	}
+
+	// WRITE SAMPLERS
+
+	{
+		size_t res = fwrite(samplers.data(), sizeof(sampler), samplers.size(), stream);
+		if (res != samplers.size()) {
+			std::cerr << std::format("failed to write {}/{} samplers", res, samplers.size()) << '\n';
+			return rosy::result::write_failed;
+		}
+		std::cout << std::format("wrote {} samplers", res) << '\n';
 	}
 
 	// WRITE ALL THE SCENES ONE AT A TIME
@@ -187,6 +210,39 @@ rosy::result asset::write()
 			}
 			std::cout << std::format("wrote {} node child nodes", res) << '\n';
 		}
+	}
+
+	// WRITE ALL IMAGES ONE AT A TIME
+
+	for (const auto& [names] : images) {
+
+		// WRITE ONE IMAGE SIZE
+
+		{
+			const size_t num_chars{ names.size() };
+			constexpr size_t lookup_sizes = 1;
+			const std::array<size_t, 1> image_sizes{ num_chars };
+			size_t res = fwrite(&image_sizes, sizeof(image_sizes), lookup_sizes, stream);
+			if (res != lookup_sizes) {
+				std::cerr << std::format("failed to write {}/{} image_sizes", res, lookup_sizes) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format(
+				"wrote {} sizes, num image name chars: {}",
+				res, num_chars) << '\n';
+		}
+
+		// WRITE ONE IMAGE NAME
+
+		{
+			size_t res = fwrite(names.data(), sizeof(char), names.size(), stream);
+			if (res != names.size()) {
+				std::cerr << std::format("failed to write {}/{} image name chars", res, names.size()) << '\n';
+				return rosy::result::write_failed;
+			}
+			std::cout << std::format("wrote {} image name chars", res) << '\n';
+		}
+
 	}
 
 	// WRITE ALL MESHES ONE AT A TIME
@@ -281,6 +337,7 @@ rosy::result asset::read()
 	}
 
 	// READ RSY FORMAT HEADER
+
 	{
 		constexpr size_t num_headers = 1;
 		file_header header{
@@ -294,12 +351,17 @@ rosy::result asset::read()
 			std::cerr << std::format("failed to read {}/{} headers", res, num_headers) << '\n';
 			return rosy::result::read_failed;
 		}
+		if (header.magic != rosy_format)
+		{
+			std::cerr << std::format("failed to read, magic mismatch, got: {} should be {}", header.magic, rosy_format) << '\n';
+			return rosy::result::read_failed;
+		}
 		if (header.version != current_version)
 		{
 			std::cerr << std::format("failed to read, version mismatch file is version {} current version is {}", header.version, current_version) << '\n';
 			return rosy::result::read_failed;
 		}
-		constexpr uint32_t is_little_endian = std::endian::native == std::endian::little ? 1 : 0;
+		constexpr uint32_t is_little_endian = std::endian::native == std::endian::little ? 1 : 0;  // NOLINT(clang-diagnostic-unreachable-code)
 		if (header.endianness != is_little_endian)
 		{
 			std::cerr << std::format("failed to read, endianness mismatch file is {} system is {}", header.endianness, is_little_endian) << '\n';
@@ -311,15 +373,17 @@ rosy::result asset::read()
 			header.version, is_little_endian, root_scene) << '\n';
 	}
 
-	// WRITE GLTF SIZES FOR MATERIALS AND MESHES
+	// WRITE GLTF SIZES FOR ALL ASSET RESOURCES
 
 	size_t num_materials{ 0 };
+	size_t num_samplers{ 0 };
 	size_t num_scenes{ 0 };
 	size_t num_nodes{ 0 };
+	size_t num_images{ 0 };
 	size_t num_meshes{ 0 };
 	{
 		constexpr size_t lookup_sizes = 1;
-		std::array<size_t, 4> num_gltf_sizes{ 0, 0, 0, 0 };
+		std::array<size_t, 6> num_gltf_sizes{ 0, 0, 0, 0, 0, 0 };
 		size_t res = fread(&num_gltf_sizes, sizeof(num_gltf_sizes), lookup_sizes, stream);
 		if (res != lookup_sizes) {
 			std::cerr << std::format("failed to read {}/{} num_gltf_sizes", res, lookup_sizes) << '\n';
@@ -328,12 +392,15 @@ rosy::result asset::read()
 		std::cout << std::format("read {} sizes", res) << '\n';
 
 		num_materials = num_gltf_sizes[0];
-		num_scenes = num_gltf_sizes[1];
-		num_nodes = num_gltf_sizes[2];
-		num_meshes = num_gltf_sizes[3];
+		num_samplers = num_gltf_sizes[1];
+		num_scenes = num_gltf_sizes[2];
+		num_nodes = num_gltf_sizes[3];
+		num_images = num_gltf_sizes[4];
+		num_meshes = num_gltf_sizes[5];
 	}
 
 	materials.resize(num_materials);
+	samplers.resize(num_samplers);
 	scenes.reserve(num_scenes);
 	nodes.reserve(num_nodes);
 	meshes.reserve(num_meshes);
@@ -346,7 +413,18 @@ rosy::result asset::read()
 			std::cerr << std::format("failed to read {}/{} materials", res, num_materials) << '\n';
 			return rosy::result::read_failed;
 		}
-		std::cout << std::format("read {} positions", res) << '\n';
+		std::cout << std::format("read {} materials", res) << '\n';
+	}
+
+	// READ GLTF SAMPLERS
+
+	{
+		size_t res = fread(samplers.data(), sizeof(sampler), num_samplers, stream);
+		if (res != num_samplers) {
+			std::cerr << std::format("failed to read {}/{} samplers", res, num_samplers) << '\n';
+			return rosy::result::read_failed;
+		}
+		std::cout << std::format("read {} samplers", res) << '\n';
 	}
 
 	// READ ALL THE SCENES ONE AT A TIME
@@ -452,6 +530,46 @@ rosy::result asset::read()
 		// ADD MESH TO ASSET
 
 		nodes.push_back(n);
+	}
+
+	// READ ALL IMAGES ONE AT A TIME
+
+	for (size_t i{ 0 }; i < num_images; i++) {
+		image img{};
+
+		// READ ONE IMAGE SIZE
+
+		size_t num_chars{ 0 };
+		{
+			constexpr size_t lookup_sizes = 1;
+			std::array<size_t, 1> image_sizes{ 0 };
+			size_t res = fread(&image_sizes, sizeof(image_sizes), lookup_sizes, stream);
+			if (res != lookup_sizes) {
+				std::cerr << std::format("failed to read {}/{} image_sizes", res, lookup_sizes) << '\n';
+				return rosy::result::read_failed;
+			}
+			num_chars = image_sizes[0];
+			std::cout << std::format(
+				"read {} sizes, num_chars: {}",
+				res, num_chars) << '\n';
+		}
+
+		img.name.resize(num_chars);
+
+		// READ ONE IMAGE NAME
+
+		{
+			size_t res = fread(img.name.data(), sizeof(char), num_chars, stream);
+			if (res != num_chars) {
+				std::cerr << std::format("failed to read {}/{} image name chars", res, num_chars) << '\n';
+				return rosy::result::read_failed;
+			}
+			std::cout << std::format("read {} image name chars", res) << '\n';
+		}
+
+		// ADD IMAGE TO ASSET
+
+		images.push_back(img);
 	}
 
 	// READ ALL MESHES ONE AT A TIME

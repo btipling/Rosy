@@ -1,18 +1,20 @@
 #include "Graphics.h"
 #include <format>
 #include <vector>
-#include <queue>
 #include <stack>
 #include <algorithm>
 
 #include "volk/volk.h"
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vk_enum_string_helper.h"
+#include <ktxvulkan.h>
 #include <SDL3/SDL_vulkan.h>
 #pragma warning(disable: 4100 4459)
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
+#include <filesystem>
+
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
@@ -100,7 +102,7 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_depth_image      = 0b00000000000000000000000100000000;
 	constexpr  uint32_t graphics_created_bit_ui_pool          = 0b00000000000000000000001000000000;
 	constexpr  uint32_t graphics_created_bit_swapchain        = 0b00000000000000000000010000000000;
-	constexpr  uint32_t graphics_created_bit_ktx              = 0b00000000000000000000100000000000;
+	constexpr  uint32_t graphics_created_bit_ktx_vdi_info     = 0b00000000000000000000100000000000;
 	constexpr  uint32_t graphics_created_bit_descriptor_set   = 0b00000000000000000001000000000000;
 	constexpr  uint32_t graphics_created_bit_descriptor_pool  = 0b00000000000000000010000000000000;
 	constexpr  uint32_t graphics_created_bit_draw_image_view  = 0b00000000000000000100000000000000;
@@ -117,6 +119,9 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_scene_buffer     = 0b00000010000000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_materials_buffer = 0b00000100000000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_graphics_buffer  = 0b00001000000000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_ktx_image        = 0b00010000000000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_ktx_texture      = 0b00100000000000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_sampler          = 0b01000000000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -215,6 +220,37 @@ namespace {
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
+
+	VkFilter  filter_to_val(const uint16_t filter)
+	{
+		switch (filter)
+		{
+		case 0:
+		case 1:
+		case 2:
+			return VK_FILTER_NEAREST;
+		case 3:
+		case 4:
+		case 5:
+		default:
+			return VK_FILTER_LINEAR;
+		}
+	}
+
+	VkSamplerAddressMode wrap_to_val(const uint16_t wrap)
+	{
+		switch (wrap)
+		{
+		case 0:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case 1:
+			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case 2:
+		default:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		}
+	}
+
 	struct gpu_scene_data
 	{
 		std::array<float, 16> view = { 0 };
@@ -233,6 +269,13 @@ namespace {
 		VmaAllocation allocation;
 		VkExtent3D image_extent;
 		VkFormat image_format;
+	};
+
+	struct allocated_ktx_image
+	{
+		uint32_t graphics_created_bitmask{ 0 };
+		ktxTexture* texture;
+		ktxVulkanTexture vk_texture;
 	};
 
 	struct allocated_csm
@@ -267,6 +310,8 @@ namespace {
 		std::array<float, 4> color;
 		float metallic_factor{ 0.f };
 		float roughness_factor{ 0.f };
+		uint32_t color_sampled_image_index{ UINT32_MAX };
+		uint32_t color_sampler_index{ UINT32_MAX };
 	};
 
 	struct gpu_material_buffer
@@ -371,6 +416,8 @@ namespace {
 		allocated_image draw_image;
 		allocated_image depth_image;
 		allocated_csm shadow_map_image;
+		uint32_t default_sampler_index{ 0 };
+		VkSampler default_sampler{ nullptr };
 		float render_scale = 1.f;
 
 		VkDescriptorPool ui_pool{ nullptr };
@@ -380,18 +427,21 @@ namespace {
 		VkCommandPool immediate_command_pool{ nullptr };
 
 		SDL_Window* window{ nullptr };
+		ktxVulkanDeviceInfo ktx_vdi_info{};
 
-		// Buffers
+		// Level dependent data
+		std::vector< VkSampler> samplers;
+		std::vector<VkImageView> image_views;
+		std::vector<allocated_ktx_image> ktx_textures;
 		std::vector<gpu_mesh_buffers> gpu_meshes{};
-		gpu_scene_buffers scene_buffer{};
 		gpu_material_buffer material_buffer{};
 		graphic_objects_buffers graphic_objects_buffer{};
-
-		// Graphic Objects
 		std::vector<surface_graphics_data> surface_graphics{};
-
 		std::vector<VkShaderEXT> scene_shaders;
 		VkPipelineLayout scene_layout;
+
+		// Buffers
+		gpu_scene_buffers scene_buffer{};
 
 		result init(const config new_cfg)
 		{
@@ -557,6 +607,13 @@ namespace {
 				return result::graphics_init_failure;
 			}
 
+			vk_result = init_default_sampler();
+			if (vk_result != VK_SUCCESS)
+			{
+				l->error(std::format("Failed to init default sampler! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				return result::graphics_init_failure;
+			}
+
 			vk_result = init_ktx();
 			if (vk_result != VK_SUCCESS)
 			{
@@ -581,6 +638,33 @@ namespace {
 			// WAIT FOR DEVICE IDLE END **** 
 
 			// Deinit acquired resources in the opposite order in which they were created
+
+			for (const VkSampler& sampler : samplers)
+			{
+				vkDestroySampler(device, sampler, nullptr);
+			}
+
+			for (const VkImageView& image_view : image_views)
+			{
+				vkDestroyImageView(device, image_view, nullptr);
+			}
+
+			for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
+			{
+				if (gfx_created_bitmask & graphics_created_bit_ktx_image)
+				{
+					ktxTexture_Destroy(ktx_texture);
+				}
+				if (gfx_created_bitmask & graphics_created_bit_ktx_texture)
+				{
+					ktxVulkanTexture_Destruct(&ktx_vk_texture, device, nullptr);
+				}
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_ktx_vdi_info)
+			{
+				ktxVulkanDeviceInfo_Destruct(&ktx_vdi_info);
+			}
 
 			if (graphics_created_bitmask & graphics_created_bit_scene_buffer)
 			{
@@ -620,6 +704,11 @@ namespace {
 			if (graphics_created_bitmask & graphics_created_bit_materials_buffer)
 			{
 				vmaDestroyBuffer(allocator, material_buffer.material_buffer.buffer, material_buffer.material_buffer.allocation);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_sampler)
+			{
+				vkDestroySampler(device, default_sampler, nullptr);
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_imgui_vk)
@@ -1929,6 +2018,7 @@ namespace {
 
 			init_info.PipelineRenderingCreateInfo = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
 			init_info.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+			init_info.PipelineRenderingCreateInfo.depthAttachmentFormat = depth_image.image_format;
 			init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &draw_image.image_format;
 
 			init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -2061,10 +2151,52 @@ namespace {
 			return VK_SUCCESS;
 		}
 
+		VkResult init_default_sampler()
+		{
+			VkSamplerCreateInfo sampler_create_info = {};
+			sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			sampler_create_info.pNext = nullptr;
+			sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
+			sampler_create_info.minLod = 0;
+			sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sampler_create_info.magFilter = VK_FILTER_NEAREST;
+			sampler_create_info.minFilter = VK_FILTER_NEAREST;
+			if (const VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &default_sampler); res != VK_SUCCESS)
+			{
+				l->error(std::format("Error creating default sampler: {}", static_cast<uint8_t>(res)));
+				return res;
+			}
+			graphics_created_bitmask |= graphics_created_bit_sampler;
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(default_sampler);
+				debug_name.pObjectName = "rosy default sampler";
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error creating default sampler name: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
+			{
+				if (const result res = desc_samples->allocator.allocate(&default_sampler_index); res != result::ok)
+				{
+					l->error(std::format("Error allocating a default sampler desc: {}", static_cast<uint8_t>(res)));
+					return VK_ERROR_UNKNOWN;
+				}
+			}
+			return VK_SUCCESS;
+		}
+
 		VkResult init_ktx()
 		{
 			l->info("Initializing ktx");
-			graphics_created_bitmask |= graphics_created_bit_ktx;
+			ktxVulkanDeviceInfo_Construct(&ktx_vdi_info, physical_device, device, present_queue, immediate_command_pool, nullptr);
+			graphics_created_bitmask |= graphics_created_bit_ktx_vdi_info;
 			return VK_SUCCESS;
 		}
 
@@ -2111,16 +2243,205 @@ namespace {
 		result set_asset(const rosy_packager::asset& a)
 		{
 
+			// *** SETTING IMAGES *** //
+			std::vector<uint32_t> color_image_sampler_desc_index;
+			for (const auto& [asset_img_name] : a.images)
+			{
+				const char* ktx_path{};
+				allocated_ktx_image new_ktx_img{};
+
+				std::string img_name{ asset_img_name.begin(), asset_img_name.end() };
+				std::filesystem::path img_path{ a.asset_path };
+				img_path.replace_filename(std::format("{}.ktx2", img_name));
+				l->debug(std::format("source: {} path: {} name: {}", a.asset_path, img_path.string(), img_name));
+				std::wstring image_path_wide{ img_path.c_str() };
+				std::string img_path_staging{ img_path.string() };
+				ktx_path = img_path_staging.c_str();
+
+				{
+					if (ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile(ktx_path, KTX_TEXTURE_CREATE_NO_FLAGS, &new_ktx_img.texture); ktx_result != KTX_SUCCESS) {
+						l->error(std::format("ktx create texture failure: {}", static_cast<uint8_t>(ktx_result)));
+						return result::create_failed;
+					}
+					new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
+				}
+				;
+				{
+					if (ktx_error_code_e ktx_result = ktxTexture_VkUploadEx(new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
+						VK_IMAGE_TILING_OPTIMAL,
+						VK_IMAGE_USAGE_SAMPLED_BIT,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); ktx_result != KTX_SUCCESS)
+					{
+						ktx_textures.push_back(new_ktx_img);
+						l->error(std::format("ktx create vulkan texture failure: {}", static_cast<uint8_t>(ktx_result)));
+						return result::create_failed;
+					}
+					new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_texture;
+				}
+
+				{
+					VkImageViewCreateInfo image_view_info{};
+					image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					image_view_info.pNext = nullptr;
+					image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					image_view_info.image = new_ktx_img.vk_texture.image;
+					image_view_info.format = new_ktx_img.vk_texture.imageFormat;
+					image_view_info.subresourceRange.baseMipLevel = 0;
+					image_view_info.subresourceRange.levelCount = new_ktx_img.vk_texture.levelCount;
+					image_view_info.subresourceRange.baseArrayLayer = 0;
+					image_view_info.subresourceRange.layerCount = new_ktx_img.vk_texture.layerCount;
+					image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					VkImageView image_view{};
+					if (VkResult res = vkCreateImageView(device, &image_view_info, nullptr, &image_view); res != VK_SUCCESS) {
+						l->error(std::format("asset image view creation failure: {}", static_cast<uint8_t>(res)));
+						return result::create_failed;
+					}
+					const size_t index = image_views.size();
+					image_views.push_back(image_view);
+					{
+						const auto obj_name = std::format("rosy asset image view {}", index);
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(image_view);
+						debug_name.pObjectName = obj_name.c_str();
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating asset image view name: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+					}
+					{
+						uint32_t new_image_sampler_desc_index{ 0 };
+						if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index); res != result::ok)
+						{
+							l->error(std::format("Error allocating sampler descriptor index: {}", static_cast<uint8_t>(res)));
+							return result::create_failed;
+						}
+						{
+							VkDescriptorImageInfo info{};
+							info.sampler = nullptr;
+							info.imageView = image_view;
+							info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+
+							VkWriteDescriptorSet write{};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.dstBinding = desc_sampled_images->binding;
+							write.dstArrayElement = new_image_sampler_desc_index;
+							write.dstSet = descriptor_set;
+							write.descriptorCount = 1;
+							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+							write.pImageInfo = &info;
+
+							vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+						}
+						color_image_sampler_desc_index.push_back(new_image_sampler_desc_index);
+					}
+					assert(image_views.size() == color_image_sampler_desc_index.size());
+				}
+
+				ktx_textures.push_back(new_ktx_img);
+			}
+
+			// *** SETTING SAMPLERS *** //
+			std::vector<uint32_t> sampler_desc_index;
+			{
+				size_t sampler_index{ 0 };
+				for (const rosy_packager::sampler new_sampler : a.samplers)
+				{
+					VkSamplerCreateInfo sampler_create_info = {};
+					sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+					sampler_create_info.pNext = nullptr;
+					sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
+					sampler_create_info.minLod = 0;
+					sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+					sampler_create_info.addressModeU = wrap_to_val(new_sampler.wrap_s);
+					sampler_create_info.addressModeV = wrap_to_val(new_sampler.wrap_t);
+					sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+					sampler_create_info.magFilter = filter_to_val(new_sampler.mag_filter);
+					sampler_create_info.minFilter = filter_to_val(new_sampler.min_filter);
+					VkSampler created_sampler{};
+					if (const VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &created_sampler); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating asset sampler: {}", static_cast<uint8_t>(res)));
+						return result::create_failed;
+					}
+					samplers.push_back(created_sampler);
+					{
+						const auto obj_name = std::format("rosy asset sampler {}", sampler_index);
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(created_sampler);
+						debug_name.pObjectName = obj_name.c_str();
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating asset sampler name: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+					}
+					{
+						uint32_t new_sampler_desc_index{ 0 };
+						if (const result res = desc_samples->allocator.allocate(&new_sampler_desc_index); res != result::ok)
+						{
+							l->error(std::format("Error allocating sampler descriptor index: {}", static_cast<uint8_t>(res)));
+							return result::create_failed;
+						}
+						{
+							VkDescriptorImageInfo info{};
+							info.sampler = created_sampler;
+							info.imageView = nullptr;
+							info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+
+							VkWriteDescriptorSet write{};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.dstBinding = desc_samples->binding;
+							write.dstArrayElement = new_sampler_desc_index;
+							write.dstSet = descriptor_set;
+							write.descriptorCount = 1;
+							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+							write.pImageInfo = &info;
+
+							vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+						}
+						sampler_desc_index.push_back(new_sampler_desc_index);
+					}
+					sampler_index += 1;
+				}
+				assert(samplers.size() == sampler_desc_index.size());
+			}
+
 			// *** SETTING MATERIAL BUFFER *** //
 			{
 				std::vector<gpu_material> materials{};
 				materials.reserve(a.materials.size());
 				for (rosy_packager::material m : a.materials)
 				{
+					uint32_t color_image_sampler_index = UINT32_MAX;
+					uint32_t color_sampler_index = default_sampler_index;
+					if (m.color_image_index < color_image_sampler_desc_index.size()) {
+						color_image_sampler_index = color_image_sampler_desc_index[m.color_image_index];
+
+						assert(ktx_textures.size() > m.color_image_index);
+
+						if (m.color_sampler_index < sampler_desc_index.size())
+						{
+							color_sampler_index = sampler_desc_index[m.color_sampler_index];
+						}
+					}
+
 					materials.push_back({
 						.color = m.base_color_factor,
 						.metallic_factor = m.metallic_factor,
 						.roughness_factor = m.roughness_factor,
+						.color_sampled_image_index = color_image_sampler_index,
+						.color_sampler_index = color_sampler_index,
 						});
 				}
 
@@ -2456,7 +2777,6 @@ namespace {
 				submit_info.commandBufferInfoCount = 1;
 				submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
 
-
 				if (VkResult res = vkQueueSubmit2(present_queue, 1, &submit_info, immediate_fence); res != VK_SUCCESS)
 				{
 					l->error(std::format("Error submitting immediate command to present queue: {}", static_cast<uint8_t>(res)));
@@ -2601,13 +2921,13 @@ namespace {
 		result set_graphic_objects(std::vector<graphics_object> graphics_objects)
 		{
 			surface_graphics.clear();
-			std::vector<graphic_object_data> god{};
-			god.reserve(graphics_objects.size());
+			std::vector<graphic_object_data> go_data{};
+			go_data.reserve(graphics_objects.size());
 			for (const auto& go : graphics_objects)
 			{
-				god.push_back({
+				go_data.push_back({
 				.transform = go.transform,
-				});
+					});
 				for (const auto& s : go.surface_data)
 				{
 					surface_graphics.push_back(s);
@@ -2616,9 +2936,9 @@ namespace {
 			}
 
 			// *** SETTING GRAPHICS OBJECTS BUFFER *** //
-			{
 
-				const size_t graphic_objects_buffer_size = god.size() * sizeof(graphic_object_data);
+			{
+				const size_t graphic_objects_buffer_size = go_data.size() * sizeof(graphic_object_data);
 				{
 					VkBufferCreateInfo buffer_info{};
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2692,7 +3012,7 @@ namespace {
 					}
 				}
 
-				memcpy(staging.info.pMappedData, god.data(), graphic_objects_buffer_size);
+				memcpy(staging.info.pMappedData, go_data.data(), graphic_objects_buffer_size);
 
 				{
 					if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
@@ -2906,6 +3226,44 @@ namespace {
 
 					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
 				}
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
+
+					VkImageMemoryBarrier2 image_barrier = {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = depth_image.image,
+						.subresourceRange = subresource_range,
+					};
+
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 0,
+						.pBufferMemoryBarriers = nullptr,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers = &image_barrier,
+					};
+
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
 
 				{
 					{
@@ -2918,6 +3276,17 @@ namespace {
 						color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 						color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
+
+						VkRenderingAttachmentInfo depth_attachment{};
+						depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+						depth_attachment.pNext = nullptr;
+						depth_attachment.imageView = depth_image.image_view;
+						depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+						depth_attachment.resolveMode = VK_RESOLVE_MODE_NONE;
+						depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+						depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+						depth_attachment.clearValue.depthStencil.depth = 0.0f;
+
 						const auto render_area = VkRect2D{ VkOffset2D{0, 0}, swapchain_extent };
 						VkRenderingInfo render_info{};
 						render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -2926,8 +3295,9 @@ namespace {
 						render_info.layerCount = 1;
 						render_info.colorAttachmentCount = 1;
 						render_info.pColorAttachments = &color_attachment;
-						render_info.pDepthAttachment = nullptr;
+						render_info.pDepthAttachment = &depth_attachment;
 						render_info.pStencilAttachment = nullptr;
+
 						vkCmdBeginRendering(cf.command_buffer, &render_info);
 					}
 					{
@@ -3344,7 +3714,7 @@ result graphics::set_asset(const rosy_packager::asset& a, std::vector<graphics_o
 // ReSharper disable once CppMemberFunctionMayBeStatic
 result graphics::update(const std::array<float, 16>& v, const std::array<float, 16>& p, const std::array<float, 16>& vp, const std::array<float, 4> cam_pos)
 {
-	const gpu_scene_data sd {
+	const gpu_scene_data sd{
 		.view = v,
 		.proj = p,
 		.view_projection = vp,

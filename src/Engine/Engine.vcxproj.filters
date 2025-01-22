@@ -125,5 +125,6 @@
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\libs\SDL3.lib" />
+    <Library Include="..\libs\ktx.lib" />
   </ItemGroup>
 </Project>
