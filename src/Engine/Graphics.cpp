@@ -1,9 +1,10 @@
 #include "Graphics.h"
 #include <format>
 #include <vector>
-#include <queue>
 #include <stack>
 #include <algorithm>
+#include <set>
+#include <tuple>
 
 #include "volk/volk.h"
 #include "vma/vk_mem_alloc.h"
@@ -122,6 +123,7 @@ namespace {
 	constexpr  uint32_t graphics_created_bit_graphics_buffer  = 0b00001000000000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_ktx_image        = 0b00010000000000000000000000000000;
 	constexpr  uint32_t graphics_created_bit_ktx_texture      = 0b00100000000000000000000000000000;
+	constexpr  uint32_t graphics_created_bit_sampler          = 0b01000000000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -383,6 +385,8 @@ namespace {
 		allocated_image draw_image;
 		allocated_image depth_image;
 		allocated_csm shadow_map_image;
+		uint32_t default_sampler_index{ 0 };
+		VkSampler default_sampler{ nullptr };
 		float render_scale = 1.f;
 
 		VkDescriptorPool ui_pool{ nullptr };
@@ -572,6 +576,13 @@ namespace {
 				return result::graphics_init_failure;
 			}
 
+			vk_result = init_default_sampler();
+			if (vk_result != VK_SUCCESS)
+			{
+				l->error(std::format("Failed to init default sampler! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				return result::graphics_init_failure;
+			}
+
 			vk_result = init_ktx();
 			if (vk_result != VK_SUCCESS)
 			{
@@ -662,6 +673,11 @@ namespace {
 			if (graphics_created_bitmask & graphics_created_bit_materials_buffer)
 			{
 				vmaDestroyBuffer(allocator, material_buffer.material_buffer.buffer, material_buffer.material_buffer.allocation);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_sampler)
+			{
+				vkDestroySampler(device, default_sampler, nullptr);
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_imgui_vk)
@@ -2103,6 +2119,47 @@ namespace {
 			return VK_SUCCESS;
 		}
 
+		VkResult init_default_sampler()
+		{
+			VkSamplerCreateInfo sampler_create_info = {};
+			sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			sampler_create_info.pNext = nullptr;
+			sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
+			sampler_create_info.minLod = 0;
+			sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sampler_create_info.magFilter = VK_FILTER_NEAREST;
+			sampler_create_info.minFilter = VK_FILTER_NEAREST;
+			if (const VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &default_sampler); res != VK_SUCCESS)
+			{
+				l->error(std::format("Error creating default sampler: {}", static_cast<uint8_t>(res)));
+				return res;
+			}
+			graphics_created_bitmask |= graphics_created_bit_sampler;
+			{
+				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				debug_name.pNext = nullptr;
+				debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
+				debug_name.objectHandle = reinterpret_cast<uint64_t>(default_sampler);
+				debug_name.pObjectName = "rosy default sampler";
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+				{
+					l->error(std::format("Error creating default sampler name: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
+			{
+				if (const result res = desc_samples->allocator.allocate(&default_sampler_index); res != result::ok)
+				{
+					l->error(std::format("Error allocating a default sampler desc: {}", static_cast<uint8_t>(res)));
+					return VK_ERROR_UNKNOWN;
+				}
+			}
+			return VK_SUCCESS;
+		}
+
 		VkResult init_ktx()
 		{
 			l->info("Initializing ktx");
@@ -2229,12 +2286,17 @@ namespace {
 				ktx_textures.push_back(new_ktx_img);
 			}
 
+			std::set<std::tuple<uint32_t, uint32_t>> samplers_created{};
+
 			// *** SETTING MATERIAL BUFFER *** //
 			{
 				std::vector<gpu_material> materials{};
 				materials.reserve(a.materials.size());
 				for (rosy_packager::material m : a.materials)
 				{
+					if (m.color_image_index)
+					const std::tuple<uint32_t, uint32_t> sampler_check{};
+
 					materials.push_back({
 						.color = m.base_color_factor,
 						.metallic_factor = m.metallic_factor,
