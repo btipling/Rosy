@@ -2154,6 +2154,81 @@ namespace {
 		result set_asset(const rosy_packager::asset& a)
 		{
 
+			// *** SETTING IMAGES *** //
+			for (const auto& [asset_img_name] : a.images)
+			{
+				const char* ktx_path{};
+				allocated_ktx_image new_ktx_img{};
+
+				std::string img_name{ asset_img_name.begin(), asset_img_name.end() };
+				std::filesystem::path img_path{ a.asset_path };
+				img_path.replace_filename(std::format("{}.ktx2", img_name));
+				l->debug(std::format("source: {} path: {} name: {}", a.asset_path, img_path.string(), img_name));
+				std::wstring image_path_wide{ img_path.c_str() };
+#pragma warning(disable:4244)
+				std::string img_path_staging{ image_path_wide.begin(), image_path_wide.end() };
+#pragma warning(error:4244)
+				ktx_path = img_path_staging.c_str();
+
+				{
+					if (ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile(ktx_path, KTX_TEXTURE_CREATE_NO_FLAGS, &new_ktx_img.texture); ktx_result != KTX_SUCCESS) {
+						l->error(std::format("ktx create texture failure: {}", static_cast<uint8_t>(ktx_result)));
+						return result::create_failed;
+					}
+					new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
+				}
+				;
+				{
+					if (ktx_error_code_e ktx_result = ktxTexture_VkUploadEx(new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
+						VK_IMAGE_TILING_OPTIMAL,
+						VK_IMAGE_USAGE_SAMPLED_BIT,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); ktx_result != KTX_SUCCESS)
+					{
+						ktx_textures.push_back(new_ktx_img);
+						l->error(std::format("ktx create vulkan texture failure: {}", static_cast<uint8_t>(ktx_result)));
+						return result::create_failed;
+					}
+					new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_texture;
+				}
+
+				{
+					VkImageViewCreateInfo image_view_info{};
+					image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					image_view_info.pNext = nullptr;
+					image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					image_view_info.image = new_ktx_img.vk_texture.image;
+					image_view_info.format = new_ktx_img.vk_texture.imageFormat;
+					image_view_info.subresourceRange.baseMipLevel = 0;
+					image_view_info.subresourceRange.levelCount = new_ktx_img.vk_texture.levelCount;
+					image_view_info.subresourceRange.baseArrayLayer = 0;
+					image_view_info.subresourceRange.layerCount = new_ktx_img.vk_texture.layerCount;
+					image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					VkImageView image_view{};
+					if (VkResult res = vkCreateImageView(device, &image_view_info, nullptr, &image_view); res != VK_SUCCESS) {
+						l->error(std::format("asset image view creation failure: {}", static_cast<uint8_t>(res)));
+						return result::create_failed;
+					}
+					const size_t index = image_views.size();
+					image_views.push_back(image_view);
+					{
+						const auto obj_name = std::format("rosy asset image view {}", index);
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(image_view);
+						debug_name.pObjectName = obj_name.c_str();
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating asset image view name: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+					}
+				}
+
+				ktx_textures.push_back(new_ktx_img);
+			}
+
 			// *** SETTING MATERIAL BUFFER *** //
 			{
 				std::vector<gpu_material> materials{};
@@ -2165,80 +2240,6 @@ namespace {
 						.metallic_factor = m.metallic_factor,
 						.roughness_factor = m.roughness_factor,
 						});
-				}
-
-				for (const auto& [asset_img_name] : a.images)
-				{
-					const char* ktx_path{};
-					allocated_ktx_image new_ktx_img{};
-
-					std::string img_name{ asset_img_name.begin(), asset_img_name.end() };
-					std::filesystem::path img_path{ a.asset_path };
-					img_path.replace_filename(std::format("{}.ktx2", img_name));
-					l->debug(std::format("source: {} path: {} name: {}", a.asset_path, img_path.string(), img_name));
-					std::wstring image_path_wide{ img_path.c_str() };
-#pragma warning(disable:4244)
-					std::string img_path_staging{ image_path_wide.begin(), image_path_wide.end() };
-#pragma warning(error:4244)
-					ktx_path = img_path_staging.c_str();
-
-					{
-						if (ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile(ktx_path, KTX_TEXTURE_CREATE_NO_FLAGS, &new_ktx_img.texture); ktx_result != KTX_SUCCESS) {
-							l->error(std::format("ktx create texture failure: {}", static_cast<uint8_t>(ktx_result)));
-							return result::create_failed;
-						}
-						new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
-					}
-					;
-					{
-						if (ktx_error_code_e ktx_result = ktxTexture_VkUploadEx(new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
-							VK_IMAGE_TILING_OPTIMAL,
-							VK_IMAGE_USAGE_SAMPLED_BIT,
-							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); ktx_result != KTX_SUCCESS)
-						{
-							ktx_textures.push_back(new_ktx_img);
-							l->error(std::format("ktx create vulkan texture failure: {}", static_cast<uint8_t>(ktx_result)));
-							return result::create_failed;
-						}
-						new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_texture;
-					}
-
-					{
-						VkImageViewCreateInfo image_view_info{};
-						image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-						image_view_info.pNext = nullptr;
-						image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-						image_view_info.image = new_ktx_img.vk_texture.image;
-						image_view_info.format = new_ktx_img.vk_texture.imageFormat;
-						image_view_info.subresourceRange.baseMipLevel = 0;
-						image_view_info.subresourceRange.levelCount = new_ktx_img.vk_texture.levelCount;
-						image_view_info.subresourceRange.baseArrayLayer = 0;
-						image_view_info.subresourceRange.layerCount = new_ktx_img.vk_texture.layerCount;
-						image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-						VkImageView image_view{};
-						if (VkResult res = vkCreateImageView(device, &image_view_info, nullptr, &image_view); res != VK_SUCCESS) {
-							l->error(std::format("asset image view creation failure: {}", static_cast<uint8_t>(res)));
-							return result::create_failed;
-						}
-						const size_t index = image_views.size();
-						image_views.push_back(image_view);
-						{
-							const auto obj_name = std::format("rosy asset image view {}", index);
-							VkDebugUtilsObjectNameInfoEXT debug_name{};
-							debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-							debug_name.pNext = nullptr;
-							debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
-							debug_name.objectHandle = reinterpret_cast<uint64_t>(image_view);
-							debug_name.pObjectName = obj_name.c_str();
-							if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
-							{
-								l->error(std::format("Error creating asset image view name: {}", static_cast<uint8_t>(res)));
-								return result::error;
-							}
-						}
-					}
-
-					ktx_textures.push_back(new_ktx_img);
 				}
 
 				const size_t material_buffer_size = materials.size() * sizeof(materials);
