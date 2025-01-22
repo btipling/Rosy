@@ -85,6 +85,8 @@ public struct BasicMaterialData {
     public float4 color;
     public float metallicFactor;
     public float roughnessFactor;
+    public uint32_t color_texture_index;
+    public uint32_t color_sampler_index;
 };
 
 public struct BasicPushConstant {

@@ -310,6 +310,8 @@ namespace {
 		std::array<float, 4> color;
 		float metallic_factor{ 0.f };
 		float roughness_factor{ 0.f };
+		uint32_t color_sampled_image_index{ UINT32_MAX };
+		uint32_t color_sampler_index{ UINT32_MAX };
 	};
 
 	struct gpu_material_buffer
@@ -2241,7 +2243,7 @@ namespace {
 		{
 
 			// *** SETTING IMAGES *** //
-			std::vector<uint32_t> image_sampler_desc_index;
+			std::vector<uint32_t> color_image_sampler_desc_index;
 			for (const auto& [asset_img_name] : a.images)
 			{
 				const char* ktx_path{};
@@ -2336,9 +2338,9 @@ namespace {
 
 							vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 						}
-						image_sampler_desc_index.push_back(new_image_sampler_desc_index);
+						color_image_sampler_desc_index.push_back(new_image_sampler_desc_index);
 					}
-					assert(image_views.size() == image_sampler_desc_index.size());
+					assert(image_views.size() == color_image_sampler_desc_index.size());
 				}
 
 				ktx_textures.push_back(new_ktx_img);
@@ -2422,16 +2424,16 @@ namespace {
 				materials.reserve(a.materials.size());
 				for (rosy_packager::material m : a.materials)
 				{
-					if (m.color_image_index < a.images.size()) {
+					uint32_t color_image_sampler_index = UINT32_MAX;
+					uint32_t color_sampler_index = default_sampler_index;
+					if (m.color_image_index < color_image_sampler_desc_index.size()) {
+						color_image_sampler_index = color_image_sampler_desc_index[m.color_image_index];
 
 						assert(ktx_textures.size() > m.color_image_index);
 
-						/*const auto& kt_image = ktx_textures[m.color_image_index];
-						const uint32_t image_index = m.color_sampler_index;*/
-						uint32_t sampler_index = SDL_MAX_UINT32;
-						if (m.color_sampler_index < a.samplers.size())
+						if (m.color_sampler_index < sampler_desc_index.size())
 						{
-							sampler_index = m.color_sampler_index;
+							color_sampler_index = sampler_desc_index[m.color_sampler_index];
 						}
 					}
 
@@ -2439,6 +2441,8 @@ namespace {
 						.color = m.base_color_factor,
 						.metallic_factor = m.metallic_factor,
 						.roughness_factor = m.roughness_factor,
+						.color_sampled_image_index = color_image_sampler_index,
+						.color_sampler_index = color_sampler_index,
 					});
 				}
 
@@ -2773,7 +2777,6 @@ namespace {
 				submit_info.pSignalSemaphoreInfos = nullptr;
 				submit_info.commandBufferInfoCount = 1;
 				submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
-
 
 				if (VkResult res = vkQueueSubmit2(present_queue, 1, &submit_info, immediate_fence); res != VK_SUCCESS)
 				{
