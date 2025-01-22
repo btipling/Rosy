@@ -100,13 +100,14 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 
 	while (sgp->queue.size() > 0)
 	{
-		const auto [stack_node, parent_transform] = sgp->queue.front();
+		// ReSharper disable once CppUseStructuredBinding Visual studio wants to make this a reference, and it shouldn't be.
+		const stack_item queue_item = sgp->queue.front();
 		sgp->queue.pop();
 
-		glm::mat4 node_transform = array_to_mat4(stack_node.transform);
+		glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
 
-		if (stack_node.mesh_id < new_asset.meshes.size()) {
-			sgp->mesh_queue.push(stack_node.mesh_id);
+		if (queue_item.stack_node.mesh_id < new_asset.meshes.size()) {
+			sgp->mesh_queue.push(queue_item.stack_node.mesh_id);
 
 			while (sgp->mesh_queue.size() > 0)
 			{
@@ -114,7 +115,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				sgp->mesh_queue.pop();
 				const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
 				graphics_object go{};
-				go.transform = mat4_to_array(gltf_to_ndc * parent_transform * node_transform);
+				go.transform = mat4_to_array(gltf_to_ndc * queue_item.parent_transform * node_transform);
 				go.surface_data.reserve(current_mesh.surfaces.size());
 				size_t go_index = graphics_objects.size();
 				for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
@@ -136,11 +137,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			}
 		}
 
-		for (const size_t child_index : stack_node.child_nodes)
+		for (const size_t child_index : queue_item.stack_node.child_nodes)
 		{
 			sgp->queue.push({
 				.stack_node = new_asset.nodes[child_index],
-				.parent_transform = parent_transform * node_transform,
+				.parent_transform = queue_item.parent_transform * node_transform,
 			});
 		}
 	}

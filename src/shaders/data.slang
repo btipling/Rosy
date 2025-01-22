@@ -32,6 +32,7 @@ public struct BasicInputVertex {
     public float3 position;
     public float3 normal;
     public float4 color;
+    public float2 textureCoordinates;
 };
 
 public struct BasicGraphicsData {

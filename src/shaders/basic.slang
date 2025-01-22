@@ -1,5 +1,8 @@
 import data;
 
+[[vk::binding(0, 0)]] texture2D imageTexture[];
+[[vk::binding(1, 0)]] SamplerState imageSampler[];
+
 [[vk::push_constant]] BasicPushConstant BasicPushConstants;
 
 [shader("vertex")]
@@ -38,6 +41,12 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex) : SV_Target
 
     float3 ambientLight = sd.ambientColor.xyz;
     float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
+
+    // uint cti = md.color_texture_index;
+    // uint csi = md.color_sampler_index;
+    // texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
+    // SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
+    // float4 imageTextureColor = matImageTexture.Sample(matSampler, coarseVertex.textureCoordinates);
 
     float4 outFragColor = md.color * 0.25 + float4(ambientLight * sunLight, 1.0) * 0.5;
 
