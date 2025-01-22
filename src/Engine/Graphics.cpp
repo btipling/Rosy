@@ -2362,8 +2362,8 @@ namespace {
 					sampler_create_info.addressModeV = wrap_to_val(new_sampler.wrap_t);
 					sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-					sampler_create_info.magFilter = filter_to_val(new_sampler.wrap_s);
-					sampler_create_info.minFilter = filter_to_val(new_sampler.wrap_s);
+					sampler_create_info.magFilter = filter_to_val(new_sampler.mag_filter);
+					sampler_create_info.minFilter = filter_to_val(new_sampler.min_filter);
 					VkSampler created_sampler{};
 					if (const VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &created_sampler); res != VK_SUCCESS)
 					{
