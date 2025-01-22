@@ -2362,6 +2362,24 @@ namespace {
 							l->error(std::format("Error allocating sampler descriptor index: {}", static_cast<uint8_t>(res)));
 							return result::create_failed;
 						}
+						{
+							VkDescriptorImageInfo info{};
+							info.sampler = created_sampler;
+							info.imageView = nullptr;
+							info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+
+							VkWriteDescriptorSet write{};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.dstBinding = desc_samples->binding;
+							write.dstArrayElement = new_sampler_desc_index;
+							write.dstSet = descriptor_set;
+							write.descriptorCount = 1;
+							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+							write.pImageInfo = &info;
+
+							vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+						}
 						sampler_desc_index.push_back(new_sampler_desc_index);
 					}
 					sampler_index += 1;
