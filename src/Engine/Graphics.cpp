@@ -2241,6 +2241,7 @@ namespace {
 		{
 
 			// *** SETTING IMAGES *** //
+			std::vector<uint32_t> image_sampler_desc_index;
 			for (const auto& [asset_img_name] : a.images)
 			{
 				const char* ktx_path{};
@@ -2310,13 +2311,41 @@ namespace {
 							return result::error;
 						}
 					}
+					{
+						uint32_t new_image_sampler_desc_index{ 0 };
+						if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index); res != result::ok)
+						{
+							l->error(std::format("Error allocating sampler descriptor index: {}", static_cast<uint8_t>(res)));
+							return result::create_failed;
+						}
+						{
+							VkDescriptorImageInfo info{};
+							info.sampler = nullptr;
+							info.imageView = image_view;
+							info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+
+							VkWriteDescriptorSet write{};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.dstBinding = desc_sampled_images->binding;
+							write.dstArrayElement = new_image_sampler_desc_index;
+							write.dstSet = descriptor_set;
+							write.descriptorCount = 1;
+							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+							write.pImageInfo = &info;
+
+							vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+						}
+						image_sampler_desc_index.push_back(new_image_sampler_desc_index);
+					}
+					assert(image_views.size() == image_sampler_desc_index.size());
 				}
 
 				ktx_textures.push_back(new_ktx_img);
 			}
 
-			std::vector<uint32_t> sampler_desc_index;
 			// *** SETTING SAMPLERS *** //
+			std::vector<uint32_t> sampler_desc_index;
 			{
 				size_t sampler_index{ 0 };
 				for (const rosy_packager::sampler new_sampler : a.samplers)
