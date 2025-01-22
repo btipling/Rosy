@@ -172,6 +172,15 @@ rosy::result gltf::import()
 					});
 			}
 
+			// ReSharper disable once StringLiteralTypo
+			if (auto uv = primitive.findAttribute("TEXCOORD_0"); uv != primitive.attributes.end()) {
+
+				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(gltf, gltf.accessors[uv->accessorIndex],
+					[&](const fastgltf::math::fvec2& tc, const size_t index) {
+						new_mesh.positions[initial_vtx + index].texture_coordinates = {tc[0], tc[1]};
+					});
+			}
+
 			// PRIMITIVE COLOR
 			if (auto colors = primitive.findAttribute("COLOR_0"); colors != primitive.attributes.end()) {
 				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[colors->accessorIndex],
