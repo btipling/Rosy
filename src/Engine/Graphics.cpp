@@ -2018,6 +2018,7 @@ namespace {
 
 			init_info.PipelineRenderingCreateInfo = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
 			init_info.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+			init_info.PipelineRenderingCreateInfo.depthAttachmentFormat = depth_image.image_format;
 			init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &draw_image.image_format;
 
 			init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -2443,7 +2444,7 @@ namespace {
 						.roughness_factor = m.roughness_factor,
 						.color_sampled_image_index = color_image_sampler_index,
 						.color_sampler_index = color_sampler_index,
-					});
+						});
 				}
 
 				const size_t material_buffer_size = materials.size() * sizeof(materials);
@@ -3227,6 +3228,44 @@ namespace {
 
 					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
 				}
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
+
+					VkImageMemoryBarrier2 image_barrier = {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = depth_image.image,
+						.subresourceRange = subresource_range,
+					};
+
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 0,
+						.pBufferMemoryBarriers = nullptr,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers = &image_barrier,
+					};
+
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
 
 				{
 					{
@@ -3239,6 +3278,17 @@ namespace {
 						color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 						color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
+
+						VkRenderingAttachmentInfo depth_attachment{};
+						depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+						depth_attachment.pNext = nullptr;
+						depth_attachment.imageView = depth_image.image_view;
+						depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+						depth_attachment.resolveMode = VK_RESOLVE_MODE_NONE;
+						depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+						depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+						depth_attachment.clearValue.depthStencil.depth = 0.0f;
+
 						const auto render_area = VkRect2D{ VkOffset2D{0, 0}, swapchain_extent };
 						VkRenderingInfo render_info{};
 						render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -3247,8 +3297,9 @@ namespace {
 						render_info.layerCount = 1;
 						render_info.colorAttachmentCount = 1;
 						render_info.pColorAttachments = &color_attachment;
-						render_info.pDepthAttachment = nullptr;
+						render_info.pDepthAttachment = &depth_attachment;
 						render_info.pStencilAttachment = nullptr;
+
 						vkCmdBeginRendering(cf.command_buffer, &render_info);
 					}
 					{
