@@ -19,10 +19,12 @@ namespace rosy
 		level* lvl{ nullptr };
 		graphics* gfx{ nullptr };
 		bool render_ui{ true };
+		bool cursor_enabled{ true };
+		engine_stats stats{};
 
 		[[nodiscard]] result init();
 		[[nodiscard]] result run();
-		[[nodiscard]] result render() const;
+		[[nodiscard]] result render();
 		void deinit();
 	};
 }

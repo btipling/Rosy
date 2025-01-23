@@ -54,4 +54,13 @@ namespace rosy
 		std::array<float, 16> normal_transform;
 	};
 
+	struct engine_stats
+	{
+		float a_fps{ 0.f };
+		float d_fps{ 0.f };
+		float r_fps{ 0.f };
+		float frame_time{ 0.f };
+		float level_update_time{ 0.f };
+	};
+
 }

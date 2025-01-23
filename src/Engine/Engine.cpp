@@ -4,6 +4,7 @@
 #include <chrono>
 #include <format>
 #include <thread>
+#include <numbers>
 #include <SDL3/SDL.h>
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
@@ -240,11 +241,15 @@ result engine::run()
 			if (event.type == SDL_EVENT_KEY_UP) {
 				if (event.key.key == SDLK_C)
 				{
+					cursor_enabled = !cursor_enabled;
+					SDL_SetWindowRelativeMouseMode(window, !cursor_enabled);
+				}
+				if (event.key.key == SDLK_F1)
+				{
 					render_ui = !render_ui;
-					SDL_SetWindowRelativeMouseMode(window, !render_ui);
 				}
 			}
-			if (const auto res = cam->process_sdl_event(event, !render_ui); res != result::ok) {
+			if (const auto res = cam->process_sdl_event(event, !cursor_enabled); res != result::ok) {
 				return res;
 			}
 
@@ -254,7 +259,7 @@ result engine::run()
 			continue;
 		}
 		if (!should_run) break;
-		if (!render_ui) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+		if (!cursor_enabled) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		if (const auto res = render(); res != result::ok) {
 			l->error(std::format("render failed: {}", static_cast<uint8_t>(res)));
 			return res;
@@ -264,17 +269,24 @@ result engine::run()
 	return result::ok;
 }
 
-result engine::render() const
+result engine::render()
 {
+	const auto start = std::chrono::system_clock::now();
 	if (const auto res = cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
 		return res;
 	}
 	if (const auto res = gfx->update(cam->v, cam->p, cam->vp, cam->position); res != result::ok) {
 		return res;
 	}
-	if (const auto res = gfx->render(render_ui); res != result::ok) {
+	if (const auto res = gfx->render(render_ui, stats); res != result::ok) {
 		return res;
 	}
+	const auto end = std::chrono::system_clock::now();
+	const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+	stats.frame_time = elapsed.count() / 1000.f;
+	stats.r_fps = 1.f / (stats.frame_time / 1000.f);
+	stats.a_fps = std::numbers::pi_v<float> * stats.r_fps;
+	stats.d_fps = (std::numbers::pi_v<float> * stats.r_fps) * (180.f / std::numbers::pi_v<float>);
 	FrameMark;
 	return result::ok;
 }

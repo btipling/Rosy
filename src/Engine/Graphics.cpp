@@ -357,6 +357,14 @@ namespace {
 		//std::array<float, 16> normal_transform;
 	};
 
+	struct graphics_stats {
+		int triangle_count{ 0 };
+		int line_count{ 0 };
+		int draw_call_count{ 0 };
+		float draw_time{ 0.f };
+		float shadow_draw_time{ 0.f };
+	};
+
 	struct graphics_device
 	{
 		rosy::log const* l{ nullptr };
@@ -364,6 +372,8 @@ namespace {
 		uint32_t graphics_created_bitmask{ 0 };
 		bool enable_validation_layers{ true };
 		bool render_ui{ true };
+
+		graphics_stats stats{};
 
 		uint32_t current_frame{ 0 };
 		uint32_t swapchain_image_index{ 0 };
@@ -3088,6 +3098,8 @@ namespace {
 
 		result render()
 		{
+			const auto start = std::chrono::system_clock::now();
+			graphics_stats new_stats{};
 			const frame_data cf = frame_datas[current_frame];
 
 			if (const auto res = vkWaitForFences(device, 1, &cf.in_flight_fence, true, 1'000'000'000); res != VK_SUCCESS)
@@ -3402,6 +3414,8 @@ namespace {
 								};
 								vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
 								vkCmdDrawIndexed(cf.command_buffer, surface_graphic.index_count, 1, surface_graphic.start_index, 0, 0);
+								new_stats.draw_call_count += 1;
+								new_stats.triangle_count += surface_graphic.index_count / 3;
 							}
 						}
 					}
@@ -3640,6 +3654,10 @@ namespace {
 
 			current_frame = (current_frame + 1) % swapchain_image_count;
 
+			const auto end = std::chrono::system_clock::now();
+			const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+			new_stats.draw_time = elapsed.count() / 1000.f;
+			stats = new_stats;
 			return result::ok;
 		}
 
@@ -3649,9 +3667,26 @@ namespace {
 			return result::ok;
 		}
 
-		result ui()
+		result ui(const engine_stats& eng_stats)
 		{
-			ImGui::ShowDemoWindow();
+			//ImGui::ShowDemoWindow();
+
+			ImGuiWindowFlags window_flags{0};
+			window_flags |= ImGuiWindowFlags_NoCollapse;
+			if (ImGui::Begin("Stats", nullptr, window_flags))
+			{
+				ImGui::Text("a_fps %.0f rad/s", eng_stats.a_fps);
+				ImGui::Text("d_fps %.0f °/s", eng_stats.d_fps);
+				ImGui::Text("r_fps %.0f", eng_stats.r_fps);
+				ImGui::Text("frame time %.3fms", eng_stats.frame_time);
+				ImGui::Text("update time %.3f ms", eng_stats.level_update_time);
+				ImGui::Text("draw time %.3f ms", stats.draw_time);
+				ImGui::Text("triangles %i", stats.triangle_count);
+				ImGui::Text("lines %i", stats.line_count);
+				ImGui::Text("draws %i", stats.draw_call_count);
+			}
+			ImGui::End();
+
 			return result::ok;
 		}
 	};
@@ -3749,7 +3784,7 @@ result graphics::update(const std::array<float, 16>& v, const std::array<float, 
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result graphics::render(const bool render_ui)
+result graphics::render(const bool render_ui, const engine_stats& stats)
 {
 	{
 		ImGui_ImplVulkan_NewFrame();
@@ -3757,7 +3792,7 @@ result graphics::render(const bool render_ui)
 		ImGui::NewFrame();
 	}
 	{
-		if (const auto res = gd->ui(); res != result::ok)
+		if (const auto res = gd->ui(stats); res != result::ok)
 		{
 			return res;
 		}
