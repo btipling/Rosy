@@ -2014,8 +2014,8 @@ namespace {
 			init_info.Device = device;
 			init_info.Queue = present_queue;
 			init_info.DescriptorPool = ui_pool;
-			init_info.MinImageCount = 2;
-			init_info.ImageCount = 2;
+			init_info.MinImageCount = swapchain_details.capabilities.minImageCount;
+			init_info.ImageCount = swapchain_image_count;
 			init_info.UseDynamicRendering = true;
 
 			init_info.PipelineRenderingCreateInfo = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
