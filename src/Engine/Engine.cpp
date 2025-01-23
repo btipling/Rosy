@@ -49,7 +49,7 @@ result engine::init()
 	{
 		a.asset_path = "..\\assets\\sponza\\sponza.rsy";
 		{
-			if (const auto res = a.read(); res != result::ok)
+			if (const auto res = a.read(l); res != result::ok)
 			{
 				l->error("Failed to read the assets!");
 				return result::error;
@@ -57,7 +57,7 @@ result engine::init()
 		}
 		a.shaders.push_back({ .path = "../shaders/out/basic.spv" });
 		{
-			if (const auto res = a.read_shaders(); res != result::ok)
+			if (const auto res = a.read_shaders(l); res != result::ok)
 			{
 				l->error("Failed to read shaders!");
 				return result::error;

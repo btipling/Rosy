@@ -35,7 +35,7 @@ int main(const int argc, char* argv[])
 	output_path.replace_extension(".rsy");
 	std::cout << std::format("Parsing {} as {}", source_path.string(), output_path.string()) << '\n';
 
-	
+	rosy::log l{};
 
 	gltf g{};
 	{
@@ -44,18 +44,18 @@ int main(const int argc, char* argv[])
 		g.source_path = source_path.string();
 		g.gltf_asset = a;
 	}
-	if (const auto res = g.import(); res != rosy::result::ok)
+	if (const auto res = g.import(&l); res != rosy::result::ok)
 	{
 		std::cerr << std::format("Error importing gltf {}", static_cast<uint8_t>(res)) << '\n';
 		return EXIT_FAILURE;
 	}
-	if (const auto res = g.gltf_asset.write(); res != rosy::result::ok) {
+	if (const auto res = g.gltf_asset.write(&l); res != rosy::result::ok) {
 		return EXIT_FAILURE;
 	}
 
 	asset b{};
 	b.asset_path = output_path.string();
-	if (const auto res = b.read(); res != rosy::result::ok) {
+	if (const auto res = b.read(&l); res != rosy::result::ok) {
 		return EXIT_FAILURE;
 	}
 	std::cout << "Parsed meshes:" << '\n';

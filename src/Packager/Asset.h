@@ -1,8 +1,9 @@
 #pragma once
+#include "../Engine/Types.h"
+#include "../Engine/Telemetry.h"
 #include <array>
 #include <string>
 #include <vector>
-#include "../Engine/Types.h"
 
 namespace rosy_packager {
 
@@ -93,8 +94,8 @@ namespace rosy_packager {
 		std::vector<shader> shaders;
 		uint32_t root_scene{ 0 };
 
-		rosy::result write();
-		rosy::result read();
-		rosy::result read_shaders();
+		rosy::result write(rosy::log* l);
+		rosy::result read(rosy::log* l);
+		rosy::result read_shaders(rosy::log* l);
 	};
 }
