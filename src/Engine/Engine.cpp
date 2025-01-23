@@ -38,11 +38,14 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 
 result engine::init()
 {
-	l = new(std::nothrow) log{ log_level::debug };
+	l = new(std::nothrow) log{ log_level::info };
 	if (l == nullptr)
 	{
 		return result::allocation_failure;
 	}
+#ifdef ROSY_LOG_LEVEL_DEBUG
+	l->level = rosy::log_level::debug;
+#endif
 
 	l->info("Engine init begin");
 	rosy_packager::asset a{};
