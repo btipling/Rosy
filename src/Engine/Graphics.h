@@ -19,7 +19,7 @@ namespace rosy
 		[[nodiscard]] result init(SDL_Window* new_window, log const* new_log, config cfg);
 		[[nodiscard]] result set_asset(const rosy_packager::asset& a, std::vector<graphics_object> graphics_objects) const;
 		[[nodiscard]] result update(const std::array<float, 16>& v, const std::array<float, 16>& p, const std::array<float, 16>& vp, std::array<float, 4> cam_pos);
-		[[nodiscard]] result render(bool render_ui);
+		[[nodiscard]] result render(bool render_ui, const engine_stats& stats);
 		[[nodiscard]] result resize();
 		void deinit();
 	};

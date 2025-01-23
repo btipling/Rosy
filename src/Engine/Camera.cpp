@@ -334,7 +334,7 @@ namespace
 			return result::ok;
 		}
 
-		result process_sdl_event(const SDL_Event& event, const bool mouse_enabled)
+		result process_sdl_event(const SDL_Event& event, const bool cursor_enabled)
 		{
 			if (event.type == SDL_EVENT_KEY_DOWN) {
 				if (event.key.key == SDLK_W) { velocity.z = 1.f; }
@@ -353,7 +353,7 @@ namespace
 				if (event.key.key == SDLK_SPACE) { velocity.y = 0; }
 				if (event.key.key == SDLK_Z) { velocity.y = 0; }
 			}
-			if (!mouse_enabled) return result::ok;
+			if (!cursor_enabled) return result::ok;
 			if (event.type == SDL_EVENT_MOUSE_MOTION) {
 				yaw -= event.motion.xrel / 500.f;
 				pitch += event.motion.yrel / 500.f;
@@ -430,9 +430,9 @@ result camera::update(const uint32_t viewport_width, const uint32_t viewport_hei
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::process_sdl_event(const SDL_Event& event, const bool mouse_enabled)
+result camera::process_sdl_event(const SDL_Event& event, const bool cursor_enabled)
 {
-	if (const auto res = sc->process_sdl_event(event, mouse_enabled); res != result::ok) {
+	if (const auto res = sc->process_sdl_event(event, cursor_enabled); res != result::ok) {
 		return res;
 	}
 	return result::ok;
