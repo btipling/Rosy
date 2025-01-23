@@ -443,6 +443,8 @@ namespace {
 		// Buffers
 		gpu_scene_buffers scene_buffer{};
 
+		gpu_scene_data scene_data{};
+
 		result init(const config new_cfg)
 		{
 			cfg = new_cfg;
@@ -2110,7 +2112,7 @@ namespace {
 			buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 			buffer_info.pNext = nullptr;
 			buffer_info.size = scene_buffer.buffer_size;
-			buffer_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+			buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 			VmaAllocationCreateInfo vma_alloc_info{};
 			vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
@@ -3131,6 +3133,10 @@ namespace {
 					l->error(std::format("Error begin recording command buffer: {}", static_cast<uint8_t>(res)));
 					return result::graphics_frame_failure;
 				}
+				{
+					// Update scene buffer
+					vkCmdUpdateBuffer(cf.command_buffer, scene_buffer.scene_buffer.buffer, 0, sizeof(gpu_scene_data), &scene_data);
+				}
 			}
 			{
 				{
@@ -3636,6 +3642,12 @@ namespace {
 
 			return result::ok;
 		}
+
+		result update(const gpu_scene_data& sd)
+		{
+			scene_data = sd;
+			return result::ok;
+		}
 	};
 
 	graphics_device* gd{ nullptr };
@@ -3723,7 +3735,10 @@ result graphics::update(const std::array<float, 16>& v, const std::array<float, 
 		.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f, },
 		.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
 	};
-	memcpy(gd->scene_buffer.scene_buffer.info.pMappedData, &sd, sizeof(sd));
+	if (const auto res = gd->update(sd); res != result::ok)
+	{
+		return res;
+	}
 	return result::ok;
 }
 
