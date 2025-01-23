@@ -3648,6 +3648,12 @@ namespace {
 			scene_data = sd;
 			return result::ok;
 		}
+
+		result ui()
+		{
+			ImGui::ShowDemoWindow();
+			return result::ok;
+		}
 	};
 
 	graphics_device* gd{ nullptr };
@@ -3751,7 +3757,10 @@ result graphics::render(const bool render_ui)
 		ImGui::NewFrame();
 	}
 	{
-		ImGui::ShowDemoWindow();
+		if (const auto res = gd->ui(); res != result::ok)
+		{
+			return res;
+		}
 		ImGui::Render();
 	}
 	gd->render_ui = render_ui;
