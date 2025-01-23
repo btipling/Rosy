@@ -38,18 +38,21 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 
 result engine::init()
 {
-	l = new(std::nothrow) log{ log_level::debug };
+	l = new(std::nothrow) log{ log_level::info };
 	if (l == nullptr)
 	{
 		return result::allocation_failure;
 	}
+#ifdef ROSY_LOG_LEVEL_DEBUG
+	l->level = rosy::log_level::debug;
+#endif
 
 	l->info("Engine init begin");
 	rosy_packager::asset a{};
 	{
 		a.asset_path = "..\\assets\\sponza\\sponza.rsy";
 		{
-			if (const auto res = a.read(); res != result::ok)
+			if (const auto res = a.read(l); res != result::ok)
 			{
 				l->error("Failed to read the assets!");
 				return result::error;
@@ -57,7 +60,7 @@ result engine::init()
 		}
 		a.shaders.push_back({ .path = "../shaders/out/basic.spv" });
 		{
-			if (const auto res = a.read_shaders(); res != result::ok)
+			if (const auto res = a.read_shaders(l); res != result::ok)
 			{
 				l->error("Failed to read shaders!");
 				return result::error;

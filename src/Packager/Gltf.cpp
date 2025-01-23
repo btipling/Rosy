@@ -42,7 +42,7 @@ namespace
 	}
 }
 
-rosy::result gltf::import()
+rosy::result gltf::import(rosy::log* l)
 {
 	const std::filesystem::path file_path{ source_path };
 	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
@@ -54,7 +54,7 @@ rosy::result gltf::import()
 	auto data = fastgltf::GltfDataBuffer::FromPath(file_path);
 	if (data.error() != fastgltf::Error::None) {
 		auto err = fastgltf::to_underlying(data.error());
-		std::cerr << std::format("import - failed to open {}, {}", source_path, err) << '\n';
+		l->error(std::format("import - failed to open {}, {}", source_path, err));
 		return rosy::result::error;
 	}
 	auto asset = parser.loadGltf(data.get(), file_path.parent_path(), gltf_options);
@@ -63,13 +63,13 @@ rosy::result gltf::import()
 	}
 	else {
 		auto err = fastgltf::to_underlying(asset.error());
-		std::cerr << std::format("import - failed to load {}, {}", source_path, err) << '\n';
+		l->error(std::format("import - failed to load {}, {}", source_path, err));
 		return rosy::result::error;
 	}
 
 	// IMAGES
 	for (auto& [gltf_image_data, gltf_image_name] : gltf.images) {
-		std::cout << std::format("Adding image: {}", gltf_image_name) << '\n';
+		l->debug(std::format("Adding image: {}", gltf_image_name));
 		image img{};
 		std::ranges::copy(gltf_image_name, std::back_inserter(img.name));
 		gltf_asset.images.push_back(img);

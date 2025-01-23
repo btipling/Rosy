@@ -185,6 +185,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Engine\Telemetry.cpp" />
     <ClCompile Include="Asset.cpp" />
     <ClCompile Include="Gltf.cpp" />
     <ClCompile Include="Main.cpp" />
