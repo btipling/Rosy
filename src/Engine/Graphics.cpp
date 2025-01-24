@@ -641,9 +641,9 @@ namespace {
 
 			if (graphics_created_bitmask & graphics_created_bit_device)
 			{
-				if (const VkResult result = vkDeviceWaitIdle(device); result != VK_SUCCESS)
+				if (const VkResult res = vkDeviceWaitIdle(device); res != VK_SUCCESS)
 				{
-					l->error(std::format("Failed to wait device to be idle: {}", static_cast<uint8_t>(result)));
+					l->error(std::format("Failed to wait device to be idle: {}", static_cast<uint8_t>(res)));
 				}
 			}
 
@@ -823,7 +823,7 @@ namespace {
 
 			if (graphics_created_bitmask & graphics_created_bit_device)
 			{
-				if (const VkResult result = vkDeviceWaitIdle(device); result == VK_SUCCESS) vkDestroyDevice(device, nullptr);
+				if (const VkResult res = vkDeviceWaitIdle(device); res == VK_SUCCESS) vkDestroyDevice(device, nullptr);
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_surface)
@@ -845,20 +845,20 @@ namespace {
 		VkResult query_instance_layers()
 		{
 			l->info("Querying instance layers");
-			VkResult result;
+			VkResult res;
 
 			uint32_t p_property_count = 0;
 			{
-				if (result = vkEnumerateInstanceLayerProperties(&p_property_count, nullptr); result != VK_SUCCESS) return result;
+				if (res = vkEnumerateInstanceLayerProperties(&p_property_count, nullptr); res != VK_SUCCESS) return res;
 				l->debug(std::format("Found %d instance layers {}", p_property_count));
-				if (p_property_count == 0) return result;
+				if (p_property_count == 0) return res;
 			}
 
 			std::vector<VkLayerProperties> layers;
 			{
 				layers.resize(p_property_count);
-				if (result = vkEnumerateInstanceLayerProperties(&p_property_count, layers.data()); result != VK_SUCCESS) return result;
-				if (!enable_validation_layers) return result;
+				if (res = vkEnumerateInstanceLayerProperties(&p_property_count, layers.data()); res != VK_SUCCESS) return res;
+				if (!enable_validation_layers) return res;
 			}
 
 			for (VkLayerProperties lp : layers)
@@ -873,25 +873,25 @@ namespace {
 					}
 				}
 			}
-			return result;
+			return res;
 		}
 
 		VkResult query_instance_extensions()
 		{
 			l->info("Querying instance extensions");
-			VkResult result;
+			VkResult res;
 
 			uint32_t p_property_count = 0;
 			{
-				if (result = vkEnumerateInstanceExtensionProperties(nullptr, &p_property_count, nullptr); result != VK_SUCCESS) return result;
+				if (res = vkEnumerateInstanceExtensionProperties(nullptr, &p_property_count, nullptr); res != VK_SUCCESS) return res;
 				l->debug(std::format("Found {} instance extensions", p_property_count));
-				if (p_property_count == 0) return result;
+				if (p_property_count == 0) return res;
 			}
 
 			std::vector<VkExtensionProperties> extensions;
 			{
 				extensions.resize(p_property_count);
-				if (result = vkEnumerateInstanceExtensionProperties(nullptr, &p_property_count, extensions.data()); result != VK_SUCCESS) return result;
+				if (res = vkEnumerateInstanceExtensionProperties(nullptr, &p_property_count, extensions.data()); res != VK_SUCCESS) return res;
 				l->debug(std::format("num required instance extensions: {}", std::size(default_instance_extensions)));
 			}
 
@@ -927,7 +927,7 @@ namespace {
 				}
 			}
 			if (required_instance_extensions.size() != 0) return VK_ERROR_EXTENSION_NOT_PRESENT;
-			return result;
+			return res;
 		}
 
 		VkResult init_instance()
@@ -969,15 +969,15 @@ namespace {
 				.ppEnabledExtensionNames = instance_extensions.data(),
 			};
 
-			const VkResult result = vkCreateInstance(&create_info, nullptr, &instance);
-			if (result != VK_SUCCESS) return result;
+
+			if (const VkResult res = vkCreateInstance(&create_info, nullptr, &instance);  res != VK_SUCCESS) return res;
 			l->debug("Vulkan instance created successfully!");
 			volkLoadInstance(instance);
 
 			// Set the debug callback logger to use the graphics device logger.
 			debug_callback_logger = l;
 			graphics_created_bitmask |= graphics_created_bit_instance;
-			return result;
+			return VK_SUCCESS;
 		}
 
 		VkResult create_debug_callback()
@@ -1000,10 +1000,12 @@ namespace {
 				.pfnUserCallback = debug_callback,
 				.pUserData = nullptr,
 			};
-			const VkResult result = vkCreateDebugUtilsMessengerEXT(instance, &create_debug_callback_info_ext, nullptr, &debug_messenger);
-			if (result != VK_SUCCESS) return result;
+			if (const VkResult res = vkCreateDebugUtilsMessengerEXT(instance, &create_debug_callback_info_ext, nullptr, &debug_messenger); res != VK_SUCCESS) 
+			{
+				return res;
+			}
 			graphics_created_bitmask |= graphics_created_bit_debug_messenger;
-			return result;
+			return VK_SUCCESS;
 		}
 
 		VkResult init_surface()
@@ -1024,7 +1026,10 @@ namespace {
 			std::vector<VkPhysicalDevice> physical_devices;
 
 			uint32_t physical_device_count = 0;
-			VkResult result = vkEnumeratePhysicalDevices(instance, &physical_device_count, nullptr);
+			if (VkResult res = vkEnumeratePhysicalDevices(instance, &physical_device_count, nullptr); res != VK_SUCCESS)
+			{
+				return res;
+			}
 
 			physical_devices.resize(physical_device_count);
 			vkEnumeratePhysicalDevices(instance, &physical_device_count, &physical_devices[0]);
@@ -1154,26 +1159,26 @@ namespace {
 				}
 			}
 			l->debug("Vulkan physical device created successfully!");
-			return result;
+			return VK_SUCCESS;
 		}
 
 		[[nodiscard]] VkResult query_device_layers() const
 		{
 			l->info("Querying device layers");
 			uint32_t p_property_count = 0;
-			VkResult result = vkEnumerateDeviceLayerProperties(physical_device, &p_property_count, nullptr);
-			if (result != VK_SUCCESS) return result;
+			VkResult res = vkEnumerateDeviceLayerProperties(physical_device, &p_property_count, nullptr);
+			if (res != VK_SUCCESS) return res;
 			l->debug(std::format("Found {} device layers", p_property_count));
-			if (p_property_count == 0) return result;
+			if (p_property_count == 0) return res;
 			std::vector<VkLayerProperties> layers;
 			layers.resize(p_property_count);
-			result = vkEnumerateDeviceLayerProperties(physical_device, &p_property_count, layers.data());
-			if (result != VK_SUCCESS) return result;
+			res = vkEnumerateDeviceLayerProperties(physical_device, &p_property_count, layers.data());
+			if (res != VK_SUCCESS) return res;
 			for (VkLayerProperties lp : layers)
 			{
 				l->debug(std::format("Device layer name: {} layer description: {}", lp.layerName, lp.description));
 			}
-			return result;
+			return res;
 		}
 
 		VkResult query_device_extensions()
@@ -1182,17 +1187,17 @@ namespace {
 
 			uint32_t p_property_count = 0;
 
-			VkResult result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &p_property_count, nullptr);
-			if (result != VK_SUCCESS) return result;
+			VkResult res = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &p_property_count, nullptr);
+			if (res != VK_SUCCESS) return res;
 
 			l->debug(std::format("Found {} device extensions", p_property_count));
-			if (p_property_count == 0) return result;
+			if (p_property_count == 0) return res;
 
 			std::vector<VkExtensionProperties> extensions;
 			extensions.resize(p_property_count);
 
-			result = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &p_property_count, extensions.data());
-			if (result != VK_SUCCESS) return result;
+			res = vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &p_property_count, extensions.data());
+			if (res != VK_SUCCESS) return res;
 
 			// validate required device extensions
 			std::vector<const char*> required_device_extensions(std::begin(default_device_extensions), std::end(default_device_extensions));
@@ -1215,7 +1220,7 @@ namespace {
 			{
 				return VK_ERROR_EXTENSION_NOT_PRESENT;
 			}
-			return result;
+			return res;
 		}
 
 		VkResult init_device()
@@ -1302,8 +1307,11 @@ namespace {
 			device_create_info.ppEnabledExtensionNames = device_extensions.data();
 			device_create_info.pEnabledFeatures = &required_features;
 
-			VkResult result = vkCreateDevice(physical_device, &device_create_info, nullptr, &device);
-			if (result != VK_SUCCESS) return result;
+			
+			if (VkResult res = vkCreateDevice(physical_device, &device_create_info, nullptr, &device); res != VK_SUCCESS)
+			{
+				return res;
+			}
 
 			l->debug("Vulkan device created successfully!");
 			{
@@ -1313,7 +1321,7 @@ namespace {
 				debug_name.objectType = VK_OBJECT_TYPE_INSTANCE;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(instance);
 				debug_name.pObjectName = "rosy instance";
-				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				if (VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 			}
 			{
 				VkDebugUtilsObjectNameInfoEXT debug_name{};
@@ -1335,10 +1343,10 @@ namespace {
 				debug_name.objectType = VK_OBJECT_TYPE_DEVICE;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(device);
 				debug_name.pObjectName = "rosy device";
-				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				if (VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 			}
 			graphics_created_bitmask |= graphics_created_bit_device;
-			return result;
+			return VK_SUCCESS;
 		}
 
 		VkResult init_tracy()
@@ -1394,7 +1402,7 @@ namespace {
 				debug_name.objectType = VK_OBJECT_TYPE_QUEUE;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(present_queue);
 				debug_name.pObjectName = "rosy present queue";
-				if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 			}
 			return VK_SUCCESS;
 		}
@@ -1481,7 +1489,7 @@ namespace {
 
 				swapchain_create_info.oldSwapchain = nullptr;
 
-				if (const VkResult result = vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain); result != VK_SUCCESS) return result;
+				if (const VkResult res = vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain); res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_swapchain;
 				{
 					VkDebugUtilsObjectNameInfoEXT debug_name{};
@@ -1490,7 +1498,7 @@ namespace {
 					debug_name.objectType = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(swapchain);
 					debug_name.pObjectName = "rosy swapchain";
-					if (const VkResult result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 				}
 			}
 
@@ -1517,7 +1525,7 @@ namespace {
 					swap_chain_image_view_create_info.subresourceRange.layerCount = 1;
 					swap_chain_image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 					VkImageView image_view{};
-					if (const VkResult result = vkCreateImageView(device, &swap_chain_image_view_create_info, nullptr, &image_view); result != VK_SUCCESS) return result;
+					if (const VkResult res = vkCreateImageView(device, &swap_chain_image_view_create_info, nullptr, &image_view); res != VK_SUCCESS) return res;
 					// don't initially size these so we can clean this up nicely if any fail
 					swapchain_image_views.push_back(image_view);
 				}
@@ -1547,7 +1555,7 @@ namespace {
 		{
 			l->info("Initializing draw image");
 
-			VkResult result = VK_SUCCESS;
+			VkResult res = VK_SUCCESS;
 			const VkExtent3D draw_image_extent = {
 				.width = static_cast<uint32_t>(cfg.max_window_width),
 				.height = static_cast<uint32_t>(cfg.max_window_height),
@@ -1582,7 +1590,7 @@ namespace {
 					draw_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 					draw_info.usage = draw_image_usages;
 
-					if (result = vmaCreateImage(allocator, &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation, nullptr); result != VK_SUCCESS) return result;
+					if (res = vmaCreateImage(allocator, &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation, nullptr); res != VK_SUCCESS) return res;
 					graphics_created_bitmask |= graphics_created_bit_draw_image;
 				}
 				{
@@ -1598,8 +1606,8 @@ namespace {
 					draw_view_create_info.subresourceRange.layerCount = 1;
 					draw_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
-					result = vkCreateImageView(device, &draw_view_create_info, nullptr, &draw_image.image_view);
-					if (result != VK_SUCCESS) return result;
+					res = vkCreateImageView(device, &draw_view_create_info, nullptr, &draw_image.image_view);
+					if (res != VK_SUCCESS) return res;
 					graphics_created_bitmask |= graphics_created_bit_draw_image_view;
 				}
 
@@ -1610,7 +1618,7 @@ namespace {
 					debug_name.objectType = VK_OBJECT_TYPE_IMAGE;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(draw_image.image);
 					debug_name.pObjectName = "rosy draw image";
-					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 				}
 				{
 					VkDebugUtilsObjectNameInfoEXT debug_name{};
@@ -1619,7 +1627,7 @@ namespace {
 					debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(draw_image.image_view);
 					debug_name.pObjectName = "rosy draw image view";
-					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 				}
 			}
 			{
@@ -1642,7 +1650,7 @@ namespace {
 					depth_image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 					depth_image_info.usage = depth_image_usages;
 
-					if (result = vmaCreateImage(allocator, &depth_image_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation, nullptr); result != VK_SUCCESS) return result;
+					if (res = vmaCreateImage(allocator, &depth_image_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation, nullptr); res != VK_SUCCESS) return res;
 					graphics_created_bitmask |= graphics_created_bit_depth_image;
 				}
 				{
@@ -1658,8 +1666,8 @@ namespace {
 					depth_view_create_info.subresourceRange.layerCount = 1;
 					depth_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-					result = vkCreateImageView(device, &depth_view_create_info, nullptr, &depth_image.image_view);
-					if (result != VK_SUCCESS) return result;
+					res = vkCreateImageView(device, &depth_view_create_info, nullptr, &depth_image.image_view);
+					if (res != VK_SUCCESS) return res;
 					graphics_created_bitmask |= graphics_created_bit_depth_image_view;
 				}
 				{
@@ -1669,7 +1677,7 @@ namespace {
 					debug_name.objectType = VK_OBJECT_TYPE_IMAGE;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(depth_image.image);
 					debug_name.pObjectName = "rosy depth image";
-					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 				}
 				{
 					VkDebugUtilsObjectNameInfoEXT debug_name{};
@@ -1678,11 +1686,11 @@ namespace {
 					debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(depth_image.image_view);
 					debug_name.pObjectName = "rosy depth image view";
-					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 				}
 			}
 
-			return result;
+			return res;
 		}
 
 		VkResult init_descriptors()
@@ -1721,16 +1729,16 @@ namespace {
 			  {.type = VK_DESCRIPTOR_TYPE_SAMPLER, .descriptorCount = descriptor_max_sample_descriptors},
 				});
 
-			VkDescriptorPoolCreateInfo pool_create_info{};
-			pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-			pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-			pool_create_info.maxSets = 1;
-			pool_create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
-			pool_create_info.pPoolSizes = pool_sizes.data();
-
-			VkResult result = vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool);
-			if (result != VK_SUCCESS) return result;
-			graphics_created_bitmask |= graphics_created_bit_descriptor_pool;
+			{
+				VkDescriptorPoolCreateInfo pool_create_info{};
+				pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+				pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+				pool_create_info.maxSets = 1;
+				pool_create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
+				pool_create_info.pPoolSizes = pool_sizes.data();
+				if (const VkResult res = vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool); res != VK_SUCCESS) return res;
+				graphics_created_bitmask |= graphics_created_bit_descriptor_pool;
+			}
 
 			{
 				VkDebugUtilsObjectNameInfoEXT debug_name{};
@@ -1773,8 +1781,11 @@ namespace {
 			layout_create_info.bindingCount = static_cast<uint32_t>(bindings.size());
 			layout_create_info.pBindings = bindings.data();
 
-			result = vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layout);
-			if (result != VK_SUCCESS) return result;
+			
+			if (const VkResult res = vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layout); res != VK_SUCCESS)
+			{
+				return res;
+			}
 
 			{
 				VkDebugUtilsObjectNameInfoEXT debug_name{};
@@ -1796,8 +1807,7 @@ namespace {
 			set_create_info.descriptorSetCount = 1;
 			set_create_info.pSetLayouts = &descriptor_set_layout;
 
-			result = vkAllocateDescriptorSets(device, &set_create_info, &descriptor_set);
-			if (result != VK_SUCCESS) return result;
+			if (const VkResult res = vkAllocateDescriptorSets(device, &set_create_info, &descriptor_set); res != VK_SUCCESS) return res;
 			graphics_created_bitmask |= graphics_created_bit_descriptor_set;
 
 			{
@@ -1828,9 +1838,9 @@ namespace {
 			for (size_t i = 0; i < swapchain_image_count; i++)
 			{
 				VkCommandPool command_pool{};
-				if (const VkResult result = vkCreateCommandPool(device, &pool_info, nullptr, &command_pool); result !=
-					VK_SUCCESS)
-					return result;
+				if (const VkResult res = vkCreateCommandPool(device, &pool_info, nullptr, &command_pool); res != VK_SUCCESS) {
+					return res;
+				}
 				frame_datas[i].command_pool = command_pool;
 				frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_command_pool;
 				{
@@ -1862,7 +1872,7 @@ namespace {
 					alloc_info.commandBufferCount = 1;
 
 					VkCommandBuffer command_buffer{};
-					if (const VkResult result = vkAllocateCommandBuffers(device, &alloc_info, &command_buffer); result != VK_SUCCESS) return result;
+					if (const VkResult res = vkAllocateCommandBuffers(device, &alloc_info, &command_buffer); res != VK_SUCCESS) return res;
 					frame_datas[i].command_buffer = command_buffer;
 					{
 						const auto obj_name = std::format("rosy command buffer {}", i);
@@ -1890,13 +1900,13 @@ namespace {
 			fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 			fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-			VkResult result;
+			VkResult res;
 			for (size_t i = 0; i < swapchain_image_count; i++)
 			{
 				{
 					VkSemaphore semaphore;
-					result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
-					if (result != VK_SUCCESS) return result;
+					res = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
+					if (res != VK_SUCCESS) return res;
 					frame_datas[i].image_available_semaphore = semaphore;
 					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_image_semaphore;
 					{
@@ -1907,13 +1917,13 @@ namespace {
 						debug_name.objectType = VK_OBJECT_TYPE_SEMAPHORE;
 						debug_name.objectHandle = reinterpret_cast<uint64_t>(semaphore);
 						debug_name.pObjectName = obj_name.c_str();
-						if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+						if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 					}
 				}
 				{
 					VkSemaphore semaphore;
-					result = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
-					if (result != VK_SUCCESS) return result;
+					res = vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
+					if (res != VK_SUCCESS) return res;
 					frame_datas[i].render_finished_semaphore = semaphore;
 					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_pass_semaphore;
 					{
@@ -1924,13 +1934,13 @@ namespace {
 						debug_name.objectType = VK_OBJECT_TYPE_SEMAPHORE;
 						debug_name.objectHandle = reinterpret_cast<uint64_t>(semaphore);
 						debug_name.pObjectName = obj_name.c_str();
-						if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+						if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 					}
 				}
 				{
 					VkFence fence;
-					result = vkCreateFence(device, &fence_info, nullptr, &fence);
-					if (result != VK_SUCCESS) return result;
+					res = vkCreateFence(device, &fence_info, nullptr, &fence);
+					if (res != VK_SUCCESS) return res;
 					frame_datas[i].in_flight_fence = fence;
 					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_fence;
 					{
@@ -1941,13 +1951,13 @@ namespace {
 						debug_name.objectType = VK_OBJECT_TYPE_FENCE;
 						debug_name.objectHandle = reinterpret_cast<uint64_t>(fence);
 						debug_name.pObjectName = obj_name.c_str();
-						if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+						if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 					}
 				}
 			}
 			{
-				result = vkCreateFence(device, &fence_info, nullptr, &immediate_fence);
-				if (result != VK_SUCCESS) return result;
+				res = vkCreateFence(device, &fence_info, nullptr, &immediate_fence);
+				if (res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_fence;
 				{
 					VkDebugUtilsObjectNameInfoEXT debug_name{};
@@ -1956,7 +1966,7 @@ namespace {
 					debug_name.objectType = VK_OBJECT_TYPE_FENCE;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_fence);
 					debug_name.pObjectName = "rosy immediate fence";
-					if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 				}
 			}
 			return VK_SUCCESS;
@@ -1987,7 +1997,7 @@ namespace {
 			pool_info.poolSizeCount = static_cast<uint32_t>(std::size(imgui_pool_sizes));
 			pool_info.pPoolSizes = imgui_pool_sizes;
 
-			if (const VkResult result = vkCreateDescriptorPool(device, &pool_info, nullptr, &ui_pool); result != VK_SUCCESS) return result;
+			if (const VkResult res = vkCreateDescriptorPool(device, &pool_info, nullptr, &ui_pool); res != VK_SUCCESS) return res;
 			graphics_created_bitmask |= graphics_created_bit_ui_pool;
 
 			{
@@ -2079,7 +2089,11 @@ namespace {
 			pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 			pool_info.queueFamilyIndex = queue_index;
 
-			VkResult result = vkCreateCommandPool(device, &pool_info, nullptr, &immediate_command_pool);
+			if (const VkResult res = vkCreateCommandPool(device, &pool_info, nullptr, &immediate_command_pool); res != VK_SUCCESS)
+			{
+				return res;
+			}
+
 			graphics_created_bitmask |= graphics_created_bit_command_pool;
 			{
 				VkDebugUtilsObjectNameInfoEXT debug_name{};
@@ -2088,7 +2102,7 @@ namespace {
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_command_pool);
 				debug_name.pObjectName = "rosy immediate command pool";
-				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 			}
 
 			// allocate the command data for immediate submits
@@ -2098,8 +2112,11 @@ namespace {
 			alloc_info.commandBufferCount = 1;
 			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-			result = vkAllocateCommandBuffers(device, &alloc_info, &immediate_command_buffer);
-			if (result != VK_SUCCESS) return result;
+
+			if (const VkResult res = vkAllocateCommandBuffers(device, &alloc_info, &immediate_command_buffer); res != VK_SUCCESS)
+			{
+				return res;
+			}
 			{
 				VkDebugUtilsObjectNameInfoEXT debug_name{};
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -2107,7 +2124,7 @@ namespace {
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_command_buffer);
 				debug_name.pObjectName = "rosy immediate command buffer";
-				if (result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 			}
 
 			return VK_SUCCESS;
@@ -2277,7 +2294,7 @@ namespace {
 					}
 					new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
 				}
-				;
+
 				{
 					if (ktx_error_code_e ktx_result = ktxTexture_VkUploadEx(new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
 						VK_IMAGE_TILING_OPTIMAL,
@@ -3671,7 +3688,7 @@ namespace {
 		{
 			//ImGui::ShowDemoWindow();
 
-			ImGuiWindowFlags window_flags{0};
+			ImGuiWindowFlags window_flags{ 0 };
 			window_flags |= ImGuiWindowFlags_NoCollapse;
 			if (ImGui::Begin("Stats", nullptr, window_flags))
 			{
