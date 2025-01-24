@@ -146,6 +146,7 @@ namespace {
 		VK_KHR_MAINTENANCE_6_EXTENSION_NAME,
 		VK_KHR_MAINTENANCE_7_EXTENSION_NAME,
 #endif
+		VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME,
 		//VK_KHR_MAINTENANCE_8_EXTENSION_NAME,
 		//VK_KHR_MULTIVIEW_EXTENSION_NAME,
 	};
@@ -1095,6 +1096,18 @@ namespace {
 
 				if (!dynamic_rendering_features.dynamicRendering) continue;
 
+				// data device address required
+				VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR local_read_features{};
+				local_read_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES;
+				local_read_features.pNext = nullptr;
+
+				device_features2 = {};
+				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				device_features2.pNext = &local_read_features;
+				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
+
+				if (!local_read_features.dynamicRenderingLocalRead) continue;
+
 				// features
 				VkPhysicalDeviceFeatures features;
 				vkGetPhysicalDeviceFeatures(p_device, &features);
@@ -1290,9 +1303,15 @@ namespace {
 				.depthClipEnable = VK_TRUE
 			};
 
+			VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR  enable_local_read = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES,
+				.pNext = &enable_depth_clip_object,
+				.dynamicRenderingLocalRead = VK_TRUE
+			};
+
 			VkDeviceCreateInfo device_create_info = {};
 			device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-			device_create_info.pNext = &enable_depth_clip_object;
+			device_create_info.pNext = &enable_local_read;
 			device_create_info.flags = 0;
 			device_create_info.queueCreateInfoCount = 1;
 			device_create_info.pQueueCreateInfos = &device_queue_create_info;
