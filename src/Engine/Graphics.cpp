@@ -91,37 +91,43 @@ namespace {
 
 	/// Graphics Device
 
-	constexpr  uint32_t graphics_created_bit_instance         = 0b00000000000000000000000000000001;
-	constexpr  uint32_t graphics_created_bit_device	          = 0b00000000000000000000000000000010;
-	constexpr  uint32_t graphics_created_bit_surface          = 0b00000000000000000000000000000100;
-	constexpr  uint32_t graphics_created_bit_vma              = 0b00000000000000000000000000001000;
-	constexpr  uint32_t graphics_created_bit_debug_messenger  = 0b00000000000000000000000000010000;
-	constexpr  uint32_t graphics_created_bit_fence            = 0b00000000000000000000000000100000;
-	constexpr  uint32_t graphics_created_bit_command_pool     = 0b00000000000000000000000001000000;
-	constexpr  uint32_t graphics_created_bit_draw_image       = 0b00000000000000000000000010000000;
-	constexpr  uint32_t graphics_created_bit_depth_image      = 0b00000000000000000000000100000000;
-	constexpr  uint32_t graphics_created_bit_ui_pool          = 0b00000000000000000000001000000000;
-	constexpr  uint32_t graphics_created_bit_swapchain        = 0b00000000000000000000010000000000;
-	constexpr  uint32_t graphics_created_bit_ktx_vdi_info     = 0b00000000000000000000100000000000;
-	constexpr  uint32_t graphics_created_bit_descriptor_set   = 0b00000000000000000001000000000000;
-	constexpr  uint32_t graphics_created_bit_descriptor_pool  = 0b00000000000000000010000000000000;
-	constexpr  uint32_t graphics_created_bit_draw_image_view  = 0b00000000000000000100000000000000;
-	constexpr  uint32_t graphics_created_bit_depth_image_view = 0b00000000000000001000000000000000;
-	constexpr  uint32_t graphics_created_bit_image_semaphore  = 0b00000000000000010000000000000000;
-	constexpr  uint32_t graphics_created_bit_pass_semaphore   = 0b00000000000000100000000000000000;
-	constexpr  uint32_t graphics_created_bit_imgui_sdl        = 0b00000000000001000000000000000000;
-	constexpr  uint32_t graphics_created_bit_imgui_vk         = 0b00000000000010000000000000000000;
-	constexpr  uint32_t graphics_created_bit_imgui_ctx        = 0b00000000000100000000000000000000;
-	constexpr  uint32_t graphics_created_bit_vertex_buffer    = 0b00000000001000000000000000000000;
-	constexpr  uint32_t graphics_created_bit_index_buffer     = 0b00000000010000000000000000000000;
-	constexpr  uint32_t graphics_created_bit_shaders          = 0b00000000100000000000000000000000;
-	constexpr  uint32_t graphics_created_bit_pipeline_layout  = 0b00000001000000000000000000000000;
-	constexpr  uint32_t graphics_created_bit_scene_buffer     = 0b00000010000000000000000000000000;
-	constexpr  uint32_t graphics_created_bit_materials_buffer = 0b00000100000000000000000000000000;
-	constexpr  uint32_t graphics_created_bit_graphics_buffer  = 0b00001000000000000000000000000000;
-	constexpr  uint32_t graphics_created_bit_ktx_image        = 0b00010000000000000000000000000000;
-	constexpr  uint32_t graphics_created_bit_ktx_texture      = 0b00100000000000000000000000000000;
-	constexpr  uint32_t graphics_created_bit_sampler          = 0b01000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_instance         = 0b0000000000000000000000000000000000000000000000000000000000000001;
+	constexpr  uint64_t graphics_created_bit_device	          = 0b0000000000000000000000000000000000000000000000000000000000000010;
+	constexpr  uint64_t graphics_created_bit_surface          = 0b0000000000000000000000000000000000000000000000000000000000000100;
+	constexpr  uint64_t graphics_created_bit_vma              = 0b0000000000000000000000000000000000000000000000000000000000001000;
+	constexpr  uint64_t graphics_created_bit_debug_messenger  = 0b0000000000000000000000000000000000000000000000000000000000010000;
+	constexpr  uint64_t graphics_created_bit_fence            = 0b0000000000000000000000000000000000000000000000000000000000100000;
+	constexpr  uint64_t graphics_created_bit_command_pool     = 0b0000000000000000000000000000000000000000000000000000000001000000;
+	constexpr  uint64_t graphics_created_bit_draw_image       = 0b0000000000000000000000000000000000000000000000000000000010000000;
+	constexpr  uint64_t graphics_created_bit_depth_image      = 0b0000000000000000000000000000000000000000000000000000000100000000;
+	constexpr  uint64_t graphics_created_bit_ui_pool          = 0b0000000000000000000000000000000000000000000000000000001000000000;
+	constexpr  uint64_t graphics_created_bit_swapchain        = 0b0000000000000000000000000000000000000000000000000000010000000000;
+	constexpr  uint64_t graphics_created_bit_ktx_vdi_info     = 0b0000000000000000000000000000000000000000000000000000100000000000;
+	constexpr  uint64_t graphics_created_bit_descriptor_set   = 0b0000000000000000000000000000000000000000000000000001000000000000;
+	constexpr  uint64_t graphics_created_bit_descriptor_pool  = 0b0000000000000000000000000000000000000000000000000010000000000000;
+	constexpr  uint64_t graphics_created_bit_draw_image_view  = 0b0000000000000000000000000000000000000000000000000100000000000000;
+	constexpr  uint64_t graphics_created_bit_depth_image_view = 0b0000000000000000000000000000000000000000000000001000000000000000;
+	constexpr  uint64_t graphics_created_bit_image_semaphore  = 0b0000000000000000000000000000000000000000000000010000000000000000;
+	constexpr  uint64_t graphics_created_bit_pass_semaphore   = 0b0000000000000000000000000000000000000000000000100000000000000000;
+	constexpr  uint64_t graphics_created_bit_imgui_sdl        = 0b0000000000000000000000000000000000000000000001000000000000000000;
+	constexpr  uint64_t graphics_created_bit_imgui_vk         = 0b0000000000000000000000000000000000000000000010000000000000000000;
+	constexpr  uint64_t graphics_created_bit_imgui_ctx        = 0b0000000000000000000000000000000000000000000100000000000000000000;
+	constexpr  uint64_t graphics_created_bit_vertex_buffer    = 0b0000000000000000000000000000000000000000001000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_index_buffer     = 0b0000000000000000000000000000000000000000010000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_shaders          = 0b0000000000000000000000000000000000000000100000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_pipeline_layout  = 0b0000000000000000000000000000000000000001000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_scene_buffer     = 0b0000000000000000000000000000000000000010000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_materials_buffer = 0b0000000000000000000000000000000000000100000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_graphics_buffer  = 0b0000000000000000000000000000000000001000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_ktx_image        = 0b0000000000000000000000000000000000010000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_ktx_texture      = 0b0000000000000000000000000000000000100000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_sampler          = 0b0000000000000000000000000000000001000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_csm_image        = 0b0000000000000000000000000000000010000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_csm_sampler      = 0b0000000000000000000000000000000100000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_csm_view_sampler = 0b0000000000000000000000000000001000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_csm_view_near    = 0b0000000000000000000000000000010000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_csm_view_middle  = 0b0000000000000000000000000000100000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_csm_view_far     = 0b0000000000000000000000000001000000000000000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -186,7 +192,7 @@ namespace {
 
 	struct frame_data
 	{
-		uint32_t frame_graphics_created_bitmask{ 0 };
+		uint64_t frame_graphics_created_bitmask{ 0 };
 		VkCommandBuffer command_buffer{ nullptr };
 		VkSemaphore image_available_semaphore{ nullptr };
 		VkSemaphore render_finished_semaphore{};
@@ -273,7 +279,7 @@ namespace {
 
 	struct allocated_ktx_image
 	{
-		uint32_t graphics_created_bitmask{ 0 };
+		uint64_t graphics_created_bitmask{ 0 };
 		ktxTexture* texture;
 		ktxVulkanTexture vk_texture;
 	};
@@ -322,7 +328,7 @@ namespace {
 
 	struct gpu_mesh_buffers
 	{
-		uint32_t graphics_created_bitmask{ 0 };
+		uint64_t graphics_created_bitmask{ 0 };
 		allocated_buffer index_buffer;
 		allocated_buffer vertex_buffer;
 		VkDeviceAddress vertex_buffer_address;
@@ -369,7 +375,7 @@ namespace {
 	{
 		rosy::log const* l{ nullptr };
 		config cfg{};
-		uint32_t graphics_created_bitmask{ 0 };
+		uint64_t graphics_created_bitmask{ 0 };
 		bool enable_validation_layers{ true };
 		bool render_ui{ true };
 
@@ -458,178 +464,178 @@ namespace {
 		result init(const config new_cfg)
 		{
 			cfg = new_cfg;
-			VkResult vk_result = volkInitialize();
-			if (vk_result != VK_SUCCESS)
+			VkResult vk_res = volkInitialize();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to initialize volk! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to initialize volk! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = query_instance_layers();
-			if (vk_result != VK_SUCCESS)
+			vk_res = query_instance_layers();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to query instance layers! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to query instance layers! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = query_instance_extensions();
-			if (vk_result != VK_SUCCESS)
+			vk_res = query_instance_extensions();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to query instance extensions! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to query instance extensions! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_instance();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_instance();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create Vulkan instance! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to create Vulkan instance! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = create_debug_callback();
-			if (vk_result != VK_SUCCESS)
+			vk_res = create_debug_callback();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create Vulkan debug callback! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to create Vulkan debug callback! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_surface();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_surface();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create surface! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to create surface! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_physical_device();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_physical_device();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create Vulkan physical device! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to create Vulkan physical device! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = query_device_layers();
-			if (vk_result != VK_SUCCESS)
+			vk_res = query_device_layers();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to query device layers! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to query device layers! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = query_device_extensions();
-			if (vk_result != VK_SUCCESS)
+			vk_res = query_device_extensions();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to query device extensions! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to query device extensions! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_device();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_device();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to create Vulkan device {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to create Vulkan device {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_tracy();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_tracy();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init tracy! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init tracy! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_allocator();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_allocator();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init vma! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init vma! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_presentation_queue();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_presentation_queue();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to get presentation queue! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to get presentation queue! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_swapchain();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_swapchain();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init swap chain! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init swap chain! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_swapchain_failure;
 			}
 
-			vk_result = init_draw_image();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_draw_image();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init draw image! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init draw image! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_descriptors();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_descriptors();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init draw descriptors! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init draw descriptors! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_command_pool();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_command_pool();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init command pool! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init command pool! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_command_buffers();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_command_buffers();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init command buffers! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init command buffers! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_sync_objects();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_sync_objects();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init sync objects! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init sync objects! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_ui();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_ui();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init UI! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init UI! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_csm_image();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_csm_image();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init csm! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init csm! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_commands();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_commands();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init commands! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init commands! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_data();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_data();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init data! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init data! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_default_sampler();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_default_sampler();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init default sampler! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init default sampler! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
-			vk_result = init_ktx();
-			if (vk_result != VK_SUCCESS)
+			vk_res = init_ktx();
+			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init ktx! {} {}", static_cast<uint8_t>(vk_result), string_VkResult(vk_result)));
+				l->error(std::format("Failed to init ktx! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 			return result::ok;
@@ -676,6 +682,31 @@ namespace {
 			if (graphics_created_bitmask & graphics_created_bit_ktx_vdi_info)
 			{
 				ktxVulkanDeviceInfo_Destruct(&ktx_vdi_info);
+			}
+
+
+			{
+				if (graphics_created_bitmask & graphics_created_bit_csm_image) {
+					vmaDestroyImage(allocator, shadow_map_image.image, shadow_map_image.allocation);
+					ImGui_ImplVulkan_RemoveTexture(shadow_map_image.imgui_ds_near);
+					ImGui_ImplVulkan_RemoveTexture(shadow_map_image.imgui_ds_middle);
+					ImGui_ImplVulkan_RemoveTexture(shadow_map_image.imgui_ds_far);
+				}
+				if (graphics_created_bitmask & graphics_created_bit_csm_image) {
+					vkDestroySampler(device, shadow_map_image.viewer_sampler, nullptr);
+				}
+				if (graphics_created_bitmask & graphics_created_bit_csm_sampler) {
+				vkDestroySampler(device, shadow_map_image.shadow_sampler, nullptr);
+				}
+				if (graphics_created_bitmask & graphics_created_bit_csm_view_near) {
+					vkDestroyImageView(device, shadow_map_image.image_view_near, nullptr);
+				}
+				if (graphics_created_bitmask & graphics_created_bit_csm_view_middle) {
+				vkDestroyImageView(device, shadow_map_image.image_view_middle, nullptr);
+				}
+				if (graphics_created_bitmask & graphics_created_bit_csm_view_far) {
+					vkDestroyImageView(device, shadow_map_image.image_view_far, nullptr);
+				}
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_scene_buffer)
@@ -1507,9 +1538,9 @@ namespace {
 
 				swapchain_images.clear();
 				auto count = static_cast<uint32_t>(swapchain_image_count);
-				if (const auto result = vkGetSwapchainImagesKHR(device, swapchain, &count, nullptr); result != VK_SUCCESS) return result;
+				if (const auto res = vkGetSwapchainImagesKHR(device, swapchain, &count, nullptr); res != VK_SUCCESS) return res;
 				swapchain_images.resize(swapchain_image_count);
-				if (const auto result = vkGetSwapchainImagesKHR(device, swapchain, &count, swapchain_images.data()); result != VK_SUCCESS) return result;
+				if (const auto res = vkGetSwapchainImagesKHR(device, swapchain, &count, swapchain_images.data()); res != VK_SUCCESS) return res;
 
 				for (size_t i = 0; i < swapchain_images.size(); i++)
 				{
@@ -1851,7 +1882,7 @@ namespace {
 					debug_name.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(command_pool);
 					debug_name.pObjectName = obj_name.c_str();
-					if (const auto result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+					if (const auto res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 				}
 			}
 			return VK_SUCCESS;
@@ -1882,7 +1913,7 @@ namespace {
 						debug_name.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
 						debug_name.objectHandle = reinterpret_cast<uint64_t>(command_buffer);
 						debug_name.pObjectName = obj_name.c_str();
-						if (const auto result = vkSetDebugUtilsObjectNameEXT(device, &debug_name); result != VK_SUCCESS) return result;
+						if (const auto res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 					}
 				}
 			}
@@ -2076,7 +2107,338 @@ namespace {
 		VkResult init_csm_image()
 		{
 			l->info("Initializing cascading shadow map");
-			graphics_created_bitmask |= graphics_created_bit_depth_image;
+
+			VkExtent3D draw_image_extent = {
+				.width = static_cast<uint32_t>(cfg.max_window_width),
+				.height = static_cast<uint32_t>(cfg.max_window_height),
+				.depth = 1
+			};
+
+			VmaAllocationCreateInfo r_img_alloc_info{};
+			r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+			r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+			{
+				// Shadow map image creation.
+				constexpr VkExtent3D shadow_map_image_extent = {
+					.width = 8192,
+					.height = 8192,
+					.depth = 1
+				};
+				shadow_map_image.image_format = VK_FORMAT_D32_SFLOAT;
+				shadow_map_image.image_extent = shadow_map_image_extent;
+
+				{
+					VkImageUsageFlags depth_image_usages{ 0 };
+					depth_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+						VK_IMAGE_USAGE_TRANSFER_DST_BIT | 
+						VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | 
+						VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | 
+						VK_IMAGE_USAGE_SAMPLED_BIT;
+
+					VkImageCreateInfo depth_info{};
+					depth_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+					depth_info.pNext = nullptr;
+					depth_info.imageType = VK_IMAGE_TYPE_2D;
+					depth_info.format = shadow_map_image.image_format;
+					depth_info.extent = shadow_map_image_extent;
+					depth_info.mipLevels = 1;
+					depth_info.arrayLayers = 3;
+					depth_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+					depth_info.samples = VK_SAMPLE_COUNT_1_BIT;
+					depth_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+					depth_info.usage = depth_image_usages;
+
+					if (VkResult res = vmaCreateImage(allocator, &depth_info, &r_img_alloc_info, &shadow_map_image.image, &shadow_map_image.allocation, nullptr); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating shadow map image: {}", static_cast<uint8_t>(res)));
+						return res;
+					}
+					{
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_IMAGE;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(shadow_map_image.image);
+						debug_name.pObjectName = "rosy shadow map image";
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating rosy shadow map name: {}", static_cast<uint8_t>(res)));
+							return res;
+						}
+					}
+					graphics_created_bitmask |= graphics_created_bit_csm_image;
+				}
+
+				{
+					VkImageViewCreateInfo d_view_info{};
+					d_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					d_view_info.pNext = nullptr;
+					d_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					d_view_info.image = shadow_map_image.image;
+					d_view_info.format = shadow_map_image.image_format;
+					d_view_info.subresourceRange.baseMipLevel = 0;
+					d_view_info.subresourceRange.levelCount = 1;
+					d_view_info.subresourceRange.baseArrayLayer = 0;
+					d_view_info.subresourceRange.layerCount = 1;
+					d_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+					{
+
+						if (VkResult res = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_near);  res != VK_SUCCESS) return res;
+						graphics_created_bitmask |= graphics_created_bit_csm_view_near;
+						{
+							VkDebugUtilsObjectNameInfoEXT debug_name{};
+							debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+							debug_name.pNext = nullptr;
+							debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+							debug_name.objectHandle = reinterpret_cast<uint64_t>(shadow_map_image.image_view_near);
+							debug_name.pObjectName = "rosy shadow map image view near";
+							if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+							{
+								l->error(std::format("Error creating shadow image view near name: {}", static_cast<uint8_t>(res)));
+								return res;
+							}
+						}
+						d_view_info.subresourceRange.baseArrayLayer = 1;
+
+						if (VkResult res = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_middle); res != VK_SUCCESS) return res;
+						graphics_created_bitmask |= graphics_created_bit_csm_view_middle;
+						{
+							VkDebugUtilsObjectNameInfoEXT debug_name{};
+							debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+							debug_name.pNext = nullptr;
+							debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+							debug_name.objectHandle = reinterpret_cast<uint64_t>(shadow_map_image.image_view_middle);
+							debug_name.pObjectName = "rosy shadow map image view middle";
+							if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+							{
+								l->error(std::format("Error creating shadow image view middle name: {}", static_cast<uint8_t>(res)));
+								return res;
+							}
+						}
+						d_view_info.subresourceRange.baseArrayLayer = 2;
+
+						if (VkResult res = vkCreateImageView(device, &d_view_info, nullptr, &shadow_map_image.image_view_far); res != VK_SUCCESS) return res;
+						graphics_created_bitmask |= graphics_created_bit_csm_view_far;
+						{
+							VkDebugUtilsObjectNameInfoEXT debug_name{};
+							debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+							debug_name.pNext = nullptr;
+							debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+							debug_name.objectHandle = reinterpret_cast<uint64_t>(shadow_map_image.image_view_far);
+							debug_name.pObjectName = "rosy shadow map image view far";
+							if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+							{
+								l->error(std::format("Error creating shadow image view far name: {}", static_cast<uint8_t>(res)));
+								return res;
+							}
+						}
+					}
+					{
+						VkSamplerCreateInfo sampler_create_info{};
+						sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+						sampler_create_info.pNext = nullptr;
+
+						sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
+						sampler_create_info.minLod = 0;
+
+						sampler_create_info.mipLodBias = 0.f;
+						sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+						sampler_create_info.anisotropyEnable = VK_FALSE;
+						sampler_create_info.maxAnisotropy = 0.f;
+
+						sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+						sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+						sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+						sampler_create_info.compareOp = VK_COMPARE_OP_NEVER;
+						sampler_create_info.compareEnable = VK_FALSE;
+
+						sampler_create_info.magFilter = VK_FILTER_NEAREST;
+						sampler_create_info.minFilter = VK_FILTER_NEAREST;
+
+						sampler_create_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+						sampler_create_info.unnormalizedCoordinates = VK_FALSE;
+						sampler_create_info.flags = 0;
+
+						if (VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &shadow_map_image.viewer_sampler); res != VK_SUCCESS) return res;
+						graphics_created_bitmask |= graphics_created_bit_csm_view_sampler;
+						{
+							VkDebugUtilsObjectNameInfoEXT debug_name{};
+							debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+							debug_name.pNext = nullptr;
+							debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
+							debug_name.objectHandle = reinterpret_cast<uint64_t>(shadow_map_image.viewer_sampler);
+							debug_name.pObjectName = "rosy csm view sampler";
+							if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+							{
+								l->error(std::format("Error creating csm view sampler name: {}", static_cast<uint8_t>(res)));
+								return res;
+							}
+						}
+					}
+				}
+				{
+					VkSamplerCreateInfo sampler_create_info{};
+					sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+					sampler_create_info.pNext = nullptr;
+
+					sampler_create_info.maxLod = VK_LOD_CLAMP_NONE;
+					sampler_create_info.minLod = 0;
+
+					sampler_create_info.mipLodBias = 0.f;
+					sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+					sampler_create_info.anisotropyEnable = VK_FALSE;
+					sampler_create_info.maxAnisotropy = 0.f;
+
+					sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+					sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+					sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+					sampler_create_info.compareOp = VK_COMPARE_OP_NEVER;
+					sampler_create_info.compareEnable = VK_FALSE;
+
+					sampler_create_info.magFilter = VK_FILTER_LINEAR;
+					sampler_create_info.minFilter = VK_FILTER_LINEAR;
+
+					sampler_create_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+					sampler_create_info.unnormalizedCoordinates = VK_FALSE;
+					sampler_create_info.flags = 0;
+					if (VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &shadow_map_image.shadow_sampler); res != VK_SUCCESS) return res;
+					graphics_created_bitmask |= graphics_created_bit_csm_sampler;
+
+					{
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(shadow_map_image.shadow_sampler);
+						debug_name.pObjectName = "rosy csm shadow sampler";
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating csm shadow sampler name: {}", static_cast<uint8_t>(res)));
+							return res;
+						}
+					}
+				}
+				{
+					shadow_map_image.imgui_ds_near = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_near, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+					shadow_map_image.imgui_ds_middle = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_middle, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+					shadow_map_image.imgui_ds_far = ImGui_ImplVulkan_AddTexture(shadow_map_image.viewer_sampler, shadow_map_image.image_view_far, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+				}
+				{
+					{
+						if (const result res = desc_samples->allocator.allocate(&default_sampler_index); res != result::ok)
+						{
+							l->error(std::format("Error allocating a shadow map sampler desc: {}", static_cast<uint8_t>(res)));
+							return VK_ERROR_UNKNOWN;
+						}
+						{
+							uint32_t new_sampler_desc_index{ 0 };
+							if (const result res = desc_samples->allocator.allocate(&new_sampler_desc_index); res != result::ok)
+							{
+								l->error(std::format("Error default shadow map sampler index: {}", static_cast<uint8_t>(res)));
+								return VK_ERROR_INITIALIZATION_FAILED;
+							}
+							{
+								VkDescriptorImageInfo create_desc_info{};
+								create_desc_info.sampler = shadow_map_image.shadow_sampler;
+								create_desc_info.imageView = nullptr;
+								create_desc_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+
+								VkWriteDescriptorSet write{};
+								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+								write.dstBinding = desc_samples->binding;
+								write.dstArrayElement = new_sampler_desc_index;
+								write.dstSet = descriptor_set;
+								write.descriptorCount = 1;
+								write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+								write.pImageInfo = &create_desc_info;
+
+								vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+							}
+						}
+					}
+					{
+						uint32_t new_image_sampler_desc_index{ 0 };
+						if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index); res != result::ok)
+						{
+							l->error(std::format("Error default shadow near map index: {}", static_cast<uint8_t>(res)));
+							return VK_ERROR_INITIALIZATION_FAILED;
+						}
+						{
+							VkDescriptorImageInfo create_desc_info{};
+							create_desc_info.sampler = nullptr;
+							create_desc_info.imageView = shadow_map_image.image_view_near;
+							create_desc_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+
+							VkWriteDescriptorSet write{};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.dstBinding = desc_sampled_images->binding;
+							write.dstArrayElement = new_image_sampler_desc_index;
+							write.dstSet = descriptor_set;
+							write.descriptorCount = 1;
+							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+							write.pImageInfo = &create_desc_info;
+
+							vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+						}
+					}
+					{
+						uint32_t new_image_sampler_desc_index{ 0 };
+						if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index); res != result::ok)
+						{
+							l->error(std::format("Error default shadow middle map index: {}", static_cast<uint8_t>(res)));
+							return VK_ERROR_INITIALIZATION_FAILED;
+						}
+						{
+							VkDescriptorImageInfo create_desc_info{};
+							create_desc_info.sampler = nullptr;
+							create_desc_info.imageView = shadow_map_image.image_view_middle;
+							create_desc_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+
+							VkWriteDescriptorSet write{};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.dstBinding = desc_sampled_images->binding;
+							write.dstArrayElement = new_image_sampler_desc_index;
+							write.dstSet = descriptor_set;
+							write.descriptorCount = 1;
+							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+							write.pImageInfo = &create_desc_info;
+
+							vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+						}
+					}
+					{
+						uint32_t new_image_sampler_desc_index{ 0 };
+						if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index); res != result::ok)
+						{
+							l->error(std::format("Error default shadow far map index: {}", static_cast<uint8_t>(res)));
+							return VK_ERROR_INITIALIZATION_FAILED;
+						}
+						{
+							VkDescriptorImageInfo create_desc_info{};
+							create_desc_info.sampler = nullptr;
+							create_desc_info.imageView = shadow_map_image.image_view_far;
+							create_desc_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+
+							VkWriteDescriptorSet write{};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.dstBinding = desc_sampled_images->binding;
+							write.dstArrayElement = new_image_sampler_desc_index;
+							write.dstSet = descriptor_set;
+							write.descriptorCount = 1;
+							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+							write.pImageInfo = &create_desc_info;
+
+							vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+						}
+					}
+				}
+			}
+
 			return VK_SUCCESS;
 		}
 
@@ -2217,6 +2579,32 @@ namespace {
 					l->error(std::format("Error allocating a default sampler desc: {}", static_cast<uint8_t>(res)));
 					return VK_ERROR_UNKNOWN;
 				}
+				{
+					uint32_t new_sampler_desc_index{ 0 };
+					if (const result res = desc_samples->allocator.allocate(&new_sampler_desc_index); res != result::ok)
+					{
+						l->error(std::format("Error default sampler descriptor index: {}", static_cast<uint8_t>(res)));
+						return VK_ERROR_INITIALIZATION_FAILED;
+					}
+					{
+						VkDescriptorImageInfo create_desc_info{};
+						create_desc_info.sampler = default_sampler;
+						create_desc_info.imageView = nullptr;
+						create_desc_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+
+						VkWriteDescriptorSet write{};
+						write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						write.dstBinding = desc_samples->binding;
+						write.dstArrayElement = new_sampler_desc_index;
+						write.dstSet = descriptor_set;
+						write.descriptorCount = 1;
+						write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+						write.pImageInfo = &create_desc_info;
+
+						vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+					}
+				}
 			}
 			return VK_SUCCESS;
 		}
@@ -2288,21 +2676,21 @@ namespace {
 				ktx_path = img_path_staging.c_str();
 
 				{
-					if (ktx_error_code_e ktx_result = ktxTexture_CreateFromNamedFile(ktx_path, KTX_TEXTURE_CREATE_NO_FLAGS, &new_ktx_img.texture); ktx_result != KTX_SUCCESS) {
-						l->error(std::format("ktx create texture failure: {}", static_cast<uint8_t>(ktx_result)));
+					if (ktx_error_code_e ktx_res = ktxTexture_CreateFromNamedFile(ktx_path, KTX_TEXTURE_CREATE_NO_FLAGS, &new_ktx_img.texture); ktx_res != KTX_SUCCESS) {
+						l->error(std::format("ktx create texture failure: {}", static_cast<uint8_t>(ktx_res)));
 						return result::create_failed;
 					}
 					new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
 				}
 
 				{
-					if (ktx_error_code_e ktx_result = ktxTexture_VkUploadEx(new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
+					if (ktx_error_code_e ktx_res = ktxTexture_VkUploadEx(new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
 						VK_IMAGE_TILING_OPTIMAL,
 						VK_IMAGE_USAGE_SAMPLED_BIT,
-						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); ktx_result != KTX_SUCCESS)
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); ktx_res != KTX_SUCCESS)
 					{
 						ktx_textures.push_back(new_ktx_img);
-						l->error(std::format("ktx create vulkan texture failure: {}", static_cast<uint8_t>(ktx_result)));
+						l->error(std::format("ktx create vulkan texture failure: {}", static_cast<uint8_t>(ktx_res)));
 						return result::create_failed;
 					}
 					new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_texture;
