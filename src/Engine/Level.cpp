@@ -146,5 +146,18 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		}
 	}
 
+	wls.light[0] = 0.f;
+	wls.light[1] = 1.f;
+	wls.light[2] = 2.f;
+
+	return result::ok;
+}
+
+result level::update()
+{
+	rls.p = cam->p;
+	rls.v = cam->v;
+	rls.vp = cam->vp;
+	rls.cam_pos = cam->position;
 	return result::ok;
 }

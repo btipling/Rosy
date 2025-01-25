@@ -63,4 +63,19 @@ namespace rosy
 		float level_update_time{ 0.f };
 	};
 
+
+	struct read_level_state
+	{
+		std::array<float, 16> v{};
+		std::array<float, 16> p{};
+		std::array<float, 16> vp{};
+		std::array<float, 4> cam_pos{};
+	};
+
+
+	struct write_level_state
+	{
+		float light[3];
+	};
+
 }

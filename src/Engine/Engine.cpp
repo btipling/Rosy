@@ -166,7 +166,7 @@ result engine::init()
 			l->error(std::format("Graphics creation failed: {}", static_cast<uint8_t>(res)));
 			return res;
 		}
-		if (auto const res = gfx->set_asset(a, lvl->graphics_objects); res != result::ok)
+		if (auto const res = gfx->set_asset(a, lvl->graphics_objects, &lvl->wls); res != result::ok)
 		{
 			l->error(std::format("Asset setting on graphics failed: {}", static_cast<uint8_t>(res)));
 			return res;
@@ -275,7 +275,7 @@ result engine::render()
 	if (const auto res = cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
 		return res;
 	}
-	if (const auto res = gfx->update(cam->v, cam->p, cam->vp, cam->position); res != result::ok) {
+	if (const auto res = gfx->update(lvl->rls); res != result::ok) {
 		return res;
 	}
 	if (const auto res = gfx->render(render_ui, stats); res != result::ok) {

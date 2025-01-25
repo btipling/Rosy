@@ -460,6 +460,7 @@ namespace {
 		gpu_scene_buffers scene_buffer{};
 
 		gpu_scene_data scene_data{};
+		write_level_state* wls{ nullptr };
 
 		result init(const config new_cfg)
 		{
@@ -4315,9 +4316,10 @@ void graphics::deinit()
 	l = nullptr;
 }
 
-result graphics::set_asset(const rosy_packager::asset& a, std::vector<graphics_object> graphics_objects) const
+result graphics::set_asset(const rosy_packager::asset& a, const std::vector<graphics_object>& graphics_objects, write_level_state* wls) const
 {
 	l->debug(std::format("Setting asset with {} graphic objects.", graphics_objects.size()));
+	gd->wls = wls; // Set writable state, this is a pointer to level data that the UI can write to.
 	if (const auto res = gd->set_asset(a); res != result::ok)
 	{
 		return res;
@@ -4330,14 +4332,14 @@ result graphics::set_asset(const rosy_packager::asset& a, std::vector<graphics_o
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result graphics::update(const std::array<float, 16>& v, const std::array<float, 16>& p, const std::array<float, 16>& vp, const std::array<float, 4> cam_pos)
+result graphics::update(const read_level_state& rls)
 {
 	const gpu_scene_data sd{
-		.view = v,
-		.proj = p,
-		.view_projection = vp,
+		.view = rls.v,
+		.proj = rls.p,
+		.view_projection = rls.vp,
 		.sunlight = { 0.25f, 0.98f, 0.1f },
-		.camera_position = cam_pos,
+		.camera_position = rls.cam_pos,
 		.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f, },
 		.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
 	};
