@@ -72,15 +72,9 @@ namespace rosy
 
 	struct debug_object
 	{
+		debug_object_type type{ debug_object_type::line };
 		std::array<float, 16> transform{};
 		std::array<float, 4> color{};
-	};
-
-	struct debug_object_payload
-	{
-		uint64_t update_count{ 0 };
-		debug_object_type type{ debug_object_type::line };
-		std::vector<debug_object> objects{};
 	};
 
 	struct read_level_state
@@ -89,12 +83,7 @@ namespace rosy
 		std::array<float, 16> p{};
 		std::array<float, 16> vp{};
 		std::array<float, 4> cam_pos{};
-		debug_object_payload lines{
-			.type = debug_object_type::line,
-		};
-		debug_object_payload circles{
-			.type = debug_object_type::circle,
-		};
+		std::vector<debug_object> debug_objects{};
 	};
 
 	struct write_level_state

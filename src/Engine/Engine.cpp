@@ -39,7 +39,7 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 
 result engine::init()
 {
-	l = new(std::nothrow) log{ log_level::info };
+	l = new(std::nothrow) log{ log_level::debug };
 	if (l == nullptr)
 	{
 		return result::allocation_failure;

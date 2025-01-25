@@ -38,7 +38,8 @@ namespace {
 	constexpr uint32_t descriptor_max_sampled_image_descriptors{ 100'000 };
 	constexpr uint32_t descriptor_max_sample_descriptors{ 1000 };
 
-	constexpr float graphics_pi{ 3.14159f };
+	constexpr double pi{ 3.1415926535897932384626433832795028841971693993751058209749445923078164062 };  // NOLINT(modernize-use-std-numbers)
+	constexpr size_t debug_draw_circle_num_segments{ 100 };
 
 	struct descriptor_set_allocator
 	{
@@ -2571,14 +2572,13 @@ namespace {
 					debug_vertices.push_back({ 0.f, 0.f, 0.f, 1.f });
 					debug_vertices.push_back({ 0.f, 1.f, 0.f, 1.f });
 					// A circle
-					constexpr size_t num_segments{ 100 };
-					constexpr float num_segments_f{ static_cast<float>(num_segments) };
-					constexpr float target{ graphics_pi * 2 };
+					constexpr float num_segments_f{ static_cast<float>(debug_draw_circle_num_segments) };
+					constexpr float target{ static_cast<float>(pi) * 2 };
 					constexpr float segment_step{ target / num_segments_f };
-					for (size_t i{0}; i < num_segments + 1; i++)
+					for (size_t i{0}; i < debug_draw_circle_num_segments + 1; i++)
 					{
 						const float current_step{ segment_step * static_cast<float>(i + 1) };
-						const float next_step = i == num_segments + 1 ? 0.f : current_step + segment_step;
+						const float next_step = i == debug_draw_circle_num_segments + 1 ? 0.f : current_step + segment_step;
 						debug_vertices.push_back({ std::sin(current_step), std::cos(current_step), 0.f, 1.f});
 						debug_vertices.push_back({ std::sin(next_step), std::cos(next_step), 0.f, 1.f });
 					}
@@ -4371,7 +4371,7 @@ namespace {
 						{
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::SliderFloat3("Light direction", wls->light, -2 * graphics_pi, 2 * graphics_pi);
+							ImGui::SliderFloat3("Light direction", wls->light, -2 * static_cast<float>(pi), 2 * static_cast<float>(pi));
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();
