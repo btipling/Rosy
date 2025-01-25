@@ -78,6 +78,7 @@ namespace rosy
 
 	struct debug_object_payload
 	{
+		uint64_t update_count{ 0 };
 		debug_object_type type{ debug_object_type::line };
 		std::vector<debug_object> objects{};
 	};
