@@ -5,13 +5,12 @@ import data;
 [shader("vertex")]
 DebugVertexStageOutput debugVertMain(uint uiVertexId: SV_VertexID)
 {
-    float4 v = DebugConstants.p1;
-    if (uiVertexId != 0) {
-        v = DebugConstants.p2;
-    }
+    DebugInputVertex v = *(DebugConstants.v + uiVertexId);
+    float4x4 worldMat = DebugConstants.transform;
+
     DebugVertexStageOutput output;
     output.debugVertex.color = DebugConstants.color.xyz;
-    output.sv_position = mul(DebugConstants.worldMatrix, v);
+    output.sv_position = mul(worldMat, v.position);
 
     return output;
 }

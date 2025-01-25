@@ -132,6 +132,8 @@ namespace {
 	constexpr  uint64_t graphics_created_bit_csm_view_middle  = 0b0000000000000000000000000000100000000000000000000000000000000000;
 	constexpr  uint64_t graphics_created_bit_csm_view_far     = 0b0000000000000000000000000001000000000000000000000000000000000000;
 	constexpr  uint64_t graphics_created_bit_debug_buffer     = 0b0000000000000000000000000010000000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_debug_shaders    = 0b0000000000000000000000000100000000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_debug_pipeline   = 0b0000000000000000000000001000000000000000000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -368,6 +370,14 @@ namespace {
 		VkDeviceAddress material_buffer{ 0 };
 	};
 
+	struct gpu_debug_push_constants
+	{
+		VkDeviceAddress debug_draw_buffer{ 0 };
+		std::array<float, 16> transform{};
+		std::array<float, 4> color{};
+		std::array<float, 4> padding{};
+	};
+
 	struct graphic_object_data
 	{
 		std::array<float, 16> transform;
@@ -455,6 +465,10 @@ namespace {
 
 		SDL_Window* window{ nullptr };
 		ktxVulkanDeviceInfo ktx_vdi_info{};
+
+		// shaders
+		std::vector<VkShaderEXT> debug_shaders;
+		VkPipelineLayout debug_layout;
 
 		// Level dependent data
 		std::vector< VkSampler> samplers;
@@ -730,6 +744,19 @@ namespace {
 			if (graphics_created_bitmask & graphics_created_bit_scene_buffer)
 			{
 				vmaDestroyBuffer(allocator, scene_buffer.scene_buffer.buffer, scene_buffer.scene_buffer.allocation);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_debug_pipeline)
+			{
+				vkDestroyPipelineLayout(device, debug_layout, nullptr);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_debug_shaders)
+			{
+				for (const VkShaderEXT shader : debug_shaders)
+				{
+					vkDestroyShaderEXT(device, shader, nullptr);
+				}
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_pipeline_layout)
@@ -2506,6 +2533,131 @@ namespace {
 				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 			}
 
+			{
+				rosy_packager::asset dba{};
+				rosy_packager::shader debug_shader{};
+				debug_shader.path = R"(..\shaders\out\debug.spv)";
+				dba.shaders.push_back(debug_shader);
+				dba.read_shaders(l);
+				if (dba.shaders.empty())
+				{
+					l->error("No debug shader loaded");
+					return VK_ERROR_INITIALIZATION_FAILED;
+				}
+				std::vector<VkShaderCreateInfoEXT> shader_create_info;
+				const auto& [path, source] = dba.shaders[0];
+
+				if (source.empty())
+				{
+					l->error("No source in debug shader");
+					return VK_ERROR_INITIALIZATION_FAILED;
+				}
+
+				std::vector<VkDescriptorSetLayout> layouts{};
+
+				VkPushConstantRange push_constant_range{
+					.stageFlags = VK_SHADER_STAGE_ALL,
+					.offset = 0,
+					.size = sizeof(gpu_debug_push_constants),
+				};
+
+				shader_create_info.push_back({
+					.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+					.pNext = nullptr,
+					.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
+					.stage = VK_SHADER_STAGE_VERTEX_BIT,
+					.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT,
+					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
+					.codeSize = source.size(),
+					.pCode = source.data(),
+					.pName = "main",
+					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
+					.pSetLayouts = layouts.data(),
+					.pushConstantRangeCount = 1,
+					.pPushConstantRanges = &push_constant_range,
+					.pSpecializationInfo = nullptr,
+					});
+				shader_create_info.push_back({
+					.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+					.pNext = nullptr,
+					.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
+					.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+					.nextStage = 0,
+					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
+					.codeSize = source.size(),
+					.pCode = source.data(),
+					.pName = "main",
+					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
+					.pSetLayouts = layouts.data(),
+					.pushConstantRangeCount = 1,
+					.pPushConstantRanges = &push_constant_range,
+					.pSpecializationInfo = nullptr,
+					});
+
+				debug_shaders.resize(shader_create_info.size());
+
+				if (const VkResult res = vkCreateShadersEXT(device, static_cast<uint32_t>(shader_create_info.size()), shader_create_info.data(), nullptr, debug_shaders.data()); res != VK_SUCCESS) {
+					l->error(std::format("Error creating debug shaders: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+				graphics_created_bitmask |= graphics_created_bit_debug_shaders;
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_SHADER_EXT;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(debug_shaders.data()[0]);
+					debug_name.pObjectName = "rosy debug vertex shader";
+					if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating debug vertex shader name: {}", static_cast<uint8_t>(res)));
+						return res;
+					}
+				}
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_SHADER_EXT;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(debug_shaders.data()[1]);
+					debug_name.pObjectName = "rosy debug fragment shader";
+					if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating debug fragment shader name: {}", static_cast<uint8_t>(res)));
+						return res;
+					}
+				}
+				{
+					VkPipelineLayoutCreateInfo pl_info{
+						.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+						.pNext = nullptr,
+						.flags = 0,
+						.setLayoutCount = static_cast<uint32_t>(layouts.size()),
+						.pSetLayouts = layouts.data(),
+						.pushConstantRangeCount = 1,
+						.pPushConstantRanges = &push_constant_range,
+					};
+					if (const VkResult res = vkCreatePipelineLayout(device, &pl_info, nullptr, &debug_layout); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating debug shader pipeline layout: {}", static_cast<uint8_t>(res)));
+						return res;
+					}
+					graphics_created_bitmask |= graphics_created_bit_debug_pipeline;
+					{
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_PIPELINE_LAYOUT;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(debug_layout);
+						debug_name.pObjectName = "rosy debug shader pipeline layout";
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating debug shader pipeline layout name: {}", static_cast<uint8_t>(res)));
+							return res;
+						}
+					}
+				}
+			}
 			return VK_SUCCESS;
 		}
 
@@ -3519,7 +3671,6 @@ namespace {
 						}
 					}
 				}
-
 			}
 			return result::ok;
 		}

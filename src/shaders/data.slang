@@ -128,9 +128,12 @@ public struct DebugVertexStageOutput
     public float4 sv_position : SV_Position;
 };
 
+public struct DebugInputVertex {
+    public float4 position;
+};
+
 public struct DebugConstant {
-    public float4x4 worldMatrix;
-    public float4 p1;
-    public float4 p2;
+    public DebugInputVertex *v;
+    public float4x4 transform;
     public float4 color;
 }
