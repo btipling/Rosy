@@ -4147,20 +4147,49 @@ namespace {
 			window_flags |= ImGuiWindowFlags_NoCollapse;
 			if (ImGui::Begin("Game State", nullptr, window_flags))
 			{
-				if (ImGui::BeginTable("Scene Data", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+				if (constexpr ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None; ImGui::BeginTabBar("ViewEdit", tab_bar_flags))
 				{
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					ImGui::Text("Camera position");
-					ImGui::TableNextColumn();
-					ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0], scene_data.camera_position[1], scene_data.camera_position[2]);
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					ImGui::Text("Light direction");
-					ImGui::TableNextColumn();
-					ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1], scene_data.sunlight[2]);
-					ImGui::EndTable();
+					if (ImGui::BeginTabItem("View"))
+					{
+						if (ImGui::BeginTable("Scene Data", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+						{
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Text("Camera position");
+							ImGui::TableNextColumn();
+							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0], scene_data.camera_position[1], scene_data.camera_position[2]);
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Text("Light direction");
+							ImGui::TableNextColumn();
+							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1], scene_data.sunlight[2]);
+							ImGui::EndTable();
+						}
+						ImGui::EndTabItem();
+					}
+					if (ImGui::BeginTabItem("Edit"))
+					{
+						if (ImGui::BeginTable("Scene Data", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+						{
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Text("Camera position");
+							ImGui::TableNextColumn();
+							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0], scene_data.camera_position[1], scene_data.camera_position[2]);
+							ImGui::EndTable();
+						}
+						if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+						{
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::SliderFloat4("Light direction", scene_data.camera_position.data(), -2 * 3.14159f, 2 * 3.14159f);
+							ImGui::EndTable();
+						}
+						ImGui::EndTabItem();
+					}
+					ImGui::EndTabBar();
 				}
+			
 				ImGui::NewLine();
 				if (ImGui::BeginTable("Performance", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 				{
