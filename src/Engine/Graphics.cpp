@@ -2727,7 +2727,7 @@ namespace {
 					debug_vertices.push_back({ 0.f, 1.f, 0.f, 1.f });
 					// A circle
 					constexpr float num_segments_f{ static_cast<float>(debug_draw_circle_num_segments) };
-					constexpr float target{ static_cast<float>(pi) * 2 };
+					constexpr float target{ static_cast<float>(pi) * 4 };
 					constexpr float segment_step{ target / num_segments_f };
 					for (size_t i{ 0 }; i < debug_draw_circle_num_segments + 1; i++)
 					{
@@ -4231,15 +4231,27 @@ namespace {
 							};
 							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, debug_layout, 0, 1, &descriptor_set, 0, nullptr);
+							{
+								gpu_debug_push_constants dpc{
+									.transform = rls->debug_objects[0].transform,
+									.color = rls->debug_objects[0].color,
+									.scene_buffer = scene_buffer.scene_buffer_address,
+									.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
+								};
+								vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
+								vkCmdDraw(cf.command_buffer, 2, 1, 0, 0);
+							}
+							{
+								gpu_debug_push_constants dpc{
+									.transform = rls->debug_objects[1].transform,
+									.color = rls->debug_objects[1].color,
+									.scene_buffer = scene_buffer.scene_buffer_address,
+									.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
+								};
+								vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
+								vkCmdDraw(cf.command_buffer, 100, 1, 8, 0);
+							}
 
-							gpu_debug_push_constants dpc{
-								.transform = rls->debug_objects[0].transform,
-								.color = rls->debug_objects[0].color,
-								.scene_buffer = scene_buffer.scene_buffer_address,
-								.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
-							};
-							vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
-							vkCmdDraw(cf.command_buffer, 2, 1, 0, 0);
 						}
 					}
 					if (render_ui) {
