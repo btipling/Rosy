@@ -723,13 +723,13 @@ namespace {
 					vkDestroySampler(device, shadow_map_image.viewer_sampler, nullptr);
 				}
 				if (graphics_created_bitmask & graphics_created_bit_csm_sampler) {
-				vkDestroySampler(device, shadow_map_image.shadow_sampler, nullptr);
+					vkDestroySampler(device, shadow_map_image.shadow_sampler, nullptr);
 				}
 				if (graphics_created_bitmask & graphics_created_bit_csm_view_near) {
 					vkDestroyImageView(device, shadow_map_image.image_view_near, nullptr);
 				}
 				if (graphics_created_bitmask & graphics_created_bit_csm_view_middle) {
-				vkDestroyImageView(device, shadow_map_image.image_view_middle, nullptr);
+					vkDestroyImageView(device, shadow_map_image.image_view_middle, nullptr);
 				}
 				if (graphics_created_bitmask & graphics_created_bit_csm_view_far) {
 					vkDestroyImageView(device, shadow_map_image.image_view_far, nullptr);
@@ -1076,7 +1076,7 @@ namespace {
 				.pfnUserCallback = debug_callback,
 				.pUserData = nullptr,
 			};
-			if (const VkResult res = vkCreateDebugUtilsMessengerEXT(instance, &create_debug_callback_info_ext, nullptr, &debug_messenger); res != VK_SUCCESS) 
+			if (const VkResult res = vkCreateDebugUtilsMessengerEXT(instance, &create_debug_callback_info_ext, nullptr, &debug_messenger); res != VK_SUCCESS)
 			{
 				return res;
 			}
@@ -1383,7 +1383,7 @@ namespace {
 			device_create_info.ppEnabledExtensionNames = device_extensions.data();
 			device_create_info.pEnabledFeatures = &required_features;
 
-			
+
 			if (VkResult res = vkCreateDevice(physical_device, &device_create_info, nullptr, &device); res != VK_SUCCESS)
 			{
 				return res;
@@ -1857,7 +1857,7 @@ namespace {
 			layout_create_info.bindingCount = static_cast<uint32_t>(bindings.size());
 			layout_create_info.pBindings = bindings.data();
 
-			
+
 			if (const VkResult res = vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layout); res != VK_SUCCESS)
 			{
 				return res;
@@ -2176,9 +2176,9 @@ namespace {
 				{
 					VkImageUsageFlags depth_image_usages{ 0 };
 					depth_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-						VK_IMAGE_USAGE_TRANSFER_DST_BIT | 
-						VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | 
-						VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | 
+						VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+						VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+						VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
 						VK_IMAGE_USAGE_SAMPLED_BIT;
 
 					VkImageCreateInfo depth_info{};
@@ -2554,8 +2554,9 @@ namespace {
 				}
 
 				std::vector<VkDescriptorSetLayout> layouts{};
+				layouts.push_back(descriptor_set_layout);
 
-				VkPushConstantRange push_constant_range{
+				VkPushConstantRange debug_push_constant_range{
 					.stageFlags = VK_SHADER_STAGE_ALL,
 					.offset = 0,
 					.size = sizeof(gpu_debug_push_constants),
@@ -2574,7 +2575,7 @@ namespace {
 					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
 					.pSetLayouts = layouts.data(),
 					.pushConstantRangeCount = 1,
-					.pPushConstantRanges = &push_constant_range,
+					.pPushConstantRanges = &debug_push_constant_range,
 					.pSpecializationInfo = nullptr,
 					});
 				shader_create_info.push_back({
@@ -2590,7 +2591,7 @@ namespace {
 					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
 					.pSetLayouts = layouts.data(),
 					.pushConstantRangeCount = 1,
-					.pPushConstantRanges = &push_constant_range,
+					.pPushConstantRanges = &debug_push_constant_range,
 					.pSpecializationInfo = nullptr,
 					});
 
@@ -2635,7 +2636,7 @@ namespace {
 						.setLayoutCount = static_cast<uint32_t>(layouts.size()),
 						.pSetLayouts = layouts.data(),
 						.pushConstantRangeCount = 1,
-						.pPushConstantRanges = &push_constant_range,
+						.pPushConstantRanges = &debug_push_constant_range,
 					};
 					if (const VkResult res = vkCreatePipelineLayout(device, &pl_info, nullptr, &debug_layout); res != VK_SUCCESS)
 					{
@@ -2728,11 +2729,11 @@ namespace {
 					constexpr float num_segments_f{ static_cast<float>(debug_draw_circle_num_segments) };
 					constexpr float target{ static_cast<float>(pi) * 2 };
 					constexpr float segment_step{ target / num_segments_f };
-					for (size_t i{0}; i < debug_draw_circle_num_segments + 1; i++)
+					for (size_t i{ 0 }; i < debug_draw_circle_num_segments + 1; i++)
 					{
 						const float current_step{ segment_step * static_cast<float>(i + 1) };
 						const float next_step = i == debug_draw_circle_num_segments + 1 ? 0.f : current_step + segment_step;
-						debug_vertices.push_back({ std::sin(current_step), std::cos(current_step), 0.f, 1.f});
+						debug_vertices.push_back({ std::sin(current_step), std::cos(current_step), 0.f, 1.f });
 						debug_vertices.push_back({ std::sin(next_step), std::cos(next_step), 0.f, 1.f });
 					}
 				}
@@ -4175,43 +4176,69 @@ namespace {
 						}
 					}
 					{
-						constexpr VkShaderStageFlagBits stages[2] =
 						{
-							VK_SHADER_STAGE_VERTEX_BIT,
-							VK_SHADER_STAGE_FRAGMENT_BIT
-						};
-						vkCmdBindShadersEXT(cf.command_buffer, 2, stages, scene_shaders.data());
-						constexpr VkShaderStageFlagBits unused_stages[4] =
-						{
-							VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-							VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-							VK_SHADER_STAGE_GEOMETRY_BIT,
-						};
-						vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
-						vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
-						{
-							size_t current_mesh_index = UINT64_MAX;
-							for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index] : surface_graphics)
+							constexpr VkShaderStageFlagBits stages[2] =
 							{
-								auto& gpu_mesh = gpu_meshes[mesh_index];
-								if (mesh_index != current_mesh_index)
+								VK_SHADER_STAGE_VERTEX_BIT,
+								VK_SHADER_STAGE_FRAGMENT_BIT
+							};
+							vkCmdBindShadersEXT(cf.command_buffer, 2, stages, scene_shaders.data());
+							constexpr VkShaderStageFlagBits unused_stages[4] =
+							{
+								VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+								VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+								VK_SHADER_STAGE_GEOMETRY_BIT,
+							};
+							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
+							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
+							{
+								size_t current_mesh_index = UINT64_MAX;
+								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index] : surface_graphics)
 								{
-									vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-									current_mesh_index = mesh_index;
+									auto& gpu_mesh = gpu_meshes[mesh_index];
+									if (mesh_index != current_mesh_index)
+									{
+										vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+										current_mesh_index = mesh_index;
+									}
+									gpu_draw_push_constants pc{
+										.scene_buffer = scene_buffer.scene_buffer_address,
+										.vertex_buffer = gpu_mesh.vertex_buffer_address,
+										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
+									};
+									vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
+									vkCmdDrawIndexed(cf.command_buffer, index_count, 1, start_index, 0, 0);
+									new_stats.draw_call_count += 1;
+									new_stats.triangle_count += index_count / 3;
 								}
-								gpu_draw_push_constants pc{
-									.scene_buffer = scene_buffer.scene_buffer_address,
-									.vertex_buffer = gpu_mesh.vertex_buffer_address,
-									.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
-									.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
-								};
-								vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
-								vkCmdDrawIndexed(cf.command_buffer, index_count, 1, start_index, 0, 0);
-								new_stats.draw_call_count += 1;
-								new_stats.triangle_count += index_count / 3;
 							}
 						}
-						{
+						if (!rls->debug_objects.empty()) {
+							vkCmdSetPrimitiveTopologyEXT(cf.command_buffer, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
+							vkCmdSetLineWidth(cf.command_buffer, 2.f);
+							constexpr VkShaderStageFlagBits stages[2] =
+							{
+								VK_SHADER_STAGE_VERTEX_BIT,
+								VK_SHADER_STAGE_FRAGMENT_BIT
+							};
+							vkCmdBindShadersEXT(cf.command_buffer, 2, stages, debug_shaders.data());
+							constexpr VkShaderStageFlagBits unused_stages[4] =
+							{
+								VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+								VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+								VK_SHADER_STAGE_GEOMETRY_BIT,
+							};
+							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
+							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, debug_layout, 0, 1, &descriptor_set, 0, nullptr);
+
+							gpu_debug_push_constants dpc{
+								.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
+								.transform = rls->debug_objects[0].transform,
+								.color = rls->debug_objects[0].color,
+							};
+							vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
+							vkCmdDraw(cf.command_buffer, 2, 1, 0, 0);
 							//l->debug(std::format("num objects: {}", rls->debug_objects.size()));
 						}
 					}
@@ -4543,7 +4570,7 @@ namespace {
 					}
 					ImGui::EndTabBar();
 				}
-			
+
 				ImGui::NewLine();
 				if (ImGui::BeginTable("Performance", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 				{
