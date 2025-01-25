@@ -374,6 +374,7 @@ namespace {
 	{
 		std::array<float, 16> transform{};
 		std::array<float, 4> color{};
+		VkDeviceAddress scene_buffer{ 0 };
 		VkDeviceAddress debug_draw_buffer{ 0 };
 	};
 
@@ -4234,11 +4235,11 @@ namespace {
 							gpu_debug_push_constants dpc{
 								.transform = rls->debug_objects[0].transform,
 								.color = rls->debug_objects[0].color,
+								.scene_buffer = scene_buffer.scene_buffer_address,
 								.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
 							};
 							vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
 							vkCmdDraw(cf.command_buffer, 2, 1, 0, 0);
-							//l->debug(std::format("num objects: {}", rls->debug_objects.size()));
 						}
 					}
 					if (render_ui) {
