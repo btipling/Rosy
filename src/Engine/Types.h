@@ -63,6 +63,24 @@ namespace rosy
 		float level_update_time{ 0.f };
 	};
 
+	enum class debug_object_type : uint8_t
+	{
+		line,
+		circle,
+		cross,
+	};
+
+	struct debug_object
+	{
+		std::array<float, 16> transform{};
+		std::array<float, 4> color{};
+	};
+
+	struct debug_object_payload
+	{
+		debug_object_type type{ debug_object_type::line };
+		std::vector<debug_object> objects{};
+	};
 
 	struct read_level_state
 	{
@@ -70,8 +88,13 @@ namespace rosy
 		std::array<float, 16> p{};
 		std::array<float, 16> vp{};
 		std::array<float, 4> cam_pos{};
+		debug_object_payload lines{
+			.type = debug_object_type::line,
+		};
+		debug_object_payload circles{
+			.type = debug_object_type::circle,
+		};
 	};
-
 
 	struct write_level_state
 	{

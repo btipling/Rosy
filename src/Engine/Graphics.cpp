@@ -4183,7 +4183,7 @@ namespace {
 						{
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::SliderFloat4("Light direction", scene_data.camera_position.data(), -2 * 3.14159f, 2 * 3.14159f);
+							ImGui::SliderFloat3("Light direction", wls->light, -2 * 3.14159f, 2 * 3.14159f);
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();
