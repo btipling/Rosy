@@ -2397,7 +2397,6 @@ namespace {
 							create_desc_info.imageView = shadow_map_image.image_view_middle;
 							create_desc_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
-
 							VkWriteDescriptorSet write{};
 							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 							write.dstBinding = desc_sampled_images->binding;
@@ -3551,9 +3550,37 @@ namespace {
 					return result::graphics_frame_failure;
 				}
 				{
+					VkDebugUtilsLabelEXT debug_label{};
+					std::array<float, 4> debug_color{ 0.8f, 0.f, 0.f, 1.f };
+					debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+					debug_label.pNext = nullptr;
+					debug_label.pLabelName = "render";
+					std::copy_n(debug_color.data(), 4, debug_label.color);
+					vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
+				}
+				{
+					VkDebugUtilsLabelEXT debug_label{};
+					std::array<float, 4> debug_color{ 0.7f, 0.f, 0.f, 1.f };
+					debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+					debug_label.pNext = nullptr;
+					debug_label.pLabelName = "update scene buffer";
+					std::copy_n(debug_color.data(), 4, debug_label.color);
+					vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
+				}
+				{
 					// Update scene buffer
 					vkCmdUpdateBuffer(cf.command_buffer, scene_buffer.scene_buffer.buffer, 0, sizeof(gpu_scene_data), &scene_data);
 				}
+				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
+			}
+			{
+				VkDebugUtilsLabelEXT debug_label{};
+				std::array<float, 4> debug_color{ 0.6f, 0.f, 0.f, 1.f };
+				debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+				debug_label.pNext = nullptr;
+				debug_label.pLabelName = "clear image";
+				std::copy_n(debug_color.data(), 4, debug_label.color);
+				vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
 			}
 			{
 				{
@@ -3608,8 +3635,18 @@ namespace {
 					clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
 					vkCmdClearColorImage(cf.command_buffer, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
 				}
+				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 			}
 
+			{
+				VkDebugUtilsLabelEXT debug_label{};
+				std::array<float, 4> debug_color{ 0.5f, 0.f, 0.f, 1.f };
+				debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+				debug_label.pNext = nullptr;
+				debug_label.pLabelName = "prepare rendering";
+				std::copy_n(debug_color.data(), 4, debug_label.color);
+				vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
+			}
 			{
 				{
 					constexpr VkImageSubresourceRange subresource_range{
@@ -3687,7 +3724,17 @@ namespace {
 
 					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
 				}
+				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 
+				{
+					VkDebugUtilsLabelEXT debug_label{};
+					std::array<float, 4> debug_color{ 0.4f, 0.f, 0.f, 1.f };
+					debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+					debug_label.pNext = nullptr;
+					debug_label.pLabelName = "rendering";
+					std::copy_n(debug_color.data(), 4, debug_label.color);
+					vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
+				}
 				{
 					{
 						VkRenderingAttachmentInfo color_attachment{};
@@ -3828,7 +3875,17 @@ namespace {
 						ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cf.command_buffer);
 					}
 					vkCmdEndRendering(cf.command_buffer);
+					vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 				}
+			}
+			{
+				VkDebugUtilsLabelEXT debug_label{};
+				std::array<float, 4> debug_color{ 0.3f, 0.f, 0.f, 1.f };
+				debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+				debug_label.pNext = nullptr;
+				debug_label.pLabelName = "blit";
+				std::copy_n(debug_color.data(), 4, debug_label.color);
+				vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
 			}
 			{
 				{
@@ -3944,9 +4001,18 @@ namespace {
 					blit_info.pRegions = &blit_region;
 
 					vkCmdBlitImage2(cf.command_buffer, &blit_info);
+					vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 				}
 			}
-
+			{
+				VkDebugUtilsLabelEXT debug_label{};
+				std::array<float, 4> debug_color{ 0.2f, 0.f, 0.f, 1.f };
+				debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+				debug_label.pNext = nullptr;
+				debug_label.pLabelName = "prepare present";
+				std::copy_n(debug_color.data(), 4, debug_label.color);
+				vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
+			}
 			{
 				constexpr VkImageSubresourceRange subresource_range{
 					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -3985,7 +4051,8 @@ namespace {
 
 				vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
 			}
-
+			vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
+			vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 			if (const auto res = vkEndCommandBuffer(cf.command_buffer); res != VK_SUCCESS)
 			{
 				l->error(std::format("Error ending command buffer recording: {}", static_cast<uint8_t>(res)));
@@ -4074,21 +4141,85 @@ namespace {
 
 		result ui(const engine_stats& eng_stats)
 		{
-			//ImGui::ShowDemoWindow();
+			ImGui::ShowDemoWindow();
 
 			ImGuiWindowFlags window_flags{ 0 };
 			window_flags |= ImGuiWindowFlags_NoCollapse;
-			if (ImGui::Begin("Stats", nullptr, window_flags))
+			if (ImGui::Begin("Game State", nullptr, window_flags))
 			{
-				ImGui::Text("a_fps %.0f rad/s", eng_stats.a_fps);
-				ImGui::Text("d_fps %.0f °/s", eng_stats.d_fps);
-				ImGui::Text("r_fps %.0f", eng_stats.r_fps);
-				ImGui::Text("frame time %.3fms", eng_stats.frame_time);
-				ImGui::Text("update time %.3f ms", eng_stats.level_update_time);
-				ImGui::Text("draw time %.3f ms", stats.draw_time);
-				ImGui::Text("triangles %i", stats.triangle_count);
-				ImGui::Text("lines %i", stats.line_count);
-				ImGui::Text("draws %i", stats.draw_call_count);
+				if (ImGui::BeginTable("Scene Data", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("Camera position");
+					ImGui::TableNextColumn();
+					ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0], scene_data.camera_position[1], scene_data.camera_position[2]);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("Light direction");
+					ImGui::TableNextColumn();
+					ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1], scene_data.sunlight[2]);
+					ImGui::EndTable();
+				}
+				ImGui::NewLine();
+				if (ImGui::BeginTable("Performance", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("a_fps");
+					ImGui::TableNextColumn();
+					ImGui::Text("%.0f rad/s", eng_stats.a_fps);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("d_fps");
+					ImGui::TableNextColumn();
+					ImGui::Text("%.0f °/s", eng_stats.d_fps);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("r_fps");
+					ImGui::TableNextColumn();
+					ImGui::Text("%.0f", eng_stats.r_fps);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("frame time");
+					ImGui::TableNextColumn();
+					ImGui::Text("%.3fms", eng_stats.frame_time);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("update time");
+					ImGui::TableNextColumn();
+					ImGui::Text("%.3f ms", eng_stats.level_update_time);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("draw time");
+					ImGui::TableNextColumn();
+					ImGui::Text("%.3f ms", stats.draw_time);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("triangles");
+					ImGui::TableNextColumn();
+					ImGui::Text("%i", stats.triangle_count);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("lines");
+					ImGui::TableNextColumn();
+					ImGui::Text("%i", stats.line_count);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("draws ");
+					ImGui::TableNextColumn();
+					ImGui::Text("%i", stats.draw_call_count);
+
+					ImGui::EndTable();
+				}
 			}
 			ImGui::End();
 
