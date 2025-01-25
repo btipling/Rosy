@@ -150,16 +150,17 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	wls.light[1] = 1.f;
 	wls.light[2] = 2.f;
 
-	debug_object circle;
-	circle.type = debug_object_type::circle;
-	circle.transform = mat4_to_array(glm::mat4(1.f));
-	circle.color = { 0.f, 0.f, 1.f, 1.f };
-	rls.debug_objects.push_back(circle);
 	debug_object line;
 	line.type = debug_object_type::line;
 	line.transform = mat4_to_array(glm::mat4(1.f));
 	line.color = { 1.f, 0.f, 0.f, 1.f };
 	rls.debug_objects.push_back(line);
+
+	debug_object circle;
+	circle.type = debug_object_type::circle;
+	circle.transform = mat4_to_array(glm::mat4(1.f));
+	circle.color = { 0.f, 0.f, 1.f, 1.f };
+	rls.debug_objects.push_back(circle);
 
 	return result::ok;
 }

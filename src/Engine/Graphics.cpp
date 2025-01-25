@@ -372,10 +372,9 @@ namespace {
 
 	struct gpu_debug_push_constants
 	{
-		VkDeviceAddress debug_draw_buffer{ 0 };
 		std::array<float, 16> transform{};
 		std::array<float, 4> color{};
-		std::array<float, 4> padding{};
+		VkDeviceAddress debug_draw_buffer{ 0 };
 	};
 
 	struct graphic_object_data
@@ -4216,7 +4215,7 @@ namespace {
 						}
 						if (!rls->debug_objects.empty()) {
 							vkCmdSetPrimitiveTopologyEXT(cf.command_buffer, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
-							vkCmdSetLineWidth(cf.command_buffer, 2.f);
+							vkCmdSetLineWidth(cf.command_buffer, 5.f);
 							constexpr VkShaderStageFlagBits stages[2] =
 							{
 								VK_SHADER_STAGE_VERTEX_BIT,
@@ -4233,9 +4232,9 @@ namespace {
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, debug_layout, 0, 1, &descriptor_set, 0, nullptr);
 
 							gpu_debug_push_constants dpc{
-								.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
 								.transform = rls->debug_objects[0].transform,
 								.color = rls->debug_objects[0].color,
+								.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
 							};
 							vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
 							vkCmdDraw(cf.command_buffer, 2, 1, 0, 0);

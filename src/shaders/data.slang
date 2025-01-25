@@ -133,7 +133,7 @@ public struct DebugInputVertex {
 };
 
 public struct DebugConstant {
-    public DebugInputVertex *v;
     public float4x4 transform;
     public float4 color;
+    public DebugInputVertex *v;
 }
