@@ -2575,11 +2575,11 @@ namespace {
 					constexpr float num_segments_f{ static_cast<float>(num_segments) };
 					constexpr float target{ graphics_pi * 2 };
 					constexpr float segment_step{ target / num_segments_f };
-					for (size_t i{0}; i < num_segments; i++)
+					for (size_t i{0}; i < num_segments + 1; i++)
 					{
-						const float current_step{ segment_step * static_cast<float>(i) };
-						const float next_step = current_step + segment_step;
-						debug_vertices.push_back({ std::sin(segment_step), std::cos(segment_step), 0.f, 1.f});
+						const float current_step{ segment_step * static_cast<float>(i + 1) };
+						const float next_step = i == num_segments + 1 ? 0.f : current_step + segment_step;
+						debug_vertices.push_back({ std::sin(current_step), std::cos(current_step), 0.f, 1.f});
 						debug_vertices.push_back({ std::sin(next_step), std::cos(next_step), 0.f, 1.f });
 					}
 				}
