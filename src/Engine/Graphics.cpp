@@ -473,6 +473,7 @@ namespace {
 
 		gpu_scene_data scene_data{};
 		write_level_state* wls{ nullptr };
+		read_level_state const* rls;
 
 		result init(const config new_cfg)
 		{
@@ -4039,25 +4040,28 @@ namespace {
 						vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
 						{
 							size_t current_mesh_index = UINT64_MAX;
-							for (auto& surface_graphic : surface_graphics)
+							for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index] : surface_graphics)
 							{
-								auto& gpu_mesh = gpu_meshes[surface_graphic.mesh_index];
-								if (surface_graphic.mesh_index != current_mesh_index)
+								auto& gpu_mesh = gpu_meshes[mesh_index];
+								if (mesh_index != current_mesh_index)
 								{
 									vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-									current_mesh_index = surface_graphic.mesh_index;
+									current_mesh_index = mesh_index;
 								}
 								gpu_draw_push_constants pc{
 									.scene_buffer = scene_buffer.scene_buffer_address,
 									.vertex_buffer = gpu_mesh.vertex_buffer_address,
-									.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * surface_graphic.graphics_object_index),
-									.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * surface_graphic.material_index),
+									.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+									.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
 								};
 								vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
-								vkCmdDrawIndexed(cf.command_buffer, surface_graphic.index_count, 1, surface_graphic.start_index, 0, 0);
+								vkCmdDrawIndexed(cf.command_buffer, index_count, 1, start_index, 0, 0);
 								new_stats.draw_call_count += 1;
-								new_stats.triangle_count += surface_graphic.index_count / 3;
+								new_stats.triangle_count += index_count / 3;
 							}
+						}
+						{
+							//l->debug(std::format("num objects: {}", rls->debug_objects.size()));
 						}
 					}
 					if (render_ui) {
@@ -4322,8 +4326,18 @@ namespace {
 			return result::ok;
 		}
 
-		result update(const gpu_scene_data& sd)
+		result update(const read_level_state& new_rls)
 		{
+			const gpu_scene_data sd{
+				.view = new_rls.v,
+				.proj = new_rls.p,
+				.view_projection = new_rls.vp,
+				.sunlight = { 0.25f, 0.98f, 0.1f },
+				.camera_position = new_rls.cam_pos,
+				.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f, },
+				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
+			};
+			rls = &new_rls;
 			scene_data = sd;
 			return result::ok;
 		}
@@ -4522,16 +4536,7 @@ result graphics::set_asset(const rosy_packager::asset& a, const std::vector<grap
 // ReSharper disable once CppMemberFunctionMayBeStatic
 result graphics::update(const read_level_state& rls)
 {
-	const gpu_scene_data sd{
-		.view = rls.v,
-		.proj = rls.p,
-		.view_projection = rls.vp,
-		.sunlight = { 0.25f, 0.98f, 0.1f },
-		.camera_position = rls.cam_pos,
-		.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f, },
-		.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
-	};
-	if (const auto res = gd->update(sd); res != result::ok)
+	if (const auto res = gd->update(rls); res != result::ok)
 	{
 		return res;
 	}
