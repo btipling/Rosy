@@ -2672,7 +2672,7 @@ namespace {
 				buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 				buffer_info.pNext = nullptr;
 				buffer_info.size = scene_buffer.buffer_size;
-				buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+				buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 				VmaAllocationCreateInfo vma_alloc_info{};
 				vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
@@ -2744,7 +2744,7 @@ namespace {
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 					buffer_info.pNext = nullptr;
 					buffer_info.size = debug_draws_buffer_size;
-					buffer_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 					VmaAllocationCreateInfo vma_alloc_info{};
 					vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
@@ -3210,7 +3210,7 @@ namespace {
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 					buffer_info.pNext = nullptr;
 					buffer_info.size = material_buffer_size;
-					buffer_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 					VmaAllocationCreateInfo vma_alloc_info{};
 					vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
@@ -3359,7 +3359,7 @@ namespace {
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 					buffer_info.pNext = nullptr;
 					buffer_info.size = vertex_buffer_size;
-					buffer_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 					VmaAllocationCreateInfo vma_alloc_info{};
 					vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
@@ -3702,7 +3702,7 @@ namespace {
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 					buffer_info.pNext = nullptr;
 					buffer_info.size = graphic_objects_buffer_size;
-					buffer_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 					VmaAllocationCreateInfo vma_alloc_info{};
 					vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
