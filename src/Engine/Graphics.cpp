@@ -1019,7 +1019,7 @@ namespace {
 				.apiVersion = VK_API_VERSION_1_3,
 			};
 
-			constexpr VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info_ext = {
+			const VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info_ext = {
 				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 				.pNext = nullptr,
 				.flags = 0,
@@ -1035,8 +1035,45 @@ namespace {
 				.pUserData = nullptr,
 			};
 
+			const auto vvl_layer_name = "VK_LAYER_KHRONOS_validation";
+			const VkBool32 activate = VK_TRUE;
+			const VkLayerSettingEXT vvl_sync
+			{
+				.pLayerName = vvl_layer_name,
+				// ReSharper disable once StringLiteralTypo
+				.pSettingName = "syncval_shader_accesses_heuristic",
+				.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT,
+				.valueCount = 1U,
+				.pValues = &activate
+			};
+
+			const VkLayerSettingsCreateInfoEXT vvl_settings
+			{
+				.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT,
+				.pNext = &create_debug_callback_info_ext,
+				.settingCount = 1U,
+				.pSettings = &vvl_sync
+			};
+
+			const VkValidationFeatureEnableEXT validation_features[] =
+			{
+				VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+				VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+			};
+
+			const VkValidationFeaturesEXT validation_info
+			{
+				.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+				.pNext = &vvl_settings,
+				.enabledValidationFeatureCount = static_cast<uint32_t> (std::size(validation_features)),
+				.pEnabledValidationFeatures = validation_features,
+				.disabledValidationFeatureCount = 0U,
+				.pDisabledValidationFeatures = nullptr
+			};
+
 			const VkInstanceCreateInfo create_info{
 				.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+				//.pNext = &validation_info,
 				.pNext = &create_debug_callback_info_ext,
 				.pApplicationInfo = &app_info,
 				.enabledLayerCount = static_cast<uint32_t>(instance_layer_properties.size()),
@@ -3936,9 +3973,9 @@ namespace {
 					VkImageMemoryBarrier2 image_barrier = {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
-						.srcStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-						.dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 						.newLayout = VK_IMAGE_LAYOUT_GENERAL,
@@ -3991,7 +4028,7 @@ namespace {
 			{
 				{
 					constexpr VkImageSubresourceRange subresource_range{
-						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
 						.baseMipLevel = 0,
 						.levelCount = VK_REMAINING_MIP_LEVELS,
 						.baseArrayLayer = 0,
@@ -4001,15 +4038,15 @@ namespace {
 					VkImageMemoryBarrier2 image_barrier = {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
-						.srcStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-						.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
-						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
-						.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
 						.dstQueueFamilyIndex = 0,
-						.image = draw_image.image,
+						.image = depth_image.image,
 						.subresourceRange = subresource_range,
 					};
 
@@ -4029,7 +4066,7 @@ namespace {
 				}
 				{
 					constexpr VkImageSubresourceRange subresource_range{
-						.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 						.baseMipLevel = 0,
 						.levelCount = VK_REMAINING_MIP_LEVELS,
 						.baseArrayLayer = 0,
@@ -4039,15 +4076,15 @@ namespace {
 					VkImageMemoryBarrier2 image_barrier = {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
-						.srcStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-						.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
-						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-						.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+						.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
 						.dstQueueFamilyIndex = 0,
-						.image = depth_image.image,
+						.image = draw_image.image,
 						.subresourceRange = subresource_range,
 					};
 
@@ -4284,9 +4321,9 @@ namespace {
 					VkImageMemoryBarrier2 image_barrier = {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
-						.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-						.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -4323,9 +4360,9 @@ namespace {
 					VkImageMemoryBarrier2 image_barrier = {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
-						.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-						.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -4409,9 +4446,9 @@ namespace {
 				VkImageMemoryBarrier2 image_barrier = {
 					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 					.pNext = nullptr,
-					.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+					.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 					.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-					.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+					.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 					.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
 					.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
