@@ -65,13 +65,13 @@ namespace
 
 			rls->debug_objects.clear();
 
-			glm::mat4 debug_light{ 1.f };
+			glm::mat4 debug_light_translate{ 1.f };
 			{
 				// Calculate light data from wls
 				const float sun_x = wls->sun_distance * glm::sin(wls->sun_rho) * glm::cos(wls->sun_theta);
 				const float sun_y = wls->sun_distance * glm::sin(wls->sun_rho) * glm::sin(wls->sun_theta);
 				const float sun_z = wls->sun_distance * glm::cos(wls->sun_rho);
-				debug_light = glm::translate(debug_light, glm::vec3(sun_x, sun_y, sun_z));
+				debug_light_translate = glm::translate(debug_light_translate, glm::vec3(sun_x, sun_y, sun_z));
 			}
 
 			debug_object line;
@@ -80,11 +80,19 @@ namespace
 			line.color = { 1.f, 0.f, 0.f, 1.f };
 			rls->debug_objects.push_back(line);
 
-			debug_object circle;
-			circle.type = debug_object_type::circle;
-			circle.transform = mat4_to_array(debug_light);
-			circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
-			rls->debug_objects.push_back(circle);
+			{
+				// Two circles to represent a sun
+				float angle_step{ glm::pi<float>() / 4.f };
+				for (float i{ 0 }; i < 4; i++) {
+					debug_object sun_circle;
+					glm::mat4 m{ 1.f };
+					m = glm::rotate(m, angle_step * i, { 1.f, 0.f, 0.f });
+					sun_circle.type = debug_object_type::circle;
+					sun_circle.transform = mat4_to_array(debug_light_translate * m);
+					sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
+					rls->debug_objects.push_back(sun_circle);
+				}
+			}
 
 			return result::ok;
 		}
@@ -99,6 +107,11 @@ result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_ca
 {
 	{
 		// Init level state
+		{
+			wls.sun_distance = 10.114f;
+			wls.sun_rho = 4.615f;
+			wls.sun_theta = 4.875f;
+		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)
 		{
