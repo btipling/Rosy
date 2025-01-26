@@ -101,6 +101,7 @@ namespace rosy
 		bool enable_edit{ false };
 		bool enable_sun_debug{ false };
 		bool enable_light_cam{ false };
+		bool enable_light_perspective{ false };
 	};
 
 }

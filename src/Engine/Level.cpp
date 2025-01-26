@@ -88,7 +88,7 @@ namespace
 			}
 			const glm::mat4 debug_light_line = glm::scale(debug_light_line_rot * debug_light_translate, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
 			const glm::mat4 debug_light_sun = debug_light_line_rot * debug_light_translate;
-			const glm::vec3 camera_position = glm::vec3(debug_light_line_rot * glm::vec4(0.f, 0.f, -wls->sun_distance, 0.f));
+			const auto camera_position = glm::vec3(debug_light_line_rot * glm::vec4(0.f, 0.f, -wls->sun_distance, 0.f));
 			const auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
 
 			debug_object line;
@@ -110,6 +110,16 @@ namespace
 					rls->debug_objects.push_back(sun_circle);
 				}
 			}
+
+			glm::mat4 shadow_p{ 1.f };
+			constexpr float cascade_level = 1.f;
+			shadow_p = glm::mat4(
+				glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
+				glm::vec4(0.f, 2.f / cascade_level, 0.f, 0.f),
+				glm::vec4(0.f, 0.f, 1.f / 500.f, 0.f),
+				glm::vec4(0.f, 0.f, 0.f, 1.f)
+			);
+
 			rls->debug_enabled = wls->enable_edit;
 			if (wls->enable_light_cam)
 			{

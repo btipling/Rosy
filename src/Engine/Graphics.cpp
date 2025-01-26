@@ -4624,7 +4624,15 @@ namespace {
 							ImGui::SliderFloat("Spherical distance", &wls->sun_distance, 0.f, 25.f);
 							ImGui::SliderFloat("Spherical pitch", &wls->sun_pitch, 0.f, 4 * static_cast<float>(pi));
 							ImGui::SliderFloat("Spherical yaw", &wls->sun_yaw, 0.f, 4 * static_cast<float>(pi));
+							ImGui::EndTable();
+						}
+						if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+						{
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
 							ImGui::Checkbox("Enable light camera", &wls->enable_light_cam);
+							ImGui::TableNextColumn();
+							ImGui::Checkbox("Enable light perspective", &wls->enable_light_perspective);
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();
