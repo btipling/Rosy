@@ -83,7 +83,7 @@ namespace
 			debug_object circle;
 			circle.type = debug_object_type::circle;
 			circle.transform = mat4_to_array(debug_light);
-			circle.color = { 0.f, 0.f, 1.f, 1.f };
+			circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
 			rls->debug_objects.push_back(circle);
 
 			return result::ok;

@@ -4231,25 +4231,27 @@ namespace {
 							};
 							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, debug_layout, 0, 1, &descriptor_set, 0, nullptr);
-							{
+							for (const auto [obj_type, obj_transform, obj_color]: rls->debug_objects) {
 								gpu_debug_push_constants dpc{
-									.transform = rls->debug_objects[0].transform,
-									.color = rls->debug_objects[0].color,
+									.transform = obj_transform,
+									.color = obj_color,
 									.scene_buffer = scene_buffer.scene_buffer_address,
 									.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
 								};
 								vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
-								vkCmdDraw(cf.command_buffer, 2, 1, 0, 0);
-							}
-							{
-								gpu_debug_push_constants dpc{
-									.transform = rls->debug_objects[1].transform,
-									.color = rls->debug_objects[1].color,
-									.scene_buffer = scene_buffer.scene_buffer_address,
-									.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
-								};
-								vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
-								vkCmdDraw(cf.command_buffer, 100, 1, 8, 0);
+								int vertex_count{ 2 };
+								int first_vertex{ 0 };
+								switch (obj_type)
+								{
+								case debug_object_type::circle:
+									vertex_count = 100;
+									first_vertex = 8;
+									break;
+								case debug_object_type::line:
+								default:
+									break;
+								}
+								vkCmdDraw(cf.command_buffer, vertex_count, 1, first_vertex, 0);
 							}
 
 						}
