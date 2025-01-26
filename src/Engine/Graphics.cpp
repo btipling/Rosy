@@ -2717,7 +2717,7 @@ namespace {
 					// Gen debug vertices
 					// A line
 					debug_vertices.push_back({ 0.f, 0.f, 0.f, 1.f });
-					debug_vertices.push_back({ 1.f, 0.f, 0.f, 1.f });
+					debug_vertices.push_back({ 0.f, 0.f, 1.f, 1.f });
 					// A cross
 					debug_vertices.push_back({ 0.f, 0.f, 0.f, 1.f });
 					debug_vertices.push_back({ 1.f, 0.f, 0.f, 1.f });
@@ -4526,7 +4526,7 @@ namespace {
 				.view_projection = new_rls.vp,
 				.sunlight = { 0.25f, 0.98f, 0.1f },
 				.camera_position = new_rls.cam_pos,
-				.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f, },
+				.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f },
 				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
 			};
 			rls = &new_rls;
@@ -4566,6 +4566,11 @@ namespace {
 					{
 						if (ImGui::BeginTable("Scene Data", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 						{
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Text("Camera position");
+							ImGui::TableNextColumn();
+							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0], scene_data.camera_position[1], scene_data.camera_position[2]);
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
 							ImGui::Text("Light direction");

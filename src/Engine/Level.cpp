@@ -67,28 +67,37 @@ namespace
 
 			glm::mat4 debug_light_translate{ 1.f };
 			{
-				// Calculate light data from wls
-				const float sun_x = wls->sun_distance * glm::sin(wls->sun_rho) * glm::cos(wls->sun_theta);
-				const float sun_y = wls->sun_distance * glm::sin(wls->sun_rho) * glm::sin(wls->sun_theta);
-				const float sun_z = wls->sun_distance * glm::cos(wls->sun_rho);
-				debug_light_translate = glm::translate(debug_light_translate, glm::vec3(sun_x, sun_y, sun_z));
+				debug_light_translate = glm::translate(debug_light_translate, { 0.f, 0.f, wls->sun_distance });
 			}
+			glm::mat4 debug_light_line_rot{ 1.f };
+			{
+				constexpr auto light_inversion = glm::mat4(
+					glm::vec4(-1.f, 0.f, 0.f, 0.f),
+					glm::vec4(0.f, 1.f, 0.f, 0.f),
+					glm::vec4(0.f, 0.f, 1.f, 0.f),
+					glm::vec4(0.f, 0.f, 0.f, 1.f)
+				);
+				debug_light_line_rot = glm::rotate(debug_light_line_rot, wls->sun_rho, { 0.f, 1.f, 0.f });
+				debug_light_line_rot = glm::rotate(debug_light_line_rot, wls->sun_theta, {-1.f, 0.f, 0.f});
+			}
+			const glm::mat4 debug_light_line = glm::scale(debug_light_line_rot, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
+			const glm::mat4 debug_light_sun = debug_light_line_rot * debug_light_translate;
 
 			debug_object line;
 			line.type = debug_object_type::line;
-			line.transform = mat4_to_array(glm::mat4(1.f));
+			line.transform = mat4_to_array(debug_light_line);
 			line.color = { 1.f, 0.f, 0.f, 1.f };
 			rls->debug_objects.push_back(line);
 
 			{
 				// Two circles to represent a sun
-				float angle_step{ glm::pi<float>() / 4.f };
+				constexpr float angle_step{ glm::pi<float>() / 4.f };
 				for (float i{ 0 }; i < 4; i++) {
 					debug_object sun_circle;
 					glm::mat4 m{ 1.f };
 					m = glm::rotate(m, angle_step * i, { 1.f, 0.f, 0.f });
 					sun_circle.type = debug_object_type::circle;
-					sun_circle.transform = mat4_to_array(debug_light_translate * m);
+					sun_circle.transform = mat4_to_array(debug_light_sun * m);
 					sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
 					rls->debug_objects.push_back(sun_circle);
 				}
@@ -108,9 +117,9 @@ result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_ca
 	{
 		// Init level state
 		{
-			wls.sun_distance = 10.114f;
-			wls.sun_rho = 4.615f;
-			wls.sun_theta = 4.875f;
+			wls.sun_distance = 12.833f;
+			wls.sun_rho = 4.691f;
+			wls.sun_theta = 1.535f;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)
@@ -168,7 +177,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		sgp->queue.push({
 			.stack_node = new_asset.nodes[node_index],
 			.parent_transform = glm::mat4{1.f},
-		});
+			});
 	}
 
 	while (sgp->queue.size() > 0)
@@ -215,7 +224,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			sgp->queue.push({
 				.stack_node = new_asset.nodes[child_index],
 				.parent_transform = queue_item.parent_transform * node_transform,
-			});
+				});
 		}
 	}
 
