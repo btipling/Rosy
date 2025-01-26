@@ -83,6 +83,7 @@ namespace rosy
 		std::array<float, 16> p{};
 		std::array<float, 16> vp{};
 		std::array<float, 4> cam_pos{};
+		std::array<float, 4> sunlight{};
 		std::vector<debug_object> debug_objects{};
 	};
 

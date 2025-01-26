@@ -4524,7 +4524,7 @@ namespace {
 				.view = new_rls.v,
 				.proj = new_rls.p,
 				.view_projection = new_rls.vp,
-				.sunlight = { 0.25f, 0.98f, 0.1f },
+				.sunlight = new_rls.sunlight,
 				.camera_position = new_rls.cam_pos,
 				.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f },
 				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },

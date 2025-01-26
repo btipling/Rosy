@@ -88,7 +88,7 @@ namespace
 			line.transform = mat4_to_array(debug_light_line);
 			line.color = { 1.f, 0.f, 0.f, 1.f };
 			rls->debug_objects.push_back(line);
-
+			rls->sunlight = { 0.25f, 0.98f, 0.1f, 0.f };
 			{
 				// Two circles to represent a sun
 				constexpr float angle_step{ glm::pi<float>() / 4.f };
