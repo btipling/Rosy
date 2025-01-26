@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <glm/glm.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.inl>
 
 using namespace rosy;
@@ -64,6 +65,15 @@ namespace
 
 			rls->debug_objects.clear();
 
+			glm::mat4 debug_light{ 1.f };
+			{
+				// Calculate light data from wls
+				const float sun_x = wls->sun_distance * glm::sin(wls->sun_rho) * glm::cos(wls->sun_theta);
+				const float sun_y = wls->sun_distance * glm::sin(wls->sun_rho) * glm::sin(wls->sun_theta);
+				const float sun_z = wls->sun_distance * glm::cos(wls->sun_rho);
+				debug_light = glm::translate(debug_light, glm::vec3(sun_x, sun_y, sun_z));
+			}
+
 			debug_object line;
 			line.type = debug_object_type::line;
 			line.transform = mat4_to_array(glm::mat4(1.f));
@@ -72,7 +82,7 @@ namespace
 
 			debug_object circle;
 			circle.type = debug_object_type::circle;
-			circle.transform = mat4_to_array(glm::mat4(1.f));
+			circle.transform = mat4_to_array(debug_light);
 			circle.color = { 0.f, 0.f, 1.f, 1.f };
 			rls->debug_objects.push_back(circle);
 
@@ -98,6 +108,7 @@ result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_ca
 		ls->l = new_log;
 		ls->cam = new_cam;
 		ls->rls = &rls;
+		ls->wls = &wls;
 	}
 	{
 		// Init scene graph processor
@@ -166,7 +177,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				graphics_object go{};
 				go.transform = mat4_to_array(gltf_to_ndc * queue_item.parent_transform * node_transform);
 				go.surface_data.reserve(current_mesh.surfaces.size());
-				size_t go_index = graphics_objects.size();
+				const size_t go_index = graphics_objects.size();
 				for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
 				{
 					surface_graphics_data sgd{};

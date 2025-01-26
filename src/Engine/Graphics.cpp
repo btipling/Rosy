@@ -4566,9 +4566,9 @@ namespace {
 						{
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::Text("Camera position");
+							ImGui::Text("Light direction");
 							ImGui::TableNextColumn();
-							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0], scene_data.camera_position[1], scene_data.camera_position[2]);
+							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1], scene_data.sunlight[2]);
 							ImGui::EndTable();
 						}
 						if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
