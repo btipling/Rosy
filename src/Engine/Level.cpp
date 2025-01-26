@@ -30,21 +30,48 @@ namespace
 		std::queue<uint32_t> mesh_queue{};
 	};
 
+	struct level_state
+	{
+		rosy::log* l{ nullptr };
+		camera* cam{ nullptr };
+		glm::mat4 light{ 1.f };
+		read_level_state* rls{nullptr};
 
+		rosy::result update() const
+		{
+			rls->p = cam->p;
+			rls->v = cam->v;
+			rls->vp = cam->vp;
+			rls->cam_pos = cam->position;
+			return result::ok;
+		}
+	};
+
+	level_state* ls{ nullptr };
 	scene_graph_processor* sgp{ nullptr };
 
 }
 
 result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_cam)
 {
-	l = new_log;
-	cam = new_cam;
+	{
+		// Init level state
+		ls = new(std::nothrow) level_state;
+		if (ls == nullptr)
+		{
+			new_log->error("level_state allocation failed");
+			return result::allocation_failure;
+		}
+		ls->l = new_log;
+		ls->cam = new_cam;
+		ls->rls = &rls;
+	}
 	{
 		// Init scene graph processor
 		sgp = new(std::nothrow) scene_graph_processor;
 		if (sgp == nullptr)
 		{
-			l->error("scene_graph_processor allocation failed");
+			ls->l->error("scene_graph_processor allocation failed");
 			return result::allocation_failure;
 		}
 	}
@@ -59,6 +86,11 @@ void level::deinit()
 	{
 		delete sgp;
 		sgp = nullptr;
+	}
+	if (ls)
+	{
+		delete ls;
+		ls = nullptr;
 	}
 }
 
@@ -165,11 +197,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	return result::ok;
 }
 
+// ReSharper disable once CppMemberFunctionMayBeStatic
 result level::update()
 {
-	rls.p = cam->p;
-	rls.v = cam->v;
-	rls.vp = cam->vp;
-	rls.cam_pos = cam->position;
-	return result::ok;
+	return ls->update();
 }

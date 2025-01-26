@@ -8,8 +8,6 @@ namespace rosy {
 
 	struct level
 	{
-		log* l{ nullptr };
-		camera* cam{ nullptr };
 		read_level_state rls{};
 		write_level_state wls{};
 		std::vector<graphics_object> graphics_objects;
