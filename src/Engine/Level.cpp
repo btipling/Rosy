@@ -1,9 +1,12 @@
 #include "Level.h"
 
 #include <queue>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.inl>
+#include <glm/gtx/quaternion.hpp>
 
 using namespace rosy;
 
@@ -71,24 +74,24 @@ namespace
 			}
 			glm::mat4 debug_light_line_rot{ 1.f };
 			{
-				constexpr auto light_inversion = glm::mat4(
-					glm::vec4(-1.f, 0.f, 0.f, 0.f),
-					glm::vec4(0.f, 1.f, 0.f, 0.f),
-					glm::vec4(0.f, 0.f, 1.f, 0.f),
-					glm::vec4(0.f, 0.f, 0.f, 1.f)
-				);
-				debug_light_line_rot = glm::rotate(debug_light_line_rot, wls->sun_rho, { 0.f, 1.f, 0.f });
-				debug_light_line_rot = glm::rotate(debug_light_line_rot, wls->sun_theta, {-1.f, 0.f, 0.f});
+
+				const glm::quat pitch_rotation = angleAxis(wls->sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
+				const glm::quat yaw_rotation = angleAxis(wls->sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
+				debug_light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
 			}
 			const glm::mat4 debug_light_line = glm::scale(debug_light_line_rot, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
 			const glm::mat4 debug_light_sun = debug_light_line_rot * debug_light_translate;
+
+
+			const auto sunlight = glm::vec4(glm::normalize(glm::vec3({ 0.f, 0.f, 0.f }) + glm::vec3(debug_light_line_rot * glm::vec4(0.f, 0.f, wls->sun_distance, 0.f))), 1.f);
+
 
 			debug_object line;
 			line.type = debug_object_type::line;
 			line.transform = mat4_to_array(debug_light_line);
 			line.color = { 1.f, 0.f, 0.f, 1.f };
 			rls->debug_objects.push_back(line);
-			rls->sunlight = { 0.25f, 0.98f, 0.1f, 0.f };
+			rls->sunlight = { sunlight[0], sunlight[1], sunlight[2], sunlight[3] };
 			{
 				// Two circles to represent a sun
 				constexpr float angle_step{ glm::pi<float>() / 4.f };
@@ -118,8 +121,8 @@ result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_ca
 		// Init level state
 		{
 			wls.sun_distance = 12.833f;
-			wls.sun_rho = 4.691f;
-			wls.sun_theta = 1.535f;
+			wls.sun_pitch = 4.691f;
+			wls.sun_yaw = 1.535f;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)

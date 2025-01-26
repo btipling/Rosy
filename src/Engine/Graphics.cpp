@@ -1383,7 +1383,6 @@ namespace {
 			device_create_info.ppEnabledExtensionNames = device_extensions.data();
 			device_create_info.pEnabledFeatures = &required_features;
 
-
 			if (VkResult res = vkCreateDevice(physical_device, &device_create_info, nullptr, &device); res != VK_SUCCESS)
 			{
 				return res;
@@ -4583,8 +4582,8 @@ namespace {
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
 							ImGui::SliderFloat("Spherical distance", &wls->sun_distance, 0.f, 25.f);
-							ImGui::SliderFloat("Spherical rho", &wls->sun_rho, 0.f, 4 * static_cast<float>(pi));
-							ImGui::SliderFloat("Spherical theta", &wls->sun_theta, 0.f, 4 * static_cast<float>(pi));
+							ImGui::SliderFloat("Spherical pitch", &wls->sun_pitch, 0.f, 4 * static_cast<float>(pi));
+							ImGui::SliderFloat("Spherical yaw", &wls->sun_yaw, 0.f, 4 * static_cast<float>(pi));
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();

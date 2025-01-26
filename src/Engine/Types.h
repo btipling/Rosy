@@ -90,8 +90,8 @@ namespace rosy
 	struct write_level_state
 	{
 		float sun_distance;
-		float sun_rho;
-		float sun_theta;
+		float sun_pitch;
+		float sun_yaw;
 	};
 
 }
