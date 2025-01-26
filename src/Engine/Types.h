@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <array>
 #include <vector>
 #include <cstdint>
@@ -88,7 +88,9 @@ namespace rosy
 
 	struct write_level_state
 	{
-		float light[3];
+		float sun_distance;
+		float sun_rho;
+		float sun_theta;
 	};
 
 }

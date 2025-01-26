@@ -1,4 +1,4 @@
-#include "Graphics.h"
+﻿#include "Graphics.h"
 #include <format>
 #include <vector>
 #include <stack>
@@ -4575,7 +4575,9 @@ namespace {
 						{
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::SliderFloat3("Light direction", wls->light, -2 * static_cast<float>(pi), 2 * static_cast<float>(pi));
+							ImGui::SliderFloat("Spherical distance", &wls->sun_distance, 0.f, 25.f);
+							ImGui::SliderFloat("Spherical rho", &wls->sun_rho, 0.f, 4 * static_cast<float>(pi));
+							ImGui::SliderFloat("Spherical theta", &wls->sun_theta, 0.f, 4 * static_cast<float>(pi));
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();
@@ -4596,7 +4598,7 @@ namespace {
 					ImGui::TableNextColumn();
 					ImGui::Text("d_fps");
 					ImGui::TableNextColumn();
-					ImGui::Text("%.0f �/s", eng_stats.d_fps);
+					ImGui::Text("%.0f °/s", eng_stats.d_fps);
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();

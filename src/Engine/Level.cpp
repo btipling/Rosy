@@ -11,6 +11,23 @@ constexpr size_t max_stack_item_list = 16'384;
 
 namespace
 {
+
+	std::array<float, 16> mat4_to_array(glm::mat4 m)
+	{
+		std::array<float, 16> a{};
+		const auto pos_r = glm::value_ptr(m);
+		for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
+		return a;
+	}
+
+	glm::mat4 array_to_mat4(std::array<float, 16> a)
+	{
+		glm::mat4 m{};
+		const auto pos_r = glm::value_ptr(m);
+		for (uint64_t i{ 0 }; i < 16; i++) pos_r[i] = a[i];
+		return m;
+	}
+
 	constexpr auto gltf_to_ndc = glm::mat4(
 		glm::vec4(-1.f, 0.f, 0.f, 0.f),
 		glm::vec4(0.f, 1.f, 0.f, 0.f),
@@ -34,8 +51,9 @@ namespace
 	{
 		rosy::log* l{ nullptr };
 		camera* cam{ nullptr };
-		glm::mat4 light{ 1.f };
-		read_level_state* rls{nullptr};
+
+		read_level_state* rls{ nullptr };
+		write_level_state const* wls{ nullptr };
 
 		rosy::result update() const
 		{
@@ -43,6 +61,21 @@ namespace
 			rls->v = cam->v;
 			rls->vp = cam->vp;
 			rls->cam_pos = cam->position;
+
+			rls->debug_objects.clear();
+
+			debug_object line;
+			line.type = debug_object_type::line;
+			line.transform = mat4_to_array(glm::mat4(1.f));
+			line.color = { 1.f, 0.f, 0.f, 1.f };
+			rls->debug_objects.push_back(line);
+
+			debug_object circle;
+			circle.type = debug_object_type::circle;
+			circle.transform = mat4_to_array(glm::mat4(1.f));
+			circle.color = { 0.f, 0.f, 1.f, 1.f };
+			rls->debug_objects.push_back(circle);
+
 			return result::ok;
 		}
 	};
@@ -92,22 +125,6 @@ void level::deinit()
 		delete ls;
 		ls = nullptr;
 	}
-}
-
-std::array<float, 16> mat4_to_array(glm::mat4 m)
-{
-	std::array<float, 16> a{};
-	const auto pos_r = glm::value_ptr(m);
-	for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
-	return a;
-}
-
-glm::mat4 array_to_mat4(std::array<float, 16> a)
-{
-	glm::mat4 m{};
-	const auto pos_r = glm::value_ptr(m);
-	for (uint64_t i{ 0 }; i < 16; i++) pos_r[i] = a[i];
-	return m;
 }
 
 result level::set_asset(const rosy_packager::asset& new_asset)
@@ -177,22 +194,6 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			});
 		}
 	}
-
-	wls.light[0] = 0.f;
-	wls.light[1] = 1.f;
-	wls.light[2] = 2.f;
-
-	debug_object line;
-	line.type = debug_object_type::line;
-	line.transform = mat4_to_array(glm::mat4(1.f));
-	line.color = { 1.f, 0.f, 0.f, 1.f };
-	rls.debug_objects.push_back(line);
-
-	debug_object circle;
-	circle.type = debug_object_type::circle;
-	circle.transform = mat4_to_array(glm::mat4(1.f));
-	circle.color = { 0.f, 0.f, 1.f, 1.f };
-	rls.debug_objects.push_back(circle);
 
 	return result::ok;
 }
