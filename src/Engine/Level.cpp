@@ -39,6 +39,13 @@ namespace
 		glm::vec4(0.f, 0.f, 0.f, 1.f)
 	);
 
+	constexpr auto light_to_ndc = glm::mat4(
+		glm::vec4(1.f, 0.f, 0.f, 0.f),
+		glm::vec4(0.f, -1.f, 0.f, 0.f),
+		glm::vec4(0.f, 0.f, 1.f, 0.f),
+		glm::vec4(0.f, 0.f, 0.f, 1.f)
+	);
+
 	struct stack_item
 	{
 		rosy_packager::node stack_node;
@@ -61,38 +68,36 @@ namespace
 
 		rosy::result update() const
 		{
-			rls->p = cam->p;
-			rls->v = cam->v;
-			rls->vp = cam->vp;
-			rls->cam_pos = cam->position;
+			rls->cam.p = cam->p;
+			rls->cam.v = cam->v;
+			rls->cam.vp = cam->vp;
+			rls->cam.position = cam->position;
 
 			rls->debug_objects.clear();
 
 			glm::mat4 debug_light_translate{ 1.f };
 			{
-				debug_light_translate = glm::translate(debug_light_translate, { 0.f, 0.f, wls->sun_distance });
+				debug_light_translate = glm::translate(debug_light_translate, { 0.f, 0.f, -wls->sun_distance });
 			}
 			glm::mat4 debug_light_line_rot{ 1.f };
 			{
 
-				const glm::quat pitch_rotation = angleAxis(wls->sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
+				const glm::quat pitch_rotation = angleAxis(-wls->sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
 				const glm::quat yaw_rotation = angleAxis(wls->sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
 				debug_light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
 			}
-			const glm::mat4 debug_light_line = glm::scale(debug_light_line_rot, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
+			const glm::mat4 debug_light_line = glm::scale(debug_light_line_rot * debug_light_translate, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
 			const glm::mat4 debug_light_sun = debug_light_line_rot * debug_light_translate;
-
-
-			const auto sunlight = glm::vec4(glm::normalize(glm::vec3({ 0.f, 0.f, 0.f }) + glm::vec3(debug_light_line_rot * glm::vec4(0.f, 0.f, wls->sun_distance, 0.f))), 1.f);
-
+			const glm::vec3 camera_position = glm::vec3(debug_light_line_rot * glm::vec4(0.f, 0.f, -wls->sun_distance, 0.f));
+			const auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
 
 			debug_object line;
 			line.type = debug_object_type::line;
 			line.transform = mat4_to_array(debug_light_line);
 			line.color = { 1.f, 0.f, 0.f, 1.f };
-			rls->debug_objects.push_back(line);
+			if (wls->enable_sun_debug) rls->debug_objects.push_back(line);
 			rls->sunlight = { sunlight[0], sunlight[1], sunlight[2], sunlight[3] };
-			{
+			if (wls->enable_sun_debug) {
 				// Two circles to represent a sun
 				constexpr float angle_step{ glm::pi<float>() / 4.f };
 				for (float i{ 0 }; i < 4; i++) {
@@ -104,6 +109,15 @@ namespace
 					sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
 					rls->debug_objects.push_back(sun_circle);
 				}
+			}
+			rls->debug_enabled = wls->enable_edit;
+			if (wls->enable_light_cam)
+			{
+				rls->debug_enabled = false;
+				const glm::mat4 lv{ glm::inverse(debug_light_sun) };
+				const glm::mat4 lp{ array_to_mat4((rls->cam.p)) };
+				rls->cam.v = mat4_to_array(lv);
+				rls->cam.vp = mat4_to_array(lp * lv);
 			}
 
 			return result::ok;

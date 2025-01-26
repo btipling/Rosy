@@ -77,12 +77,18 @@ namespace rosy
 		std::array<float, 4> color{};
 	};
 
-	struct read_level_state
+	struct read_camera
 	{
 		std::array<float, 16> v{};
 		std::array<float, 16> p{};
 		std::array<float, 16> vp{};
-		std::array<float, 4> cam_pos{};
+		std::array<float, 4> position{};
+	};
+
+	struct read_level_state
+	{
+		read_camera cam{};
+		bool debug_enabled{ false };
 		std::array<float, 4> sunlight{};
 		std::vector<debug_object> debug_objects{};
 	};
@@ -92,6 +98,9 @@ namespace rosy
 		float sun_distance;
 		float sun_pitch;
 		float sun_yaw;
+		bool enable_edit{ false };
+		bool enable_sun_debug{ false };
+		bool enable_light_cam{ false };
 	};
 
 }

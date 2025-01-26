@@ -1019,7 +1019,7 @@ namespace {
 				.apiVersion = VK_API_VERSION_1_3,
 			};
 
-			const VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info_ext = {
+			constexpr VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info_ext = {
 				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 				.pNext = nullptr,
 				.flags = 0,
@@ -1036,7 +1036,7 @@ namespace {
 			};
 
 			const auto vvl_layer_name = "VK_LAYER_KHRONOS_validation";
-			const VkBool32 activate = VK_TRUE;
+			constexpr VkBool32 activate = VK_TRUE;
 			const VkLayerSettingEXT vvl_sync
 			{
 				.pLayerName = vvl_layer_name,
@@ -1055,7 +1055,7 @@ namespace {
 				.pSettings = &vvl_sync
 			};
 
-			const VkValidationFeatureEnableEXT validation_features[] =
+			constexpr VkValidationFeatureEnableEXT validation_features[] =
 			{
 				VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 				VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
@@ -1081,7 +1081,6 @@ namespace {
 				.enabledExtensionCount = static_cast<uint32_t>(instance_extensions.size()),
 				.ppEnabledExtensionNames = instance_extensions.data(),
 			};
-
 
 			if (const VkResult res = vkCreateInstance(&create_info, nullptr, &instance);  res != VK_SUCCESS) return res;
 			l->debug("Vulkan instance created successfully!");
@@ -4250,7 +4249,7 @@ namespace {
 								}
 							}
 						}
-						if (!rls->debug_objects.empty()) {
+						if (rls->debug_enabled && !rls->debug_objects.empty()) {
 							vkCmdSetPrimitiveTopologyEXT(cf.command_buffer, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
 							vkCmdSetLineWidth(cf.command_buffer, 5.f);
 							constexpr VkShaderStageFlagBits stages[2] =
@@ -4557,11 +4556,11 @@ namespace {
 		result update(const read_level_state& new_rls)
 		{
 			const gpu_scene_data sd{
-				.view = new_rls.v,
-				.proj = new_rls.p,
-				.view_projection = new_rls.vp,
+				.view = new_rls.cam.v,
+				.proj = new_rls.cam.p,
+				.view_projection = new_rls.cam.vp,
 				.sunlight = new_rls.sunlight,
-				.camera_position = new_rls.cam_pos,
+				.camera_position = new_rls.cam.position,
 				.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f },
 				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
 			};
@@ -4582,6 +4581,8 @@ namespace {
 				{
 					if (ImGui::BeginTabItem("View"))
 					{
+						wls->enable_edit = false;
+						wls->enable_sun_debug = false;
 						if (ImGui::BeginTable("Scene Data", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 						{
 							ImGui::TableNextRow();
@@ -4600,6 +4601,8 @@ namespace {
 					}
 					if (ImGui::BeginTabItem("Edit"))
 					{
+						wls->enable_edit = true;
+						wls->enable_sun_debug = true;
 						if (ImGui::BeginTable("Scene Data", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 						{
 							ImGui::TableNextRow();
@@ -4621,6 +4624,7 @@ namespace {
 							ImGui::SliderFloat("Spherical distance", &wls->sun_distance, 0.f, 25.f);
 							ImGui::SliderFloat("Spherical pitch", &wls->sun_pitch, 0.f, 4 * static_cast<float>(pi));
 							ImGui::SliderFloat("Spherical yaw", &wls->sun_yaw, 0.f, 4 * static_cast<float>(pi));
+							ImGui::Checkbox("Enable light camera", &wls->enable_light_cam);
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();
