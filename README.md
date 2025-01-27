@@ -1,7 +1,7 @@
 # Rosy
 This is a hobby project to build a game engine and eventually a game in my spare time.
 
-![image](https://github.com/user-attachments/assets/7f651c0d-8ca9-4136-973e-93c17bef5e31)
+![image](https://github.com/user-attachments/assets/f8da80dc-f48c-45ab-bc34-b6cef34c567b)
 
 ## Building
 This project will likely not build for anyone else at this time.
