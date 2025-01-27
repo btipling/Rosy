@@ -99,11 +99,11 @@ namespace rosy
 
 	struct write_level_state
 	{
-		float sun_distance;
-		float sun_pitch;
-		float sun_yaw;
-		float orthographic_depth{ 500.f };
-		float cascade_level{ 25.f };
+		float sun_distance{ 12.833f };
+		float sun_pitch{ 5.141f };
+		float sun_yaw{ 1.866f };
+		float orthographic_depth{ 32.576f };
+		float cascade_level{ 22.188f };
 		bool enable_edit{ false };
 		bool enable_sun_debug{ false };
 		bool enable_light_cam{ false };

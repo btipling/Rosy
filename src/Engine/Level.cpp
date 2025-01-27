@@ -83,13 +83,14 @@ namespace
 				glm::mat4 light_sun_view;
 				glm::mat4 debug_light_sun_view;
 				glm::mat4 light_translate;
+				glm::mat4 debug_light_translate;
 				glm::mat4 light_line_rot;
 				{
 					// Lighting math
 
 					{
-						light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f,   1.f * wls->sun_distance});
-						const glm::mat4 debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f,  (wls->enable_light_perspective ? 1.f : -1.f) * wls->sun_distance});
+						light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * wls->sun_distance});
+						debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * wls->sun_distance});
 						const glm::quat pitch_rotation = angleAxis(-wls->sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
 						const glm::quat yaw_rotation = angleAxis(wls->sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
 						light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
@@ -97,7 +98,7 @@ namespace
 						const auto camera_position = glm::vec3(light_line_rot * glm::vec4(0.f, 0.f, -wls->sun_distance, 0.f));
 						auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
 						light_sun_view = light_line_rot * light_translate;
-						debug_light_sun_view = light_line_rot * debug_light_translate;
+						debug_light_sun_view = light_line_rot * (wls->enable_light_perspective ? light_translate : debug_light_translate);
 
 						rls->sunlight = { sunlight[0], sunlight[1], sunlight[2], sunlight[3] };
 					};
@@ -105,8 +106,8 @@ namespace
 
 				if (wls->enable_sun_debug) {
 					// Generate debug lines for light and shadow debugging
-
-					const glm::mat4 debug_light_line = glm::scale(light_line_rot * light_translate, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
+					const glm::mat4 debug_draw_view = light_line_rot * debug_light_translate;
+					const glm::mat4 debug_light_line = glm::scale(debug_draw_view, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
 
 					debug_object line;
 					line.type = debug_object_type::line;
@@ -121,7 +122,7 @@ namespace
 							glm::mat4 m{ 1.f };
 							m = glm::rotate(m, angle_step * i, { 1.f, 0.f, 0.f });
 							sun_circle.type = debug_object_type::circle;
-							sun_circle.transform = mat4_to_array(light_sun_view * m);
+							sun_circle.transform = mat4_to_array(debug_draw_view * m);
 							sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
 							rls->debug_objects.push_back(sun_circle);
 						}
@@ -171,8 +172,10 @@ result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_ca
 		// Init level state
 		{
 			wls.sun_distance = 12.833f;
-			wls.sun_pitch = 4.691f;
-			wls.sun_yaw = 1.535f;
+			wls.sun_pitch = 5.141f;
+			wls.sun_yaw = 1.866f;
+			wls.orthographic_depth = 32.576f;
+			wls.cascade_level = 22.188f;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)
