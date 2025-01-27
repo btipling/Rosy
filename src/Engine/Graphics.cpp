@@ -4068,6 +4068,38 @@ namespace {
 			}
 
 			{
+				VkRenderingAttachmentInfo depth_attachment{};
+				depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+				depth_attachment.pNext = nullptr;
+				depth_attachment.imageView = shadow_map_image.image_view_near;
+				depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+				depth_attachment.resolveMode = VK_RESOLVE_MODE_NONE;
+				depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				depth_attachment.clearValue.depthStencil.depth = 0.0f;
+
+				const VkExtent2D shadow_map_extent = {
+					.width = shadow_map_image.image_extent.width,
+					.height = shadow_map_image.image_extent.height,
+				};
+				const auto render_area = VkRect2D{ VkOffset2D{0, 0}, shadow_map_extent };
+
+				VkRenderingInfo render_info{};
+				render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+				render_info.pNext = nullptr;
+				render_info.renderArea = render_area;
+				render_info.layerCount = 1;
+				render_info.colorAttachmentCount = 0;
+				render_info.pColorAttachments = nullptr;
+				render_info.pDepthAttachment = &depth_attachment;
+				render_info.pStencilAttachment = nullptr;
+
+				vkCmdBeginRendering(cf.command_buffer, &render_info);
+			}
+			{
+				vkCmdEndRendering(cf.command_buffer);
+			}
+			{
 				{
 					constexpr VkImageSubresourceRange subresource_range{
 						.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
@@ -4107,7 +4139,6 @@ namespace {
 					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
 				}
 			}
-
 
 			vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 
