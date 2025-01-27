@@ -3,6 +3,7 @@ module data;
 public struct BasicVertexStageOutput
 {
     public BasicVertex basicVertex : BasicVertex;
+    public CSM csm : CSM;
     public float4 sv_position : SV_Position;
 };
 
@@ -63,8 +64,8 @@ public struct CoarseVertex
 public struct CSM
 {
     public float4 near;
-    public float4 middle;
-    public float4 far;
+    //public float4 middle;
+    //public float4 far;
 };
 
 public struct SceneData
@@ -72,10 +73,13 @@ public struct SceneData
     public float4x4 view;
     public float4x4 proj;
     public float4x4 viewproj;
+    public float4x4 shadowProjNear;
     public float4 sunlight;
     public float4 cameraPosition;
     public float4 ambientColor;
     public float4 sunlightColor;
+    public uint csmIndexSampler;
+    public uint csmIndexNear;
 };
 
 public struct Fragment
@@ -98,18 +102,18 @@ public struct BasicPushConstant {
     public BasicMaterialData *md;
 }
 
+public struct ShadowConstant {
+    public SceneData *sd;
+    public BasicInputVertex *v;
+    public BasicGraphicsData *gd;
+    public uint pass_number;
+}
+
 public struct PushConstant {
     public SceneData *sd;
     public InputVertex *v;
     public RenderData *rd;
     public MaterialData *md;
-}
-
-public struct ShadowConstant {
-    public SceneData *sd;
-    public InputVertex *v;
-    public RenderData *rd;
-    public uint pass_number;
 }
 
 public struct ShadowOutput
@@ -128,9 +132,13 @@ public struct DebugVertexStageOutput
     public float4 sv_position : SV_Position;
 };
 
+public struct DebugInputVertex {
+    public float4 position;
+};
+
 public struct DebugConstant {
-    public float4x4 worldMatrix;
-    public float4 p1;
-    public float4 p2;
+    public float4x4 transform;
     public float4 color;
+    public SceneData *sd;
+    public DebugInputVertex *v;
 }

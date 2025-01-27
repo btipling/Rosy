@@ -96,6 +96,6 @@ namespace rosy_packager {
 
 		rosy::result write(rosy::log* l);
 		rosy::result read(rosy::log* l);
-		rosy::result read_shaders(rosy::log* l);
+		rosy::result read_shaders(const rosy::log* l);
 	};
 }

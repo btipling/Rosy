@@ -166,7 +166,7 @@ result engine::init()
 			l->error(std::format("Graphics creation failed: {}", static_cast<uint8_t>(res)));
 			return res;
 		}
-		if (auto const res = gfx->set_asset(a, lvl->graphics_objects); res != result::ok)
+		if (auto const res = gfx->set_asset(a, lvl->graphics_objects, &lvl->wls); res != result::ok)
 		{
 			l->error(std::format("Asset setting on graphics failed: {}", static_cast<uint8_t>(res)));
 			return res;
@@ -271,22 +271,33 @@ result engine::run()
 
 result engine::render()
 {
-	const auto start = std::chrono::system_clock::now();
+	const auto render_start = std::chrono::system_clock::now();
 	if (const auto res = cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
 		return res;
 	}
-	if (const auto res = gfx->update(cam->v, cam->p, cam->vp, cam->position); res != result::ok) {
-		return res;
+	{
+		const auto update_start = std::chrono::system_clock::now();
+		if (const auto res = lvl->update(); res != result::ok) {
+			return res;
+		}
+		if (const auto res = gfx->update(lvl->rls); res != result::ok) {
+			return res;
+		}
+		const auto end = std::chrono::system_clock::now();
+		const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - update_start);
+		stats.level_update_time = elapsed.count() / 1000.f;
 	}
 	if (const auto res = gfx->render(render_ui, stats); res != result::ok) {
 		return res;
 	}
-	const auto end = std::chrono::system_clock::now();
-	const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	stats.frame_time = elapsed.count() / 1000.f;
-	stats.r_fps = 1.f / (stats.frame_time / 1000.f);
-	stats.a_fps = std::numbers::pi_v<float> * stats.r_fps;
-	stats.d_fps = (std::numbers::pi_v<float> * stats.r_fps) * (180.f / std::numbers::pi_v<float>);
+	{
+		const auto end = std::chrono::system_clock::now();
+		const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - render_start);
+		stats.frame_time = elapsed.count() / 1000.f;
+		stats.r_fps = 1.f / (stats.frame_time / 1000.f);
+		stats.a_fps = std::numbers::pi_v<float> *stats.r_fps;
+		stats.d_fps = (std::numbers::pi_v<float> *stats.r_fps) * (180.f / std::numbers::pi_v<float>);
+	}
 	FrameMark;
 	return result::ok;
 }

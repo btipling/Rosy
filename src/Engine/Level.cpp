@@ -1,8 +1,12 @@
 #include "Level.h"
 
 #include <queue>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.inl>
+#include <glm/gtx/quaternion.hpp>
 
 using namespace rosy;
 
@@ -11,6 +15,23 @@ constexpr size_t max_stack_item_list = 16'384;
 
 namespace
 {
+
+	std::array<float, 16> mat4_to_array(glm::mat4 m)
+	{
+		std::array<float, 16> a{};
+		const auto pos_r = glm::value_ptr(m);
+		for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
+		return a;
+	}
+
+	glm::mat4 array_to_mat4(std::array<float, 16> a)
+	{
+		glm::mat4 m{};
+		const auto pos_r = glm::value_ptr(m);
+		for (uint64_t i{ 0 }; i < 16; i++) pos_r[i] = a[i];
+		return m;
+	}
+
 	constexpr auto gltf_to_ndc = glm::mat4(
 		glm::vec4(-1.f, 0.f, 0.f, 0.f),
 		glm::vec4(0.f, 1.f, 0.f, 0.f),
@@ -30,21 +51,154 @@ namespace
 		std::queue<uint32_t> mesh_queue{};
 	};
 
+	struct level_state
+	{
+		rosy::log* l{ nullptr };
+		camera* cam{ nullptr };
 
+		read_level_state* rls{ nullptr };
+		write_level_state const* wls{ nullptr };
+
+		rosy::result update() const
+		{
+			{
+				// Configure initial camera
+				rls->cam.p = cam->p;
+				rls->cam.v = cam->v;
+				rls->cam.vp = cam->vp;
+				rls->cam.position = cam->position;
+			}
+
+			{
+				// Configure draw options based on writable level state
+				rls->debug_enabled = wls->enable_edit;
+				rls->cull_enabled = wls->enable_cull;
+				rls->reverse_winding_order_enabled = wls->reverse_winding_order_enabled;
+				rls->wire_enabled = wls->enable_wire;
+
+				rls->depth_bias_enabled = wls->depth_bias_enabled;
+				rls->depth_bias_clamp = wls->depth_bias_clamp;
+				rls->depth_bias_constant = wls->depth_bias_constant;
+				rls->depth_bias_slope_factor = wls->depth_bias_slope_factor;
+			}
+
+			rls->debug_objects.clear();
+			{
+				// Light & Shadow logic
+				glm::mat4 light_sun_view;
+				glm::mat4 debug_light_sun_view;
+				glm::mat4 light_translate;
+				glm::mat4 debug_light_translate;
+				glm::mat4 light_line_rot;
+				{
+					// Lighting math
+
+					{
+						light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * wls->sun_distance});
+						debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * wls->sun_distance});
+						const glm::quat pitch_rotation = angleAxis(-wls->sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
+						const glm::quat yaw_rotation = angleAxis(wls->sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
+						light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
+
+						const auto camera_position = glm::vec3(light_line_rot * glm::vec4(0.f, 0.f, -wls->sun_distance, 0.f));
+						auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
+						light_sun_view = light_line_rot * light_translate;
+						debug_light_sun_view = light_line_rot * (wls->enable_light_perspective ? light_translate : debug_light_translate);
+
+						rls->sunlight = { sunlight[0], sunlight[1], sunlight[2], sunlight[3] };
+					};
+				}
+
+				if (wls->enable_sun_debug) {
+					// Generate debug lines for light and shadow debugging
+					const glm::mat4 debug_draw_view = light_line_rot * debug_light_translate;
+					const glm::mat4 debug_light_line = glm::scale(debug_draw_view, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
+
+					debug_object line;
+					line.type = debug_object_type::line;
+					line.transform = mat4_to_array(debug_light_line);
+					line.color = { 1.f, 0.f, 0.f, 1.f };
+					if (wls->enable_sun_debug) rls->debug_objects.push_back(line);
+					{
+						// Two circles to represent a sun
+						constexpr float angle_step{ glm::pi<float>() / 4.f };
+						for (float i{ 0 }; i < 4; i++) {
+							debug_object sun_circle;
+							glm::mat4 m{ 1.f };
+							m = glm::rotate(m, angle_step * i, { 1.f, 0.f, 0.f });
+							sun_circle.type = debug_object_type::circle;
+							sun_circle.transform = mat4_to_array(debug_draw_view * m);
+							sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
+							rls->debug_objects.push_back(sun_circle);
+						}
+					}
+				}
+
+				glm::mat4 cam_lv;
+				glm::mat4 cam_lp;
+				{
+					// Create Light view and projection
+
+					const float cascade_level = wls->cascade_level;
+					auto light_projections = glm::mat4(
+						glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
+						glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
+						glm::vec4(0.f, 0.f, -1.f / wls->orthographic_depth, 0.f),
+						glm::vec4(0.f, 0.f, 0.f, 1.f)
+					);
+
+					const glm::mat4 lv = light_sun_view;
+					const glm::mat4 lp = light_projections;
+					cam_lv = glm::inverse(debug_light_sun_view);
+					cam_lp = wls->enable_light_perspective ? light_projections : array_to_mat4((rls->cam.p));
+					rls->cam.shadow_projection_near = mat4_to_array(lp * glm::inverse(lv));
+				}
+
+				if (wls->enable_light_cam)
+				{
+					// Set debug lighting options on
+					rls->debug_enabled = false;
+					rls->cam.v = mat4_to_array(cam_lv);
+					rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
+				}
+			}
+
+			return result::ok;
+		}
+	};
+
+	level_state* ls{ nullptr };
 	scene_graph_processor* sgp{ nullptr };
-
 }
 
 result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_cam)
 {
-	l = new_log;
-	cam = new_cam;
+	{
+		// Init level state
+		{
+			wls.sun_distance = 12.833f;
+			wls.sun_pitch = 5.141f;
+			wls.sun_yaw = 1.866f;
+			wls.orthographic_depth = 32.576f;
+			wls.cascade_level = 22.188f;
+		}
+		ls = new(std::nothrow) level_state;
+		if (ls == nullptr)
+		{
+			new_log->error("level_state allocation failed");
+			return result::allocation_failure;
+		}
+		ls->l = new_log;
+		ls->cam = new_cam;
+		ls->rls = &rls;
+		ls->wls = &wls;
+	}
 	{
 		// Init scene graph processor
 		sgp = new(std::nothrow) scene_graph_processor;
 		if (sgp == nullptr)
 		{
-			l->error("scene_graph_processor allocation failed");
+			ls->l->error("scene_graph_processor allocation failed");
 			return result::allocation_failure;
 		}
 	}
@@ -60,22 +214,11 @@ void level::deinit()
 		delete sgp;
 		sgp = nullptr;
 	}
-}
-
-std::array<float, 16> mat4_to_array(glm::mat4 m)
-{
-	std::array<float, 16> a{};
-	const auto pos_r = glm::value_ptr(m);
-	for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
-	return a;
-}
-
-glm::mat4 array_to_mat4(std::array<float, 16> a)
-{
-	glm::mat4 m{};
-	const auto pos_r = glm::value_ptr(m);
-	for (uint64_t i{ 0 }; i < 16; i++) pos_r[i] = a[i];
-	return m;
+	if (ls)
+	{
+		delete ls;
+		ls = nullptr;
+	}
 }
 
 result level::set_asset(const rosy_packager::asset& new_asset)
@@ -95,7 +238,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		sgp->queue.push({
 			.stack_node = new_asset.nodes[node_index],
 			.parent_transform = glm::mat4{1.f},
-		});
+			});
 	}
 
 	while (sgp->queue.size() > 0)
@@ -117,7 +260,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				graphics_object go{};
 				go.transform = mat4_to_array(gltf_to_ndc * queue_item.parent_transform * node_transform);
 				go.surface_data.reserve(current_mesh.surfaces.size());
-				size_t go_index = graphics_objects.size();
+				const size_t go_index = graphics_objects.size();
 				for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
 				{
 					surface_graphics_data sgd{};
@@ -142,9 +285,15 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			sgp->queue.push({
 				.stack_node = new_asset.nodes[child_index],
 				.parent_transform = queue_item.parent_transform * node_transform,
-			});
+				});
 		}
 	}
 
 	return result::ok;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeStatic
+result level::update()
+{
+	return ls->update();
 }
