@@ -86,7 +86,7 @@ namespace
 					debug_light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
 				}
 				const glm::mat4 debug_light_line = glm::scale(debug_light_line_rot * debug_light_translate, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
-				const glm::mat4 debug_light_sun = debug_light_line_rot * debug_light_translate;
+				const glm::mat4 light_sun_view = debug_light_line_rot * debug_light_translate;
 				const auto camera_position = glm::vec3(debug_light_line_rot * glm::vec4(0.f, 0.f, -wls->sun_distance, 0.f));
 				const auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
 
@@ -104,24 +104,24 @@ namespace
 						glm::mat4 m{ 1.f };
 						m = glm::rotate(m, angle_step * i, { 1.f, 0.f, 0.f });
 						sun_circle.type = debug_object_type::circle;
-						sun_circle.transform = mat4_to_array(debug_light_sun * m);
+						sun_circle.transform = mat4_to_array(light_sun_view * m);
 						sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
 						rls->debug_objects.push_back(sun_circle);
 					}
 				}
 
 				const float cascade_level = wls->cascade_level;
-				auto shadow_p = glm::mat4(
+				auto light_projections = glm::mat4(
 					glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
 					glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
 					glm::vec4(0.f, 0.f, -1.f / wls->orthographic_depth, 0.f),
 					glm::vec4(0.f, 0.f, 0.f, 1.f)
 				);
 
-				const glm::mat4 lv = debug_light_sun;
-				const glm::mat4 lp = shadow_p;
-				cam_lv = glm::inverse(wls->enable_light_perspective ? debug_light_sun : debug_light_sun);
-				cam_lp = wls->enable_light_perspective ? shadow_p : array_to_mat4((rls->cam.p));
+				const glm::mat4 lv = light_sun_view;
+				const glm::mat4 lp = light_projections;
+				cam_lv = glm::inverse(light_sun_view);
+				cam_lp = wls->enable_light_perspective ? light_projections : array_to_mat4((rls->cam.p));
 				rls->cam.shadow_projection_near = mat4_to_array(lv * lp);
 			}
 
