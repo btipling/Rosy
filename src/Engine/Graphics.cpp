@@ -4013,6 +4013,106 @@ namespace {
 				}
 				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 			}
+
+			// ******* SHADOW PASS ****** //
+
+			{
+				VkDebugUtilsLabelEXT debug_label{};
+				std::array<float, 4> debug_color{ 0.65f, 0.f, 0.f, 1.f };
+				debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+				debug_label.pNext = nullptr;
+				debug_label.pLabelName = "Shadow Pass";
+				std::copy_n(debug_color.data(), 4, debug_label.color);
+				vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
+			}
+
+			{
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
+
+					VkImageMemoryBarrier2 image_barrier = {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = shadow_map_image.image,
+						.subresourceRange = subresource_range,
+					};
+
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 0,
+						.pBufferMemoryBarriers = nullptr,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers = &image_barrier,
+					};
+
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
+			}
+
+			{
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
+
+					VkImageMemoryBarrier2 image_barrier = {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.image = shadow_map_image.image,
+						.subresourceRange = subresource_range,
+					};
+
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 0,
+						.pBufferMemoryBarriers = nullptr,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers = &image_barrier,
+					};
+
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
+			}
+
+
+			vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
+
+			// ******* CLEAR DRAW IMAGE  ******* //
+
 			{
 				VkDebugUtilsLabelEXT debug_label{};
 				std::array<float, 4> debug_color{ 0.6f, 0.f, 0.f, 1.f };
@@ -4077,6 +4177,8 @@ namespace {
 				}
 				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 			}
+
+			// ******* CLEAR PREPARE DYNAMIC RENDER PASS  ******* //
 
 			{
 				VkDebugUtilsLabelEXT debug_label{};
@@ -4166,6 +4268,8 @@ namespace {
 				}
 				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 
+				// ******* BEGIN DYNAMIC RENDER PASS  ******* //
+
 				{
 					VkDebugUtilsLabelEXT debug_label{};
 					std::array<float, 4> debug_color{ 0.4f, 0.f, 0.f, 1.f };
@@ -4210,6 +4314,9 @@ namespace {
 
 						vkCmdBeginRendering(cf.command_buffer, &render_info);
 					}
+
+					// ******** DRAW SCENE ********* //
+
 					{
 						{
 							constexpr VkShaderStageFlagBits stages[2] =
@@ -4249,6 +4356,9 @@ namespace {
 								}
 							}
 						}
+
+						// ******** DRAW DEBUG ********* //
+
 						if (rls->debug_enabled && !rls->debug_objects.empty()) {
 							vkCmdSetPrimitiveTopologyEXT(cf.command_buffer, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
 							vkCmdSetLineWidth(cf.command_buffer, 5.f);
@@ -4291,6 +4401,9 @@ namespace {
 
 						}
 					}
+
+					// ******** DRAW UI ********* //
+
 					if (render_ui) {
 						ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cf.command_buffer);
 					}
@@ -4298,6 +4411,9 @@ namespace {
 					vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 				}
 			}
+
+			// ******** BEGIN DRAW IMAGE TO SWAPCHAIN IMAGE BLIT ********* //
+
 			{
 				VkDebugUtilsLabelEXT debug_label{};
 				std::array<float, 4> debug_color{ 0.3f, 0.f, 0.f, 1.f };
@@ -4424,6 +4540,9 @@ namespace {
 					vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 				}
 			}
+
+			// ******** BEGIN SWAPCHAIN IMAGE PRESENT ********* //
+
 			{
 				VkDebugUtilsLabelEXT debug_label{};
 				std::array<float, 4> debug_color{ 0.2f, 0.f, 0.f, 1.f };
