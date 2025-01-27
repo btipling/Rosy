@@ -5,11 +5,11 @@ import data;
 [shader("vertex")]
 ShadowOutput shadowVertexMain(uint uiVertexId: SV_VertexID)
 {
-    InputVertex v = *(ShadowConstants.v + uiVertexId);
-    RenderData rd = *ShadowConstants.rd;
+    BasicInputVertex v = *(ShadowConstants.v + uiVertexId);
+    BasicGraphicsData gd = *ShadowConstants.gd;
     SceneData sd = *ShadowConstants.sd;
 
-    float4x4 worldMat = rd.transform;
+    float4x4 worldMat = gd.transform;
     float3x3 worldMat3 = (float3x3)worldMat;
 
     float4x4 proj = sd.shadowProjNear;

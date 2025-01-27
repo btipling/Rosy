@@ -386,7 +386,7 @@ namespace {
 	{
 		VkDeviceAddress scene_buffer{ 0 };
 		VkDeviceAddress vertex_buffer{ 0 };
-		VkDeviceAddress render_buffer{ 0 };
+		VkDeviceAddress go_buffer{ 0 };
 		glm::uint pass_number;
 	};
 
@@ -2739,18 +2739,18 @@ namespace {
 			// ******** SHADOW SHADERS ******** //
 
 			{
-				rosy_packager::asset dba{};
+				rosy_packager::asset sba{};
 				rosy_packager::shader shadow_shader{};
 				shadow_shader.path = R"(..\shaders\out\shadow.spv)";
-				dba.shaders.push_back(shadow_shader);
-				dba.read_shaders(l);
-				if (dba.shaders.empty())
+				sba.shaders.push_back(shadow_shader);
+				sba.read_shaders(l);
+				if (sba.shaders.empty())
 				{
 					l->error("No shadow shader loaded");
 					return VK_ERROR_INITIALIZATION_FAILED;
 				}
 				std::vector<VkShaderCreateInfoEXT> shader_create_info;
-				const auto& [path, source] = dba.shaders[0];
+				const auto& [path, source] = sba.shaders[0];
 
 				if (source.empty())
 				{
@@ -2770,7 +2770,7 @@ namespace {
 				shader_create_info.push_back({
 					.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
 					.pNext = nullptr,
-					.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
+					.flags = 0,
 					.stage = VK_SHADER_STAGE_VERTEX_BIT,
 					.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT,
 					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
@@ -4238,6 +4238,44 @@ namespace {
 				vkCmdBeginRendering(cf.command_buffer, &render_info);
 			}
 			{
+				{
+					constexpr VkShaderStageFlagBits stages[1] =
+					{
+						VK_SHADER_STAGE_VERTEX_BIT
+					};
+					vkCmdBindShadersEXT(cf.command_buffer, static_cast<uint32_t>(shadow_shaders.size()), stages, shadow_shaders.data());
+					constexpr VkShaderStageFlagBits unused_stages[4] =
+					{
+						VK_SHADER_STAGE_FRAGMENT_BIT,
+						VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+						VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+						VK_SHADER_STAGE_GEOMETRY_BIT,
+					};
+					vkCmdBindShadersEXT(cf.command_buffer, 4, unused_stages, nullptr);
+					vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadow_layout, 0, 1, &descriptor_set, 0, nullptr);
+					{
+						size_t current_mesh_index = UINT64_MAX;
+						for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index] : surface_graphics)
+						{
+							auto& gpu_mesh = gpu_meshes[mesh_index];
+							if (mesh_index != current_mesh_index)
+							{
+								vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+								current_mesh_index = mesh_index;
+							}
+							gpu_shadow_push_constants pc{
+								.scene_buffer = scene_buffer.scene_buffer_address,
+								.vertex_buffer = gpu_mesh.vertex_buffer_address,
+								.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+								.pass_number = 0,
+							};
+							vkCmdPushConstants(cf.command_buffer, shadow_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_shadow_push_constants), &pc);
+							vkCmdDrawIndexed(cf.command_buffer, index_count, 1, start_index, 0, 0);
+							new_stats.draw_call_count += 1;
+							new_stats.triangle_count += index_count / 3;
+						}
+					}
+				}
 				vkCmdEndRendering(cf.command_buffer);
 			}
 			{
@@ -4497,7 +4535,7 @@ namespace {
 								VK_SHADER_STAGE_FRAGMENT_BIT
 							};
 							vkCmdBindShadersEXT(cf.command_buffer, 2, stages, scene_shaders.data());
-							constexpr VkShaderStageFlagBits unused_stages[4] =
+							constexpr VkShaderStageFlagBits unused_stages[3] =
 							{
 								VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
 								VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
@@ -4540,7 +4578,7 @@ namespace {
 								VK_SHADER_STAGE_FRAGMENT_BIT
 							};
 							vkCmdBindShadersEXT(cf.command_buffer, 2, stages, debug_shaders.data());
-							constexpr VkShaderStageFlagBits unused_stages[4] =
+							constexpr VkShaderStageFlagBits unused_stages[3] =
 							{
 								VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
 								VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
@@ -4850,6 +4888,7 @@ namespace {
 				.view = new_rls.cam.v,
 				.proj = new_rls.cam.p,
 				.view_projection = new_rls.cam.vp,
+				.shadow_projection_near = new_rls.cam.shadow_projection_near,
 				.sunlight = new_rls.sunlight,
 				.camera_position = new_rls.cam.position,
 				.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f },

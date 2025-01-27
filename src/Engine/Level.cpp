@@ -142,7 +142,7 @@ namespace
 					const glm::mat4 lp = light_projections;
 					cam_lv = glm::inverse(light_sun_view);
 					cam_lp = wls->enable_light_perspective ? light_projections : array_to_mat4((rls->cam.p));
-					rls->cam.shadow_projection_near = mat4_to_array(lv * lp);
+					rls->cam.shadow_projection_near = mat4_to_array(lp * lv);
 				}
 
 				if (wls->enable_light_cam)
@@ -160,7 +160,6 @@ namespace
 
 	level_state* ls{ nullptr };
 	scene_graph_processor* sgp{ nullptr };
-
 }
 
 result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_cam)

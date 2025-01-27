@@ -99,18 +99,18 @@ public struct BasicPushConstant {
     public BasicMaterialData *md;
 }
 
+public struct ShadowConstant {
+    public SceneData *sd;
+    public BasicInputVertex *v;
+    public BasicGraphicsData *gd;
+    public uint pass_number;
+}
+
 public struct PushConstant {
     public SceneData *sd;
     public InputVertex *v;
     public RenderData *rd;
     public MaterialData *md;
-}
-
-public struct ShadowConstant {
-    public SceneData *sd;
-    public InputVertex *v;
-    public RenderData *rd;
-    public uint pass_number;
 }
 
 public struct ShadowOutput
