@@ -646,6 +646,13 @@ namespace {
 				return result::graphics_init_failure;
 			}
 
+			vk_res = init_shaders();
+			if (vk_res != VK_SUCCESS)
+			{
+				l->error(std::format("Failed to init shaders! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
+				return result::graphics_init_failure;
+			}
+
 			vk_res = init_data();
 			if (vk_res != VK_SUCCESS)
 			{
@@ -2567,7 +2574,12 @@ namespace {
 				debug_name.pObjectName = "rosy immediate command buffer";
 				if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 			}
+			return VK_SUCCESS;
+		}
 
+		VkResult init_shaders()
+		{
+			
 			{
 				rosy_packager::asset dba{};
 				rosy_packager::shader debug_shader{};
