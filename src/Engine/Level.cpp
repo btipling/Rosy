@@ -77,7 +77,7 @@ namespace
 
 			glm::mat4 debug_light_translate{ 1.f };
 			{
-				debug_light_translate = glm::translate(debug_light_translate, { 0.f, 0.f, -wls->sun_distance });
+				debug_light_translate = glm::translate(debug_light_translate, { 0.f, 0.f,  (wls->enable_light_perspective ? 1.f : -1.f) * wls->sun_distance });
 			}
 			glm::mat4 debug_light_line_rot{ 1.f };
 			{
@@ -112,20 +112,22 @@ namespace
 			}
 
 			glm::mat4 shadow_p{ 1.f };
-			constexpr float cascade_level = 1.f;
+			const float cascade_level = wls->cascade_level;
 			shadow_p = glm::mat4(
 				glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
-				glm::vec4(0.f, 2.f / cascade_level, 0.f, 0.f),
-				glm::vec4(0.f, 0.f, 1.f / 500.f, 0.f),
+				glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
+				glm::vec4(0.f, 0.f, -1.f / wls->orthographic_depth, 0.f),
 				glm::vec4(0.f, 0.f, 0.f, 1.f)
 			);
-
 			rls->debug_enabled = wls->enable_edit;
+			rls->cull_enabled = wls->enable_cull;
+			rls->reverse_winding_order_enabled = wls->reverse_winding_order_enabled;
+			rls->wire_enabled = wls->enable_wire;
 			if (wls->enable_light_cam)
 			{
 				rls->debug_enabled = false;
-				const glm::mat4 lv{ glm::inverse(debug_light_sun) };
-				const glm::mat4 lp{ array_to_mat4((rls->cam.p)) };
+				const glm::mat4 lv{ glm::inverse(wls->enable_light_perspective ? debug_light_sun : debug_light_sun) };
+				const glm::mat4 lp{ wls->enable_light_perspective ? shadow_p : array_to_mat4((rls->cam.p)) };
 				rls->cam.v = mat4_to_array(lv);
 				rls->cam.vp = mat4_to_array(lp * lv);
 			}

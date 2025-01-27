@@ -4167,10 +4167,10 @@ namespace {
 						}
 
 						{
-
-							vkCmdSetFrontFaceEXT(cf.command_buffer, VK_FRONT_FACE_CLOCKWISE);
-							vkCmdSetCullModeEXT(cf.command_buffer, VK_CULL_MODE_FRONT_BIT);
-							vkCmdSetPolygonModeEXT(cf.command_buffer, VK_POLYGON_MODE_FILL);
+							vkCmdSetLineWidth(cf.command_buffer, 1.f);
+							vkCmdSetFrontFaceEXT(cf.command_buffer, rls->reverse_winding_order_enabled ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE);
+							vkCmdSetCullModeEXT(cf.command_buffer, rls->cull_enabled ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE);
+							vkCmdSetPolygonModeEXT(cf.command_buffer, rls->wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL );
 						}
 
 						{
@@ -4624,6 +4624,8 @@ namespace {
 							ImGui::SliderFloat("Spherical distance", &wls->sun_distance, 0.f, 25.f);
 							ImGui::SliderFloat("Spherical pitch", &wls->sun_pitch, 0.f, 4 * static_cast<float>(pi));
 							ImGui::SliderFloat("Spherical yaw", &wls->sun_yaw, 0.f, 4 * static_cast<float>(pi));
+							ImGui::SliderFloat("Light depth", &wls->orthographic_depth, 0.f, 500.f);
+							ImGui::SliderFloat("Light cascade level", &wls->cascade_level, 0.f, 50.f);
 							ImGui::EndTable();
 						}
 						if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
@@ -4633,6 +4635,19 @@ namespace {
 							ImGui::Checkbox("Enable light camera", &wls->enable_light_cam);
 							ImGui::TableNextColumn();
 							ImGui::Checkbox("Enable light perspective", &wls->enable_light_perspective);
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Checkbox("Enable cull", &wls->enable_cull);
+							ImGui::TableNextColumn();
+							ImGui::Checkbox("Enable wireframe", &wls->enable_wire);
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Checkbox("Toggle winding order", &wls->reverse_winding_order_enabled);
+							ImGui::TableNextColumn();
+							ImGui::Text("");
+
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();

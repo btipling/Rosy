@@ -89,6 +89,9 @@ namespace rosy
 	{
 		read_camera cam{};
 		bool debug_enabled{ false };
+		bool reverse_winding_order_enabled{ false };
+		bool cull_enabled{ true };
+		bool wire_enabled{ true };
 		std::array<float, 4> sunlight{};
 		std::vector<debug_object> debug_objects{};
 	};
@@ -98,9 +101,14 @@ namespace rosy
 		float sun_distance;
 		float sun_pitch;
 		float sun_yaw;
+		float orthographic_depth{ 500.f };
+		float cascade_level{ 25.f };
 		bool enable_edit{ false };
 		bool enable_sun_debug{ false };
 		bool enable_light_cam{ false };
+		bool reverse_winding_order_enabled{ false };
+		bool enable_cull{ true };
+		bool enable_wire{ false };
 		bool enable_light_perspective{ false };
 	};
 
