@@ -39,13 +39,6 @@ namespace
 		glm::vec4(0.f, 0.f, 0.f, 1.f)
 	);
 
-	constexpr auto light_to_ndc = glm::mat4(
-		glm::vec4(1.f, 0.f, 0.f, 0.f),
-		glm::vec4(0.f, -1.f, 0.f, 0.f),
-		glm::vec4(0.f, 0.f, 1.f, 0.f),
-		glm::vec4(0.f, 0.f, 0.f, 1.f)
-	);
-
 	struct stack_item
 	{
 		rosy_packager::node stack_node;
@@ -68,68 +61,84 @@ namespace
 
 		rosy::result update() const
 		{
-			rls->cam.p = cam->p;
-			rls->cam.v = cam->v;
-			rls->cam.vp = cam->vp;
-			rls->cam.position = cam->position;
+			{
+				rls->cam.p = cam->p;
+				rls->cam.v = cam->v;
+				rls->cam.vp = cam->vp;
+				rls->cam.position = cam->position;
+			}
 
 			rls->debug_objects.clear();
 
-			glm::mat4 debug_light_translate{ 1.f };
+			// Light & Shadow logic
+			glm::mat4 cam_lv;
+			glm::mat4 cam_lp;
 			{
-				debug_light_translate = glm::translate(debug_light_translate, { 0.f, 0.f,  (wls->enable_light_perspective ? 1.f : -1.f) * wls->sun_distance });
-			}
-			glm::mat4 debug_light_line_rot{ 1.f };
-			{
-
-				const glm::quat pitch_rotation = angleAxis(-wls->sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
-				const glm::quat yaw_rotation = angleAxis(wls->sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
-				debug_light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
-			}
-			const glm::mat4 debug_light_line = glm::scale(debug_light_line_rot * debug_light_translate, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
-			const glm::mat4 debug_light_sun = debug_light_line_rot * debug_light_translate;
-			const auto camera_position = glm::vec3(debug_light_line_rot * glm::vec4(0.f, 0.f, -wls->sun_distance, 0.f));
-			const auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
-
-			debug_object line;
-			line.type = debug_object_type::line;
-			line.transform = mat4_to_array(debug_light_line);
-			line.color = { 1.f, 0.f, 0.f, 1.f };
-			if (wls->enable_sun_debug) rls->debug_objects.push_back(line);
-			rls->sunlight = { sunlight[0], sunlight[1], sunlight[2], sunlight[3] };
-			if (wls->enable_sun_debug) {
-				// Two circles to represent a sun
-				constexpr float angle_step{ glm::pi<float>() / 4.f };
-				for (float i{ 0 }; i < 4; i++) {
-					debug_object sun_circle;
-					glm::mat4 m{ 1.f };
-					m = glm::rotate(m, angle_step * i, { 1.f, 0.f, 0.f });
-					sun_circle.type = debug_object_type::circle;
-					sun_circle.transform = mat4_to_array(debug_light_sun * m);
-					sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
-					rls->debug_objects.push_back(sun_circle);
+				glm::mat4 debug_light_translate{ 1.f };
+				{
+					debug_light_translate = glm::translate(debug_light_translate, { 0.f, 0.f,  (wls->enable_light_perspective ? 1.f : -1.f) * wls->sun_distance });
 				}
+				glm::mat4 debug_light_line_rot;
+				{
+
+					const glm::quat pitch_rotation = angleAxis(-wls->sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
+					const glm::quat yaw_rotation = angleAxis(wls->sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
+					debug_light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
+				}
+				const glm::mat4 debug_light_line = glm::scale(debug_light_line_rot * debug_light_translate, { wls->sun_distance, wls->sun_distance, wls->sun_distance });
+				const glm::mat4 debug_light_sun = debug_light_line_rot * debug_light_translate;
+				const auto camera_position = glm::vec3(debug_light_line_rot * glm::vec4(0.f, 0.f, -wls->sun_distance, 0.f));
+				const auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
+
+				debug_object line;
+				line.type = debug_object_type::line;
+				line.transform = mat4_to_array(debug_light_line);
+				line.color = { 1.f, 0.f, 0.f, 1.f };
+				if (wls->enable_sun_debug) rls->debug_objects.push_back(line);
+				rls->sunlight = { sunlight[0], sunlight[1], sunlight[2], sunlight[3] };
+				if (wls->enable_sun_debug) {
+					// Two circles to represent a sun
+					constexpr float angle_step{ glm::pi<float>() / 4.f };
+					for (float i{ 0 }; i < 4; i++) {
+						debug_object sun_circle;
+						glm::mat4 m{ 1.f };
+						m = glm::rotate(m, angle_step * i, { 1.f, 0.f, 0.f });
+						sun_circle.type = debug_object_type::circle;
+						sun_circle.transform = mat4_to_array(debug_light_sun * m);
+						sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
+						rls->debug_objects.push_back(sun_circle);
+					}
+				}
+
+				const float cascade_level = wls->cascade_level;
+				auto shadow_p = glm::mat4(
+					glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
+					glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
+					glm::vec4(0.f, 0.f, -1.f / wls->orthographic_depth, 0.f),
+					glm::vec4(0.f, 0.f, 0.f, 1.f)
+				);
+
+				const glm::mat4 lv = debug_light_sun;
+				const glm::mat4 lp = shadow_p;
+				cam_lv = glm::inverse(wls->enable_light_perspective ? debug_light_sun : debug_light_sun);
+				cam_lp = wls->enable_light_perspective ? shadow_p : array_to_mat4((rls->cam.p));
+				rls->cam.shadow_projection_near = mat4_to_array(lv * lp);
 			}
 
-			glm::mat4 shadow_p{ 1.f };
-			const float cascade_level = wls->cascade_level;
-			shadow_p = glm::mat4(
-				glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
-				glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
-				glm::vec4(0.f, 0.f, -1.f / wls->orthographic_depth, 0.f),
-				glm::vec4(0.f, 0.f, 0.f, 1.f)
-			);
-			rls->debug_enabled = wls->enable_edit;
-			rls->cull_enabled = wls->enable_cull;
-			rls->reverse_winding_order_enabled = wls->reverse_winding_order_enabled;
-			rls->wire_enabled = wls->enable_wire;
+			{
+				// Configure draw options based on writable level state
+				rls->debug_enabled = wls->enable_edit;
+				rls->cull_enabled = wls->enable_cull;
+				rls->reverse_winding_order_enabled = wls->reverse_winding_order_enabled;
+				rls->wire_enabled = wls->enable_wire;
+			}
+
 			if (wls->enable_light_cam)
 			{
+				// Set debug lighting options on
 				rls->debug_enabled = false;
-				const glm::mat4 lv{ glm::inverse(wls->enable_light_perspective ? debug_light_sun : debug_light_sun) };
-				const glm::mat4 lp{ wls->enable_light_perspective ? shadow_p : array_to_mat4((rls->cam.p)) };
-				rls->cam.v = mat4_to_array(lv);
-				rls->cam.vp = mat4_to_array(lp * lv);
+				rls->cam.v = mat4_to_array(cam_lv);
+				rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
 			}
 
 			return result::ok;

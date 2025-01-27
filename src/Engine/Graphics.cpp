@@ -271,6 +271,7 @@ namespace {
 		std::array<float, 16> view = { 0 };
 		std::array<float, 16> proj = { 0 };
 		std::array<float, 16> view_projection = { 0 };
+		std::array<float, 16> shadow_projection_near  = { 0 };
 		std::array<float, 4> sunlight = { 0 };
 		std::array<float, 4> camera_position = { 0 };
 		std::array<float, 4> ambient_color = { 0 };
