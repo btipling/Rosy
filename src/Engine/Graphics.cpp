@@ -14,6 +14,7 @@
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
 #include <filesystem>
+#include <glm/fwd.hpp>
 
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
@@ -134,6 +135,8 @@ namespace {
 	constexpr  uint64_t graphics_created_bit_debug_buffer     = 0b0000000000000000000000000010000000000000000000000000000000000000;
 	constexpr  uint64_t graphics_created_bit_debug_shaders    = 0b0000000000000000000000000100000000000000000000000000000000000000;
 	constexpr  uint64_t graphics_created_bit_debug_pipeline   = 0b0000000000000000000000001000000000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_shadow_shaders   = 0b0000000000000000000000010000000000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_shadow_pipeline  = 0b0000000000000000000000100000000000000000000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -378,6 +381,14 @@ namespace {
 		VkDeviceAddress debug_draw_buffer{ 0 };
 	};
 
+	struct gpu_shadow_push_constants
+	{
+		VkDeviceAddress scene_buffer{ 0 };
+		VkDeviceAddress vertex_buffer{ 0 };
+		VkDeviceAddress render_buffer{ 0 };
+		glm::uint pass_number;
+	};
+
 	struct graphic_object_data
 	{
 		std::array<float, 16> transform;
@@ -468,7 +479,9 @@ namespace {
 
 		// shaders
 		std::vector<VkShaderEXT> debug_shaders;
+		std::vector<VkShaderEXT> shadow_shaders;
 		VkPipelineLayout debug_layout;
+		VkPipelineLayout shadow_layout;
 
 		// Level dependent data
 		std::vector< VkSampler> samplers;
@@ -751,6 +764,19 @@ namespace {
 			if (graphics_created_bitmask & graphics_created_bit_scene_buffer)
 			{
 				vmaDestroyBuffer(allocator, scene_buffer.scene_buffer.buffer, scene_buffer.scene_buffer.allocation);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_shadow_pipeline)
+			{
+				vkDestroyPipelineLayout(device, shadow_layout, nullptr);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_shadow_shaders)
+			{
+				for (const VkShaderEXT shader : shadow_shaders)
+				{
+					vkDestroyShaderEXT(device, shader, nullptr);
+				}
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_debug_pipeline)
@@ -2579,7 +2605,9 @@ namespace {
 
 		VkResult init_shaders()
 		{
-			
+
+			// ******** DEBUG SHADERS ******** //
+
 			{
 				rosy_packager::asset dba{};
 				rosy_packager::shader debug_shader{};
@@ -2701,6 +2729,106 @@ namespace {
 						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
 						{
 							l->error(std::format("Error creating debug shader pipeline layout name: {}", static_cast<uint8_t>(res)));
+							return res;
+						}
+					}
+				}
+			}
+
+			// ******** SHADOW SHADERS ******** //
+
+			{
+				rosy_packager::asset dba{};
+				rosy_packager::shader shadow_shader{};
+				shadow_shader.path = R"(..\shaders\out\shadow.spv)";
+				dba.shaders.push_back(shadow_shader);
+				dba.read_shaders(l);
+				if (dba.shaders.empty())
+				{
+					l->error("No shadow shader loaded");
+					return VK_ERROR_INITIALIZATION_FAILED;
+				}
+				std::vector<VkShaderCreateInfoEXT> shader_create_info;
+				const auto& [path, source] = dba.shaders[0];
+
+				if (source.empty())
+				{
+					l->error("No source in shadow shader");
+					return VK_ERROR_INITIALIZATION_FAILED;
+				}
+
+				std::vector<VkDescriptorSetLayout> layouts{};
+				layouts.push_back(descriptor_set_layout);
+
+				VkPushConstantRange shadow_push_constant_range{
+					.stageFlags = VK_SHADER_STAGE_ALL,
+					.offset = 0,
+					.size = sizeof(gpu_shadow_push_constants),
+				};
+
+				shader_create_info.push_back({
+					.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+					.pNext = nullptr,
+					.flags = VK_SHADER_CREATE_LINK_STAGE_BIT_EXT,
+					.stage = VK_SHADER_STAGE_VERTEX_BIT,
+					.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT,
+					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
+					.codeSize = source.size(),
+					.pCode = source.data(),
+					.pName = "main",
+					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
+					.pSetLayouts = layouts.data(),
+					.pushConstantRangeCount = 1,
+					.pPushConstantRanges = &shadow_push_constant_range,
+					.pSpecializationInfo = nullptr,
+					});
+
+				shadow_shaders.resize(shader_create_info.size());
+
+				if (const VkResult res = vkCreateShadersEXT(device, static_cast<uint32_t>(shader_create_info.size()), shader_create_info.data(), nullptr, shadow_shaders.data()); res != VK_SUCCESS) {
+					l->error(std::format("Error creating shadow shaders: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+				graphics_created_bitmask |= graphics_created_bit_shadow_shaders;
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_SHADER_EXT;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(shadow_shaders.data()[0]);
+					debug_name.pObjectName = "rosy shadow vertex shader";
+					if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating shadow shader name: {}", static_cast<uint8_t>(res)));
+						return res;
+					}
+				}
+				{
+					VkPipelineLayoutCreateInfo pl_info{
+						.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+						.pNext = nullptr,
+						.flags = 0,
+						.setLayoutCount = static_cast<uint32_t>(layouts.size()),
+						.pSetLayouts = layouts.data(),
+						.pushConstantRangeCount = 1,
+						.pPushConstantRanges = &shadow_push_constant_range,
+					};
+					if (const VkResult res = vkCreatePipelineLayout(device, &pl_info, nullptr, &shadow_layout); res != VK_SUCCESS)
+					{
+						l->error(std::format("Error creating shadow shader pipeline layout: {}", static_cast<uint8_t>(res)));
+						return res;
+					}
+					graphics_created_bitmask |= graphics_created_bit_shadow_pipeline;
+					{
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_PIPELINE_LAYOUT;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(shadow_layout);
+						debug_name.pObjectName = "rosy shadow shader pipeline layout";
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating shadow shader pipeline layout name: {}", static_cast<uint8_t>(res)));
 							return res;
 						}
 					}
