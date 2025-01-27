@@ -4092,25 +4092,6 @@ namespace {
 						vkCmdSetCullModeEXT(cf.command_buffer, rls->cull_enabled ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE);
 						vkCmdSetPolygonModeEXT(cf.command_buffer, rls->wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL);
 					}
-
-					{
-						VkViewport viewport{};
-						viewport.x = 0.0f;
-						viewport.y = 0.0f;
-						viewport.width = static_cast<float>(swapchain_extent.width);
-						viewport.height = static_cast<float>(swapchain_extent.height);
-						viewport.minDepth = 0.0f;
-						viewport.maxDepth = 1.0f;
-						vkCmdSetViewport(cf.command_buffer, 0, 1, &viewport);
-						vkCmdSetViewportWithCountEXT(cf.command_buffer, 1, &viewport);
-					}
-					{
-						VkRect2D scissor{};
-						scissor.offset = { 0, 0 };
-						scissor.extent = swapchain_extent;
-						vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
-						vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
-					}
 					{
 
 						vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
@@ -4208,6 +4189,10 @@ namespace {
 				}
 			}
 
+			const VkExtent2D shadow_map_extent = {
+				.width = shadow_map_image.image_extent.width,
+				.height = shadow_map_image.image_extent.height,
+			};
 			{
 				VkRenderingAttachmentInfo depth_attachment{};
 				depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -4219,10 +4204,6 @@ namespace {
 				depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 				depth_attachment.clearValue.depthStencil.depth = 0.0f;
 
-				const VkExtent2D shadow_map_extent = {
-					.width = shadow_map_image.image_extent.width,
-					.height = shadow_map_image.image_extent.height,
-				};
 				const auto render_area = VkRect2D{ VkOffset2D{0, 0}, shadow_map_extent };
 
 				VkRenderingInfo render_info{};
@@ -4238,6 +4219,25 @@ namespace {
 				vkCmdBeginRendering(cf.command_buffer, &render_info);
 			}
 			{
+
+				{
+					VkViewport viewport{};
+					viewport.x = 0.0f;
+					viewport.y = 0.0f;
+					viewport.width = static_cast<float>(shadow_map_extent.width);
+					viewport.height = static_cast<float>(shadow_map_extent.height);
+					viewport.minDepth = 0.0f;
+					viewport.maxDepth = 1.0f;
+					vkCmdSetViewport(cf.command_buffer, 0, 1, &viewport);
+					vkCmdSetViewportWithCountEXT(cf.command_buffer, 1, &viewport);
+				}
+				{
+					VkRect2D scissor{};
+					scissor.offset = { 0, 0 };
+					scissor.extent = shadow_map_extent;
+					vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
+					vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
+				}
 				{
 					constexpr VkShaderStageFlagBits stages[1] =
 					{
@@ -4331,6 +4331,25 @@ namespace {
 				debug_label.pLabelName = "clear image";
 				std::copy_n(debug_color.data(), 4, debug_label.color);
 				vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
+			}
+
+			{
+				VkViewport viewport{};
+				viewport.x = 0.0f;
+				viewport.y = 0.0f;
+				viewport.width = static_cast<float>(swapchain_extent.width);
+				viewport.height = static_cast<float>(swapchain_extent.height);
+				viewport.minDepth = 0.0f;
+				viewport.maxDepth = 1.0f;
+				vkCmdSetViewport(cf.command_buffer, 0, 1, &viewport);
+				vkCmdSetViewportWithCountEXT(cf.command_buffer, 1, &viewport);
+			}
+			{
+				VkRect2D scissor{};
+				scissor.offset = { 0, 0 };
+				scissor.extent = swapchain_extent;
+				vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
+				vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
 			}
 			{
 				{
@@ -4980,6 +4999,13 @@ namespace {
 
 							ImGui::EndTable();
 						}
+						ImVec2 pos = ImGui::GetCursorScreenPos();
+						const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
+						constexpr auto uv_min = ImVec2(0.0f, 0.0f);
+						constexpr auto uv_max = ImVec2(1.0f, 1.0f);
+						constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+						const ImVec2 content_area = ImGui::GetContentRegionAvail();
+						ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();

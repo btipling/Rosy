@@ -5,23 +5,16 @@ import data;
 [shader("vertex")]
 ShadowOutput shadowVertexMain(uint uiVertexId: SV_VertexID)
 {
+    SceneData sd = *ShadowConstants.sd;
     BasicInputVertex v = *(ShadowConstants.v + uiVertexId);
     BasicGraphicsData gd = *ShadowConstants.gd;
-    SceneData sd = *ShadowConstants.sd;
-
     float4x4 worldMat = gd.transform;
-    float3x3 worldMat3 = (float3x3)worldMat;
 
-    float4x4 proj = sd.shadowProjNear;
-//    if (ShadowConstants.pass_number == 1) {
-//        proj = sd.shadowproj_middle;
-//    } else if (ShadowConstants.pass_number == 2) {
-//        proj = sd.shadowproj_far;
-//    }
+    float4 posWorld = float4(v.position, 1.0);
 
     ShadowOutput output;
-    float4 posWorld = float4(v.position, 1.0);
-    output.sv_position = mul(mul(proj, worldMat), posWorld);
+
+    output.sv_position = mul(mul(sd.shadowProjNear, worldMat), posWorld);
 
     return output;
 }
