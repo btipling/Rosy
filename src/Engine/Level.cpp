@@ -75,6 +75,11 @@ namespace
 				rls->cull_enabled = wls->enable_cull;
 				rls->reverse_winding_order_enabled = wls->reverse_winding_order_enabled;
 				rls->wire_enabled = wls->enable_wire;
+
+				rls->depth_bias_enabled = wls->depth_bias_enabled;
+				rls->depth_bias_clamp = wls->depth_bias_clamp;
+				rls->depth_bias_constant = wls->depth_bias_constant;
+				rls->depth_bias_slope_factor = wls->depth_bias_slope_factor;
 			}
 
 			rls->debug_objects.clear();

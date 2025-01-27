@@ -2237,8 +2237,8 @@ namespace {
 			{
 				// Shadow map image creation.
 				constexpr VkExtent3D shadow_map_image_extent = {
-					.width = 8192,
-					.height = 8192,
+					.width = 4096,
+					.height = 4096,
 					.depth = 1
 				};
 				shadow_map_image.image_format = VK_FORMAT_D32_SFLOAT;
@@ -4202,7 +4202,13 @@ namespace {
 				vkCmdBeginRendering(cf.command_buffer, &render_info);
 			}
 			{
-
+				{
+					if (rls->depth_bias_enabled) {
+						vkCmdSetDepthBiasEnable(cf.command_buffer, VK_TRUE);
+						//vkCmdSetDepthClampEnableEXT(cf.command_buffer, VK_TRUE);
+						vkCmdSetDepthBias(cf.command_buffer, rls->depth_bias_constant, rls->depth_bias_clamp, rls->depth_bias_slope_factor);
+					}
+				}
 				{
 					VkViewport viewport{};
 					viewport.x = 0.0f;
@@ -4259,6 +4265,7 @@ namespace {
 						}
 					}
 				}
+				vkCmdSetDepthBiasEnable(cf.command_buffer, VK_FALSE);
 				vkCmdEndRendering(cf.command_buffer);
 			}
 			{
@@ -4916,7 +4923,6 @@ namespace {
 					if (ImGui::BeginTabItem("View"))
 					{
 						wls->enable_edit = false;
-						wls->enable_sun_debug = false;
 						if (ImGui::BeginTable("Scene Data", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 						{
 							ImGui::TableNextRow();
@@ -4936,7 +4942,6 @@ namespace {
 					if (ImGui::BeginTabItem("Edit"))
 					{
 						wls->enable_edit = true;
-						wls->enable_sun_debug = true;
 						if (ImGui::BeginTable("Scene Data", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 						{
 							ImGui::TableNextRow();
@@ -4960,6 +4965,9 @@ namespace {
 							ImGui::SliderFloat("Spherical yaw", &wls->sun_yaw, 0.f, 4 * static_cast<float>(pi));
 							ImGui::SliderFloat("Light depth", &wls->orthographic_depth, 0.f, 500.f);
 							ImGui::SliderFloat("Light cascade level", &wls->cascade_level, 0.f, 50.f);
+								ImGui::SliderFloat("Depth bias constant", &wls->depth_bias_constant, -500.f, 500.f);
+							ImGui::SliderFloat("Depth bias clamp", &wls->depth_bias_clamp, -500.f, 500.f);
+							ImGui::SliderFloat("Depth bias slope factor", &wls->depth_bias_slope_factor, -500.f, 500.f);
 							ImGui::EndTable();
 						}
 						if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
@@ -4979,6 +4987,12 @@ namespace {
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
 							ImGui::Checkbox("Toggle winding order", &wls->reverse_winding_order_enabled);
+							ImGui::TableNextColumn();
+							ImGui::Checkbox("Enable depth bias", &wls->depth_bias_enabled);
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Checkbox("Enable sun debug", &wls->enable_sun_debug);
 							ImGui::TableNextColumn();
 							ImGui::Text("");
 

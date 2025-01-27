@@ -95,6 +95,10 @@ namespace rosy
 		bool wire_enabled{ true };
 		std::array<float, 4> sunlight{};
 		std::vector<debug_object> debug_objects{};
+		bool depth_bias_enabled{ false };
+		float depth_bias_constant{ 0.f };
+		float depth_bias_clamp{ 0.f };
+		float depth_bias_slope_factor{ 0.f };
 	};
 
 	struct write_level_state
@@ -111,6 +115,10 @@ namespace rosy
 		bool enable_cull{ true };
 		bool enable_wire{ false };
 		bool enable_light_perspective{ false };
+		bool depth_bias_enabled{ true };
+		float depth_bias_constant{-17.242f };
+		float depth_bias_clamp{ -114.858f };
+		float depth_bias_slope_factor{ -30.583f };
 	};
 
 }
