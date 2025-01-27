@@ -3,6 +3,7 @@ module data;
 public struct BasicVertexStageOutput
 {
     public BasicVertex basicVertex : BasicVertex;
+    public CSM csm : CSM;
     public float4 sv_position : SV_Position;
 };
 
@@ -63,8 +64,8 @@ public struct CoarseVertex
 public struct CSM
 {
     public float4 near;
-    public float4 middle;
-    public float4 far;
+    //public float4 middle;
+    //public float4 far;
 };
 
 public struct SceneData
@@ -77,6 +78,8 @@ public struct SceneData
     public float4 cameraPosition;
     public float4 ambientColor;
     public float4 sunlightColor;
+    public uint csmIndexSampler;
+    public uint csmIndexNear;
 };
 
 public struct Fragment

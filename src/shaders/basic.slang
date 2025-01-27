@@ -1,4 +1,5 @@
 import data;
+import pcf;
 
 [[vk::binding(0, 0)]] texture2D imageTexture[];
 [[vk::binding(1, 0)]] SamplerState imageSampler[];
@@ -15,11 +16,24 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float4 posWorld = float4(v.position, 1.0);
 
+    float4x4 ndc_to_tc = {
+        0.5, 0, 0, 0.5,
+        0, 0.5, 0, 0.5,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    };
+
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
     output.basicVertex.normal = normalize(mul(float3x3(worldMat), v.normal));
     output.basicVertex.color = v.color;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
+    output.csm.near = mul(
+        mul(
+            mul(ndc_to_tc, sd.shadowProjNear), 
+            worldMat),
+        posWorld
+    );
 
     output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
 
@@ -27,7 +41,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 }
 
 [shader("fragment")]
-Fragment fragmentMain(BasicVertex basicVertex: BasicVertex) : SV_Target
+Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4 fragCoord: SV_Position) : SV_Target
 {
     SceneData sd = *BasicPushConstants.sd;
     BasicMaterialData md = *BasicPushConstants.md;
@@ -49,7 +63,14 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex) : SV_Target
     SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
     float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
 
-    float4 outFragColor = imageTextureColor * float4(ambientLight + sunLight, 1.0);
+    float shadowFactor = 1.f;
+    uint csmSampler = sd.csmIndexSampler;
+    SamplerState shadowSampler = imageSampler[NonUniformResourceIndex(csmSampler)];
+    uint csmNear = sd.csmIndexNear;
+    texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csmNear)];
+    shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
+
+    float4 outFragColor = imageTextureColor * float4(ambientLight + shadowFactor + sunLight, 1.0);
 
     Fragment output;
     output.color = outFragColor;

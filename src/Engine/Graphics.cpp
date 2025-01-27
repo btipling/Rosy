@@ -276,6 +276,8 @@ namespace {
 		std::array<float, 4> camera_position = { 0 };
 		std::array<float, 4> ambient_color = { 0 };
 		std::array<float, 4> sunlight_color = { 0 };
+		glm::uint csm_index_sampler{ 0 };
+		glm::uint csm_index_near{ 0 };
 	};
 
 	struct allocated_image
@@ -2440,41 +2442,32 @@ namespace {
 				}
 				{
 					{
-						if (const result res = desc_samples->allocator.allocate(&default_sampler_index); res != result::ok)
+						if (const result res = desc_samples->allocator.allocate(&shadow_map_image.ds_index_sampler); res != result::ok)
 						{
-							l->error(std::format("Error allocating a shadow map sampler desc: {}", static_cast<uint8_t>(res)));
-							return VK_ERROR_UNKNOWN;
+							l->error(std::format("Error default shadow map sampler index: {}", static_cast<uint8_t>(res)));
+							return VK_ERROR_INITIALIZATION_FAILED;
 						}
 						{
-							uint32_t new_sampler_desc_index{ 0 };
-							if (const result res = desc_samples->allocator.allocate(&new_sampler_desc_index); res != result::ok)
-							{
-								l->error(std::format("Error default shadow map sampler index: {}", static_cast<uint8_t>(res)));
-								return VK_ERROR_INITIALIZATION_FAILED;
-							}
-							{
-								VkDescriptorImageInfo create_desc_info{};
-								create_desc_info.sampler = shadow_map_image.shadow_sampler;
-								create_desc_info.imageView = nullptr;
-								create_desc_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+							VkDescriptorImageInfo create_desc_info{};
+							create_desc_info.sampler = shadow_map_image.shadow_sampler;
+							create_desc_info.imageView = nullptr;
+							create_desc_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
 
-								VkWriteDescriptorSet write{};
-								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-								write.dstBinding = desc_samples->binding;
-								write.dstArrayElement = new_sampler_desc_index;
-								write.dstSet = descriptor_set;
-								write.descriptorCount = 1;
-								write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-								write.pImageInfo = &create_desc_info;
+							VkWriteDescriptorSet write{};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.dstBinding = desc_samples->binding;
+							write.dstArrayElement = shadow_map_image.ds_index_sampler;
+							write.dstSet = descriptor_set;
+							write.descriptorCount = 1;
+							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+							write.pImageInfo = &create_desc_info;
 
-								vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
-							}
+							vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 						}
 					}
 					{
-						uint32_t new_image_sampler_desc_index{ 0 };
-						if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index); res != result::ok)
+						if (const result res = desc_sampled_images->allocator.allocate(&shadow_map_image.ds_index_near); res != result::ok)
 						{
 							l->error(std::format("Error default shadow near map index: {}", static_cast<uint8_t>(res)));
 							return VK_ERROR_INITIALIZATION_FAILED;
@@ -2489,7 +2482,7 @@ namespace {
 							VkWriteDescriptorSet write{};
 							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 							write.dstBinding = desc_sampled_images->binding;
-							write.dstArrayElement = new_image_sampler_desc_index;
+							write.dstArrayElement = shadow_map_image.ds_index_near;
 							write.dstSet = descriptor_set;
 							write.descriptorCount = 1;
 							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -2499,8 +2492,7 @@ namespace {
 						}
 					}
 					{
-						uint32_t new_image_sampler_desc_index{ 0 };
-						if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index); res != result::ok)
+						if (const result res = desc_sampled_images->allocator.allocate(&shadow_map_image.ds_index_middle); res != result::ok)
 						{
 							l->error(std::format("Error default shadow middle map index: {}", static_cast<uint8_t>(res)));
 							return VK_ERROR_INITIALIZATION_FAILED;
@@ -2514,7 +2506,7 @@ namespace {
 							VkWriteDescriptorSet write{};
 							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 							write.dstBinding = desc_sampled_images->binding;
-							write.dstArrayElement = new_image_sampler_desc_index;
+							write.dstArrayElement = shadow_map_image.ds_index_middle;
 							write.dstSet = descriptor_set;
 							write.descriptorCount = 1;
 							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -2524,8 +2516,7 @@ namespace {
 						}
 					}
 					{
-						uint32_t new_image_sampler_desc_index{ 0 };
-						if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index); res != result::ok)
+						if (const result res = desc_sampled_images->allocator.allocate(&shadow_map_image.ds_index_far); res != result::ok)
 						{
 							l->error(std::format("Error default shadow far map index: {}", static_cast<uint8_t>(res)));
 							return VK_ERROR_INITIALIZATION_FAILED;
@@ -2540,7 +2531,7 @@ namespace {
 							VkWriteDescriptorSet write{};
 							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 							write.dstBinding = desc_sampled_images->binding;
-							write.dstArrayElement = new_image_sampler_desc_index;
+							write.dstArrayElement = shadow_map_image.ds_index_far;
 							write.dstSet = descriptor_set;
 							write.descriptorCount = 1;
 							write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -3094,34 +3085,26 @@ namespace {
 			{
 				if (const result res = desc_samples->allocator.allocate(&default_sampler_index); res != result::ok)
 				{
-					l->error(std::format("Error allocating a default sampler desc: {}", static_cast<uint8_t>(res)));
-					return VK_ERROR_UNKNOWN;
+					l->error(std::format("Error default sampler descriptor index: {}", static_cast<uint8_t>(res)));
+					return VK_ERROR_INITIALIZATION_FAILED;
 				}
 				{
-					uint32_t new_sampler_desc_index{ 0 };
-					if (const result res = desc_samples->allocator.allocate(&new_sampler_desc_index); res != result::ok)
-					{
-						l->error(std::format("Error default sampler descriptor index: {}", static_cast<uint8_t>(res)));
-						return VK_ERROR_INITIALIZATION_FAILED;
-					}
-					{
-						VkDescriptorImageInfo create_desc_info{};
-						create_desc_info.sampler = default_sampler;
-						create_desc_info.imageView = nullptr;
-						create_desc_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					VkDescriptorImageInfo create_desc_info{};
+					create_desc_info.sampler = default_sampler;
+					create_desc_info.imageView = nullptr;
+					create_desc_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 
-						VkWriteDescriptorSet write{};
-						write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-						write.dstBinding = desc_samples->binding;
-						write.dstArrayElement = new_sampler_desc_index;
-						write.dstSet = descriptor_set;
-						write.descriptorCount = 1;
-						write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-						write.pImageInfo = &create_desc_info;
+					VkWriteDescriptorSet write{};
+					write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					write.dstBinding = desc_samples->binding;
+					write.dstArrayElement = default_sampler_index;
+					write.dstSet = descriptor_set;
+					write.descriptorCount = 1;
+					write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+					write.pImageInfo = &create_desc_info;
 
-						vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
-					}
+					vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 				}
 			}
 			return VK_SUCCESS;
@@ -4605,7 +4588,7 @@ namespace {
 							};
 							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, debug_layout, 0, 1, &descriptor_set, 0, nullptr);
-							for (const auto [obj_type, obj_transform, obj_color]: rls->debug_objects) {
+							for (const auto [obj_type, obj_transform, obj_color] : rls->debug_objects) {
 								gpu_debug_push_constants dpc{
 									.transform = obj_transform,
 									.color = obj_color,
@@ -4912,6 +4895,8 @@ namespace {
 				.camera_position = new_rls.cam.position,
 				.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f },
 				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
+				.csm_index_sampler = shadow_map_image.ds_index_sampler,
+				.csm_index_near = shadow_map_image.ds_index_near,
 			};
 			rls = &new_rls;
 			scene_data = sd;
