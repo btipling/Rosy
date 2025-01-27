@@ -3927,6 +3927,69 @@ namespace {
 					return result::graphics_frame_failure;
 				}
 				{
+					{
+						vkCmdSetRasterizerDiscardEnableEXT(cf.command_buffer, VK_FALSE);
+						vkCmdSetPrimitiveTopologyEXT(cf.command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+						vkCmdSetPrimitiveRestartEnableEXT(cf.command_buffer, VK_FALSE);
+						vkCmdSetRasterizationSamplesEXT(cf.command_buffer, VK_SAMPLE_COUNT_1_BIT);
+					}
+					{
+						constexpr VkSampleMask sample_mask = 0x1;
+						vkCmdSetSampleMaskEXT(cf.command_buffer, VK_SAMPLE_COUNT_1_BIT, &sample_mask);
+					}
+					{
+						VkColorComponentFlags color_component_flags[] = { VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_A_BIT };
+						vkCmdSetColorWriteMaskEXT(cf.command_buffer, 0, 1, color_component_flags);
+					}
+					{
+						vkCmdSetVertexInputEXT(cf.command_buffer, 0, nullptr, 0, nullptr);
+					}
+
+					{
+						vkCmdSetLineWidth(cf.command_buffer, 1.f);
+						vkCmdSetFrontFaceEXT(cf.command_buffer, rls->reverse_winding_order_enabled ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE);
+						vkCmdSetCullModeEXT(cf.command_buffer, rls->cull_enabled ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE);
+						vkCmdSetPolygonModeEXT(cf.command_buffer, rls->wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL);
+					}
+
+					{
+						VkViewport viewport{};
+						viewport.x = 0.0f;
+						viewport.y = 0.0f;
+						viewport.width = static_cast<float>(swapchain_extent.width);
+						viewport.height = static_cast<float>(swapchain_extent.height);
+						viewport.minDepth = 0.0f;
+						viewport.maxDepth = 1.0f;
+						vkCmdSetViewport(cf.command_buffer, 0, 1, &viewport);
+						vkCmdSetViewportWithCountEXT(cf.command_buffer, 1, &viewport);
+					}
+					{
+						VkRect2D scissor{};
+						scissor.offset = { 0, 0 };
+						scissor.extent = swapchain_extent;
+						vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
+						vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
+					}
+					{
+
+						vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
+						vkCmdSetDepthWriteEnableEXT(cf.command_buffer, VK_TRUE);
+						vkCmdSetDepthCompareOpEXT(cf.command_buffer, VK_COMPARE_OP_GREATER_OR_EQUAL);
+						vkCmdSetDepthBoundsTestEnableEXT(cf.command_buffer, VK_FALSE);
+						vkCmdSetDepthBiasEnableEXT(cf.command_buffer, VK_FALSE);
+						vkCmdSetStencilTestEnableEXT(cf.command_buffer, VK_FALSE);
+						vkCmdSetDepthClipEnableEXT(cf.command_buffer, VK_FALSE);
+						vkCmdSetDepthClampEnableEXT(cf.command_buffer, VK_FALSE);
+						vkCmdSetLogicOpEnableEXT(cf.command_buffer, VK_FALSE);
+						vkCmdSetDepthBounds(cf.command_buffer, 0.0f, 1.0f);
+						vkCmdSetAlphaToCoverageEnableEXT(cf.command_buffer, VK_FALSE);
+					}
+					{
+						constexpr auto enable = VK_FALSE;
+						vkCmdSetColorBlendEnableEXT(cf.command_buffer, 0, 1, &enable);
+					}
+				}
+				{
 					VkDebugUtilsLabelEXT debug_label{};
 					std::array<float, 4> debug_color{ 0.8f, 0.f, 0.f, 1.f };
 					debug_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -4146,69 +4209,6 @@ namespace {
 						render_info.pStencilAttachment = nullptr;
 
 						vkCmdBeginRendering(cf.command_buffer, &render_info);
-					}
-					{
-						{
-							vkCmdSetRasterizerDiscardEnableEXT(cf.command_buffer, VK_FALSE);
-							vkCmdSetPrimitiveTopologyEXT(cf.command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-							vkCmdSetPrimitiveRestartEnableEXT(cf.command_buffer, VK_FALSE);
-							vkCmdSetRasterizationSamplesEXT(cf.command_buffer, VK_SAMPLE_COUNT_1_BIT);
-						}
-						{
-							constexpr VkSampleMask sample_mask = 0x1;
-							vkCmdSetSampleMaskEXT(cf.command_buffer, VK_SAMPLE_COUNT_1_BIT, &sample_mask);
-						}
-						{
-							VkColorComponentFlags color_component_flags[] = { VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_A_BIT };
-							vkCmdSetColorWriteMaskEXT(cf.command_buffer, 0, 1, color_component_flags);
-						}
-						{
-							vkCmdSetVertexInputEXT(cf.command_buffer, 0, nullptr, 0, nullptr);
-						}
-
-						{
-							vkCmdSetLineWidth(cf.command_buffer, 1.f);
-							vkCmdSetFrontFaceEXT(cf.command_buffer, rls->reverse_winding_order_enabled ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE);
-							vkCmdSetCullModeEXT(cf.command_buffer, rls->cull_enabled ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE);
-							vkCmdSetPolygonModeEXT(cf.command_buffer, rls->wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL );
-						}
-
-						{
-							VkViewport viewport{};
-							viewport.x = 0.0f;
-							viewport.y = 0.0f;
-							viewport.width = static_cast<float>(swapchain_extent.width);
-							viewport.height = static_cast<float>(swapchain_extent.height);
-							viewport.minDepth = 0.0f;
-							viewport.maxDepth = 1.0f;
-							vkCmdSetViewport(cf.command_buffer, 0, 1, &viewport);
-							vkCmdSetViewportWithCountEXT(cf.command_buffer, 1, &viewport);
-						}
-						{
-							VkRect2D scissor{};
-							scissor.offset = { 0, 0 };
-							scissor.extent = swapchain_extent;
-							vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
-							vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
-						}
-						{
-
-							vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
-							vkCmdSetDepthWriteEnableEXT(cf.command_buffer, VK_TRUE);
-							vkCmdSetDepthCompareOpEXT(cf.command_buffer, VK_COMPARE_OP_GREATER_OR_EQUAL);
-							vkCmdSetDepthBoundsTestEnableEXT(cf.command_buffer, VK_FALSE);
-							vkCmdSetDepthBiasEnableEXT(cf.command_buffer, VK_FALSE);
-							vkCmdSetStencilTestEnableEXT(cf.command_buffer, VK_FALSE);
-							vkCmdSetDepthClipEnableEXT(cf.command_buffer, VK_FALSE);
-							vkCmdSetDepthClampEnableEXT(cf.command_buffer, VK_FALSE);
-							vkCmdSetLogicOpEnableEXT(cf.command_buffer, VK_FALSE);
-							vkCmdSetDepthBounds(cf.command_buffer, 0.0f, 1.0f);
-							vkCmdSetAlphaToCoverageEnableEXT(cf.command_buffer, VK_FALSE);
-						}
-						{
-							constexpr auto enable = VK_FALSE;
-							vkCmdSetColorBlendEnableEXT(cf.command_buffer, 0, 1, &enable);
-						}
 					}
 					{
 						{
