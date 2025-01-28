@@ -95,6 +95,8 @@ rosy::result gltf::import(rosy::log* l)
 				m.double_sided = mat.doubleSided;
 				m.metallic_factor = mat.pbrData.metallicFactor;
 				m.roughness_factor = mat.pbrData.roughnessFactor;
+				m.alpha_mode = static_cast<uint8_t>(mat.alphaMode);
+				m.alpha_cutoff = mat.alphaCutoff;
 			}
 			gltf_asset.materials.push_back(m);
 		}

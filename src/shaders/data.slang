@@ -91,6 +91,8 @@ public struct BasicMaterialData {
     public float4 color;
     public float metallicFactor;
     public float roughnessFactor;
+    public float alphaCutoff;
+    public uint32_t alphaMode;
     public uint32_t color_texture_index;
     public uint32_t color_sampler_index;
 };

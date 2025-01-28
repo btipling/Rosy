@@ -221,7 +221,7 @@ namespace
 
 		void integrate_all()
 		{
-			constexpr double base_velocity = 0.05;
+			constexpr double base_velocity = 0.025;
 			if (velocity.x != 0)
 			{
 				integrate(movement::direction::horizontal, velocity.x * base_velocity);

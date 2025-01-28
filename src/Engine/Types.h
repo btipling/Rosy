@@ -45,6 +45,7 @@ namespace rosy
 		size_t material_index{ 0 };
 		uint32_t index_count{ 0 };
 		uint32_t start_index{ 0 };
+		bool blended{ false };
 	};
 
 	struct graphics_object

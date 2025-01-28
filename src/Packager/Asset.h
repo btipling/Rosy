@@ -25,6 +25,8 @@ namespace rosy_packager {
 		float roughness_factor{ 0.f };
 		uint32_t color_image_index{ UINT32_MAX }; // UINT32_MAX == not present
 		uint32_t color_sampler_index{ UINT32_MAX }; // UINT32_MAX == not present
+		uint8_t alpha_mode{ 0 };
+		float alpha_cutoff{ 0.f };
 	};
 
 	struct sampler

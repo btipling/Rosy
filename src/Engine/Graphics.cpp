@@ -328,6 +328,8 @@ namespace {
 		std::array<float, 4> color;
 		float metallic_factor{ 0.f };
 		float roughness_factor{ 0.f };
+		float alpha_cutoff{ 0.f };
+		uint32_t alpha_mode{ 0 };
 		uint32_t color_sampled_image_index{ UINT32_MAX };
 		uint32_t color_sampler_index{ UINT32_MAX };
 	};
@@ -494,7 +496,9 @@ namespace {
 		gpu_material_buffer material_buffer{};
 		gpu_debug_draws_buffer debug_draws_buffer{};
 		graphic_objects_buffers graphic_objects_buffer{};
-		std::vector<surface_graphics_data> surface_graphics{};
+		std::vector<surface_graphics_data> shadow_casting_graphics{};
+		std::vector<surface_graphics_data> opaque_graphics{};
+		std::vector<surface_graphics_data> blended_graphics{};
 		std::vector<VkShaderEXT> scene_shaders;
 		VkPipelineLayout scene_layout;
 
@@ -3333,7 +3337,7 @@ namespace {
 			std::vector<uint32_t> sampler_desc_index;
 			{
 				size_t sampler_index{ 0 };
-				for (const rosy_packager::sampler new_sampler : a.samplers)
+				for (const auto [sampler_min_filter, sampler_mag_filter, sampler_wrap_s, sampler_wrap_t] : a.samplers)
 				{
 					VkSamplerCreateInfo sampler_create_info = {};
 					sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -3342,12 +3346,12 @@ namespace {
 					sampler_create_info.minLod = 0;
 					sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-					sampler_create_info.addressModeU = wrap_to_val(new_sampler.wrap_s);
-					sampler_create_info.addressModeV = wrap_to_val(new_sampler.wrap_t);
+					sampler_create_info.addressModeU = wrap_to_val(sampler_wrap_s);
+					sampler_create_info.addressModeV = wrap_to_val(sampler_wrap_t);
 					sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-					sampler_create_info.magFilter = filter_to_val(new_sampler.mag_filter);
-					sampler_create_info.minFilter = filter_to_val(new_sampler.min_filter);
+					sampler_create_info.magFilter = filter_to_val(sampler_mag_filter);
+					sampler_create_info.minFilter = filter_to_val(sampler_min_filter);
 					VkSampler created_sampler{};
 					if (const VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &created_sampler); res != VK_SUCCESS)
 					{
@@ -3419,17 +3423,19 @@ namespace {
 							color_sampler_index = sampler_desc_index[m.color_sampler_index];
 						}
 					}
+					gpu_material new_mat{};
 
-					materials.push_back({
-						.color = m.base_color_factor,
-						.metallic_factor = m.metallic_factor,
-						.roughness_factor = m.roughness_factor,
-						.color_sampled_image_index = color_image_sampler_index,
-						.color_sampler_index = color_sampler_index,
-						});
+					new_mat.color = m.base_color_factor;
+					new_mat.metallic_factor = m.metallic_factor;
+					new_mat.roughness_factor = m.roughness_factor;
+					new_mat.alpha_cutoff = m.alpha_cutoff;
+					new_mat.alpha_mode = m.alpha_mode;
+					new_mat.color_sampled_image_index = color_image_sampler_index;
+					new_mat.color_sampler_index = color_sampler_index;
+					materials.push_back(new_mat);
 				}
 
-				const size_t material_buffer_size = materials.size() * sizeof(materials);
+				const size_t material_buffer_size = materials.size() * sizeof(gpu_material);
 				{
 					VkBufferCreateInfo buffer_info{};
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -3903,7 +3909,9 @@ namespace {
 
 		result set_graphic_objects(std::vector<graphics_object> graphics_objects)
 		{
-			surface_graphics.clear();
+			shadow_casting_graphics.clear();
+			opaque_graphics.clear();
+			blended_graphics.clear();
 			std::vector<graphic_object_data> go_data{};
 			go_data.reserve(graphics_objects.size());
 			for (const auto& go : graphics_objects)
@@ -3913,7 +3921,13 @@ namespace {
 					});
 				for (const auto& s : go.surface_data)
 				{
-					surface_graphics.push_back(s);
+					shadow_casting_graphics.push_back(s);
+					if (s.blended)
+					{
+						blended_graphics.push_back(s);
+						continue;
+					}
+					opaque_graphics.push_back(s);
 				}
 
 			}
@@ -4310,7 +4324,7 @@ namespace {
 					vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadow_layout, 0, 1, &descriptor_set, 0, nullptr);
 					{
 						size_t current_mesh_index = UINT64_MAX;
-						for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index] : surface_graphics)
+						for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : shadow_casting_graphics)
 						{
 							auto& gpu_mesh = gpu_meshes[mesh_index];
 							if (mesh_index != current_mesh_index)
@@ -4620,7 +4634,43 @@ namespace {
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
 							{
 								size_t current_mesh_index = UINT64_MAX;
-								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index] : surface_graphics)
+								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : opaque_graphics)
+								{
+									auto& gpu_mesh = gpu_meshes[mesh_index];
+									if (mesh_index != current_mesh_index)
+									{
+										vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+										current_mesh_index = mesh_index;
+									}
+									gpu_draw_push_constants pc{
+										.scene_buffer = scene_buffer.scene_buffer_address,
+										.vertex_buffer = gpu_mesh.vertex_buffer_address,
+										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
+									};
+									vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
+									vkCmdDrawIndexed(cf.command_buffer, index_count, 1, start_index, 0, 0);
+									new_stats.draw_call_count += 1;
+									new_stats.triangle_count += index_count / 3;
+								}
+								{
+									// Enable blending
+									constexpr auto enable = VK_TRUE;
+									VkColorBlendEquationEXT blend_equation{};
+									blend_equation.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+									blend_equation.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+									blend_equation.colorBlendOp = VK_BLEND_OP_ADD;
+									blend_equation.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+									blend_equation.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+									blend_equation.alphaBlendOp = VK_BLEND_OP_ADD;
+									vkCmdSetColorBlendEnableEXT(cf.command_buffer, 0, 1, &enable);
+									VkFlags color_component_flags{};
+									color_component_flags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+									vkCmdSetColorWriteMaskEXT(cf.command_buffer, 0, 1, &color_component_flags);
+									vkCmdSetColorBlendEquationEXT(cf.command_buffer, 0, 1, &blend_equation);
+								}
+								current_mesh_index = UINT64_MAX;
+								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : blended_graphics)
 								{
 									auto& gpu_mesh = gpu_meshes[mesh_index];
 									if (mesh_index != current_mesh_index)
