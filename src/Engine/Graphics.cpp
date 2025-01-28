@@ -2402,15 +2402,15 @@ namespace {
 					sampler_create_info.minLod = 0;
 
 					sampler_create_info.mipLodBias = 0.f;
-					sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+					sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 					sampler_create_info.anisotropyEnable = VK_FALSE;
 					sampler_create_info.maxAnisotropy = 0.f;
 
 					sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 					sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 					sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-					sampler_create_info.compareOp = VK_COMPARE_OP_NEVER;
-					sampler_create_info.compareEnable = VK_FALSE;
+					sampler_create_info.compareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
+					sampler_create_info.compareEnable = VK_TRUE;
 
 					sampler_create_info.magFilter = VK_FILTER_LINEAR;
 					sampler_create_info.minFilter = VK_FILTER_LINEAR;

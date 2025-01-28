@@ -3,6 +3,7 @@ import pcf;
 
 [[vk::binding(0, 0)]] texture2D imageTexture[];
 [[vk::binding(1, 0)]] SamplerState imageSampler[];
+[[vk::binding(1, 0)]] SamplerComparisonState shadowSampler[];
 
 [[vk::push_constant]] BasicPushConstant BasicPushConstants;
 
@@ -65,12 +66,12 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     float shadowFactor = 1.f;
     uint csmSampler = sd.csmIndexSampler;
-    SamplerState shadowSampler = imageSampler[NonUniformResourceIndex(csmSampler)];
+    SamplerComparisonState shadowSampler = shadowSampler[NonUniformResourceIndex(csmSampler)];
     uint csmNear = sd.csmIndexNear;
     texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csmNear)];
     shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
 
-    float4 outFragColor = imageTextureColor * float4(ambientLight + shadowFactor + sunLight, 1.0);
+    float4 outFragColor = imageTextureColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
 
     Fragment output;
     output.color = outFragColor;
