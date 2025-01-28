@@ -100,37 +100,12 @@ namespace
 
 	};
 
-	static double acceleration(const state& state, [[maybe_unused]] double t) {
-		constexpr double dampening = -0.05;
-		constexpr double scale = 0.1;
-		return dampening * state.velocity / (1.0 + std::abs(state.velocity) / scale);
+	void integrate(state& state, [[maybe_unused]] double t, const double frame_time) {
+		state.position = state.position * frame_time;
+		state.velocity = state.velocity * frame_time;
 	}
 
-	static derivative evaluate(const state& initial, const double t, const double dt, const derivative& d) {
-		state state{};
-		state.position = initial.position + d.dx_velocity * dt;
-		state.velocity = initial.velocity + d.dv_acceleration * dt;
-
-		derivative output{};
-		output.dx_velocity = state.velocity;
-		output.dv_acceleration = acceleration(state, t + dt);
-		return output;
-	}
-
-	void integrate(state& state, const double t, const double frame_time) {
-		const derivative a = evaluate(state, t, 0.0f, derivative());
-		const derivative b = evaluate(state, t, frame_time * 0.5f, a);
-		const derivative c = evaluate(state, t, frame_time * 0.5f, b);
-		const auto [dx_velocity, dv_acceleration] = evaluate(state, t, frame_time, c);
-
-		const double dx_dt = 1.0f / 6.0f * (a.dx_velocity + 2.0f * (b.dx_velocity + c.dx_velocity) + dx_velocity);
-		const double dv_dt = 1.0f / 6.0f * (a.dv_acceleration + 2.0f * (b.dv_acceleration + c.dv_acceleration) + dv_acceleration);
-
-		state.position = state.position + dx_dt * frame_time;
-		state.velocity = state.velocity + dv_dt * frame_time;
-	}
-
-	time_ctx time_step(const time_ctx& ctx, double frame_time)
+	time_ctx time_step([[maybe_unused]] rosy::log const* l, const time_ctx& ctx, double frame_time)
 	{
 		state current_state = ctx.current_state;
 		state previous_state = ctx.previous_state;
@@ -182,6 +157,8 @@ namespace
 
 	struct synthetic_camera
 	{
+		SDL_Time start_time;
+		SDL_Time last_time;
 		rosy::log const* l{ nullptr };
 		config cfg{};
 
@@ -193,6 +170,8 @@ namespace
 
 		result init()
 		{
+			if (!SDL_GetCurrentTime(&start_time)) return result::error;
+			last_time = start_time;
 			movements.reserve(6);
 			return result::ok;
 		}
@@ -242,7 +221,7 @@ namespace
 
 		void integrate_all()
 		{
-			constexpr double base_velocity = 0.0004;
+			constexpr double base_velocity = 0.05;
 			if (velocity.x != 0)
 			{
 				integrate(movement::direction::horizontal, velocity.x * base_velocity);
@@ -259,8 +238,6 @@ namespace
 
 		void integrate(const movement::direction direction, const double v)
 		{
-			SDL_Time  ticks = 0;
-			if (!SDL_GetCurrentTime(&ticks)) return;
 			bool found = false;
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
@@ -274,15 +251,15 @@ namespace
 			if (!found) {
 				movements.push_back({
 					.step = {
-						.time = static_cast<double>(ticks),
+						.time = 0.f,
 						.accumulator = 0.f,
 						.previous_state = {},
 						.current_state = {
-							.position = 0,
+							.position = 0.05f * v,
 							.velocity = v,
 						},
 					},
-					.start = static_cast<double>(ticks),
+					.start = 0.f,
 					.dir = direction,
 					});
 			}
@@ -293,6 +270,8 @@ namespace
 			integrate_all();
 			int to_remove{ -1 };
 			const glm::mat4 camera_rotation = get_rotation_matrix();
+
+
 			glm::vec4 vel = { 0.f, 0.f, 0.f, 0.f };
 			SDL_Time tick = 0;
 			if (!SDL_GetCurrentTime(&tick))
@@ -300,12 +279,14 @@ namespace
 				l->error(std::format("Error getting current SDL tick: {}", SDL_GetError()));
 				return result::error;
 			}
-			const auto dt = static_cast<double>(tick);
+			const SDL_Time frame_time = tick - last_time;
+			last_time = tick;
+			const auto dt = static_cast<double>(frame_time);
 			bool updated = false;
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
 				movement mv = movements[i];
-				const auto new_step = time_step(mv.step, dt);
+				const auto new_step = time_step(l, mv.step, dt);
 				movements[i].step = new_step;
 				if (is_equal(new_step.current_state.velocity, 0.0))
 				{

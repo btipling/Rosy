@@ -4978,7 +4978,7 @@ namespace {
 
 		result ui(const engine_stats& eng_stats)
 		{
-			ImGui::ShowDemoWindow();
+			//ImGui::ShowDemoWindow();
 
 			ImGuiWindowFlags window_flags{ 0 };
 			window_flags |= ImGuiWindowFlags_NoCollapse;
