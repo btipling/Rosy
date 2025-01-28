@@ -2212,6 +2212,72 @@ namespace {
 				l->error("Failed to get SDL display info");
 				return VK_ERROR_INITIALIZATION_FAILED;
 			}
+
+			ImGuiStyle& style = ImGui::GetStyle();
+			style.WindowMinSize        = ImVec2(160, 20);
+			style.FramePadding         = ImVec2(4, 2);
+			style.ItemSpacing          = ImVec2(6, 2);
+			style.ItemInnerSpacing     = ImVec2(6, 4);
+			style.Alpha                = 0.95f;
+			style.WindowRounding       = 4.0f;
+			style.FrameRounding        = 2.0f;
+			style.IndentSpacing        = 6.0f;
+			style.ItemInnerSpacing     = ImVec2(2, 4);
+			style.ColumnsMinSpacing    = 50.0f;
+			style.GrabMinSize          = 14.0f;
+			style.GrabRounding         = 16.0f;
+			style.ScrollbarSize        = 12.0f;
+			style.ScrollbarRounding    = 16.0f;
+
+			style.Colors[ImGuiCol_Text]                  = ImVec4(0.86f, 0.93f, 0.89f, 0.78f);
+			style.Colors[ImGuiCol_TextDisabled]          = ImVec4(0.86f, 0.93f, 0.89f, 0.28f);
+			style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.13f, 0.14f, 0.17f, 1.00f);
+			style.Colors[ImGuiCol_Border]                = ImVec4(0.31f, 0.31f, 1.00f, 0.00f);
+			style.Colors[ImGuiCol_BorderShadow]          = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+			style.Colors[ImGuiCol_FrameBg]               = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
+			style.Colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.92f, 0.18f, 0.29f, 0.78f);
+			style.Colors[ImGuiCol_FrameBgActive]         = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
+			style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.20f, 0.22f, 0.27f, 0.75f);
+			style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_MenuBarBg]             = ImVec4(0.20f, 0.22f, 0.27f, 0.47f);
+			style.Colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
+			style.Colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.09f, 0.15f, 0.16f, 1.00f);
+			style.Colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.92f, 0.18f, 0.29f, 0.78f);
+			style.Colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_CheckMark]             = ImVec4(0.71f, 0.22f, 0.27f, 1.00f);
+			style.Colors[ImGuiCol_SliderGrab]            = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
+			style.Colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+
+			style.Colors[ImGuiCol_TabHovered]                 = ImVec4(0.92f, 0.18f, 0.29f, 0.86f);
+			style.Colors[ImGuiCol_Tab]                        = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
+			style.Colors[ImGuiCol_TabSelectedOverline]        = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
+			style.Colors[ImGuiCol_TabDimmed]                  = ImVec4(0.86f, 0.93f, 0.89f, 0.28f);
+			style.Colors[ImGuiCol_TabHovered]	              = ImVec4(0.92f, 0.18f, 0.29f, 0.78f);
+			style.Colors[ImGuiCol_TabDimmedSelected]          = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_TabDimmedSelectedOverline]  = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_TabSelected]                = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+
+			style.Colors[ImGuiCol_Button]                = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
+			style.Colors[ImGuiCol_ButtonHovered]         = ImVec4(0.92f, 0.18f, 0.29f, 0.86f);
+			style.Colors[ImGuiCol_ButtonActive]          = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_Header]                = ImVec4(0.92f, 0.18f, 0.29f, 0.76f);
+			style.Colors[ImGuiCol_HeaderHovered]         = ImVec4(0.92f, 0.18f, 0.29f, 0.86f);
+			style.Colors[ImGuiCol_HeaderActive]          = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_Separator]             = ImVec4(0.14f, 0.16f, 0.19f, 1.00f);
+			style.Colors[ImGuiCol_SeparatorHovered]      = ImVec4(0.92f, 0.18f, 0.29f, 0.78f);
+			style.Colors[ImGuiCol_SeparatorActive]       = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_ResizeGrip]            = ImVec4(0.47f, 0.77f, 0.83f, 0.04f);
+			style.Colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.92f, 0.18f, 0.29f, 0.78f);
+			style.Colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_PlotLines]             = ImVec4(0.86f, 0.93f, 0.89f, 0.63f);
+			style.Colors[ImGuiCol_PlotLinesHovered]      = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_PlotHistogram]         = ImVec4(0.86f, 0.93f, 0.89f, 0.63f);
+			style.Colors[ImGuiCol_PlotHistogramHovered]  = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
+			style.Colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.92f, 0.18f, 0.29f, 0.43f);
+			style.Colors[ImGuiCol_PopupBg]               = ImVec4(0.20f, 0.22f, 0.27f, 0.9f);
+			style.Colors[ImGuiCol_ModalWindowDimBg]  = ImVec4(0.20f, 0.22f, 0.27f, 0.73f);
+
 			const float content_scale = SDL_GetDisplayContentScale(*display_ids);
 
 			ImGuiIO& io = ImGui::GetIO();
@@ -4912,7 +4978,7 @@ namespace {
 
 		result ui(const engine_stats& eng_stats)
 		{
-			//ImGui::ShowDemoWindow();
+			ImGui::ShowDemoWindow();
 
 			ImGuiWindowFlags window_flags{ 0 };
 			window_flags |= ImGuiWindowFlags_NoCollapse;
@@ -4965,7 +5031,7 @@ namespace {
 							ImGui::SliderFloat("Spherical yaw", &wls->sun_yaw, 0.f, 4 * static_cast<float>(pi));
 							ImGui::SliderFloat("Light depth", &wls->orthographic_depth, 0.f, 500.f);
 							ImGui::SliderFloat("Light cascade level", &wls->cascade_level, 0.f, 50.f);
-								ImGui::SliderFloat("Depth bias constant", &wls->depth_bias_constant, -500.f, 500.f);
+							ImGui::SliderFloat("Depth bias constant", &wls->depth_bias_constant, -500.f, 500.f);
 							ImGui::SliderFloat("Depth bias clamp", &wls->depth_bias_clamp, -500.f, 500.f);
 							ImGui::SliderFloat("Depth bias slope factor", &wls->depth_bias_slope_factor, -500.f, 500.f);
 							ImGui::EndTable();
