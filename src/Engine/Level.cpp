@@ -241,6 +241,9 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			});
 	}
 
+	int num_blended_materials{ 0 };
+	int num_transparent_materials{ 0 };
+
 	while (sgp->queue.size() > 0)
 	{
 		// ReSharper disable once CppUseStructuredBinding Visual studio wants to make this a reference, and it shouldn't be.
@@ -270,6 +273,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 					sgd.index_count = sur_count;
 					sgd.start_index = sur_start_index;
 					go.surface_data.push_back(sgd);
+					if (new_asset.materials[sur_material].alpha_mode == 2) num_blended_materials += 1;
+					if (new_asset.materials[sur_material].alpha_mode == 1) {
+						num_blended_materials += 1;
+						num_transparent_materials += 1;
+					}
 				}
 
 				for (const uint32_t child_mesh_index : current_mesh.child_meshes)
@@ -287,6 +295,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				.parent_transform = queue_item.parent_transform * node_transform,
 				});
 		}
+		ls->l->info(std::format("num blended: {} num transparent: {}\n", num_blended_materials, num_transparent_materials));
 	}
 
 	return result::ok;

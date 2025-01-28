@@ -328,6 +328,8 @@ namespace {
 		std::array<float, 4> color;
 		float metallic_factor{ 0.f };
 		float roughness_factor{ 0.f };
+		float alpha_cutoff{ 0.f };
+		uint32_t alpha_mode{ 0 };
 		uint32_t color_sampled_image_index{ UINT32_MAX };
 		uint32_t color_sampler_index{ UINT32_MAX };
 	};
@@ -3333,7 +3335,7 @@ namespace {
 			std::vector<uint32_t> sampler_desc_index;
 			{
 				size_t sampler_index{ 0 };
-				for (const rosy_packager::sampler new_sampler : a.samplers)
+				for (const auto [sampler_min_filter, sampler_mag_filter, sampler_wrap_s, sampler_wrap_t] : a.samplers)
 				{
 					VkSamplerCreateInfo sampler_create_info = {};
 					sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -3342,12 +3344,12 @@ namespace {
 					sampler_create_info.minLod = 0;
 					sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-					sampler_create_info.addressModeU = wrap_to_val(new_sampler.wrap_s);
-					sampler_create_info.addressModeV = wrap_to_val(new_sampler.wrap_t);
+					sampler_create_info.addressModeU = wrap_to_val(sampler_wrap_s);
+					sampler_create_info.addressModeV = wrap_to_val(sampler_wrap_t);
 					sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-					sampler_create_info.magFilter = filter_to_val(new_sampler.mag_filter);
-					sampler_create_info.minFilter = filter_to_val(new_sampler.min_filter);
+					sampler_create_info.magFilter = filter_to_val(sampler_mag_filter);
+					sampler_create_info.minFilter = filter_to_val(sampler_min_filter);
 					VkSampler created_sampler{};
 					if (const VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &created_sampler); res != VK_SUCCESS)
 					{
@@ -3419,17 +3421,19 @@ namespace {
 							color_sampler_index = sampler_desc_index[m.color_sampler_index];
 						}
 					}
+					gpu_material new_mat{};
 
-					materials.push_back({
-						.color = m.base_color_factor,
-						.metallic_factor = m.metallic_factor,
-						.roughness_factor = m.roughness_factor,
-						.color_sampled_image_index = color_image_sampler_index,
-						.color_sampler_index = color_sampler_index,
-						});
+					new_mat.color = m.base_color_factor;
+					new_mat.metallic_factor = m.metallic_factor;
+					new_mat.roughness_factor = m.roughness_factor;
+					new_mat.alpha_cutoff = m.alpha_cutoff;
+					new_mat.alpha_mode = m.alpha_mode;
+					new_mat.color_sampled_image_index = color_image_sampler_index;
+					new_mat.color_sampler_index = color_sampler_index;
+					materials.push_back(new_mat);
 				}
 
-				const size_t material_buffer_size = materials.size() * sizeof(materials);
+				const size_t material_buffer_size = materials.size() * sizeof(gpu_material);
 				{
 					VkBufferCreateInfo buffer_info{};
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
