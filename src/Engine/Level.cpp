@@ -296,7 +296,6 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				.parent_transform = queue_item.parent_transform * node_transform,
 				});
 		}
-		ls->l->info(std::format("num blended: {} num transparent: {}\n", num_blended_materials, num_transparent_materials));
 	}
 
 	return result::ok;
