@@ -87,14 +87,13 @@ namespace
 				// Light & Shadow logic
 				glm::mat4 light_sun_view;
 				glm::mat4 debug_light_sun_view;
-				glm::mat4 light_translate;
 				glm::mat4 debug_light_translate;
 				glm::mat4 light_line_rot;
 				{
 					// Lighting math
 
 					{
-						light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * wls->sun_distance});
+						const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * wls->sun_distance});
 						debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * wls->sun_distance});
 						const glm::quat pitch_rotation = angleAxis(-wls->sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
 						const glm::quat yaw_rotation = angleAxis(wls->sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
@@ -240,9 +239,6 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			});
 	}
 
-	int num_blended_materials{ 0 };
-	int num_transparent_materials{ 0 };
-
 	size_t go_index{ 0 };
 	while (sgp->queue.size() > 0)
 	{
@@ -271,10 +267,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 					sgd.material_index = sur_material;
 					sgd.index_count = sur_count;
 					sgd.start_index = sur_start_index;
-					if (new_asset.materials[sur_material].alpha_mode == 2) num_blended_materials += 1;
-					if (new_asset.materials[sur_material].alpha_mode == 1) {
-						num_blended_materials += 1;
-						num_transparent_materials += 1;
+					if (new_asset.materials[sur_material].alpha_mode != 0) {
 						sgd.blended = true;
 					}
 					go.surface_data.push_back(sgd);
