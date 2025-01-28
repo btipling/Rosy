@@ -137,6 +137,8 @@ namespace {
 	constexpr  uint64_t graphics_created_bit_debug_pipeline   = 0b0000000000000000000000001000000000000000000000000000000000000000;
 	constexpr  uint64_t graphics_created_bit_shadow_shaders   = 0b0000000000000000000000010000000000000000000000000000000000000000;
 	constexpr  uint64_t graphics_created_bit_shadow_pipeline  = 0b0000000000000000000000100000000000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_msaa_image       = 0b0000000000000000000001000000000000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_msaa_image_view  = 0b0000000000000000000010000000000000000000000000000000000000000000;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -468,6 +470,7 @@ namespace {
 
 		allocated_image draw_image;
 		allocated_image depth_image;
+		allocated_image msaa_image;
 		allocated_csm shadow_map_image;
 		uint32_t default_sampler_index{ 0 };
 		VkSampler default_sampler{ nullptr };
@@ -614,6 +617,13 @@ namespace {
 			if (vk_res != VK_SUCCESS)
 			{
 				l->error(std::format("Failed to init draw image! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
+				return result::graphics_init_failure;
+			}
+
+			vk_res = init_msaa();
+			if (vk_res != VK_SUCCESS)
+			{
+				l->error(std::format("Failed to init mssa! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
@@ -875,6 +885,16 @@ namespace {
 				if (fd.frame_graphics_created_bitmask & graphics_created_bit_image_semaphore)  vkDestroySemaphore(device, fd.image_available_semaphore, nullptr);
 				if (fd.frame_graphics_created_bitmask & graphics_created_bit_pass_semaphore) vkDestroySemaphore(device, fd.render_finished_semaphore, nullptr);
 				if (fd.frame_graphics_created_bitmask & graphics_created_bit_command_pool) vkDestroyCommandPool(device, fd.command_pool, nullptr);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_msaa_image_view)
+			{
+				vkDestroyImageView(device, msaa_image.image_view, nullptr);
+			}
+
+			if (graphics_created_bitmask & graphics_created_bit_msaa_image)
+			{
+				vmaDestroyImage(allocator, msaa_image.image, msaa_image.allocation);
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_depth_image_view)
@@ -1837,6 +1857,99 @@ namespace {
 					debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(depth_image.image_view);
 					debug_name.pObjectName = "rosy depth image view";
+					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
+				}
+			}
+
+			return res;
+		}
+
+		VkResult init_msaa()
+		{
+			l->info("Initializing msaa");
+
+			VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_1_BIT;
+			VkSampleCountFlags counts = physical_device_properties.limits.framebufferColorSampleCounts & physical_device_properties.limits.framebufferDepthSampleCounts;
+			if (counts & VK_SAMPLE_COUNT_64_BIT) { msaa_samples = VK_SAMPLE_COUNT_64_BIT; }
+			if (counts & VK_SAMPLE_COUNT_32_BIT) { msaa_samples = VK_SAMPLE_COUNT_32_BIT; }
+			if (counts & VK_SAMPLE_COUNT_16_BIT) { msaa_samples = VK_SAMPLE_COUNT_16_BIT; }
+			if (counts & VK_SAMPLE_COUNT_8_BIT) { msaa_samples = VK_SAMPLE_COUNT_8_BIT; }
+			if (counts & VK_SAMPLE_COUNT_4_BIT) { msaa_samples = VK_SAMPLE_COUNT_4_BIT; }
+			if (counts & VK_SAMPLE_COUNT_2_BIT) { msaa_samples = VK_SAMPLE_COUNT_2_BIT; }
+
+
+			VkResult res = VK_SUCCESS;
+			const VkExtent3D msaa_image_extent = {
+				.width = static_cast<uint32_t>(cfg.max_window_width),
+				.height = static_cast<uint32_t>(cfg.max_window_height),
+				.depth = 1
+			};
+
+			VmaAllocationCreateInfo r_img_alloc_info{};
+			r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+			r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+			{
+				// MSAA image creation.
+				msaa_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
+				msaa_image.image_extent = msaa_image_extent;
+
+				VkImageUsageFlags msaa_image_usages{};
+				msaa_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+				msaa_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+				msaa_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+				msaa_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+				{
+					VkImageCreateInfo msaa_info{};
+					msaa_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+					msaa_info.pNext = nullptr;
+					msaa_info.imageType = VK_IMAGE_TYPE_2D;
+					msaa_info.format = msaa_image.image_format;
+					msaa_info.extent = msaa_image_extent;
+					msaa_info.mipLevels = 1;
+					msaa_info.arrayLayers = 1;
+					msaa_info.samples = VK_SAMPLE_COUNT_1_BIT;
+					msaa_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+					msaa_info.usage = msaa_image_usages;
+
+					if (res = vmaCreateImage(allocator, &msaa_info, &r_img_alloc_info, &msaa_image.image, &msaa_image.allocation, nullptr); res != VK_SUCCESS) return res;
+					graphics_created_bitmask |= graphics_created_bit_msaa_image;
+				}
+				{
+					VkImageViewCreateInfo msaa_view_create_info{};
+					msaa_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					msaa_view_create_info.pNext = nullptr;
+					msaa_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					msaa_view_create_info.image = msaa_image.image;
+					msaa_view_create_info.format = msaa_image.image_format;
+					msaa_view_create_info.subresourceRange.baseMipLevel = 0;
+					msaa_view_create_info.subresourceRange.levelCount = 1;
+					msaa_view_create_info.subresourceRange.baseArrayLayer = 0;
+					msaa_view_create_info.subresourceRange.layerCount = 1;
+					msaa_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+					res = vkCreateImageView(device, &msaa_view_create_info, nullptr, &msaa_image.image_view);
+					if (res != VK_SUCCESS) return res;
+					graphics_created_bitmask |= graphics_created_bit_msaa_image_view;
+				}
+
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_IMAGE;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(msaa_image.image);
+					debug_name.pObjectName = "rosy msaa image";
+					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
+				}
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(msaa_image.image_view);
+					debug_name.pObjectName = "rosy msaa image view";
 					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 				}
 			}
