@@ -230,7 +230,6 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	if (nodes.size() < 1) return result::invalid_argument;
 
 	// Reset state
-	graphics_objects.clear();
 	while (!sgp->queue.empty()) sgp->queue.pop();
 	while (!sgp->mesh_queue.empty()) sgp->mesh_queue.pop();
 
@@ -244,6 +243,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	int num_blended_materials{ 0 };
 	int num_transparent_materials{ 0 };
 
+	size_t go_index{ 0 };
 	while (sgp->queue.size() > 0)
 	{
 		// ReSharper disable once CppUseStructuredBinding Visual studio wants to make this a reference, and it shouldn't be.
@@ -263,7 +263,6 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				graphics_object go{};
 				go.transform = mat4_to_array(gltf_to_ndc * queue_item.parent_transform * node_transform);
 				go.surface_data.reserve(current_mesh.surfaces.size());
-				const size_t go_index = graphics_objects.size();
 				for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
 				{
 					surface_graphics_data sgd{};
@@ -272,12 +271,13 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 					sgd.material_index = sur_material;
 					sgd.index_count = sur_count;
 					sgd.start_index = sur_start_index;
-					go.surface_data.push_back(sgd);
 					if (new_asset.materials[sur_material].alpha_mode == 2) num_blended_materials += 1;
 					if (new_asset.materials[sur_material].alpha_mode == 1) {
 						num_blended_materials += 1;
 						num_transparent_materials += 1;
+						sgd.blended = true;
 					}
+					go.surface_data.push_back(sgd);
 				}
 
 				for (const uint32_t child_mesh_index : current_mesh.child_meshes)
@@ -285,6 +285,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 					sgp->mesh_queue.push(child_mesh_index);
 				}
 				graphics_objects.push_back(go);
+				go_index += 1;
 			}
 		}
 
