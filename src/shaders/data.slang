@@ -11,6 +11,8 @@ public struct BasicVertex
 {
     public float4 vertex;
     public float3 normal;
+    public float3 viewDir;
+    public float3 lightDir;
     public float4 color;
     public float2 textureCoordinates;
 };

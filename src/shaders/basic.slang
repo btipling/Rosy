@@ -31,9 +31,9 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float3 bitangent = normalize(cross(normal, tangent)) * v.tangent.w;
 
     float3x3 toObjectLocal = float3x3(
-        float3(tangent.x, bitangent.x, normal.x),
-        float3(tangent.y, bitangent.y, normal.y),
-        float3(tangent.z, bitangent.z, normal.z),
+        tangent,
+        bitangent,
+        normal,
     );
 
     float3 lightDir = normalize(mul(toObjectLocal, sd.sunlight.xyz));
@@ -43,6 +43,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.vertex = float4(v.position, 1.f);
     output.basicVertex.normal = normal;
     output.basicVertex.color = v.color;
+    output.basicVertex.viewDir = viewDir;
+    output.basicVertex.lightDir = lightDir;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(
         mul(
@@ -65,16 +67,13 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     uint nti = md.normal_texture_index;
     uint nsi = md.normal_sampler_index;
 
-    float3 lightNormal = basicVertex.normal;
-
     texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
     SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-    lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
+    float3 lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
 
-    float3 sunlight = float3(sd.sunlight[0], sd.sunlight[1], sd.sunlight[2]);
-    float3 V = normalize(sd.cameraPosition.xyz - basicVertex.vertex.xyz);
-    float3 L = normalize(sunlight);
+    float3 V = normalize(basicVertex.viewDir);
+    float3 L = normalize(basicVertex.lightDir);
     float3 N = normalize(lightNormal);
     float3 H = normalize(L + V);
 
@@ -102,6 +101,5 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     Fragment output;
     output.color = outFragColor;
-    // output.color = float4(lightNormal.xyz * 0.5 + 0.5, 1.f);
     return output;
 }
