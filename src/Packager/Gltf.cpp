@@ -89,6 +89,15 @@ rosy::result gltf::import(rosy::log* l)
 				m.color_image_index = UINT32_MAX;
 				m.color_sampler_index = UINT32_MAX;
 			}
+			if (mat.normalTexture.has_value()) {
+				m.normal_image_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.value());
+				m.normal_sampler_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].samplerIndex.value());
+			}
+			else
+			{
+				m.normal_image_index = UINT32_MAX;
+				m.normal_sampler_index = UINT32_MAX;
+			}
 			{
 				fastgltf::math::nvec4 c = mat.pbrData.baseColorFactor;
 				m.base_color_factor = { c[0], c[1], c[2], c[3] };

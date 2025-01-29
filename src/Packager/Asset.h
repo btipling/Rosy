@@ -27,6 +27,8 @@ namespace rosy_packager {
 		uint32_t color_sampler_index{ UINT32_MAX }; // UINT32_MAX == not present
 		uint8_t alpha_mode{ 0 };
 		float alpha_cutoff{ 0.f };
+		uint32_t normal_image_index{ UINT32_MAX }; // UINT32_MAX == not present
+		uint32_t normal_sampler_index{ UINT32_MAX }; // UINT32_MAX == not present
 	};
 
 	struct sampler

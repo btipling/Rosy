@@ -119,7 +119,7 @@ namespace rosy
 		bool depth_bias_enabled{ true };
 		float depth_bias_constant{-17.242f };
 		float depth_bias_clamp{ -114.858f };
-		float depth_bias_slope_factor{ -30.583f };
+		float depth_bias_slope_factor{ -7.376f };
 	};
 
 }
