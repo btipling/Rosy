@@ -140,10 +140,14 @@ rosy::result gltf::import(rosy::log* l)
 
 	// MESHES
 
+	std::vector<fastgltf::math::fvec3>tangent_calc_vertices{};
+	std::vector<fastgltf::math::fvec3>tangent_calc_normals{};
 	for (fastgltf::Mesh& fast_gltf_mesh : gltf.meshes) {
 		mesh new_mesh{};
 		for (auto& primitive : fast_gltf_mesh.primitives)
 		{
+			tangent_calc_vertices.clear();
+			tangent_calc_normals.clear();
 			// PRIMITIVE SURFACE
 			surface new_surface{};
 			new_surface.start_index = static_cast<uint32_t>(new_mesh.indices.size());
@@ -172,6 +176,8 @@ rosy::result gltf::import(rosy::log* l)
 					position new_position{};
 					new_position.vertex = { v[0], v[1], v[2] };
 					new_position.normal = { 1.0f, 0.0f, 0.0f };
+					tangent_calc_vertices.push_back(v);
+					tangent_calc_normals.push_back({ 1.0f, 0.0f, 0.0f });
 					new_mesh.positions[initial_vtx + index] = new_position;
 				});
 
@@ -180,6 +186,7 @@ rosy::result gltf::import(rosy::log* l)
 				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, gltf.accessors[normals->accessorIndex],
 					[&](const fastgltf::math::fvec3& n, const size_t index) {
 						new_mesh.positions[initial_vtx + index].normal = { n[0], n[1], n[2] };
+						tangent_calc_normals[index] = n;
 					});
 			}
 
@@ -198,6 +205,14 @@ rosy::result gltf::import(rosy::log* l)
 					[&](const fastgltf::math::fvec4& c, const size_t index) {
 						new_mesh.positions[initial_vtx + index].color = { c[0], c[1], c[2], c[3] };
 					});
+			}
+
+			for (size_t index{0}; index < tangent_calc_vertices.size(); index++)
+			{
+				const fastgltf::math::fvec3& v = tangent_calc_vertices[index];
+				const fastgltf::math::fvec3& n = tangent_calc_normals[index];
+				const fastgltf::math::fvec3 t = cross(n, v);
+				new_mesh.positions[initial_vtx + index].tangents = { t[0], t[1], t[2] };
 			}
 
 			// PRIMITIVE MATERIAL

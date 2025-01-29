@@ -34,7 +34,7 @@ using namespace rosy_packager;
 		// index 2 - num surfaces -> a std::vector<surface> of surfaces size given
 		// index 3 - num child meshes -> a std::vector<uint32_t> of child mesh size given
 
-rosy::result asset::write(rosy::log* l)
+rosy::result asset::write(const rosy::log* l)
 {
 
 	// OPEN FILE FOR WRITING BINARY

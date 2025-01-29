@@ -62,6 +62,7 @@ namespace rosy_packager {
 	{
 		std::array<float, 3> vertex{ 0.f, 0.f, 0.f };
 		std::array<float, 3> normal{ 0.f, 0.f, 0.f };
+		std::array<float, 3> tangents{ 0.f, 0.f, 0.f };
 		std::array<float, 4> color{ 1.f, 0.f, 0.f, 1.f };
 		std::array<float, 2> texture_coordinates{ 0.f, 0.f };
 	};
@@ -98,7 +99,7 @@ namespace rosy_packager {
 		std::vector<shader> shaders;
 		uint32_t root_scene{ 0 };
 
-		rosy::result write(rosy::log* l);
+		rosy::result write(const rosy::log* l);
 		rosy::result read(rosy::log* l);
 		rosy::result read_shaders(const rosy::log* l);
 	};

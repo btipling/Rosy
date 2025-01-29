@@ -60,8 +60,12 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     uint cti = md.color_texture_index;
     uint csi = md.color_sampler_index;
-    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
-    SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
+
+    uint nti = md.normal_texture_index;
+    uint nsi = md.normal_sampler_index;
+
+    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(nti)];
+    SamplerState matSampler = imageSampler[NonUniformResourceIndex(nsi)];
     float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
 
     float shadowFactor = 1.f;

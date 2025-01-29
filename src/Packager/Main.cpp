@@ -67,7 +67,7 @@ int main(const int argc, char* argv[])
 	for (auto& m : b.meshes)
 	{
 
-		for (auto& [vertex, normal, color, texture_coordinates] : m.positions)
+		for (auto& [vertex, normal, color, tangents, texture_coordinates] : m.positions)
 		{
 			l.debug(std::format("vertex: {} normal: {} color: {} tc: {}", vertex, normal, color, texture_coordinates));
 		}
