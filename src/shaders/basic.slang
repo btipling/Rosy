@@ -15,6 +15,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     BasicInputVertex v = *(BasicPushConstants.v + uiVertexId);
     BasicGraphicsData gd = *BasicPushConstants.gd;
     float4x4 worldMat = gd.transform;
+    float4x4 normalMat = gd.normalTransform;
 
     float4 posWorld = float4(v.position, 1.0);
 
@@ -27,9 +28,9 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
-    output.basicVertex.normal = normalize(mul(float3x3(worldMat), v.normal));
+    output.basicVertex.normal = normalize(mul(float3x3(normalMat), v.normal));
     output.basicVertex.color = v.color;
-    output.basicVertex.tangent = v.tangent;
+    output.basicVertex.tangent = normalize(mul(float3x3(normalMat), v.tangent));
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(
         mul(
