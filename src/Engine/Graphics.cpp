@@ -1245,26 +1245,22 @@ namespace {
 				shader_object_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
 				shader_object_features.pNext = nullptr;
 
-				VkPhysicalDeviceDepthClipEnableFeaturesEXT  depth_clip_features{};
-				depth_clip_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT;
-				depth_clip_features.pNext = &shader_object_features;
-
 				VkPhysicalDeviceFeatures2 device_features2{};
 				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-				device_features2.pNext = &depth_clip_features;
+				device_features2.pNext = &shader_object_features;
 				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
 
 				if (!shader_object_features.shaderObject) continue;
 
-				VkPhysicalDeviceFragmentShadingRateFeaturesKHR  shading_rate{};
-				shading_rate.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
-				shading_rate.pNext = &shading_rate;
+				VkPhysicalDeviceDepthClipEnableFeaturesEXT  depth_clip_features{};
+				depth_clip_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT;
+				depth_clip_features.pNext = nullptr;;
 
 				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-				device_features2.pNext = nullptr;
+				device_features2.pNext = &depth_clip_features;
 				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
 
-				//if (!shading_rate.attachmentFragmentShadingRate) continue;
+				if (!depth_clip_features.depthClipEnable) continue;
 
 				// dynamic rendering required
 				VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features{};
