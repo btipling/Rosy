@@ -90,6 +90,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     Fragment output;
     output.color = outFragColor;
-    // output.color = float4(lightNormal.xyz, 1.f);
+    // output.color = float4(lightNormal.xyz * 0.5 + 0.5, 1.f);
     return output;
 }
