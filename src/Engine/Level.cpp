@@ -257,7 +257,10 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				sgp->mesh_queue.pop();
 				const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
 				graphics_object go{};
-				go.transform = mat4_to_array(gltf_to_ndc * queue_item.parent_transform * node_transform);
+				const glm::mat4 transform = gltf_to_ndc * queue_item.parent_transform * node_transform;
+				const glm::mat4 normal_transform = glm::transpose(glm::inverse(static_cast<glm::mat3>(transform)));
+				go.transform = mat4_to_array(transform);
+				go.normal_transform = mat4_to_array(normal_transform);
 				go.surface_data.reserve(current_mesh.surfaces.size());
 				for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
 				{
