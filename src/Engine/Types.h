@@ -38,7 +38,7 @@ namespace rosy
 		bool enable_validation_layers = true;
 	};
 
-	struct surface_graphics_data
+	struct  surface_graphics_data
 	{
 		size_t mesh_index{ 0 };
 		size_t graphics_object_index{ 0 };
