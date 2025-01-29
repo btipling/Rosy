@@ -1,5 +1,6 @@
 import data;
 import pcf;
+import tangent;
 
 [[vk::binding(0, 0)]] texture2D imageTexture[];
 [[vk::binding(1, 0)]] SamplerState imageSampler[];
@@ -28,6 +29,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.vertex = float4(v.position, 1.f);
     output.basicVertex.normal = normalize(mul(float3x3(worldMat), v.normal));
     output.basicVertex.color = v.color;
+    output.basicVertex.tangent = v.tangent;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(
         mul(
@@ -46,10 +48,22 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 {
     SceneData sd = *BasicPushConstants.sd;
     BasicMaterialData md = *BasicPushConstants.md;
+
+    uint nti = md.normal_texture_index;
+    uint nsi = md.normal_sampler_index;
+
+    float3 lightNormal = basicVertex.normal;
+    float3 lightTangent = basicVertex.tangent;
+
+    texture2D normalImageTexture = imageTexture[NonUniformResourceIndex(nti)];
+    SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
+
+    lightNormal = calcNewNormal(lightNormal, lightTangent, basicVertex.textureCoordinates, normalImageTexture, normalSampler);
+
     float3 sunlight = float3(sd.sunlight[0], sd.sunlight[1], sd.sunlight[2]);
     float3 V = normalize(sd.cameraPosition.xyz - basicVertex.vertex.xyz);
     float3 L = normalize(sunlight);
-    float3 N = normalize(basicVertex.normal);
+    float3 N = normalize(lightNormal);
     float3 H = normalize(L + V);
 
     float cosTheta = dot(L, N);
@@ -61,11 +75,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     uint cti = md.color_texture_index;
     uint csi = md.color_sampler_index;
 
-    uint nti = md.normal_texture_index;
-    uint nsi = md.normal_sampler_index;
-
-    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(nti)];
-    SamplerState matSampler = imageSampler[NonUniformResourceIndex(nsi)];
+    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
+    SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
     float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
 
     float shadowFactor = 1.f;
@@ -79,5 +90,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     Fragment output;
     output.color = outFragColor;
+    // output.color = float4(lightNormal.xyz, 1.f);
     return output;
 }
