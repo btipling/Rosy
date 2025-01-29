@@ -206,7 +206,6 @@
     <None Include="..\shaders\shadow.slang" />
     <None Include="..\shaders\skybox.slang" />
     <None Include="..\shaders\skybox_cube.slang" />
-    <None Include="..\shaders\tangent.slang" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libs\fastgltf\build\fastgltf.vcxproj">

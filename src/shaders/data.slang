@@ -12,7 +12,6 @@ public struct BasicVertex
     public float4 vertex;
     public float3 normal;
     public float4 color;
-    public float4 tangent;
     public float2 textureCoordinates;
 };
 

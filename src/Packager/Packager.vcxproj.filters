@@ -50,6 +50,5 @@
     <None Include="..\shaders\basic.slang" />
     <None Include="..\shaders\script_compile.ps1" />
     <None Include="..\shaders\script_shader_watcher.ps1" />
-    <None Include="..\shaders\tangent.slang" />
   </ItemGroup>
 </Project>

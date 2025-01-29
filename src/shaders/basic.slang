@@ -1,6 +1,5 @@
 import data;
 import pcf;
-import tangent;
 
 [[vk::binding(0, 0)]] texture2D imageTexture[];
 [[vk::binding(1, 0)]] SamplerState imageSampler[];
@@ -26,11 +25,24 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         0, 0, 0, 1
     };
 
+
+    float3 normal = normalize(mul(float3x3(normalMat), v.normal));
+    float3 tangent = normalize(mul(float3x3(normalMat), v.tangent.xyz));
+    float3 bitangent = normalize(cross(normal, tangent)) * v.tangent.w;
+
+    float3x3 toObjectLocal = float3x3(
+        float3(tangent.x, bitangent.x, normal.x),
+        float3(tangent.y, bitangent.y, normal.y),
+        float3(tangent.z, bitangent.z, normal.z),
+    );
+
+    float3 lightDir = normalize(mul(toObjectLocal, sd.sunlight.xyz));
+    float3 viewDir = normalize(mul(toObjectLocal, sd.cameraPosition.xyz - v.position.xyz));
+
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
-    output.basicVertex.normal = normalize(mul(float3x3(normalMat), v.normal));
+    output.basicVertex.normal = normal;
     output.basicVertex.color = v.color;
-    output.basicVertex.tangent = normalize(mul(worldMat, v.tangent));
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(
         mul(
@@ -54,12 +66,11 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     uint nsi = md.normal_sampler_index;
 
     float3 lightNormal = basicVertex.normal;
-    float4 lightTangent = basicVertex.tangent;
 
-    texture2D normalImageTexture = imageTexture[NonUniformResourceIndex(nti)];
+    texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
     SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-    lightNormal = calcNewNormal(lightNormal, lightTangent, basicVertex.textureCoordinates, normalImageTexture, normalSampler);
+    lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
 
     float3 sunlight = float3(sd.sunlight[0], sd.sunlight[1], sd.sunlight[2]);
     float3 V = normalize(sd.cameraPosition.xyz - basicVertex.vertex.xyz);
