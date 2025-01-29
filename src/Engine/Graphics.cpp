@@ -1499,7 +1499,6 @@ namespace {
 			device_create_info.ppEnabledExtensionNames = device_extensions.data();
 			device_create_info.pEnabledFeatures = &required_features;
 
-
 			if (VkResult res = vkCreateDevice(physical_device, &device_create_info, nullptr, &device); res != VK_SUCCESS)
 			{
 				return res;
@@ -1835,7 +1834,6 @@ namespace {
 
 			return res;
 		}
-
 
 		VkResult init_draw_image()
 		{
