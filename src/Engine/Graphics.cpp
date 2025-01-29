@@ -140,6 +140,8 @@ namespace {
 	constexpr  uint64_t graphics_created_bit_msaa_image       = 0b0000000000000000000001000000000000000000000000000000000000000000;
 	constexpr  uint64_t graphics_created_bit_msaa_image_view  = 0b0000000000000000000010000000000000000000000000000000000000000000;
 
+	constexpr VkSampleCountFlagBits max_msaa_sample_size = VK_SAMPLE_COUNT_4_BIT;
+
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
 		"VK_LAYER_KHRONOS_validation",
@@ -1756,6 +1758,8 @@ namespace {
 			if (counts & VK_SAMPLE_COUNT_16_BIT) { msaa_samples = VK_SAMPLE_COUNT_16_BIT; }
 			if (counts & VK_SAMPLE_COUNT_32_BIT) { msaa_samples = VK_SAMPLE_COUNT_32_BIT; }
 			if (counts & VK_SAMPLE_COUNT_64_BIT) { msaa_samples = VK_SAMPLE_COUNT_64_BIT; }
+
+			msaa_samples = std::min(msaa_samples, max_msaa_sample_size);
 
 			VkResult res = VK_SUCCESS;
 			const VkExtent3D msaa_image_extent = {
