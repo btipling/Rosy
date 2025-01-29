@@ -1484,6 +1484,8 @@ namespace {
 			VkPhysicalDeviceFragmentShadingRateFeaturesKHR  shading_rate = {
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR,
 				.pNext = &enable_depth_clip_object,
+				.pipelineFragmentShadingRate = VK_TRUE,
+				.primitiveFragmentShadingRate = VK_TRUE,
 				.attachmentFragmentShadingRate = VK_TRUE
 			};
 
@@ -4793,7 +4795,7 @@ namespace {
 							vkCmdSetRasterizationSamplesEXT(cf.command_buffer, msaa_samples);
 							VkSampleMask sample_mask{ ~0U };
 							vkCmdSetSampleMaskEXT(cf.command_buffer, msaa_samples, &sample_mask);
-							VkExtent2D fragment_size = { 1, 1 };
+							VkExtent2D fragment_size = { 2, 2 };
 							VkFragmentShadingRateCombinerOpKHR combiner_ops[2];
 							combiner_ops[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
 							combiner_ops[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;

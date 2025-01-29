@@ -167,6 +167,7 @@ namespace
 		float pitch{ 0.f };
 		float yaw{ 0.f };
 		std::vector<movement> movements;
+		bool go_fast{ false };
 
 		result init()
 		{
@@ -221,7 +222,7 @@ namespace
 
 		void integrate_all()
 		{
-			constexpr double base_velocity = 0.025;
+			const double base_velocity = go_fast ? 0.1 : 0.025;
 			if (velocity.x != 0)
 			{
 				integrate(movement::direction::horizontal, velocity.x * base_velocity);
@@ -324,6 +325,7 @@ namespace
 				if (event.key.key == SDLK_D) { velocity.x = 1.f; }
 				if (event.key.key == SDLK_SPACE) { velocity.y = 1.f; }
 				if (event.key.key == SDLK_Z) { velocity.y = -1.f; }
+				if (event.key.mod & SDL_KMOD_SHIFT) { go_fast = true; }
 			}
 
 			if (event.type == SDL_EVENT_KEY_UP) {
@@ -333,6 +335,7 @@ namespace
 				if (event.key.key == SDLK_D) { velocity.x = 0; }
 				if (event.key.key == SDLK_SPACE) { velocity.y = 0; }
 				if (event.key.key == SDLK_Z) { velocity.y = 0; }
+				if (!(event.key.mod & SDL_KMOD_SHIFT)) { go_fast = false; }
 			}
 			if (!cursor_enabled) return result::ok;
 			if (event.type == SDL_EVENT_MOUSE_MOTION) {
