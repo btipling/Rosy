@@ -201,10 +201,10 @@ rosy::result gltf::import(rosy::log* l)
 			}
 
 			// PRIMITIVE TANGENT
-			if (auto tangents = primitive.findAttribute("TANGENT_3"); tangents != primitive.attributes.end()) {
-				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, gltf.accessors[tangents->accessorIndex],
-					[&](const fastgltf::math::fvec3& t, const size_t index) {
-						new_mesh.positions[initial_vtx + index].tangents = { t[0], t[1], t[2] };
+			if (auto tangents = primitive.findAttribute("TANGENT"); tangents != primitive.attributes.end()) {
+				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[tangents->accessorIndex],
+					[&](const fastgltf::math::fvec4& t, const size_t index) {
+						new_mesh.positions[initial_vtx + index].tangents = { t[0], t[1], t[2], t[3]};
 					});
 			}
 

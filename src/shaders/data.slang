@@ -12,7 +12,7 @@ public struct BasicVertex
     public float4 vertex;
     public float3 normal;
     public float4 color;
-    public float3 tangent;
+    public float4 tangent;
     public float2 textureCoordinates;
 };
 
@@ -34,7 +34,7 @@ public struct InputVertex {
 public struct BasicInputVertex {
     public float3 position;
     public float3 normal;
-    public float3 tangent;
+    public float4 tangent;
     public float4 color;
     public float2 textureCoordinates;
 };

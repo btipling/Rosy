@@ -30,7 +30,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.vertex = float4(v.position, 1.f);
     output.basicVertex.normal = normalize(mul(float3x3(normalMat), v.normal));
     output.basicVertex.color = v.color;
-    output.basicVertex.tangent = normalize(mul(float3x3(normalMat), v.tangent));
+    output.basicVertex.tangent = normalize(mul(worldMat, v.tangent));
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(
         mul(
@@ -54,7 +54,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     uint nsi = md.normal_sampler_index;
 
     float3 lightNormal = basicVertex.normal;
-    float3 lightTangent = basicVertex.tangent;
+    float4 lightTangent = basicVertex.tangent;
 
     texture2D normalImageTexture = imageTexture[NonUniformResourceIndex(nti)];
     SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
