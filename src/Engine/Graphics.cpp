@@ -153,6 +153,7 @@ namespace {
 
 	const char* default_device_extensions[] = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME,
 #ifdef TRACY_ENABLE
 		VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
 #endif
@@ -471,6 +472,7 @@ namespace {
 		allocated_image draw_image;
 		allocated_image depth_image;
 		allocated_image msaa_image;
+		VkSampleCountFlagBits msaa_samples{ VK_SAMPLE_COUNT_1_BIT };
 		allocated_csm shadow_map_image;
 		uint32_t default_sampler_index{ 0 };
 		VkSampler default_sampler{ nullptr };
@@ -613,17 +615,17 @@ namespace {
 				return result::graphics_swapchain_failure;
 			}
 
-			vk_res = init_draw_image();
-			if (vk_res != VK_SUCCESS)
-			{
-				l->error(std::format("Failed to init draw image! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
-				return result::graphics_init_failure;
-			}
-
 			vk_res = init_msaa();
 			if (vk_res != VK_SUCCESS)
 			{
 				l->error(std::format("Failed to init mssa! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
+				return result::graphics_init_failure;
+			}
+
+			vk_res = init_draw_image();
+			if (vk_res != VK_SUCCESS)
+			{
+				l->error(std::format("Failed to init draw image! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
@@ -1221,6 +1223,10 @@ namespace {
 			required_features.depthClamp         = VK_TRUE;
 			required_features.depthBounds        = VK_TRUE;
 
+			// Sampling features
+			required_features.sampleRateShading             = VK_TRUE;
+			required_features.shaderStorageImageMultisample = VK_TRUE;
+
 			for (const VkPhysicalDevice& p_device : physical_devices)
 			{
 				// get device properties
@@ -1247,6 +1253,16 @@ namespace {
 				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
 
 				if (!shader_object_features.shaderObject) continue;
+
+				VkPhysicalDeviceFragmentShadingRateFeaturesKHR  shading_rate{};
+				shading_rate.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
+				shading_rate.pNext = &shading_rate;
+
+				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				device_features2.pNext = nullptr;
+				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
+
+				//if (!shading_rate.attachmentFragmentShadingRate) continue;
 
 				// dynamic rendering required
 				VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features{};
@@ -1467,9 +1483,15 @@ namespace {
 				.depthClipEnable = VK_TRUE
 			};
 
+			VkPhysicalDeviceFragmentShadingRateFeaturesKHR  shading_rate = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR,
+				.pNext = &enable_depth_clip_object,
+				.attachmentFragmentShadingRate = VK_TRUE
+			};
+
 			VkDeviceCreateInfo device_create_info = {};
 			device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-			device_create_info.pNext = &enable_depth_clip_object;
+			device_create_info.pNext = &shading_rate;
 			device_create_info.flags = 0;
 			device_create_info.queueCreateInfoCount = 1;
 			device_create_info.pQueueCreateInfos = &device_queue_create_info;
@@ -1478,6 +1500,7 @@ namespace {
 			device_create_info.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size());
 			device_create_info.ppEnabledExtensionNames = device_extensions.data();
 			device_create_info.pEnabledFeatures = &required_features;
+
 
 			if (VkResult res = vkCreateDevice(physical_device, &device_create_info, nullptr, &device); res != VK_SUCCESS)
 			{
@@ -1722,6 +1745,98 @@ namespace {
 			return create_swapchain();
 		}
 
+		VkResult init_msaa()
+		{
+			l->info("Initializing msaa");
+
+			VkSampleCountFlags counts = physical_device_properties.limits.framebufferColorSampleCounts & physical_device_properties.limits.framebufferDepthSampleCounts;
+			if (counts & VK_SAMPLE_COUNT_2_BIT) { msaa_samples = VK_SAMPLE_COUNT_2_BIT; }
+			if (counts & VK_SAMPLE_COUNT_4_BIT) { msaa_samples = VK_SAMPLE_COUNT_4_BIT; }
+			if (counts & VK_SAMPLE_COUNT_8_BIT) { msaa_samples = VK_SAMPLE_COUNT_8_BIT; }
+			if (counts & VK_SAMPLE_COUNT_16_BIT) { msaa_samples = VK_SAMPLE_COUNT_16_BIT; }
+			if (counts & VK_SAMPLE_COUNT_32_BIT) { msaa_samples = VK_SAMPLE_COUNT_32_BIT; }
+			if (counts & VK_SAMPLE_COUNT_64_BIT) { msaa_samples = VK_SAMPLE_COUNT_64_BIT; }
+
+			VkResult res = VK_SUCCESS;
+			const VkExtent3D msaa_image_extent = {
+				.width = static_cast<uint32_t>(cfg.max_window_width),
+				.height = static_cast<uint32_t>(cfg.max_window_height),
+				.depth = 1
+			};
+
+			VmaAllocationCreateInfo r_img_alloc_info{};
+			r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+			r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+			{
+				// MSAA image creation.
+				msaa_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
+				msaa_image.image_extent = msaa_image_extent;
+
+				VkImageUsageFlags msaa_image_usages{};
+				msaa_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+				msaa_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+				msaa_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+				msaa_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+				{
+					VkImageCreateInfo msaa_info{};
+					msaa_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+					msaa_info.pNext = nullptr;
+					msaa_info.imageType = VK_IMAGE_TYPE_2D;
+					msaa_info.format = msaa_image.image_format;
+					msaa_info.extent = msaa_image_extent;
+					msaa_info.mipLevels = 1;
+					msaa_info.arrayLayers = 1;
+					msaa_info.samples = msaa_samples;
+					msaa_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+					msaa_info.usage = msaa_image_usages;
+
+					if (res = vmaCreateImage(allocator, &msaa_info, &r_img_alloc_info, &msaa_image.image, &msaa_image.allocation, nullptr); res != VK_SUCCESS) return res;
+					graphics_created_bitmask |= graphics_created_bit_msaa_image;
+				}
+				{
+					VkImageViewCreateInfo msaa_view_create_info{};
+					msaa_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					msaa_view_create_info.pNext = nullptr;
+					msaa_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					msaa_view_create_info.image = msaa_image.image;
+					msaa_view_create_info.format = msaa_image.image_format;
+					msaa_view_create_info.subresourceRange.baseMipLevel = 0;
+					msaa_view_create_info.subresourceRange.levelCount = 1;
+					msaa_view_create_info.subresourceRange.baseArrayLayer = 0;
+					msaa_view_create_info.subresourceRange.layerCount = 1;
+					msaa_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+					res = vkCreateImageView(device, &msaa_view_create_info, nullptr, &msaa_image.image_view);
+					if (res != VK_SUCCESS) return res;
+					graphics_created_bitmask |= graphics_created_bit_msaa_image_view;
+				}
+
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_IMAGE;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(msaa_image.image);
+					debug_name.pObjectName = "rosy msaa image";
+					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
+				}
+				{
+					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					debug_name.pNext = nullptr;
+					debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+					debug_name.objectHandle = reinterpret_cast<uint64_t>(msaa_image.image_view);
+					debug_name.pObjectName = "rosy msaa image view";
+					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
+				}
+			}
+
+			return res;
+		}
+
+
 		VkResult init_draw_image()
 		{
 			l->info("Initializing draw image");
@@ -1817,7 +1932,7 @@ namespace {
 					depth_image_info.extent = depth_image.image_extent;
 					depth_image_info.mipLevels = 1;
 					depth_image_info.arrayLayers = 1;
-					depth_image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+					depth_image_info.samples = msaa_samples;
 					depth_image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 					depth_image_info.usage = depth_image_usages;
 
@@ -1857,99 +1972,6 @@ namespace {
 					debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(depth_image.image_view);
 					debug_name.pObjectName = "rosy depth image view";
-					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
-				}
-			}
-
-			return res;
-		}
-
-		VkResult init_msaa()
-		{
-			l->info("Initializing msaa");
-
-			VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_1_BIT;
-			VkSampleCountFlags counts = physical_device_properties.limits.framebufferColorSampleCounts & physical_device_properties.limits.framebufferDepthSampleCounts;
-			if (counts & VK_SAMPLE_COUNT_64_BIT) { msaa_samples = VK_SAMPLE_COUNT_64_BIT; }
-			if (counts & VK_SAMPLE_COUNT_32_BIT) { msaa_samples = VK_SAMPLE_COUNT_32_BIT; }
-			if (counts & VK_SAMPLE_COUNT_16_BIT) { msaa_samples = VK_SAMPLE_COUNT_16_BIT; }
-			if (counts & VK_SAMPLE_COUNT_8_BIT) { msaa_samples = VK_SAMPLE_COUNT_8_BIT; }
-			if (counts & VK_SAMPLE_COUNT_4_BIT) { msaa_samples = VK_SAMPLE_COUNT_4_BIT; }
-			if (counts & VK_SAMPLE_COUNT_2_BIT) { msaa_samples = VK_SAMPLE_COUNT_2_BIT; }
-
-
-			VkResult res = VK_SUCCESS;
-			const VkExtent3D msaa_image_extent = {
-				.width = static_cast<uint32_t>(cfg.max_window_width),
-				.height = static_cast<uint32_t>(cfg.max_window_height),
-				.depth = 1
-			};
-
-			VmaAllocationCreateInfo r_img_alloc_info{};
-			r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-			r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-			{
-				// MSAA image creation.
-				msaa_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT;
-				msaa_image.image_extent = msaa_image_extent;
-
-				VkImageUsageFlags msaa_image_usages{};
-				msaa_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-				msaa_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-				msaa_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
-				msaa_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-				{
-					VkImageCreateInfo msaa_info{};
-					msaa_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-					msaa_info.pNext = nullptr;
-					msaa_info.imageType = VK_IMAGE_TYPE_2D;
-					msaa_info.format = msaa_image.image_format;
-					msaa_info.extent = msaa_image_extent;
-					msaa_info.mipLevels = 1;
-					msaa_info.arrayLayers = 1;
-					msaa_info.samples = VK_SAMPLE_COUNT_1_BIT;
-					msaa_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-					msaa_info.usage = msaa_image_usages;
-
-					if (res = vmaCreateImage(allocator, &msaa_info, &r_img_alloc_info, &msaa_image.image, &msaa_image.allocation, nullptr); res != VK_SUCCESS) return res;
-					graphics_created_bitmask |= graphics_created_bit_msaa_image;
-				}
-				{
-					VkImageViewCreateInfo msaa_view_create_info{};
-					msaa_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-					msaa_view_create_info.pNext = nullptr;
-					msaa_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-					msaa_view_create_info.image = msaa_image.image;
-					msaa_view_create_info.format = msaa_image.image_format;
-					msaa_view_create_info.subresourceRange.baseMipLevel = 0;
-					msaa_view_create_info.subresourceRange.levelCount = 1;
-					msaa_view_create_info.subresourceRange.baseArrayLayer = 0;
-					msaa_view_create_info.subresourceRange.layerCount = 1;
-					msaa_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-					res = vkCreateImageView(device, &msaa_view_create_info, nullptr, &msaa_image.image_view);
-					if (res != VK_SUCCESS) return res;
-					graphics_created_bitmask |= graphics_created_bit_msaa_image_view;
-				}
-
-				{
-					VkDebugUtilsObjectNameInfoEXT debug_name{};
-					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-					debug_name.pNext = nullptr;
-					debug_name.objectType = VK_OBJECT_TYPE_IMAGE;
-					debug_name.objectHandle = reinterpret_cast<uint64_t>(msaa_image.image);
-					debug_name.pObjectName = "rosy msaa image";
-					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
-				}
-				{
-					VkDebugUtilsObjectNameInfoEXT debug_name{};
-					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-					debug_name.pNext = nullptr;
-					debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
-					debug_name.objectHandle = reinterpret_cast<uint64_t>(msaa_image.image_view);
-					debug_name.pObjectName = "rosy msaa image view";
 					if (res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS) return res;
 				}
 			}
@@ -2301,13 +2323,13 @@ namespace {
 			init_info.MinImageCount = swapchain_details.capabilities.minImageCount;
 			init_info.ImageCount = swapchain_image_count;
 			init_info.UseDynamicRendering = true;
+			init_info.MSAASamples = msaa_samples;
 
 			init_info.PipelineRenderingCreateInfo = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
 			init_info.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
 			init_info.PipelineRenderingCreateInfo.depthAttachmentFormat = depth_image.image_format;
 			init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &draw_image.image_format;
 
-			init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
 			if (!ImGui_ImplVulkan_Init(&init_info))
 			{
@@ -4248,9 +4270,9 @@ namespace {
 						vkCmdSetRasterizerDiscardEnableEXT(cf.command_buffer, VK_FALSE);
 						vkCmdSetPrimitiveTopologyEXT(cf.command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 						vkCmdSetPrimitiveRestartEnableEXT(cf.command_buffer, VK_FALSE);
-						vkCmdSetRasterizationSamplesEXT(cf.command_buffer, VK_SAMPLE_COUNT_1_BIT);
 					}
 					{
+						vkCmdSetRasterizationSamplesEXT(cf.command_buffer, VK_SAMPLE_COUNT_1_BIT);
 						constexpr VkSampleMask sample_mask = 0x1;
 						vkCmdSetSampleMaskEXT(cf.command_buffer, VK_SAMPLE_COUNT_1_BIT, &sample_mask);
 					}
@@ -4311,7 +4333,6 @@ namespace {
 				}
 				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 			}
-
 			// ******* SHADOW PASS ****** //
 
 			{
@@ -4555,7 +4576,7 @@ namespace {
 						.newLayout = VK_IMAGE_LAYOUT_GENERAL,
 						.srcQueueFamilyIndex = 0,
 						.dstQueueFamilyIndex = 0,
-						.image = draw_image.image,
+						.image = msaa_image.image,
 						.subresourceRange = subresource_range,
 					};
 
@@ -4585,7 +4606,7 @@ namespace {
 
 					VkClearColorValue clear_value;
 					clear_value = { {0.0f, 0.05f, 0.1f, 1.0f} };
-					vkCmdClearColorImage(cf.command_buffer, draw_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
+					vkCmdClearColorImage(cf.command_buffer, msaa_image.image, VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &subresource_range);
 				}
 				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 			}
@@ -4660,6 +4681,44 @@ namespace {
 						.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
 						.dstQueueFamilyIndex = 0,
+						.image = msaa_image.image,
+						.subresourceRange = subresource_range,
+					};
+
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 0,
+						.pBufferMemoryBarriers = nullptr,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers = &image_barrier,
+					};
+
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
+				{
+					constexpr VkImageSubresourceRange subresource_range{
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.baseMipLevel = 0,
+						.levelCount = VK_REMAINING_MIP_LEVELS,
+						.baseArrayLayer = 0,
+						.layerCount = VK_REMAINING_ARRAY_LAYERS,
+					};
+
+					VkImageMemoryBarrier2 image_barrier = {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
 						.image = draw_image.image,
 						.subresourceRange = subresource_range,
 					};
@@ -4693,15 +4752,17 @@ namespace {
 				}
 				{
 					{
-						VkRenderingAttachmentInfo color_attachment{};
-						color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-						color_attachment.pNext = nullptr;
-						color_attachment.imageView = draw_image.image_view;
-						color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-						color_attachment.resolveMode = VK_RESOLVE_MODE_NONE;
-						color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-						color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
+						VkRenderingAttachmentInfo msaa_attachment{};
+						msaa_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+						msaa_attachment.pNext = nullptr;
+						msaa_attachment.imageView = msaa_image.image_view;
+						msaa_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+						msaa_attachment.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+						msaa_attachment.resolveImageView = draw_image.image_view;
+						msaa_attachment.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+						msaa_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+						msaa_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 						VkRenderingAttachmentInfo depth_attachment{};
 						depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -4720,7 +4781,7 @@ namespace {
 						render_info.renderArea = render_area;
 						render_info.layerCount = 1;
 						render_info.colorAttachmentCount = 1;
-						render_info.pColorAttachments = &color_attachment;
+						render_info.pColorAttachments = &msaa_attachment;
 						render_info.pDepthAttachment = &depth_attachment;
 						render_info.pStencilAttachment = nullptr;
 
@@ -4730,6 +4791,16 @@ namespace {
 					// ******** DRAW SCENE ********* //
 
 					{
+						{
+							vkCmdSetRasterizationSamplesEXT(cf.command_buffer, msaa_samples);
+							VkSampleMask sample_mask{ ~0U };
+							vkCmdSetSampleMaskEXT(cf.command_buffer, msaa_samples, &sample_mask);
+							VkExtent2D fragment_size = { 1, 1 };
+							VkFragmentShadingRateCombinerOpKHR combiner_ops[2];
+							combiner_ops[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
+							combiner_ops[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+							vkCmdSetFragmentShadingRateKHR(cf.command_buffer, &fragment_size, combiner_ops);
+						}
 						{
 							constexpr VkShaderStageFlagBits stages[2] =
 							{
