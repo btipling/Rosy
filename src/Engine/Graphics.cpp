@@ -620,7 +620,7 @@ namespace {
 			vk_res = init_msaa();
 			if (vk_res != VK_SUCCESS)
 			{
-				l->error(std::format("Failed to init mssa! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
+				l->error(std::format("Failed to init msaa! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
 				return result::graphics_init_failure;
 			}
 
@@ -1254,7 +1254,7 @@ namespace {
 
 				VkPhysicalDeviceDepthClipEnableFeaturesEXT  depth_clip_features{};
 				depth_clip_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT;
-				depth_clip_features.pNext = nullptr;;
+				depth_clip_features.pNext = nullptr;
 
 				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 				device_features2.pNext = &depth_clip_features;
