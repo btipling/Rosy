@@ -95,6 +95,8 @@ public struct BasicMaterialData {
     public uint32_t alphaMode;
     public uint32_t color_texture_index;
     public uint32_t color_sampler_index;
+    public uint32_t normal_texture_index;
+    public uint32_t normal_sampler_index;
 };
 
 public struct BasicPushConstant {

@@ -337,6 +337,8 @@ namespace {
 		uint32_t alpha_mode{ 0 };
 		uint32_t color_sampled_image_index{ UINT32_MAX };
 		uint32_t color_sampler_index{ UINT32_MAX };
+		uint32_t normal_sampled_image_index{ UINT32_MAX };
+		uint32_t normal_sampler_index{ UINT32_MAX };
 	};
 
 	struct gpu_material_buffer
@@ -3558,6 +3560,18 @@ namespace {
 							color_sampler_index = sampler_desc_index[m.color_sampler_index];
 						}
 					}
+					uint32_t normal_image_sampler_index = UINT32_MAX;
+					uint32_t normal_sampler_index = default_sampler_index;
+					if (m.normal_image_index < color_image_sampler_desc_index.size()) {
+						normal_image_sampler_index = color_image_sampler_desc_index[m.normal_image_index];
+
+						assert(ktx_textures.size() > m.color_image_index);
+
+						if (m.normal_sampler_index < sampler_desc_index.size())
+						{
+							normal_sampler_index = sampler_desc_index[m.normal_sampler_index];
+						}
+					}
 					gpu_material new_mat{};
 
 					new_mat.color = m.base_color_factor;
@@ -3567,6 +3581,8 @@ namespace {
 					new_mat.alpha_mode = m.alpha_mode;
 					new_mat.color_sampled_image_index = color_image_sampler_index;
 					new_mat.color_sampler_index = color_sampler_index;
+					new_mat.normal_sampled_image_index = normal_image_sampler_index;
+					new_mat.normal_sampler_index = normal_sampler_index;
 					materials.push_back(new_mat);
 				}
 
