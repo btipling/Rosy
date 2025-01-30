@@ -5216,7 +5216,7 @@ namespace {
 				.shadow_projection_near = new_rls.cam.shadow_projection_near,
 				.sunlight = new_rls.sunlight,
 				.camera_position = new_rls.cam.position,
-				.ambient_color = { 0.06f, 0.06f, 0.06f, 1.f },
+				.ambient_color = { 0.04f, 0.04f, 0.04f, 1.f },
 				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
 				.csm_index_sampler = shadow_map_image.ds_index_sampler,
 				.csm_index_near = shadow_map_image.ds_index_near,
