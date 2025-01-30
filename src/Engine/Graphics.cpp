@@ -337,6 +337,8 @@ namespace {
 		uint32_t alpha_mode{ 0 };
 		uint32_t color_sampled_image_index{ UINT32_MAX };
 		uint32_t color_sampler_index{ UINT32_MAX };
+		uint32_t normal_sampled_image_index{ UINT32_MAX };
+		uint32_t normal_sampler_index{ UINT32_MAX };
 	};
 
 	struct gpu_material_buffer
@@ -402,7 +404,7 @@ namespace {
 	struct graphic_object_data
 	{
 		std::array<float, 16> transform;
-		//std::array<float, 16> normal_transform;
+		std::array<float, 16> normal_transform;
 	};
 
 	struct graphics_stats {
@@ -1484,6 +1486,8 @@ namespace {
 			VkPhysicalDeviceFragmentShadingRateFeaturesKHR  shading_rate = {
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR,
 				.pNext = &enable_depth_clip_object,
+				.pipelineFragmentShadingRate = VK_TRUE,
+				.primitiveFragmentShadingRate = VK_TRUE,
 				.attachmentFragmentShadingRate = VK_TRUE
 			};
 
@@ -3556,6 +3560,18 @@ namespace {
 							color_sampler_index = sampler_desc_index[m.color_sampler_index];
 						}
 					}
+					uint32_t normal_image_sampler_index = UINT32_MAX;
+					uint32_t normal_sampler_index = default_sampler_index;
+					if (m.normal_image_index < color_image_sampler_desc_index.size()) {
+						normal_image_sampler_index = color_image_sampler_desc_index[m.normal_image_index];
+
+						assert(ktx_textures.size() > m.color_image_index);
+
+						if (m.normal_sampler_index < sampler_desc_index.size())
+						{
+							normal_sampler_index = sampler_desc_index[m.normal_sampler_index];
+						}
+					}
 					gpu_material new_mat{};
 
 					new_mat.color = m.base_color_factor;
@@ -3565,6 +3581,8 @@ namespace {
 					new_mat.alpha_mode = m.alpha_mode;
 					new_mat.color_sampled_image_index = color_image_sampler_index;
 					new_mat.color_sampler_index = color_sampler_index;
+					new_mat.normal_sampled_image_index = normal_image_sampler_index;
+					new_mat.normal_sampler_index = normal_sampler_index;
 					materials.push_back(new_mat);
 				}
 
@@ -4051,6 +4069,7 @@ namespace {
 			{
 				go_data.push_back({
 				.transform = go.transform,
+				.normal_transform = go.normal_transform,
 					});
 				for (const auto& s : go.surface_data)
 				{
@@ -4289,7 +4308,6 @@ namespace {
 						vkCmdSetPolygonModeEXT(cf.command_buffer, rls->wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL);
 					}
 					{
-
 						vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
 						vkCmdSetDepthWriteEnableEXT(cf.command_buffer, VK_TRUE);
 						vkCmdSetDepthCompareOpEXT(cf.command_buffer, VK_COMPARE_OP_GREATER_OR_EQUAL);
@@ -4793,7 +4811,7 @@ namespace {
 							vkCmdSetRasterizationSamplesEXT(cf.command_buffer, msaa_samples);
 							VkSampleMask sample_mask{ ~0U };
 							vkCmdSetSampleMaskEXT(cf.command_buffer, msaa_samples, &sample_mask);
-							VkExtent2D fragment_size = { 1, 1 };
+							VkExtent2D fragment_size = { 2, 2 };
 							VkFragmentShadingRateCombinerOpKHR combiner_ops[2];
 							combiner_ops[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
 							combiner_ops[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
@@ -5198,7 +5216,7 @@ namespace {
 				.shadow_projection_near = new_rls.cam.shadow_projection_near,
 				.sunlight = new_rls.sunlight,
 				.camera_position = new_rls.cam.position,
-				.ambient_color = { 0.11f,  0.11f, 0.11f, 1.f },
+				.ambient_color = { 0.06f, 0.06f, 0.06f, 1.f },
 				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
 				.csm_index_sampler = shadow_map_image.ds_index_sampler,
 				.csm_index_near = shadow_map_image.ds_index_near,

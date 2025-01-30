@@ -11,6 +11,8 @@ public struct BasicVertex
 {
     public float4 vertex;
     public float3 normal;
+    public float3 viewDir;
+    public float3 lightDir;
     public float4 color;
     public float2 textureCoordinates;
 };
@@ -33,12 +35,14 @@ public struct InputVertex {
 public struct BasicInputVertex {
     public float3 position;
     public float3 normal;
+    public float4 tangent;
     public float4 color;
     public float2 textureCoordinates;
 };
 
 public struct BasicGraphicsData {
     public float4x4 transform;
+    public float4x4 normalTransform;
 };
 
 public struct RenderData {
@@ -95,6 +99,8 @@ public struct BasicMaterialData {
     public uint32_t alphaMode;
     public uint32_t color_texture_index;
     public uint32_t color_sampler_index;
+    public uint32_t normal_texture_index;
+    public uint32_t normal_sampler_index;
 };
 
 public struct BasicPushConstant {

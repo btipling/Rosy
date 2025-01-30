@@ -38,7 +38,7 @@ namespace rosy
 		bool enable_validation_layers = true;
 	};
 
-	struct surface_graphics_data
+	struct  surface_graphics_data
 	{
 		size_t mesh_index{ 0 };
 		size_t graphics_object_index{ 0 };
@@ -119,7 +119,7 @@ namespace rosy
 		bool depth_bias_enabled{ true };
 		float depth_bias_constant{-17.242f };
 		float depth_bias_clamp{ -114.858f };
-		float depth_bias_slope_factor{ -30.583f };
+		float depth_bias_slope_factor{ -7.376f };
 	};
 
 }

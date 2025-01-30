@@ -89,6 +89,15 @@ rosy::result gltf::import(rosy::log* l)
 				m.color_image_index = UINT32_MAX;
 				m.color_sampler_index = UINT32_MAX;
 			}
+			if (mat.normalTexture.has_value()) {
+				m.normal_image_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.value());
+				m.normal_sampler_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].samplerIndex.value());
+			}
+			else
+			{
+				m.normal_image_index = UINT32_MAX;
+				m.normal_sampler_index = UINT32_MAX;
+			}
 			{
 				fastgltf::math::nvec4 c = mat.pbrData.baseColorFactor;
 				m.base_color_factor = { c[0], c[1], c[2], c[3] };
@@ -188,6 +197,14 @@ rosy::result gltf::import(rosy::log* l)
 				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[colors->accessorIndex],
 					[&](const fastgltf::math::fvec4& c, const size_t index) {
 						new_mesh.positions[initial_vtx + index].color = { c[0], c[1], c[2], c[3] };
+					});
+			}
+
+			// PRIMITIVE TANGENT
+			if (auto tangents = primitive.findAttribute("TANGENT"); tangents != primitive.attributes.end()) {
+				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[tangents->accessorIndex],
+					[&](const fastgltf::math::fvec4& t, const size_t index) {
+						new_mesh.positions[initial_vtx + index].tangents = { t[0], t[1], t[2], t[3]};
 					});
 			}
 

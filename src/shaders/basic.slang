@@ -14,6 +14,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     BasicInputVertex v = *(BasicPushConstants.v + uiVertexId);
     BasicGraphicsData gd = *BasicPushConstants.gd;
     float4x4 worldMat = gd.transform;
+    float4x4 normalMat = gd.normalTransform;
 
     float4 posWorld = float4(v.position, 1.0);
 
@@ -24,10 +25,21 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         0, 0, 0, 1
     };
 
+    float3 normal = v.normal;
+    float3 tangent = v.tangent.xyz;
+    float3 bitangent = cross(normal, tangent) * v.tangent.w;
+
+    float3 view = sd.cameraPosition.xyz - v.position.xyz;
+    view = float3(dot(tangent, view), dot(bitangent, view), dot(normal, view));
+
+    float3 light = float3(dot(tangent, sd.sunlight.xyz), dot(bitangent, sd.sunlight.xyz), dot(normal, sd.sunlight.xyz));
+
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
-    output.basicVertex.normal = normalize(mul(float3x3(worldMat), v.normal));
+    output.basicVertex.normal = normal;
     output.basicVertex.color = v.color;
+    output.basicVertex.viewDir = view;
+    output.basicVertex.lightDir = light;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(
         mul(
@@ -46,11 +58,19 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 {
     SceneData sd = *BasicPushConstants.sd;
     BasicMaterialData md = *BasicPushConstants.md;
-    float3 sunlight = float3(sd.sunlight[0], sd.sunlight[1], sd.sunlight[2]);
-    float3 V = normalize(sd.cameraPosition.xyz - basicVertex.vertex.xyz);
-    float3 L = normalize(sunlight);
-    float3 N = normalize(basicVertex.normal);
-    float3 H = normalize(L + V);
+
+    uint nti = md.normal_texture_index;
+    uint nsi = md.normal_sampler_index;
+
+    texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
+    SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
+
+    float3 lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
+
+    float3 V = basicVertex.viewDir;
+    float3 L = basicVertex.lightDir;
+    float3 N = lightNormal;
+    float3 H = L + V;
 
     float cosTheta = dot(L, N);
     float cosPhi = dot(H, N);
@@ -60,6 +80,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     uint cti = md.color_texture_index;
     uint csi = md.color_sampler_index;
+
     texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
     SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
     float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
@@ -71,9 +92,11 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csmNear)];
     shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
 
-    float4 outFragColor = imageTextureColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
+    float4 outFragColor = imageTextureColor * max(0.4f, shadowFactor) * float4(ambientLight + shadowFactor * sunLight, 1.0);
 
     Fragment output;
+    // output.color = float4(L * 0.5 + 0.5, 1.f);
+    // output.color = float4(basicVertex.tangent.xyz * 0.5 + 0.5, 1.f);
     output.color = outFragColor;
     return output;
 }

@@ -58,22 +58,6 @@ int main(const int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	asset b{};
-	b.asset_path = output_path.string();
-	if (const auto res = b.read(&l); res != rosy::result::ok) {
-		return EXIT_FAILURE;
-	}
-	l.debug("Parsed meshes:");
-	for (auto& m : b.meshes)
-	{
-
-		for (auto& [vertex, normal, color, texture_coordinates] : m.positions)
-		{
-			l.debug(std::format("vertex: {} normal: {} color: {} tc: {}", vertex, normal, color, texture_coordinates));
-		}
-		l.debug("Parsed indices:");
-		l.debug(std::format("indices: {}", m.indices));
-	}
 	const auto end = std::chrono::system_clock::now();
 	const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 	l.info(std::format("Finished packaging. Took {}ms", elapsed.count() / 1000.0l));
