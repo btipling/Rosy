@@ -93,7 +93,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csmNear)];
     shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
 
-    float4 outFragColor = imageTextureColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
+    float4 outFragColor = imageTextureColor * max(0.4f, shadowFactor) * float4(ambientLight + shadowFactor * sunLight, 1.0);
 
     Fragment output;
     // output.color = float4(L * 0.5 + 0.5, 1.f);
