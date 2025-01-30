@@ -14,6 +14,7 @@ public struct BasicVertex
     public float3 viewDir;
     public float3 lightDir;
     public float4 color;
+    public float3 tangent;
     public float2 textureCoordinates;
 };
 

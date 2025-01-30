@@ -25,26 +25,22 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         0, 0, 0, 1
     };
 
+    float3 normal = v.normal;
+    float3 tangent = v.tangent.xyz;
+    float3 bitangent = cross(normal, tangent) * v.tangent.w;
 
-    float3 normal = normalize(mul(float3x3(normalMat), v.normal));
-    float3 tangent = normalize(mul(float3x3(normalMat), v.tangent.xyz));
-    float3 bitangent = normalize(cross(normal, tangent)) * v.tangent.w;
+    float3 view = sd.cameraPosition.xyz - v.position.xyz;
+    view = float3(dot(tangent, view), dot(bitangent, view), dot(normal, view));
 
-    float3x3 toObjectLocal = float3x3(
-        tangent,
-        bitangent,
-        normal,
-    );
-
-    float3 lightDir = normalize(mul(toObjectLocal, sd.sunlight.xyz));
-    float3 viewDir = normalize(mul(toObjectLocal, sd.cameraPosition.xyz - v.position.xyz));
+    float3 light = float3(dot(tangent, sd.sunlight.xyz), dot(bitangent, sd.sunlight.xyz), dot(normal, sd.sunlight.xyz));
 
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
     output.basicVertex.normal = normal;
     output.basicVertex.color = v.color;
-    output.basicVertex.viewDir = viewDir;
-    output.basicVertex.lightDir = lightDir;
+    output.basicVertex.viewDir = view;
+    output.basicVertex.tangent = bitangent;
+    output.basicVertex.lightDir = light;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(
         mul(
@@ -72,10 +68,10 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     float3 lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
 
-    float3 V = normalize(basicVertex.viewDir);
-    float3 L = normalize(basicVertex.lightDir);
-    float3 N = normalize(lightNormal);
-    float3 H = normalize(L + V);
+    float3 V = basicVertex.viewDir;
+    float3 L = basicVertex.lightDir;
+    float3 N = lightNormal;
+    float3 H = L + V;
 
     float cosTheta = dot(L, N);
     float cosPhi = dot(H, N);
@@ -100,6 +96,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     float4 outFragColor = imageTextureColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
 
     Fragment output;
+    // output.color = float4(L * 0.5 + 0.5, 1.f);
+    // output.color = float4(basicVertex.tangent.xyz * 0.5 + 0.5, 1.f);
     output.color = outFragColor;
     return output;
 }
