@@ -39,7 +39,6 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.normal = normal;
     output.basicVertex.color = v.color;
     output.basicVertex.viewDir = view;
-    output.basicVertex.tangent = bitangent;
     output.basicVertex.lightDir = light;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(
