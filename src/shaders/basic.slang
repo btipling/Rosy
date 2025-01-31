@@ -38,6 +38,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.vertex = float4(v.position, 1.f);
     output.basicVertex.normal = normal;
     output.basicVertex.color = v.color;
+    output.basicVertex.tangent = tangent * v.tangent.w;
     output.basicVertex.viewDir = view;
     output.basicVertex.lightDir = light;
     output.basicVertex.textureCoordinates = v.textureCoordinates;

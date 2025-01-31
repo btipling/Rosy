@@ -58,6 +58,21 @@ int main(const int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
+#ifdef MANUAL_TANGENT
+	int i{ 0 };
+	for (const auto p : g.gltf_asset.meshes[0].positions)
+	{
+		l.info(std::format("{}: ({}, {}, {}) |  ({}, {}, {}) |  ({}, {}, {}) |  ({}, {}, {}, {}) |  ({}, {})",i,
+			p.vertex[0], p.vertex[1], p.vertex[2],
+			p.normal[0], p.normal[1], p.normal[2],
+			p.tangents[0], p.tangents[1], p.tangents[2],
+			p.color[0], p.color[1], p.color[2], p.color[3],
+			p.texture_coordinates[0], p.texture_coordinates[1]
+		));
+		i += 1;
+	}
+#endif
+
 	const auto end = std::chrono::system_clock::now();
 	const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 	l.info(std::format("Finished packaging. Took {}ms", elapsed.count() / 1000.0l));
