@@ -82,17 +82,39 @@ rosy::result gltf::import(rosy::log* l)
 		for (fastgltf::Material& mat : gltf.materials) {
 			material m{};
 			if (mat.pbrData.baseColorTexture.has_value()) {
-				m.color_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value());
-				m.color_sampler_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value());
-			}
-			else
-			{
-				m.color_image_index = UINT32_MAX;
-				m.color_sampler_index = UINT32_MAX;
+				if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.has_value())
+				{
+					m.color_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value());
+				} else
+				{
+					m.color_image_index = UINT32_MAX;
+				}
+				if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.has_value())
+				{
+					m.color_sampler_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value());
+				}
+				else
+				{
+					m.color_sampler_index = UINT32_MAX;
+				}
 			}
 			if (mat.normalTexture.has_value()) {
-				m.normal_image_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.value());
-				m.normal_sampler_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].samplerIndex.value());
+				if (gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.has_value())
+				{
+					m.normal_image_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.value());
+				}
+				else
+				{
+					m.normal_image_index = UINT32_MAX;
+				}
+				if (gltf.textures[mat.normalTexture.value().textureIndex].samplerIndex.has_value())
+				{
+					m.normal_sampler_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].samplerIndex.value());
+				}
+				else
+				{
+					m.normal_sampler_index = UINT32_MAX;
+				}
 			}
 			else
 			{
