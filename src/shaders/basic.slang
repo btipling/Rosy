@@ -16,6 +16,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float4x4 worldMat = gd.transform;
     float4x4 normalMat = gd.normalTransform;
 
+    float3 sunlight = float3(-sd.sunlight.x, sd.sunlight.y, sd.sunlight.z);
+
     float4 posWorld = float4(v.position, 1.0);
 
     float4x4 ndc_to_tc = {
@@ -32,7 +34,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float3 view = sd.cameraPosition.xyz - v.position.xyz;
     view = float3(dot(tangent, view), dot(bitangent, view), dot(normal, view));
 
-    float3 light = float3(dot(tangent, sd.sunlight.xyz), dot(bitangent, sd.sunlight.xyz), dot(normal, sd.sunlight.xyz));
+    float3 light = float3(dot(tangent, sunlight), dot(bitangent, sunlight), dot(normal, sunlight));
 
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
