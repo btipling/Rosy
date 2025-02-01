@@ -270,7 +270,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 					sgd.material_index = sur_material;
 					sgd.index_count = sur_count;
 					sgd.start_index = sur_start_index;
-					if (new_asset.materials[sur_material].alpha_mode != 0) {
+					if (new_asset.materials.size() > sur_material && new_asset.materials[sur_material].alpha_mode != 0) {
 						sgd.blended = true;
 					}
 					go.surface_data.push_back(sgd);
