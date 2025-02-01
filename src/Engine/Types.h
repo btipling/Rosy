@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdint>
 
+// These are type declarations, not default configurations. Configure those in Level.cpp or elsewhere.
 namespace rosy
 {
 	enum class result : uint8_t
@@ -34,8 +35,6 @@ namespace rosy
 	struct config {
 		int max_window_width = 0;
 		int max_window_height = 0;
-		uint32_t device_vendor = 4318;
-		bool enable_validation_layers = true;
 	};
 
 	struct  surface_graphics_data
@@ -92,8 +91,8 @@ namespace rosy
 		read_camera cam{};
 		bool debug_enabled{ false };
 		bool reverse_winding_order_enabled{ false };
-		bool cull_enabled{ true };
-		bool wire_enabled{ true };
+		bool cull_enabled{ false };
+		bool wire_enabled{ false };
 		std::array<float, 4> sunlight{};
 		std::vector<debug_object> debug_objects{};
 		bool depth_bias_enabled{ false };
@@ -104,22 +103,22 @@ namespace rosy
 
 	struct write_level_state
 	{
-		float sun_distance{ 12.833f };
-		float sun_pitch{ 5.141f };
-		float sun_yaw{ 1.866f };
-		float orthographic_depth{ 32.576f };
-		float cascade_level{ 22.188f };
+		float sun_distance{ 0 };
+		float sun_pitch{ 0 };
+		float sun_yaw{ 0 };
+		float orthographic_depth{ 0 };
+		float cascade_level{ 0 };
 		bool enable_edit{ false };
 		bool enable_sun_debug{ false };
 		bool enable_light_cam{ false };
 		bool reverse_winding_order_enabled{ false };
-		bool enable_cull{ true };
+		bool enable_cull{ false };
 		bool enable_wire{ false };
 		bool enable_light_perspective{ false };
-		bool depth_bias_enabled{ true };
-		float depth_bias_constant{-17.242f };
-		float depth_bias_clamp{ -114.858f };
-		float depth_bias_slope_factor{ -7.376f };
+		bool depth_bias_enabled{ false };
+		float depth_bias_constant{ 0 };
+		float depth_bias_clamp{ 0 };
+		float depth_bias_slope_factor{ 0 };
 	};
 
 }

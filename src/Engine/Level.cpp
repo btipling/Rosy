@@ -175,11 +175,16 @@ result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_ca
 	{
 		// Init level state
 		{
-			wls.sun_distance = 12.833f;
-			wls.sun_pitch = 5.141f;
-			wls.sun_yaw = 1.866f;
-			wls.orthographic_depth = 32.576f;
-			wls.cascade_level = 22.188f;
+			wls.sun_distance = 23.776f;
+			wls.sun_pitch = 5.247f;
+			wls.sun_yaw = 6.375f;
+			wls.orthographic_depth = 49.060f;
+			wls.cascade_level = 33.726f;
+			wls.depth_bias_constant = -10.989f;
+			wls.depth_bias_clamp = -27.473f;
+			wls.depth_bias_slope_factor = -128.206f;
+			wls.enable_cull = true;
+			wls.depth_bias_enabled = true;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)
