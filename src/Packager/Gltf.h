@@ -13,4 +13,3 @@ namespace rosy_packager
 		rosy::result import(rosy::log* l);
 	};
 }
-

@@ -2,6 +2,7 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
 #include <iostream>
+#include "mikktspace.h"
 
 using namespace rosy_packager;
 
@@ -40,16 +41,90 @@ namespace
 		}
 		return UINT16_MAX;
 	}
+
+	struct mikk_t_mesh {
+		std::string name;
+		std::vector<uint32_t> indices;
+		std::vector<std::array<float, 3>> mt_positions;
+		std::vector<std::array<float, 3>> mt_normals;
+		std::vector<std::array<float, 4>> mt_tangents;
+		std::vector<std::array<float, 2>> mt_texture_coordinates;
+	};
+
+	struct mikk_t_space_wrapper
+	{
+		mikk_t_mesh* mesh;
+		rosy::result run(const rosy::log* l)
+		{
+			if (mesh->mt_positions.empty() || mesh->mt_normals.empty() || mesh->indices.empty() ||  // NOLINT(readability-static-accessed-through-instance)
+				mesh->mt_texture_coordinates.empty())  // NOLINT(readability-static-accessed-through-instance)
+			{
+				l->info(std::format("Can't generate tangent space. The mesh '{}' doesn't have positions/normals/texCrd/indices.", mesh->name));
+				return rosy::result::error;
+			}
+			mesh->mt_tangents.resize(mesh->mt_positions.size());  // NOLINT(readability-static-accessed-through-instance)
+
+			// Generate new tangent space.
+			SMikkTSpaceInterface mikktspace = {};
+			// ReSharper disable line CppInconsistentNaming
+			mikktspace.m_getNumFaces = [](const SMikkTSpaceContext* pContext)
+				{
+					const mikk_t_mesh* ctx = static_cast<mikk_t_mesh*>(pContext->m_pUserData);
+					return static_cast<int>(ctx->indices.size() / 3);  // NOLINT(readability-static-accessed-through-instance)
+				};
+			// ReSharper disable line CppInconsistentNaming
+			mikktspace.m_getNumVerticesOfFace = []([[maybe_unused]] const SMikkTSpaceContext* pContext, [[maybe_unused]] int32_t face) { return 3; };
+			// ReSharper disable line CppInconsistentNaming
+			// ReSharper disable line CppParameterMayBeConst
+			mikktspace.m_getPosition = [](const SMikkTSpaceContext* pContext, float position[], int32_t face, int32_t vert)
+				{
+					const mikk_t_mesh* ctx = static_cast<mikk_t_mesh*>(pContext->m_pUserData);
+					memcpy(position, ctx->mt_positions.data() + (face * 3 + vert), sizeof(std::array<float, 3>));  // NOLINT(readability-static-accessed-through-instance)
+				};
+			// ReSharper disable line CppInconsistentNaming
+			// ReSharper disable line CppParameterMayBeConst
+			mikktspace.m_getNormal = [](const SMikkTSpaceContext* pContext, float normal[], int32_t face, int32_t vert)
+				{
+					const mikk_t_mesh* ctx = static_cast<mikk_t_mesh*>(pContext->m_pUserData);
+					memcpy(normal, ctx->mt_normals.data() + (face * 3 + vert), sizeof(std::array<float, 3>));  // NOLINT(readability-static-accessed-through-instance)
+				};
+			// ReSharper disable line CppInconsistentNaming
+			mikktspace.m_getTexCoord = [](const SMikkTSpaceContext* pContext, float texCrd[], int32_t face, int32_t vert)
+				{
+					const mikk_t_mesh* ctx = static_cast<mikk_t_mesh*>(pContext->m_pUserData);
+					memcpy(texCrd, ctx->mt_texture_coordinates.data() + (face * 3 + vert), sizeof(std::array<float, 2>));  // NOLINT(readability-static-accessed-through-instance)
+				};
+			// ReSharper disable line CppInconsistentNaming
+			mikktspace.m_setTSpaceBasic = [](const SMikkTSpaceContext* pContext, const float tangent[], float sign, int32_t face, int32_t vert)
+				{
+					const auto ctx = static_cast<mikk_t_mesh*>(pContext->m_pUserData);
+					const std::array<float, 4> new_tangent = *reinterpret_cast<const std::array<float, 4>*>(tangent);
+					ctx->mt_tangents[static_cast<size_t>(face) * 3 + static_cast<size_t>(vert)] = { new_tangent[0], new_tangent[1], new_tangent[2], sign };  // NOLINT(readability-static-accessed-through-instance)
+				};
+
+			SMikkTSpaceContext context = {};
+			context.m_pInterface = &mikktspace;
+			context.m_pUserData = mesh;
+
+			if (genTangSpaceDefault(&context) == false)
+			{
+				l->error(std::format("MikkTSpace failed to generate tangents for the mesh '{}'.", mesh->name));
+				return rosy::result::error;
+			}
+
+			return rosy::result::ok;
+		}
+	};
+
 }
 
 rosy::result gltf::import(rosy::log* l)
 {
 
 	const std::filesystem::path file_path{ source_path };
-	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember |
-		fastgltf::Options::AllowDouble |
-		fastgltf::Options::LoadExternalBuffers |
-		fastgltf::Options::DecomposeNodeMatrices;
+
+	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble | fastgltf::Options::LoadExternalBuffers | fastgltf::Options::DecomposeNodeMatrices;
+
 	fastgltf::Asset gltf;
 	fastgltf::Parser parser{};
 	auto data = fastgltf::GltfDataBuffer::FromPath(file_path);
@@ -85,7 +160,8 @@ rosy::result gltf::import(rosy::log* l)
 				if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.has_value())
 				{
 					m.color_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value());
-				} else
+				}
+				else
 				{
 					m.color_image_index = UINT32_MAX;
 				}
@@ -167,6 +243,8 @@ rosy::result gltf::import(rosy::log* l)
 	std::vector<fastgltf::math::fvec3> tangent_calc_normals;
 	std::vector<fastgltf::math::fvec2> tangent_calc_texture_coordinates;
 	std::vector<std::array<size_t, 3>> tangent_calc_triangles;
+	mikk_t_mesh mtm{};
+	mikk_t_space_wrapper mtw{ &mtm };
 
 	for (fastgltf::Mesh& fast_gltf_mesh : gltf.meshes) {
 		mesh new_mesh{};
@@ -192,7 +270,7 @@ rosy::result gltf::import(rosy::log* l)
 
 			// PRIMITIVE INDEX
 			{
-				std::array<size_t, 3> triangle;
+				std::array<size_t, 3> triangle{};
 				int current_index{ 0 };
 				fastgltf::Accessor& index_accessor = gltf.accessors[primitive.indicesAccessor.value()];
 				new_mesh.indices.reserve(new_mesh.indices.size() + index_accessor.count);
@@ -239,7 +317,7 @@ rosy::result gltf::import(rosy::log* l)
 
 				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(gltf, gltf.accessors[uv->accessorIndex],
 					[&](const fastgltf::math::fvec2& tc, const size_t index) {
-						new_mesh.positions[initial_vtx + index].texture_coordinates = {tc[0], tc[1]};
+						new_mesh.positions[initial_vtx + index].texture_coordinates = { tc[0], tc[1] };
 						tangent_calc_texture_coordinates.push_back(tc);
 					});
 			}
@@ -252,19 +330,32 @@ rosy::result gltf::import(rosy::log* l)
 					});
 			}
 
-			// PRIMITIVE TANGENT
-
 #ifndef MANUAL_TANGENT
+#ifndef MIKTT_TANGENT
+			// PRIMITIVE TANGENT
 			if (auto tangents = primitive.findAttribute("TANGENT"); tangents != primitive.attributes.end()) {
 				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[tangents->accessorIndex],
 					[&](const fastgltf::math::fvec4& t, const size_t index) {
 						new_mesh.positions[initial_vtx + index].tangents = { t[0], t[1], t[2], t[3] };
 					});
 			}
+			//if (const auto res = mtw.run(l); res != rosy::result::ok)
+			//{
+			//	l->error("mikktspace failed");
+			//	return rosy::result::error;
+			//}
+			//if (mtm.mt_tangents.empty()) // NOLINT(readability-static-accessed-through-instance)
+			//{
+			//	l->error("mikktspace didn't generate tangents");
+			//	return rosy::result::error;
+			//}
+			//l->info(std::format("mikktspace generated {} tangents.", mtm.mt_tangents.size())); // NOLINT(readability-static-accessed-through-instance)
+#else
+#endif
 #else
 
 			const size_t num_vertices = tangent_calc_positions.size();
-			std::vector<fastgltf::math::fvec3> tan1(num_vertices, {0.f, 0.f, 0.f});
+			std::vector<fastgltf::math::fvec3> tan1(num_vertices, { 0.f, 0.f, 0.f });
 			std::vector<fastgltf::math::fvec3> tan2(num_vertices, { 0.f, 0.f, 0.f });
 
 			for (size_t a{ 0 }; a < tangent_calc_triangles.size(); a++)
@@ -312,7 +403,7 @@ rosy::result gltf::import(rosy::log* l)
 
 				const fastgltf::math::fvec3 tangent = normalize(t - n * dot(n, t));
 				const float w = (dot(cross(n, t), tan2[a]) < 0.f) ? -1.f : 1.f;
-				new_mesh.positions[initial_vtx + a].tangents = { tangent[0], tangent[1], tangent[2], w};
+				new_mesh.positions[initial_vtx + a].tangents = { tangent[0], tangent[1], tangent[2], w };
 			}
 #endif
 
