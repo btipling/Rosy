@@ -274,14 +274,14 @@ namespace {
 	// These are written to buffer.
 	struct gpu_scene_data
 	{
-		[[maybe_unused]] std::array<float, 16> view{ 0 };
-		[[maybe_unused]] std::array<float, 16> proj{ 0 };
-		[[maybe_unused]] std::array<float, 16> view_projection{ 0 };
-		[[maybe_unused]] std::array<float, 16> shadow_projection_near{ 0 };
-		[[maybe_unused]] std::array<float, 4> sunlight{ 0 };
-		[[maybe_unused]] std::array<float, 4> camera_position{ 0 };
-		[[maybe_unused]] std::array<float, 4> ambient_color{ 0 };
-		[[maybe_unused]] std::array<float, 4> sunlight_color{ 0 };
+		[[maybe_unused]] std::array<float, 16> view{};
+		[[maybe_unused]] std::array<float, 16> proj{};
+		[[maybe_unused]] std::array<float, 16> view_projection{};
+		[[maybe_unused]] std::array<float, 16> shadow_projection_near{};
+		[[maybe_unused]] std::array<float, 4> sunlight{};
+		[[maybe_unused]] std::array<float, 4> camera_position{};
+		[[maybe_unused]] std::array<float, 4> ambient_color{};
+		[[maybe_unused]] std::array<float, 4> sunlight_color{};
 		[[maybe_unused]] glm::uint csm_index_sampler{ 0 };
 		[[maybe_unused]] glm::uint csm_index_near{ 0 };
 		[[maybe_unused]] glm::uint fragment_output{ 0 };
@@ -4450,7 +4450,7 @@ namespace {
 				}
 				{
 					VkRect2D scissor{};
-					scissor.offset = { .x= 0, .y= 0};
+					scissor.offset = { .x= 0, .y= 0 };
 					scissor.extent = shadow_map_extent;
 					vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
 					vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
@@ -4564,7 +4564,7 @@ namespace {
 			}
 			{
 				VkRect2D scissor{};
-				scissor.offset = { .x= 0, .y= 0};
+				scissor.offset = { .x= 0, .y= 0 };
 				scissor.extent = swapchain_extent;
 				vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
 				vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
@@ -5275,54 +5275,60 @@ namespace {
 							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1], scene_data.sunlight[2]);
 							ImGui::EndTable();
 						}
-						if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+						if (ImGui::CollapsingHeader("Lighting"))
 						{
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::SliderFloat("Spherical distance", &wls->light_debug.sun_distance, 0.f, 25.f);
-							ImGui::SliderFloat("Spherical pitch", &wls->light_debug.sun_pitch, 0.f, 4 * static_cast<float>(pi));
-							ImGui::SliderFloat("Spherical yaw", &wls->light_debug.sun_yaw, 0.f, 4 * static_cast<float>(pi));
-							ImGui::SliderFloat("Light depth", &wls->light_debug.orthographic_depth, 0.f, 500.f);
-							ImGui::SliderFloat("Light cascade level", &wls->light_debug.cascade_level, 0.f, 50.f);
-							ImGui::SliderFloat("Depth bias constant", &wls->light.depth_bias_constant, -500.f, 500.f);
-							ImGui::SliderFloat("Depth bias clamp", &wls->light.depth_bias_clamp, -500.f, 500.f);
-							ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor, -500.f, 500.f);
-							ImGui::EndTable();
+							if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::SliderFloat("Spherical distance", &wls->light_debug.sun_distance, 0.f, 25.f);
+								ImGui::SliderFloat("Spherical pitch", &wls->light_debug.sun_pitch, 0.f, 4 * static_cast<float>(pi));
+								ImGui::SliderFloat("Spherical yaw", &wls->light_debug.sun_yaw, 0.f, 4 * static_cast<float>(pi));
+								ImGui::SliderFloat("Light depth", &wls->light_debug.orthographic_depth, 0.f, 500.f);
+								ImGui::SliderFloat("Light cascade level", &wls->light_debug.cascade_level, 0.f, 50.f);
+								ImGui::SliderFloat("Depth bias constant", &wls->light.depth_bias_constant, -500.f, 500.f);
+								ImGui::SliderFloat("Depth bias clamp", &wls->light.depth_bias_clamp, -500.f, 500.f);
+								ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor, -500.f, 500.f);
+								ImGui::EndTable();
+							}
+							if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable light camera", &wls->light_debug.enable_light_cam);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable light perspective", &wls->light_debug.enable_light_perspective);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable cull", &wls->draw_config.cull_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable wireframe", &wls->draw_config.wire_enabled);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Toggle winding order", &wls->draw_config.reverse_winding_order_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable depth bias", &wls->light.depth_bias_enabled);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable sun debug", &wls->light_debug.enable_sun_debug);
+								ImGui::TableNextColumn();
+								ImGui::Text("");
+
+								ImGui::EndTable();
+							}
 						}
-						if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+						if (ImGui::CollapsingHeader("Shadow map"))
 						{
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable light camera", &wls->light_debug.enable_light_cam);
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable light perspective", &wls->light_debug.enable_light_perspective);
-
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable cull", &wls->draw_config.cull_enabled);
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable wireframe", &wls->draw_config.wire_enabled);
-
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Toggle winding order", &wls->draw_config.reverse_winding_order_enabled);
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable depth bias", &wls->light.depth_bias_enabled);
-
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable sun debug", &wls->light_debug.enable_sun_debug);
-							ImGui::TableNextColumn();
-							ImGui::Text("");
-
-							ImGui::EndTable();
+							const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
+							constexpr auto uv_min = ImVec2(0.0f, 0.0f);
+							constexpr auto uv_max = ImVec2(1.0f, 1.0f);
+							constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+							const ImVec2 content_area = ImGui::GetContentRegionAvail();
+							ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
 						}
-						const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
-						constexpr auto uv_min = ImVec2(0.0f, 0.0f);
-						constexpr auto uv_max = ImVec2(1.0f, 1.0f);
-						constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-						const ImVec2 content_area = ImGui::GetContentRegionAvail();
-						ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();
