@@ -24,7 +24,7 @@ namespace
 		return a;
 	}
 
-	glm::mat4 array_to_mat4(std::array<float, 16> a)
+	glm::mat4 array_to_mat4(const std::array<float, 16>& a)
 	{
 		glm::mat4 m{};
 		const auto pos_r = glm::value_ptr(m);
