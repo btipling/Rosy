@@ -18,21 +18,6 @@ public struct BasicVertex
     public float2 textureCoordinates;
 };
 
-public struct VertexStageOutput
-{
-    public CoarseVertex coarseVertex : CoarseVertex;
-    public CSM csm : CSM;
-    public float4 sv_position : SV_Position;
-};
-
-public struct InputVertex {
-    public float3 position;
-    public float textureCoordinates_x;
-    public float3 normal;
-    public float textureCoordinates_y;
-    public float4 color;
-};
-
 public struct BasicInputVertex {
     public float3 position;
     public float3 normal;
@@ -45,27 +30,6 @@ public struct BasicGraphicsData {
     public float4x4 transform;
     public float4x4 normalTransform;
 };
-
-public struct RenderData {
-    public float4x4 transform;
-    public float3x3 normalTransform;
-    public uint32_t4 material_data;
-};
-
-public struct MaterialData {
-    public uint32_t color_texture_index;
-    public uint32_t color_sampler_index;
-};
-
-public struct CoarseVertex
-{
-    public float4 vertex;
-    public float4 position;
-    public float3 color;
-    public float3 normal;
-    public float2 textureCoordinates;
-};
-
 public struct CSM
 {
     public float4 near;
@@ -117,13 +81,6 @@ public struct ShadowConstant {
     public BasicInputVertex *v;
     public BasicGraphicsData *gd;
     public uint pass_number;
-}
-
-public struct PushConstant {
-    public SceneData *sd;
-    public InputVertex *v;
-    public RenderData *rd;
-    public MaterialData *md;
 }
 
 public struct ShadowOutput
