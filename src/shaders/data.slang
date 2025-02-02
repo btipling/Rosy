@@ -85,6 +85,7 @@ public struct SceneData
     public float4 sunlightColor;
     public uint csmIndexSampler;
     public uint csmIndexNear;
+    public uint fragmentOutput;
 };
 
 public struct Fragment
