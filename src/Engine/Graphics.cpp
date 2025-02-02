@@ -3206,7 +3206,7 @@ namespace {
 						return res;
 					}
 
-					VkBufferCopy vertex_copy{ 0 };
+					VkBufferCopy vertex_copy{};
 					vertex_copy.dstOffset = 0;
 					vertex_copy.srcOffset = 0;
 					vertex_copy.size = debug_draws_buffer_size;
@@ -3682,7 +3682,7 @@ namespace {
 							return result::error;
 						}
 
-						VkBufferCopy vertex_copy{ 0 };
+						VkBufferCopy vertex_copy{};
 						vertex_copy.dstOffset = 0;
 						vertex_copy.srcOffset = 0;
 						vertex_copy.size = material_buffer_size;
@@ -3879,14 +3879,14 @@ namespace {
 				}
 
 				{
-					VkBufferCopy vertex_copy{ 0 };
+					VkBufferCopy vertex_copy{};
 					vertex_copy.dstOffset = 0;
 					vertex_copy.srcOffset = 0;
 					vertex_copy.size = vertex_buffer_size;
 
 					vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, gpu_mesh.vertex_buffer.buffer, 1, &vertex_copy);
 
-					VkBufferCopy index_copy{ 0 };
+					VkBufferCopy index_copy{};
 					index_copy.dstOffset = 0;
 					index_copy.srcOffset = vertex_buffer_size;
 					index_copy.size = index_buffer_size;
@@ -4184,7 +4184,7 @@ namespace {
 						return result::error;
 					}
 
-					VkBufferCopy vertex_copy{ 0 };
+					VkBufferCopy vertex_copy{};
 					vertex_copy.dstOffset = 0;
 					vertex_copy.srcOffset = 0;
 					vertex_copy.size = graphic_objects_buffer_size;
@@ -4450,7 +4450,7 @@ namespace {
 				}
 				{
 					VkRect2D scissor{};
-					scissor.offset = { 0, 0 };
+					scissor.offset = { .x= 0, .y= 0};
 					scissor.extent = shadow_map_extent;
 					vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
 					vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
@@ -4564,7 +4564,7 @@ namespace {
 			}
 			{
 				VkRect2D scissor{};
-				scissor.offset = { 0, 0 };
+				scissor.offset = { .x= 0, .y= 0};
 				scissor.extent = swapchain_extent;
 				vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
 				vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
