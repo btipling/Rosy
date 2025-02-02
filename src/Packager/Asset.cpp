@@ -36,7 +36,6 @@ using namespace rosy_packager;
 
 rosy::result asset::write(const rosy::log* l)
 {
-
 	// OPEN FILE FOR WRITING BINARY
 
 	FILE* stream{ nullptr };

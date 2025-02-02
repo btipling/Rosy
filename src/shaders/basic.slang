@@ -79,7 +79,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
-    output.basicVertex.normal = mul(float3x3(gd.normalTransform), normal);
+    output.basicVertex.normal = normal;
+    output.basicVertex.worldNormal = mul(gd.normalTransform, float4(v.normal, 0.f)).xyz;
     output.basicVertex.color = v.color;
     output.basicVertex.tangent = tangent * v.tangent.w;
     output.basicVertex.viewDir = view;
@@ -141,7 +142,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         outFragColor = imageTextureColor;
         break;
     case 1:
-        outFragColor = float4(normalize(basicVertex.normal) * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.worldNormal) * 0.5 + 0.5, 1.f);
         break;
     case 2:
         outFragColor = float4(normalize(basicVertex.tangent) * 0.5 + 0.5, 1.f);
