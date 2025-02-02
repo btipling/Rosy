@@ -5218,6 +5218,7 @@ namespace {
 				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
 				.csm_index_sampler = shadow_map_image.ds_index_sampler,
 				.csm_index_near = shadow_map_image.ds_index_near,
+				.fragment_output = static_cast<uint32_t>(new_rls.fragment_config.output),
 			};
 			rls = &new_rls;
 			scene_data = sd;
@@ -5301,6 +5302,19 @@ namespace {
 
 								ImGui::TableNextRow();
 								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable sun debug", &wls->light_debug.enable_sun_debug);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable depth bias", &wls->light.depth_bias_enabled);
+
+								ImGui::EndTable();
+							}
+						}
+						if (ImGui::CollapsingHeader("Draw config"))
+						{
+							if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
 								ImGui::Checkbox("Enable cull", &wls->draw_config.cull_enabled);
 								ImGui::TableNextColumn();
 								ImGui::Checkbox("Enable wireframe", &wls->draw_config.wire_enabled);
@@ -5308,12 +5322,6 @@ namespace {
 								ImGui::TableNextRow();
 								ImGui::TableNextColumn();
 								ImGui::Checkbox("Toggle winding order", &wls->draw_config.reverse_winding_order_enabled);
-								ImGui::TableNextColumn();
-								ImGui::Checkbox("Enable depth bias", &wls->light.depth_bias_enabled);
-
-								ImGui::TableNextRow();
-								ImGui::TableNextColumn();
-								ImGui::Checkbox("Enable sun debug", &wls->light_debug.enable_sun_debug);
 								ImGui::TableNextColumn();
 								ImGui::Text("");
 
@@ -5328,6 +5336,13 @@ namespace {
 							constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 							const ImVec2 content_area = ImGui::GetContentRegionAvail();
 							ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
+						}
+						if (ImGui::CollapsingHeader("Fragment Config"))
+						{
+							ImGui::RadioButton("color", &wls->fragment_config.output, 0); ImGui::SameLine();
+							ImGui::RadioButton("normal", &wls->fragment_config.output, 1); ImGui::SameLine();
+							ImGui::RadioButton("tangent", &wls->fragment_config.output, 2); ImGui::SameLine();
+							ImGui::RadioButton("light", &wls->fragment_config.output, 3);
 						}
 						ImGui::EndTabItem();
 					}

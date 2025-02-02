@@ -70,7 +70,10 @@ namespace
 				rls->cam.pitch = cam->pitch;
 				rls->cam.yaw = cam->yaw;
 			}
-
+			{
+				// Fragment config
+				rls->fragment_config = wls->fragment_config;
+			}
 			{
 				// Configure draw options based on writable level state
 				rls->debug_enabled = wls->enable_edit;

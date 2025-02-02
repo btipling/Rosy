@@ -118,7 +118,7 @@ namespace rosy
 
 	struct fragment_config_state
 	{
-		uint32_t output{ 0 }; // 0 normal, 1 normals, 2 tangent, 3 light
+		int output{ 0 }; // 0 normal, 1 normals, 2 tangent, 3 light
 	};
 
 	struct read_level_state
@@ -128,6 +128,7 @@ namespace rosy
 		draw_config_state draw_config{};
 		bool debug_enabled{ false };
 		std::vector<debug_object> debug_objects{};
+		fragment_config_state fragment_config{};
 	};
 
 	struct write_level_state
