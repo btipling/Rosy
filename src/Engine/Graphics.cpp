@@ -283,6 +283,7 @@ namespace {
 		std::array<float, 4> sunlight_color = { 0 };
 		glm::uint csm_index_sampler{ 0 };
 		glm::uint csm_index_near{ 0 };
+		glm::uint fragment_output{ 0 };
 	};
 
 	struct allocated_image
@@ -4306,9 +4307,9 @@ namespace {
 
 					{
 						vkCmdSetLineWidth(cf.command_buffer, 1.f);
-						vkCmdSetFrontFaceEXT(cf.command_buffer, rls->reverse_winding_order_enabled ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE);
-						vkCmdSetCullModeEXT(cf.command_buffer, rls->cull_enabled ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE);
-						vkCmdSetPolygonModeEXT(cf.command_buffer, rls->wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL);
+						vkCmdSetFrontFaceEXT(cf.command_buffer, rls->draw_config.reverse_winding_order_enabled ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE);
+						vkCmdSetCullModeEXT(cf.command_buffer, rls->draw_config.cull_enabled ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE);
+						vkCmdSetPolygonModeEXT(cf.command_buffer, rls->draw_config.wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL);
 					}
 					{
 						vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
@@ -4436,10 +4437,10 @@ namespace {
 			}
 			{
 				{
-					if (rls->depth_bias_enabled) {
+					if (rls->light.depth_bias_enabled) {
 						vkCmdSetDepthBiasEnable(cf.command_buffer, VK_TRUE);
 						//vkCmdSetDepthClampEnableEXT(cf.command_buffer, VK_TRUE);
-						vkCmdSetDepthBias(cf.command_buffer, rls->depth_bias_constant, rls->depth_bias_clamp, rls->depth_bias_slope_factor);
+						vkCmdSetDepthBias(cf.command_buffer, rls->light.depth_bias_constant, rls->light.depth_bias_clamp, rls->light.depth_bias_slope_factor);
 					}
 				}
 				{
@@ -5217,7 +5218,7 @@ namespace {
 				.proj = new_rls.cam.p,
 				.view_projection = new_rls.cam.vp,
 				.shadow_projection_near = new_rls.cam.shadow_projection_near,
-				.sunlight = new_rls.sunlight,
+				.sunlight = new_rls.light.sunlight,
 				.camera_position = new_rls.cam.position,
 				.ambient_color = { 0.04f, 0.04f, 0.04f, 1.f },
 				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
@@ -5279,39 +5280,39 @@ namespace {
 						{
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::SliderFloat("Spherical distance", &wls->sun_distance, 0.f, 25.f);
-							ImGui::SliderFloat("Spherical pitch", &wls->sun_pitch, 0.f, 4 * static_cast<float>(pi));
-							ImGui::SliderFloat("Spherical yaw", &wls->sun_yaw, 0.f, 4 * static_cast<float>(pi));
-							ImGui::SliderFloat("Light depth", &wls->orthographic_depth, 0.f, 500.f);
-							ImGui::SliderFloat("Light cascade level", &wls->cascade_level, 0.f, 50.f);
-							ImGui::SliderFloat("Depth bias constant", &wls->depth_bias_constant, -500.f, 500.f);
-							ImGui::SliderFloat("Depth bias clamp", &wls->depth_bias_clamp, -500.f, 500.f);
-							ImGui::SliderFloat("Depth bias slope factor", &wls->depth_bias_slope_factor, -500.f, 500.f);
+							ImGui::SliderFloat("Spherical distance", &wls->light_debug.sun_distance, 0.f, 25.f);
+							ImGui::SliderFloat("Spherical pitch", &wls->light_debug.sun_pitch, 0.f, 4 * static_cast<float>(pi));
+							ImGui::SliderFloat("Spherical yaw", &wls->light_debug.sun_yaw, 0.f, 4 * static_cast<float>(pi));
+							ImGui::SliderFloat("Light depth", &wls->light_debug.orthographic_depth, 0.f, 500.f);
+							ImGui::SliderFloat("Light cascade level", &wls->light_debug.cascade_level, 0.f, 50.f);
+							ImGui::SliderFloat("Depth bias constant", &wls->light.depth_bias_constant, -500.f, 500.f);
+							ImGui::SliderFloat("Depth bias clamp", &wls->light.depth_bias_clamp, -500.f, 500.f);
+							ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor, -500.f, 500.f);
 							ImGui::EndTable();
 						}
 						if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 						{
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable light camera", &wls->enable_light_cam);
+							ImGui::Checkbox("Enable light camera", &wls->light_debug.enable_light_cam);
 							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable light perspective", &wls->enable_light_perspective);
+							ImGui::Checkbox("Enable light perspective", &wls->light_debug.enable_light_perspective);
 
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable cull", &wls->enable_cull);
+							ImGui::Checkbox("Enable cull", &wls->draw_config.cull_enabled);
 							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable wireframe", &wls->enable_wire);
+							ImGui::Checkbox("Enable wireframe", &wls->draw_config.wire_enabled);
 
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::Checkbox("Toggle winding order", &wls->reverse_winding_order_enabled);
+							ImGui::Checkbox("Toggle winding order", &wls->draw_config.reverse_winding_order_enabled);
 							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable depth bias", &wls->depth_bias_enabled);
+							ImGui::Checkbox("Enable depth bias", &wls->light.depth_bias_enabled);
 
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable sun debug", &wls->enable_sun_debug);
+							ImGui::Checkbox("Enable sun debug", &wls->light_debug.enable_sun_debug);
 							ImGui::TableNextColumn();
 							ImGui::Text("");
 

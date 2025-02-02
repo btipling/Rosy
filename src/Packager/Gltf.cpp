@@ -51,7 +51,7 @@ rosy::result gltf::import(rosy::log* l)
 	constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble | fastgltf::Options::LoadExternalBuffers | fastgltf::Options::DecomposeNodeMatrices;
 
 	fastgltf::Asset gltf;
-	fastgltf::Parser parser{};
+	fastgltf::Parser parser{fastgltf::Extensions::KHR_lights_punctual};
 	auto data = fastgltf::GltfDataBuffer::FromPath(file_path);
 	if (data.error() != fastgltf::Error::None) {
 		auto err = fastgltf::to_underlying(data.error());

@@ -86,39 +86,55 @@ namespace rosy
 		std::array<float, 4> position{};
 	};
 
-	struct read_level_state
+	struct light_read_write_state
 	{
-		read_camera cam{};
-		bool debug_enabled{ false };
-		bool reverse_winding_order_enabled{ false };
-		bool cull_enabled{ false };
-		bool wire_enabled{ false };
 		std::array<float, 4> sunlight{};
-		std::vector<debug_object> debug_objects{};
 		bool depth_bias_enabled{ false };
 		float depth_bias_constant{ 0.f };
 		float depth_bias_clamp{ 0.f };
 		float depth_bias_slope_factor{ 0.f };
 	};
 
-	struct write_level_state
+	struct light_debug_state
 	{
 		float sun_distance{ 0 };
 		float sun_pitch{ 0 };
 		float sun_yaw{ 0 };
-		float orthographic_depth{ 0 };
 		float cascade_level{ 0 };
-		bool enable_edit{ false };
-		bool enable_sun_debug{ false };
 		bool enable_light_cam{ false };
-		bool reverse_winding_order_enabled{ false };
-		bool enable_cull{ false };
-		bool enable_wire{ false };
+		bool enable_sun_debug{ false };
 		bool enable_light_perspective{ false };
-		bool depth_bias_enabled{ false };
-		float depth_bias_constant{ 0 };
-		float depth_bias_clamp{ 0 };
-		float depth_bias_slope_factor{ 0 };
+		float orthographic_depth{ 0 };
+	};
+
+	struct draw_config_state
+	{
+		bool reverse_winding_order_enabled{ false };
+		bool cull_enabled{ false };
+		bool wire_enabled{ false };
+	};
+
+	struct fragment_config_state
+	{
+		uint32_t output{ 0 }; // 0 normal, 1 normals, 2 tangent, 3 light
+	};
+
+	struct read_level_state
+	{
+		read_camera cam{};
+		light_read_write_state light{};
+		draw_config_state draw_config{};
+		bool debug_enabled{ false };
+		std::vector<debug_object> debug_objects{};
+	};
+
+	struct write_level_state
+	{
+		bool enable_edit{ false };
+		light_read_write_state light{};
+		light_debug_state light_debug{};
+		draw_config_state draw_config{};
+		fragment_config_state fragment_config{};
 	};
 
 }
