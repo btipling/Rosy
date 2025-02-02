@@ -187,6 +187,8 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 			wls.draw_config.thick_wire_lines = false;
 			wls.fragment_config.output = 0;
 			wls.fragment_config.light_enabled = true;
+			wls.fragment_config.tangent_space_enabled = true;
+			wls.fragment_config.shadows_enabled = true;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)

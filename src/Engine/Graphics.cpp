@@ -281,10 +281,14 @@ namespace {
 		[[maybe_unused]] std::array<float, 4> camera_position{};
 		[[maybe_unused]] std::array<float, 4> ambient_color{};
 		[[maybe_unused]] std::array<float, 4> sunlight_color{};
+		[[maybe_unused]] std::array<uint32_t, 4> flip_lights{ 0, 0, 0, 0 };
+		[[maybe_unused]] std::array<uint32_t, 4> flip_tangents{ 0, 0, 0, 0 };
 		[[maybe_unused]] uint32_t csm_index_sampler{ 0 };
 		[[maybe_unused]] uint32_t csm_index_near{ 0 };
 		[[maybe_unused]] uint32_t fragment_output{ 0 };
 		[[maybe_unused]] uint32_t light_enabled{ 0 };
+		[[maybe_unused]] uint32_t tangent_space_enabled{ 0 };
+		[[maybe_unused]] uint32_t shadows_enabled{ 0 };
 	};
 
 	struct allocated_image
@@ -5215,20 +5219,33 @@ namespace {
 		result update(const read_level_state& new_rls)
 		{
 			const uint32_t light_enabled = new_rls.fragment_config.light_enabled ? 1 : 0;
-			const gpu_scene_data sd{
-				.view = new_rls.cam.v,
-				.proj = new_rls.cam.p,
-				.view_projection = new_rls.cam.vp,
-				.shadow_projection_near = new_rls.cam.shadow_projection_near,
-				.sunlight = new_rls.light.sunlight,
-				.camera_position = new_rls.cam.position,
-				.ambient_color = { 0.04f, 0.04f, 0.04f, 1.f },
-				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
-				.csm_index_sampler = shadow_map_image.ds_index_sampler,
-				.csm_index_near = shadow_map_image.ds_index_near,
-				.fragment_output = static_cast<uint32_t>(new_rls.fragment_config.output),
-				.light_enabled = light_enabled,
-			};
+			const uint32_t tangent_space_enabled = new_rls.fragment_config.tangent_space_enabled ? 1 : 0;
+			const uint32_t shadows_enabled = new_rls.fragment_config.shadows_enabled ? 1 : 0;
+			const uint32_t flip_x = new_rls.light.flip_light_x ? 1 : 0;
+			const uint32_t flip_y = new_rls.light.flip_light_y ? 1 : 0;
+			const uint32_t flip_z = new_rls.light.flip_light_z ? 1 : 0;
+			const uint32_t flip_tangent_x = new_rls.light.flip_tangent_x ? 1 : 0;
+			const uint32_t flip_tangent_y = new_rls.light.flip_tangent_y ? 1 : 0;
+			const uint32_t flip_tangent_z = new_rls.light.flip_tangent_z ? 1 : 0;
+			const uint32_t flip_tangent_w = new_rls.light.flip_tangent_w ? 1 : 0;
+			gpu_scene_data sd;
+			sd.view = new_rls.cam.v;
+			sd.proj = new_rls.cam.p;
+			sd.view_projection = new_rls.cam.vp;
+			sd.shadow_projection_near = new_rls.cam.shadow_projection_near;
+			sd.sunlight = new_rls.light.sunlight;
+			sd.camera_position = new_rls.cam.position;
+			sd.ambient_color = { 0.04f, 0.04f, 0.04f, 1.f };
+			sd.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f };
+			sd.flip_lights = { flip_x, flip_y, flip_z, 1 };
+			sd.flip_tangents = { flip_tangent_x, flip_tangent_y, flip_tangent_z, flip_tangent_w };
+			sd.csm_index_sampler = shadow_map_image.ds_index_sampler;
+			sd.csm_index_near = shadow_map_image.ds_index_near;
+			sd.fragment_output = static_cast<uint32_t>(new_rls.fragment_config.output);
+			sd.light_enabled = light_enabled;
+			sd.tangent_space_enabled = tangent_space_enabled;
+			sd.shadows_enabled = shadows_enabled;
+
 			rls = &new_rls;
 			scene_data = sd;
 			return result::ok;
@@ -5315,6 +5332,30 @@ namespace {
 								ImGui::TableNextColumn();
 								ImGui::Checkbox("Enable depth bias", &wls->light.depth_bias_enabled);
 
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip light x", &wls->light.flip_light_x);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip light y", &wls->light.flip_light_y);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip light z", &wls->light.flip_light_z);
+								ImGui::TableNextColumn();
+								ImGui::Text("");
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip tangent x", &wls->light.flip_tangent_x);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip tangent y", &wls->light.flip_tangent_y);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip tangent z", &wls->light.flip_light_z);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
+
 								ImGui::EndTable();
 							}
 						}
@@ -5351,12 +5392,19 @@ namespace {
 							ImGui::RadioButton("color", &wls->fragment_config.output, 0); ImGui::SameLine();
 							ImGui::RadioButton("normal", &wls->fragment_config.output, 1); ImGui::SameLine();
 							ImGui::RadioButton("tangent", &wls->fragment_config.output, 2); ImGui::SameLine();
-							ImGui::RadioButton("light", &wls->fragment_config.output, 3);
+							ImGui::RadioButton("light", &wls->fragment_config.output, 3); ImGui::SameLine();
+							ImGui::RadioButton("view", &wls->fragment_config.output, 4);
 							if (ImGui::BeginTable("##ToggleFragmentOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 							{
 								ImGui::TableNextRow();
 								ImGui::TableNextColumn();
 								ImGui::Checkbox("Enable light", &wls->fragment_config.light_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable tangent space", &wls->fragment_config.tangent_space_enabled);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable Shadows", &wls->fragment_config.shadows_enabled);
 								ImGui::TableNextColumn();
 								ImGui::Text("");
 

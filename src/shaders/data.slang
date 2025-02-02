@@ -48,10 +48,14 @@ public struct SceneData
     public float4 cameraPosition;
     public float4 ambientColor;
     public float4 sunlightColor;
+    public uint4 flipLights;
+    public uint4 flipTangents;
     public uint csmIndexSampler;
     public uint csmIndexNear;
     public uint fragmentOutput;
     public uint lightEnabled;
+    public uint tangentSpaceEnabled;
+    public uint shadowsEnabled;
 };
 
 public struct Fragment

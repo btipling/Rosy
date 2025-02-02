@@ -95,6 +95,13 @@ namespace rosy
 		float depth_bias_constant{ 0.f };
 		float depth_bias_clamp{ 0.f };
 		float depth_bias_slope_factor{ 0.f };
+		bool flip_light_x{ false };
+		bool flip_light_y{ false };
+		bool flip_light_z{ false };
+		bool flip_tangent_x{ false };
+		bool flip_tangent_y{ false };
+		bool flip_tangent_z{ false };
+		bool flip_tangent_w{ false };
 	};
 
 	struct light_debug_state
@@ -121,6 +128,8 @@ namespace rosy
 	{
 		int output{ 0 }; // 0 normal, 1 normals, 2 tangent, 3 light
 		bool light_enabled{ false };
+		bool tangent_space_enabled{ false };
+		bool shadows_enabled{ false };
 	};
 
 	struct read_level_state
