@@ -70,7 +70,7 @@ result engine::init()
 		}
 	}
 
-	config cfg{};
+	config cfg;
 	// SDL Window initialization.
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO))
@@ -79,8 +79,8 @@ result engine::init()
 			return result::error;
 		}
 
-		int width = 640;
-		int height = 480;
+		int width;
+		int height;
 		int displays_count = 0;
 		const auto display_ids = SDL_GetDisplays(&displays_count);
 		if (!display_ids || displays_count <= 0)

@@ -10,7 +10,7 @@
 #include <ktxvulkan.h>
 #include <SDL3/SDL_vulkan.h>
 #pragma warning(disable: 4100 4459)
-#include <tracy/Tracy.hpp>
+//#include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
 #include <filesystem>
@@ -66,11 +66,11 @@ namespace {
 			return rosy::result::ok;
 		}
 
-		void free(const uint32_t index)
+		[[maybe_unused]] void free(const uint32_t index)
 		{
 			recycled_indices.push(index);
 		}
-		void reset()
+		[[maybe_unused]] void reset()
 		{
 			while (!recycled_indices.empty()) recycled_indices.pop();
 			num_allocated = 0;
@@ -271,19 +271,20 @@ namespace {
 		}
 	}
 
+	// These are written to buffer.
 	struct gpu_scene_data
 	{
-		std::array<float, 16> view = { 0 };
-		std::array<float, 16> proj = { 0 };
-		std::array<float, 16> view_projection = { 0 };
-		std::array<float, 16> shadow_projection_near  = { 0 };
-		std::array<float, 4> sunlight = { 0 };
-		std::array<float, 4> camera_position = { 0 };
-		std::array<float, 4> ambient_color = { 0 };
-		std::array<float, 4> sunlight_color = { 0 };
-		glm::uint csm_index_sampler{ 0 };
-		glm::uint csm_index_near{ 0 };
-		glm::uint fragment_output{ 0 };
+		[[maybe_unused]] std::array<float, 16> view{ 0 };
+		[[maybe_unused]] std::array<float, 16> proj{ 0 };
+		[[maybe_unused]] std::array<float, 16> view_projection{ 0 };
+		[[maybe_unused]] std::array<float, 16> shadow_projection_near{ 0 };
+		[[maybe_unused]] std::array<float, 4> sunlight{ 0 };
+		[[maybe_unused]] std::array<float, 4> camera_position{ 0 };
+		[[maybe_unused]] std::array<float, 4> ambient_color{ 0 };
+		[[maybe_unused]] std::array<float, 4> sunlight_color{ 0 };
+		[[maybe_unused]] glm::uint csm_index_sampler{ 0 };
+		[[maybe_unused]] glm::uint csm_index_near{ 0 };
+		[[maybe_unused]] glm::uint fragment_output{ 0 };
 	};
 
 	struct allocated_image
@@ -373,39 +374,39 @@ namespace {
 
 	struct graphic_objects_buffers
 	{
-		allocated_buffer go_buffer;
-		VkDeviceAddress go_buffer_address;
-		size_t buffer_size;
+		[[maybe_unused]] allocated_buffer go_buffer;
+		[[maybe_unused]] VkDeviceAddress go_buffer_address;
+		[[maybe_unused]] size_t buffer_size;
 	};
 
 	struct gpu_draw_push_constants
 	{
-		VkDeviceAddress scene_buffer{ 0 };
-		VkDeviceAddress vertex_buffer{ 0 };
-		VkDeviceAddress go_buffer{ 0 };
-		VkDeviceAddress material_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress scene_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress vertex_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress go_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress material_buffer{ 0 };
 	};
 
 	struct gpu_debug_push_constants
 	{
-		std::array<float, 16> transform{};
-		std::array<float, 4> color{};
-		VkDeviceAddress scene_buffer{ 0 };
-		VkDeviceAddress debug_draw_buffer{ 0 };
+		[[maybe_unused]] std::array<float, 16> transform{};
+		[[maybe_unused]] std::array<float, 4> color{};
+		[[maybe_unused]] VkDeviceAddress scene_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress debug_draw_buffer{ 0 };
 	};
 
 	struct gpu_shadow_push_constants
 	{
-		VkDeviceAddress scene_buffer{ 0 };
-		VkDeviceAddress vertex_buffer{ 0 };
-		VkDeviceAddress go_buffer{ 0 };
-		glm::uint pass_number;
+		[[maybe_unused]] VkDeviceAddress scene_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress vertex_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress go_buffer{ 0 };
+		[[maybe_unused]] glm::uint pass_number;
 	};
 
 	struct graphic_object_data
 	{
-		std::array<float, 16> transform;
-		std::array<float, 16> normal_transform;
+		[[maybe_unused]] std::array<float, 16> transform;
+		[[maybe_unused]] std::array<float, 16> normal_transform;
 	};
 
 	struct graphics_stats {
@@ -413,7 +414,6 @@ namespace {
 		int line_count{ 0 };
 		int draw_call_count{ 0 };
 		float draw_time{ 0.f };
-		float shadow_draw_time{ 0.f };
 	};
 
 	struct graphics_device
@@ -431,7 +431,6 @@ namespace {
 		VkExtent2D draw_extent = {};
 
 		std::vector<const char*> instance_layer_properties;
-		std::vector<const char*> device_layer_properties;
 		std::vector<const char*> instance_extensions;
 		std::vector<const char*> device_extensions;
 
@@ -1128,7 +1127,8 @@ namespace {
 				VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
 			};
 
-			const VkValidationFeaturesEXT validation_info
+			// Turned on when needed.
+			[[maybe_unused]] const VkValidationFeaturesEXT validation_info
 			{
 				.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
 				.pNext = &vvl_settings,
@@ -1592,7 +1592,7 @@ namespace {
 				vkGetDeviceQueue2(device, &get_info, &present_queue);
 			}
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_QUEUE;
@@ -1688,7 +1688,7 @@ namespace {
 				if (const VkResult res = vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain); res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_swapchain;
 				{
-					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					VkDebugUtilsObjectNameInfoEXT debug_name;
 					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
@@ -2030,7 +2030,7 @@ namespace {
 			}
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
@@ -2063,7 +2063,7 @@ namespace {
 			layout_flags.bindingCount = static_cast<uint32_t>(bindings_flags.size());
 			layout_flags.pBindingFlags = bindings_flags.data();
 
-			VkDescriptorSetLayoutCreateInfo layout_create_info{};
+			VkDescriptorSetLayoutCreateInfo layout_create_info;
 			layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			layout_create_info.pNext = &layout_flags;
 			layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
@@ -2077,7 +2077,7 @@ namespace {
 			}
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT;
@@ -2100,7 +2100,7 @@ namespace {
 			graphics_created_bitmask |= graphics_created_bit_descriptor_set;
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
@@ -2249,7 +2249,7 @@ namespace {
 				if (res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_fence;
 				{
-					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					VkDebugUtilsObjectNameInfoEXT debug_name;
 					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_FENCE;
@@ -2290,7 +2290,7 @@ namespace {
 			graphics_created_bitmask |= graphics_created_bit_ui_pool;
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
@@ -2431,12 +2431,6 @@ namespace {
 		VkResult init_csm_image()
 		{
 			l->info("Initializing cascading shadow map");
-
-			VkExtent3D draw_image_extent = {
-				.width = static_cast<uint32_t>(cfg.max_window_width),
-				.height = static_cast<uint32_t>(cfg.max_window_height),
-				.depth = 1
-			};
 
 			VmaAllocationCreateInfo r_img_alloc_info{};
 			r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -2770,7 +2764,7 @@ namespace {
 
 			graphics_created_bitmask |= graphics_created_bit_command_pool;
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
@@ -2792,7 +2786,7 @@ namespace {
 				return res;
 			}
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
@@ -3278,7 +3272,7 @@ namespace {
 			}
 			graphics_created_bitmask |= graphics_created_bit_sampler;
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
@@ -3297,7 +3291,7 @@ namespace {
 					return VK_ERROR_INITIALIZATION_FAILED;
 				}
 				{
-					VkDescriptorImageInfo create_desc_info{};
+					VkDescriptorImageInfo create_desc_info;
 					create_desc_info.sampler = default_sampler;
 					create_desc_info.imageView = nullptr;
 					create_desc_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -5318,7 +5312,6 @@ namespace {
 
 							ImGui::EndTable();
 						}
-						ImVec2 pos = ImGui::GetCursorScreenPos();
 						const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
 						constexpr auto uv_min = ImVec2(0.0f, 0.0f);
 						constexpr auto uv_max = ImVec2(1.0f, 1.0f);
