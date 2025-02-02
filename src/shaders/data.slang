@@ -11,26 +11,12 @@ public struct BasicVertex
 {
     public float4 vertex;
     public float3 normal;
+    public float3 worldNormal;
     public float3 viewDir;
     public float3 lightDir;
     public float3 tangent;
     public float4 color;
     public float2 textureCoordinates;
-};
-
-public struct VertexStageOutput
-{
-    public CoarseVertex coarseVertex : CoarseVertex;
-    public CSM csm : CSM;
-    public float4 sv_position : SV_Position;
-};
-
-public struct InputVertex {
-    public float3 position;
-    public float textureCoordinates_x;
-    public float3 normal;
-    public float textureCoordinates_y;
-    public float4 color;
 };
 
 public struct BasicInputVertex {
@@ -44,26 +30,7 @@ public struct BasicInputVertex {
 public struct BasicGraphicsData {
     public float4x4 transform;
     public float4x4 normalTransform;
-};
-
-public struct RenderData {
-    public float4x4 transform;
-    public float3x3 normalTransform;
-    public uint32_t4 material_data;
-};
-
-public struct MaterialData {
-    public uint32_t color_texture_index;
-    public uint32_t color_sampler_index;
-};
-
-public struct CoarseVertex
-{
-    public float4 vertex;
-    public float4 position;
-    public float3 color;
-    public float3 normal;
-    public float2 textureCoordinates;
+    public float4x4 objectSpaceTransform;
 };
 
 public struct CSM
@@ -83,8 +50,14 @@ public struct SceneData
     public float4 cameraPosition;
     public float4 ambientColor;
     public float4 sunlightColor;
+    public uint4 flipLights;
+    public uint4 flipTangents;
     public uint csmIndexSampler;
     public uint csmIndexNear;
+    public uint fragmentOutput;
+    public uint lightEnabled;
+    public uint tangentSpaceEnabled;
+    public uint shadowsEnabled;
 };
 
 public struct Fragment
@@ -116,13 +89,6 @@ public struct ShadowConstant {
     public BasicInputVertex *v;
     public BasicGraphicsData *gd;
     public uint pass_number;
-}
-
-public struct PushConstant {
-    public SceneData *sd;
-    public InputVertex *v;
-    public RenderData *rd;
-    public MaterialData *md;
 }
 
 public struct ShadowOutput

@@ -19,7 +19,7 @@ namespace
 
 		state operator*(const double value) const
 		{
-			state rv{};
+			state rv;
 			rv.position = position * value;
 			rv.velocity = velocity * value;
 			return rv;
@@ -28,7 +28,7 @@ namespace
 
 		state operator+(const double value) const
 		{
-			state rv{};
+			state rv;
 			rv.position = position + value;
 			rv.velocity = velocity + value;
 			return rv;
@@ -36,7 +36,7 @@ namespace
 
 		state operator*(const state other) const
 		{
-			state rv{};
+			state rv;
 			rv.position = position * other.position;
 			rv.velocity = velocity * other.velocity;
 			return rv;
@@ -44,7 +44,7 @@ namespace
 
 		state operator+(const state other) const
 		{
-			state rv{};
+			state rv;
 			rv.position = position + other.position;
 			rv.velocity = velocity + other.velocity;
 			return rv;
@@ -58,7 +58,7 @@ namespace
 
 		derivative operator*(const double  value) const
 		{
-			derivative rv{};
+			derivative rv;
 			rv.dx_velocity = dx_velocity * value;
 			rv.dv_acceleration = dv_acceleration * value;
 			return rv;
@@ -66,7 +66,7 @@ namespace
 
 		derivative operator+(const double value) const
 		{
-			derivative rv{};
+			derivative rv;
 			rv.dx_velocity = dx_velocity + value;
 			rv.dv_acceleration = dv_acceleration + value;
 			return rv;
@@ -74,7 +74,7 @@ namespace
 
 		derivative operator*(const derivative other) const
 		{
-			derivative rv{};
+			derivative rv;
 			rv.dx_velocity = dx_velocity * other.dx_velocity;
 			rv.dv_acceleration = dv_acceleration * other.dv_acceleration;
 			return rv;
@@ -82,7 +82,7 @@ namespace
 
 		derivative operator+(const derivative other) const
 		{
-			derivative rv{};
+			derivative rv;
 			rv.dx_velocity = dx_velocity + other.dx_velocity;
 			rv.dv_acceleration = dv_acceleration + other.dv_acceleration;
 			return rv;
@@ -126,7 +126,7 @@ namespace
 		const double alpha = accumulator / delta_time;
 
 		const state next_state = current_state * alpha + previous_state * (1.0f - alpha);
-		time_ctx new_ctx = {};
+		time_ctx new_ctx;
 		new_ctx.time = t;
 		new_ctx.accumulator = accumulator;
 		new_ctx.current_state = next_state;
@@ -143,13 +143,12 @@ namespace
 			vertical,
 		};
 		time_ctx step;
-		double start;
 		direction dir;
 	};
 
 	std::array<float, 16> mat4_to_array(glm::mat4 m)
 	{
-		std::array<float, 16> rv{};
+		std::array<float, 16> rv;
 		const auto pos_r = glm::value_ptr(m);
 		for (uint64_t i{ 0 }; i < 16; i++) rv[i] = pos_r[i];
 		return rv;
@@ -260,7 +259,6 @@ namespace
 							.velocity = v,
 						},
 					},
-					.start = 0.f,
 					.dir = direction,
 					});
 			}
@@ -369,6 +367,8 @@ result camera::init(log const* new_log, const config cfg)
 		sc->l = new_log;
 		sc->cfg = cfg;
 		sc->position = glm::vec3(starting_x, starting_y, starting_z);
+		sc->pitch = starting_pitch;
+		sc->yaw = starting_yaw;
 		if (const auto res = sc->init(); res != result::ok)
 		{
 			l->error("graphics_device initialization failed");
@@ -407,6 +407,8 @@ result camera::update(const uint32_t viewport_width, const uint32_t viewport_hei
 	v = mat4_to_array(view);
 	vp = mat4_to_array(proj * view);
 	r = mat4_to_array(sc->get_rotation_matrix());
+	yaw = sc->yaw;
+	pitch = sc->pitch;
 	const auto pos_r = glm::value_ptr(sc->position);
 	for (uint64_t i{0}; i < 3; i += 1) position[i] = pos_r[i];
 

@@ -57,7 +57,7 @@ int main(const int argc, char* argv[])
 	if (const auto res = g.gltf_asset.write(&l); res != rosy::result::ok) {
 		return EXIT_FAILURE;
 	}
-
+#define MANUAL_TANGENT
 #ifdef MANUAL_TANGENT
 	int i{ 0 };
 	for (const auto p : g.gltf_asset.meshes[0].positions)

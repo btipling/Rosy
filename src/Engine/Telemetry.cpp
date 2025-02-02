@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <iostream>
-#include <print>
 
 using namespace rosy;
 

@@ -51,7 +51,8 @@ result engine::init()
 	l->info("Engine init begin");
 	rosy_packager::asset a{};
 	{
-		a.asset_path = "..\\assets\\sponza\\sponza.rsy";
+		// a.asset_path = "..\\assets\\sponza\\sponza.rsy";
+		a.asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
 		{
 			if (const auto res = a.read(l); res != result::ok)
 			{
@@ -69,7 +70,7 @@ result engine::init()
 		}
 	}
 
-	config cfg{};
+	config cfg;
 	// SDL Window initialization.
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO))
@@ -78,8 +79,8 @@ result engine::init()
 			return result::error;
 		}
 
-		int width = 640;
-		int height = 480;
+		int width;
+		int height;
 		int displays_count = 0;
 		const auto display_ids = SDL_GetDisplays(&displays_count);
 		if (!display_ids || displays_count <= 0)
@@ -117,22 +118,6 @@ result engine::init()
 		}
 	}
 
-	// Camera initialization
-	{
-
-		cam = new(std::nothrow) camera{};
-		if (cam == nullptr)
-		{
-			l->error("Error allocating camera");
-			return result::allocation_failure;
-		}
-		if (auto const res = cam->init(l, cfg); res != result::ok)
-		{
-			l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
-			return res;
-		}
-	}
-
 	// Level initialization
 	{
 		lvl = new(std::nothrow) level{};
@@ -141,7 +126,7 @@ result engine::init()
 			l->error("Error allocating level");
 			return result::allocation_failure;
 		}
-		if (auto const res = lvl->init(l, cfg, cam); res != result::ok)
+		if (auto const res = lvl->init(l, cfg); res != result::ok)
 		{
 			l->error(std::format("Level creation failed: {}", static_cast<uint8_t>(res)));
 			return res;
@@ -195,13 +180,6 @@ void engine::deinit()
 		lvl = nullptr;
 	}
 
-	if (cam)
-	{
-		cam->deinit();
-		delete cam;
-		cam = nullptr;
-	}
-
 	if (window) {
 		SDL_DestroyWindow(window);
 		window = nullptr;
@@ -249,7 +227,7 @@ result engine::run()
 					render_ui = !render_ui;
 				}
 			}
-			if (const auto res = cam->process_sdl_event(event, !cursor_enabled); res != result::ok) {
+			if (const auto res = lvl->cam->process_sdl_event(event, !cursor_enabled); res != result::ok) {
 				return res;
 			}
 
@@ -272,7 +250,7 @@ result engine::run()
 result engine::render()
 {
 	const auto render_start = std::chrono::system_clock::now();
-	if (const auto res = cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
+	if (const auto res =  lvl->cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
 		return res;
 	}
 	{

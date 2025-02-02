@@ -10,11 +10,10 @@
 #include <ktxvulkan.h>
 #include <SDL3/SDL_vulkan.h>
 #pragma warning(disable: 4100 4459)
-#include <tracy/Tracy.hpp>
+//#include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
 #include <filesystem>
-#include <glm/fwd.hpp>
 
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
@@ -66,11 +65,11 @@ namespace {
 			return rosy::result::ok;
 		}
 
-		void free(const uint32_t index)
+		[[maybe_unused]] void free(const uint32_t index)
 		{
 			recycled_indices.push(index);
 		}
-		void reset()
+		[[maybe_unused]] void reset()
 		{
 			while (!recycled_indices.empty()) recycled_indices.pop();
 			num_allocated = 0;
@@ -271,18 +270,25 @@ namespace {
 		}
 	}
 
+	// These are written to buffer.
 	struct gpu_scene_data
 	{
-		std::array<float, 16> view = { 0 };
-		std::array<float, 16> proj = { 0 };
-		std::array<float, 16> view_projection = { 0 };
-		std::array<float, 16> shadow_projection_near  = { 0 };
-		std::array<float, 4> sunlight = { 0 };
-		std::array<float, 4> camera_position = { 0 };
-		std::array<float, 4> ambient_color = { 0 };
-		std::array<float, 4> sunlight_color = { 0 };
-		glm::uint csm_index_sampler{ 0 };
-		glm::uint csm_index_near{ 0 };
+		[[maybe_unused]] std::array<float, 16> view{};
+		[[maybe_unused]] std::array<float, 16> proj{};
+		[[maybe_unused]] std::array<float, 16> view_projection{};
+		[[maybe_unused]] std::array<float, 16> shadow_projection_near{};
+		[[maybe_unused]] std::array<float, 4> sunlight{};
+		[[maybe_unused]] std::array<float, 4> camera_position{};
+		[[maybe_unused]] std::array<float, 4> ambient_color{};
+		[[maybe_unused]] std::array<float, 4> sunlight_color{};
+		[[maybe_unused]] std::array<uint32_t, 4> flip_lights{ 0, 0, 0, 0 };
+		[[maybe_unused]] std::array<uint32_t, 4> flip_tangents{ 0, 0, 0, 0 };
+		[[maybe_unused]] uint32_t csm_index_sampler{ 0 };
+		[[maybe_unused]] uint32_t csm_index_near{ 0 };
+		[[maybe_unused]] uint32_t fragment_output{ 0 };
+		[[maybe_unused]] uint32_t light_enabled{ 0 };
+		[[maybe_unused]] uint32_t tangent_space_enabled{ 0 };
+		[[maybe_unused]] uint32_t shadows_enabled{ 0 };
 	};
 
 	struct allocated_image
@@ -372,39 +378,40 @@ namespace {
 
 	struct graphic_objects_buffers
 	{
-		allocated_buffer go_buffer;
-		VkDeviceAddress go_buffer_address;
-		size_t buffer_size;
+		[[maybe_unused]] allocated_buffer go_buffer;
+		[[maybe_unused]] VkDeviceAddress go_buffer_address;
+		[[maybe_unused]] size_t buffer_size;
 	};
 
 	struct gpu_draw_push_constants
 	{
-		VkDeviceAddress scene_buffer{ 0 };
-		VkDeviceAddress vertex_buffer{ 0 };
-		VkDeviceAddress go_buffer{ 0 };
-		VkDeviceAddress material_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress scene_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress vertex_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress go_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress material_buffer{ 0 };
 	};
 
 	struct gpu_debug_push_constants
 	{
-		std::array<float, 16> transform{};
-		std::array<float, 4> color{};
-		VkDeviceAddress scene_buffer{ 0 };
-		VkDeviceAddress debug_draw_buffer{ 0 };
+		[[maybe_unused]] std::array<float, 16> transform{};
+		[[maybe_unused]] std::array<float, 4> color{};
+		[[maybe_unused]] VkDeviceAddress scene_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress debug_draw_buffer{ 0 };
 	};
 
 	struct gpu_shadow_push_constants
 	{
-		VkDeviceAddress scene_buffer{ 0 };
-		VkDeviceAddress vertex_buffer{ 0 };
-		VkDeviceAddress go_buffer{ 0 };
-		glm::uint pass_number;
+		[[maybe_unused]] VkDeviceAddress scene_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress vertex_buffer{ 0 };
+		[[maybe_unused]] VkDeviceAddress go_buffer{ 0 };
+		[[maybe_unused]] uint32_t pass_number;
 	};
 
 	struct graphic_object_data
 	{
-		std::array<float, 16> transform;
-		std::array<float, 16> normal_transform;
+		[[maybe_unused]] std::array<float, 16> transform;
+		[[maybe_unused]] std::array<float, 16> normal_transform;
+		[[maybe_unused]] std::array<float, 16> object_space_transform;
 	};
 
 	struct graphics_stats {
@@ -412,7 +419,6 @@ namespace {
 		int line_count{ 0 };
 		int draw_call_count{ 0 };
 		float draw_time{ 0.f };
-		float shadow_draw_time{ 0.f };
 	};
 
 	struct graphics_device
@@ -430,7 +436,6 @@ namespace {
 		VkExtent2D draw_extent = {};
 
 		std::vector<const char*> instance_layer_properties;
-		std::vector<const char*> device_layer_properties;
 		std::vector<const char*> instance_extensions;
 		std::vector<const char*> device_extensions;
 
@@ -1127,7 +1132,8 @@ namespace {
 				VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
 			};
 
-			const VkValidationFeaturesEXT validation_info
+			// Turned on when needed.
+			[[maybe_unused]] const VkValidationFeaturesEXT validation_info
 			{
 				.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
 				.pNext = &vvl_settings,
@@ -1591,7 +1597,7 @@ namespace {
 				vkGetDeviceQueue2(device, &get_info, &present_queue);
 			}
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_QUEUE;
@@ -1687,7 +1693,7 @@ namespace {
 				if (const VkResult res = vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain); res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_swapchain;
 				{
-					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					VkDebugUtilsObjectNameInfoEXT debug_name;
 					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
@@ -2029,7 +2035,7 @@ namespace {
 			}
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
@@ -2062,7 +2068,7 @@ namespace {
 			layout_flags.bindingCount = static_cast<uint32_t>(bindings_flags.size());
 			layout_flags.pBindingFlags = bindings_flags.data();
 
-			VkDescriptorSetLayoutCreateInfo layout_create_info{};
+			VkDescriptorSetLayoutCreateInfo layout_create_info;
 			layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			layout_create_info.pNext = &layout_flags;
 			layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
@@ -2076,7 +2082,7 @@ namespace {
 			}
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT;
@@ -2099,7 +2105,7 @@ namespace {
 			graphics_created_bitmask |= graphics_created_bit_descriptor_set;
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
@@ -2248,7 +2254,7 @@ namespace {
 				if (res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_fence;
 				{
-					VkDebugUtilsObjectNameInfoEXT debug_name{};
+					VkDebugUtilsObjectNameInfoEXT debug_name;
 					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_FENCE;
@@ -2289,7 +2295,7 @@ namespace {
 			graphics_created_bitmask |= graphics_created_bit_ui_pool;
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
@@ -2430,12 +2436,6 @@ namespace {
 		VkResult init_csm_image()
 		{
 			l->info("Initializing cascading shadow map");
-
-			VkExtent3D draw_image_extent = {
-				.width = static_cast<uint32_t>(cfg.max_window_width),
-				.height = static_cast<uint32_t>(cfg.max_window_height),
-				.depth = 1
-			};
 
 			VmaAllocationCreateInfo r_img_alloc_info{};
 			r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -2769,7 +2769,7 @@ namespace {
 
 			graphics_created_bitmask |= graphics_created_bit_command_pool;
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
@@ -2791,7 +2791,7 @@ namespace {
 				return res;
 			}
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
@@ -3211,7 +3211,7 @@ namespace {
 						return res;
 					}
 
-					VkBufferCopy vertex_copy{ 0 };
+					VkBufferCopy vertex_copy{};
 					vertex_copy.dstOffset = 0;
 					vertex_copy.srcOffset = 0;
 					vertex_copy.size = debug_draws_buffer_size;
@@ -3277,7 +3277,7 @@ namespace {
 			}
 			graphics_created_bitmask |= graphics_created_bit_sampler;
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name{};
+				VkDebugUtilsObjectNameInfoEXT debug_name;
 				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
@@ -3296,7 +3296,7 @@ namespace {
 					return VK_ERROR_INITIALIZATION_FAILED;
 				}
 				{
-					VkDescriptorImageInfo create_desc_info{};
+					VkDescriptorImageInfo create_desc_info;
 					create_desc_info.sampler = default_sampler;
 					create_desc_info.imageView = nullptr;
 					create_desc_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -3587,146 +3587,149 @@ namespace {
 				}
 
 				const size_t material_buffer_size = materials.size() * sizeof(gpu_material);
+				if (material_buffer_size >= sizeof(gpu_material))
 				{
-					VkBufferCreateInfo buffer_info{};
-					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-					buffer_info.pNext = nullptr;
-					buffer_info.size = material_buffer_size;
-					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-
-					VmaAllocationCreateInfo vma_alloc_info{};
-					vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-					vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-
-					if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &material_buffer.material_buffer.buffer, &material_buffer.material_buffer.allocation, &material_buffer.material_buffer.info); res != VK_SUCCESS)
 					{
-						l->error(std::format("Error creating materials buffer: {}", static_cast<uint8_t>(res)));
-						return result::error;
-					}
-					{
-						VkDebugUtilsObjectNameInfoEXT debug_name{};
-						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-						debug_name.pNext = nullptr;
-						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-						debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.buffer);
-						debug_name.pObjectName = "rosy material buffer";
-						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						VkBufferCreateInfo buffer_info{};
+						buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+						buffer_info.pNext = nullptr;
+						buffer_info.size = material_buffer_size;
+						buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+						VmaAllocationCreateInfo vma_alloc_info{};
+						vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+						vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+						if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &material_buffer.material_buffer.buffer, &material_buffer.material_buffer.allocation, &material_buffer.material_buffer.info); res != VK_SUCCESS)
 						{
-							l->error(std::format("Error creating material buffer name: {}", static_cast<uint8_t>(res)));
+							l->error(std::format("Error creating materials buffer: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+						{
+							VkDebugUtilsObjectNameInfoEXT debug_name{};
+							debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+							debug_name.pNext = nullptr;
+							debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
+							debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.buffer);
+							debug_name.pObjectName = "rosy material buffer";
+							if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+							{
+								l->error(std::format("Error creating material buffer name: {}", static_cast<uint8_t>(res)));
+								return result::error;
+							}
+						}
+					}
+
+					{
+						VkBufferDeviceAddressInfo device_address_info{};
+						device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+						device_address_info.buffer = material_buffer.material_buffer.buffer;
+
+						// *** SETTING MATERIAL BUFFER ADDRESS *** //
+						material_buffer.material_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
+					}
+
+					allocated_buffer staging{};
+					{
+						VkBufferCreateInfo buffer_info{};
+						buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+						buffer_info.pNext = nullptr;
+						buffer_info.size = material_buffer_size;
+						buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+						VmaAllocationCreateInfo vma_alloc_info{};
+						vma_alloc_info.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+						vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+						if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &staging.buffer, &staging.allocation, &staging.info); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating materials staging buffer: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+						graphics_created_bitmask |= graphics_created_bit_materials_buffer;
+						{
+							VkDebugUtilsObjectNameInfoEXT debug_name{};
+							debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+							debug_name.pNext = nullptr;
+							debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
+							debug_name.objectHandle = reinterpret_cast<uint64_t>(staging.buffer);
+							debug_name.pObjectName = "rosy material staging buffer";
+							if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+							{
+								l->error(std::format("Error creating material staging buffer name: {}", static_cast<uint8_t>(res)));
+								return result::error;
+							}
+						}
+					}
+
+					memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
+
+					{
+						if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error resetting immediate fence for materials buffer: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+
+						if (VkResult res =  vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error resetting immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+
+						VkCommandBufferBeginInfo begin_info{};
+						begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+						begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+						if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error beginning immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+
+						VkBufferCopy vertex_copy{};
+						vertex_copy.dstOffset = 0;
+						vertex_copy.srcOffset = 0;
+						vertex_copy.size = material_buffer_size;
+
+						vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, material_buffer.material_buffer.buffer, 1, &vertex_copy);
+
+						if (VkResult res = vkEndCommandBuffer(immediate_command_buffer); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error ending immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+
+						VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
+						cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+						cmd_buffer_submit_info.pNext = nullptr;
+						cmd_buffer_submit_info.commandBuffer = immediate_command_buffer;
+						cmd_buffer_submit_info.deviceMask = 0;
+						VkSubmitInfo2 submit_info{};
+						submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+						submit_info.pNext = nullptr;
+
+						submit_info.waitSemaphoreInfoCount = 0;
+						submit_info.pWaitSemaphoreInfos = nullptr;
+						submit_info.signalSemaphoreInfoCount = 0;
+						submit_info.pSignalSemaphoreInfos = nullptr;
+						submit_info.commandBufferInfoCount = 1;
+						submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
+
+						if (VkResult res = vkQueueSubmit2(present_queue, 1, &submit_info, immediate_fence); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error submitting staging buffer for materials buffer: {}", static_cast<uint8_t>(res)));
+							return result::error;
+						}
+
+						if (VkResult res = vkWaitForFences(device, 1, &immediate_fence, true, 9999999999); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error waiting for immediate fence for materials buffer: {}", static_cast<uint8_t>(res)));
 							return result::error;
 						}
 					}
+					vmaDestroyBuffer(allocator, staging.buffer, staging.allocation);
 				}
-
-				{
-					VkBufferDeviceAddressInfo device_address_info{};
-					device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-					device_address_info.buffer = material_buffer.material_buffer.buffer;
-
-					// *** SETTING MATERIAL BUFFER ADDRESS *** //
-					material_buffer.material_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
-				}
-
-				allocated_buffer staging{};
-				{
-					VkBufferCreateInfo buffer_info{};
-					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-					buffer_info.pNext = nullptr;
-					buffer_info.size = material_buffer_size;
-					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-					VmaAllocationCreateInfo vma_alloc_info{};
-					vma_alloc_info.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-					vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-
-					if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &staging.buffer, &staging.allocation, &staging.info); res != VK_SUCCESS)
-					{
-						l->error(std::format("Error creating materials staging buffer: {}", static_cast<uint8_t>(res)));
-						return result::error;
-					}
-					graphics_created_bitmask |= graphics_created_bit_materials_buffer;
-					{
-						VkDebugUtilsObjectNameInfoEXT debug_name{};
-						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-						debug_name.pNext = nullptr;
-						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-						debug_name.objectHandle = reinterpret_cast<uint64_t>(staging.buffer);
-						debug_name.pObjectName = "rosy material staging buffer";
-						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
-						{
-							l->error(std::format("Error creating material staging buffer name: {}", static_cast<uint8_t>(res)));
-							return result::error;
-						}
-					}
-				}
-
-				memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
-
-				{
-					if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
-					{
-						l->error(std::format("Error resetting immediate fence for materials buffer: {}", static_cast<uint8_t>(res)));
-						return result::error;
-					}
-
-					if (VkResult res =  vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
-					{
-						l->error(std::format("Error resetting immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
-						return result::error;
-					}
-
-					VkCommandBufferBeginInfo begin_info{};
-					begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-					begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-					if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
-					{
-						l->error(std::format("Error beginning immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
-						return result::error;
-					}
-
-					VkBufferCopy vertex_copy{ 0 };
-					vertex_copy.dstOffset = 0;
-					vertex_copy.srcOffset = 0;
-					vertex_copy.size = material_buffer_size;
-
-					vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, material_buffer.material_buffer.buffer, 1, &vertex_copy);
-
-					if (VkResult res = vkEndCommandBuffer(immediate_command_buffer); res != VK_SUCCESS)
-					{
-						l->error(std::format("Error ending immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
-						return result::error;
-					}
-
-					VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
-					cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-					cmd_buffer_submit_info.pNext = nullptr;
-					cmd_buffer_submit_info.commandBuffer = immediate_command_buffer;
-					cmd_buffer_submit_info.deviceMask = 0;
-					VkSubmitInfo2 submit_info{};
-					submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-					submit_info.pNext = nullptr;
-
-					submit_info.waitSemaphoreInfoCount = 0;
-					submit_info.pWaitSemaphoreInfos = nullptr;
-					submit_info.signalSemaphoreInfoCount = 0;
-					submit_info.pSignalSemaphoreInfos = nullptr;
-					submit_info.commandBufferInfoCount = 1;
-					submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
-
-					if (VkResult res = vkQueueSubmit2(present_queue, 1, &submit_info, immediate_fence); res != VK_SUCCESS)
-					{
-						l->error(std::format("Error submitting staging buffer for materials buffer: {}", static_cast<uint8_t>(res)));
-						return result::error;
-					}
-
-					if (VkResult res = vkWaitForFences(device, 1, &immediate_fence, true, 9999999999); res != VK_SUCCESS)
-					{
-						l->error(std::format("Error waiting for immediate fence for materials buffer: {}", static_cast<uint8_t>(res)));
-						return result::error;
-					}
-				}
-				vmaDestroyBuffer(allocator, staging.buffer, staging.allocation);
 			}
 
 			gpu_meshes.reserve(a.meshes.size());
@@ -3881,14 +3884,14 @@ namespace {
 				}
 
 				{
-					VkBufferCopy vertex_copy{ 0 };
+					VkBufferCopy vertex_copy{};
 					vertex_copy.dstOffset = 0;
 					vertex_copy.srcOffset = 0;
 					vertex_copy.size = vertex_buffer_size;
 
 					vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, gpu_mesh.vertex_buffer.buffer, 1, &vertex_copy);
 
-					VkBufferCopy index_copy{ 0 };
+					VkBufferCopy index_copy{};
 					index_copy.dstOffset = 0;
 					index_copy.srcOffset = vertex_buffer_size;
 					index_copy.size = index_buffer_size;
@@ -4070,6 +4073,7 @@ namespace {
 				go_data.push_back({
 				.transform = go.transform,
 				.normal_transform = go.normal_transform,
+				.object_space_transform = go.object_space_transform,
 					});
 				for (const auto& s : go.surface_data)
 				{
@@ -4186,7 +4190,7 @@ namespace {
 						return result::error;
 					}
 
-					VkBufferCopy vertex_copy{ 0 };
+					VkBufferCopy vertex_copy{};
 					vertex_copy.dstOffset = 0;
 					vertex_copy.srcOffset = 0;
 					vertex_copy.size = graphic_objects_buffer_size;
@@ -4302,10 +4306,17 @@ namespace {
 					}
 
 					{
-						vkCmdSetLineWidth(cf.command_buffer, 1.f);
-						vkCmdSetFrontFaceEXT(cf.command_buffer, rls->reverse_winding_order_enabled ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE);
-						vkCmdSetCullModeEXT(cf.command_buffer, rls->cull_enabled ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE);
-						vkCmdSetPolygonModeEXT(cf.command_buffer, rls->wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL);
+						vkCmdSetFrontFaceEXT(cf.command_buffer, rls->draw_config.reverse_winding_order_enabled ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE);
+						vkCmdSetCullModeEXT(cf.command_buffer, rls->draw_config.cull_enabled ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE);
+						vkCmdSetPolygonModeEXT(cf.command_buffer, rls->draw_config.wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL);
+						if (rls->draw_config.wire_enabled && rls->draw_config.thick_wire_lines)
+						{
+							vkCmdSetLineWidth(cf.command_buffer, 4.f);
+						}
+						else
+						{
+							vkCmdSetLineWidth(cf.command_buffer, 1.f);
+						}
 					}
 					{
 						vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
@@ -4433,10 +4444,10 @@ namespace {
 			}
 			{
 				{
-					if (rls->depth_bias_enabled) {
+					if (rls->light.depth_bias_enabled) {
 						vkCmdSetDepthBiasEnable(cf.command_buffer, VK_TRUE);
 						//vkCmdSetDepthClampEnableEXT(cf.command_buffer, VK_TRUE);
-						vkCmdSetDepthBias(cf.command_buffer, rls->depth_bias_constant, rls->depth_bias_clamp, rls->depth_bias_slope_factor);
+						vkCmdSetDepthBias(cf.command_buffer, rls->light.depth_bias_constant, rls->light.depth_bias_clamp, rls->light.depth_bias_slope_factor);
 					}
 				}
 				{
@@ -4452,7 +4463,7 @@ namespace {
 				}
 				{
 					VkRect2D scissor{};
-					scissor.offset = { 0, 0 };
+					scissor.offset = { .x= 0, .y= 0 };
 					scissor.extent = shadow_map_extent;
 					vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
 					vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
@@ -4566,7 +4577,7 @@ namespace {
 			}
 			{
 				VkRect2D scissor{};
-				scissor.offset = { 0, 0 };
+				scissor.offset = { .x= 0, .y= 0 };
 				scissor.extent = swapchain_extent;
 				vkCmdSetScissor(cf.command_buffer, 0, 1, &scissor);
 				vkCmdSetScissorWithCountEXT(cf.command_buffer, 1, &scissor);
@@ -5209,18 +5220,34 @@ namespace {
 
 		result update(const read_level_state& new_rls)
 		{
-			const gpu_scene_data sd{
-				.view = new_rls.cam.v,
-				.proj = new_rls.cam.p,
-				.view_projection = new_rls.cam.vp,
-				.shadow_projection_near = new_rls.cam.shadow_projection_near,
-				.sunlight = new_rls.sunlight,
-				.camera_position = new_rls.cam.position,
-				.ambient_color = { 0.04f, 0.04f, 0.04f, 1.f },
-				.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f },
-				.csm_index_sampler = shadow_map_image.ds_index_sampler,
-				.csm_index_near = shadow_map_image.ds_index_near,
-			};
+			const uint32_t light_enabled = new_rls.fragment_config.light_enabled ? 1 : 0;
+			const uint32_t tangent_space_enabled = new_rls.fragment_config.tangent_space_enabled ? 1 : 0;
+			const uint32_t shadows_enabled = new_rls.fragment_config.shadows_enabled ? 1 : 0;
+			const uint32_t flip_x = new_rls.light.flip_light_x ? 1 : 0;
+			const uint32_t flip_y = new_rls.light.flip_light_y ? 1 : 0;
+			const uint32_t flip_z = new_rls.light.flip_light_z ? 1 : 0;
+			const uint32_t flip_tangent_x = new_rls.light.flip_tangent_x ? 1 : 0;
+			const uint32_t flip_tangent_y = new_rls.light.flip_tangent_y ? 1 : 0;
+			const uint32_t flip_tangent_z = new_rls.light.flip_tangent_z ? 1 : 0;
+			const uint32_t flip_tangent_w = new_rls.light.flip_tangent_w ? 1 : 0;
+			gpu_scene_data sd;
+			sd.view = new_rls.cam.v;
+			sd.proj = new_rls.cam.p;
+			sd.view_projection = new_rls.cam.vp;
+			sd.shadow_projection_near = new_rls.cam.shadow_projection_near;
+			sd.sunlight = new_rls.light.sunlight;
+			sd.camera_position = new_rls.cam.position;
+			sd.ambient_color = { 0.04f, 0.04f, 0.04f, 1.f };
+			sd.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f };
+			sd.flip_lights = { flip_x, flip_y, flip_z, 1 };
+			sd.flip_tangents = { flip_tangent_x, flip_tangent_y, flip_tangent_z, flip_tangent_w };
+			sd.csm_index_sampler = shadow_map_image.ds_index_sampler;
+			sd.csm_index_near = shadow_map_image.ds_index_near;
+			sd.fragment_output = static_cast<uint32_t>(new_rls.fragment_config.output);
+			sd.light_enabled = light_enabled;
+			sd.tangent_space_enabled = tangent_space_enabled;
+			sd.shadows_enabled = shadows_enabled;
+
 			rls = &new_rls;
 			scene_data = sd;
 			return result::ok;
@@ -5248,6 +5275,11 @@ namespace {
 							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0], scene_data.camera_position[1], scene_data.camera_position[2]);
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
+							ImGui::Text("Camera Orientation");
+							ImGui::TableNextColumn();
+							ImGui::Text("Pitch: %.2f Yaw: %.2f)", rls->cam.pitch, rls->cam.yaw);
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
 							ImGui::Text("Light direction");
 							ImGui::TableNextColumn();
 							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1], scene_data.sunlight[2]);
@@ -5272,55 +5304,115 @@ namespace {
 							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1], scene_data.sunlight[2]);
 							ImGui::EndTable();
 						}
-						if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+						if (ImGui::CollapsingHeader("Lighting"))
 						{
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::SliderFloat("Spherical distance", &wls->sun_distance, 0.f, 25.f);
-							ImGui::SliderFloat("Spherical pitch", &wls->sun_pitch, 0.f, 4 * static_cast<float>(pi));
-							ImGui::SliderFloat("Spherical yaw", &wls->sun_yaw, 0.f, 4 * static_cast<float>(pi));
-							ImGui::SliderFloat("Light depth", &wls->orthographic_depth, 0.f, 500.f);
-							ImGui::SliderFloat("Light cascade level", &wls->cascade_level, 0.f, 50.f);
-							ImGui::SliderFloat("Depth bias constant", &wls->depth_bias_constant, -500.f, 500.f);
-							ImGui::SliderFloat("Depth bias clamp", &wls->depth_bias_clamp, -500.f, 500.f);
-							ImGui::SliderFloat("Depth bias slope factor", &wls->depth_bias_slope_factor, -500.f, 500.f);
-							ImGui::EndTable();
+							if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::SliderFloat("Spherical distance", &wls->light_debug.sun_distance, 0.f, 25.f);
+								ImGui::SliderFloat("Spherical pitch", &wls->light_debug.sun_pitch, 0.f, 4 * static_cast<float>(pi));
+								ImGui::SliderFloat("Spherical yaw", &wls->light_debug.sun_yaw, 0.f, 4 * static_cast<float>(pi));
+								ImGui::SliderFloat("Light depth", &wls->light_debug.orthographic_depth, 0.f, 500.f);
+								ImGui::SliderFloat("Light cascade level", &wls->light_debug.cascade_level, 0.f, 50.f);
+								ImGui::SliderFloat("Depth bias constant", &wls->light.depth_bias_constant, -500.f, 500.f);
+								ImGui::SliderFloat("Depth bias clamp", &wls->light.depth_bias_clamp, -500.f, 500.f);
+								ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor, -500.f, 500.f);
+								ImGui::EndTable();
+							}
+							if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable light camera", &wls->light_debug.enable_light_cam);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable light perspective", &wls->light_debug.enable_light_perspective);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable sun debug", &wls->light_debug.enable_sun_debug);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable depth bias", &wls->light.depth_bias_enabled);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip light x", &wls->light.flip_light_x);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip light y", &wls->light.flip_light_y);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip light z", &wls->light.flip_light_z);
+								ImGui::TableNextColumn();
+								ImGui::Text("");
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip tangent x", &wls->light.flip_tangent_x);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip tangent y", &wls->light.flip_tangent_y);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip tangent z", &wls->light.flip_light_z);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
+
+								ImGui::EndTable();
+							}
 						}
-						if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+						if (ImGui::CollapsingHeader("Shadow map"))
 						{
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable light camera", &wls->enable_light_cam);
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable light perspective", &wls->enable_light_perspective);
-
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable cull", &wls->enable_cull);
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable wireframe", &wls->enable_wire);
-
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Toggle winding order", &wls->reverse_winding_order_enabled);
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable depth bias", &wls->depth_bias_enabled);
-
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGui::Checkbox("Enable sun debug", &wls->enable_sun_debug);
-							ImGui::TableNextColumn();
-							ImGui::Text("");
-
-							ImGui::EndTable();
+							const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
+							constexpr auto uv_min = ImVec2(0.0f, 0.0f);
+							constexpr auto uv_max = ImVec2(1.0f, 1.0f);
+							constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+							const ImVec2 content_area = ImGui::GetContentRegionAvail();
+							ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
 						}
-						ImVec2 pos = ImGui::GetCursorScreenPos();
-						const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
-						constexpr auto uv_min = ImVec2(0.0f, 0.0f);
-						constexpr auto uv_max = ImVec2(1.0f, 1.0f);
-						constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-						const ImVec2 content_area = ImGui::GetContentRegionAvail();
-						ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
+						if (ImGui::CollapsingHeader("Draw config"))
+						{
+							if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable wireframe", &wls->draw_config.wire_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Thick lines", &wls->draw_config.thick_wire_lines);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Toggle winding order", &wls->draw_config.reverse_winding_order_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable cull", &wls->draw_config.cull_enabled);
+
+								ImGui::EndTable();
+							}
+						}
+						if (ImGui::CollapsingHeader("Fragment Config"))
+						{
+							ImGui::RadioButton("color", &wls->fragment_config.output, 0); ImGui::SameLine();
+							ImGui::RadioButton("normal", &wls->fragment_config.output, 1); ImGui::SameLine();
+							ImGui::RadioButton("tangent", &wls->fragment_config.output, 2); ImGui::SameLine();
+							ImGui::RadioButton("light", &wls->fragment_config.output, 3); ImGui::SameLine();
+							ImGui::RadioButton("view", &wls->fragment_config.output, 4);
+							if (ImGui::BeginTable("##ToggleFragmentOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable light", &wls->fragment_config.light_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable tangent space", &wls->fragment_config.tangent_space_enabled);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable Shadows", &wls->fragment_config.shadows_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Text("");
+
+								ImGui::EndTable();
+							}
+						}
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();

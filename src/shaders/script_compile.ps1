@@ -9,10 +9,7 @@ if (-not (Test-Path -Path "out")) {
 }
 
 $shaders = @(
-    "skybox_cube",
     "shadow",
-    "skybox",
-    "mesh",
     "debug",
     "basic"
 )
