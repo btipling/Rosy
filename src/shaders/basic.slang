@@ -20,13 +20,14 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float4x4 worldMat = gd.transform;
     float4x4 normalMat = gd.normalTransform;
 
-    float3 sunlight = float3(sd.sunlight.x, sd.sunlight.y, sd.sunlight.z);
+    float4 object_space_camera = mul(gd.objectSpaceTransform, sd.cameraPosition);
+    float4 object_light_dir = mul(gd.objectSpaceTransform, float4(sd.sunlight.xyz, 0.f));
 
     float4 posWorld = float4(v.position, 1.0);
 
     float4x4 ndc_to_tc = { 0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1 };
 
-    float3 light = sunlight;
+    float3 light = object_light_dir.xyz;
     float4 new_tangent = v.tangent;
 
     // flip lights
@@ -65,7 +66,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float3 tangent = new_tangent.xyz;
     float3 bitangent = cross(normal, tangent) * new_tangent.w;
 
-    float3 view = sd.cameraPosition.xyz - v.position.xyz;
+    float3 view = object_space_camera.xyz - v.position.xyz;
     if (sd.tangentSpaceEnabled == 1)
     {
         view = float3(dot(tangent, view), dot(bitangent, view), dot(normal, view));
@@ -99,9 +100,9 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     if (BasicPushConstants.md == nullptr)
     {
 
-        float3 V = basicVertex.viewDir;
-        float3 L = basicVertex.lightDir;
-        float3 N = basicVertex.normal;
+        float3 V = normalize(basicVertex.viewDir);
+        float3 L = normalize(basicVertex.lightDir);
+        float3 N = normalize(basicVertex.normal);
         float3 H = L + V;
 
         float cosTheta = dot(L, N);
@@ -119,6 +120,14 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     BasicMaterialData md = *BasicPushConstants.md;
 
+    uint nti = md.normal_texture_index;
+    uint nsi = md.normal_sampler_index;
+
+    texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
+    SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
+
+    float3 lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
+
     float4 outFragColor;
     switch (sd.fragmentOutput)
     {
@@ -132,31 +141,23 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         outFragColor = imageTextureColor;
         break;
     case 1:
-        outFragColor = float4(basicVertex.normal * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.normal) * 0.5 + 0.5, 1.f);
         break;
     case 2:
-        outFragColor = float4(basicVertex.tangent * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.tangent) * 0.5 + 0.5, 1.f);
         break;
     case 3:
-        outFragColor = float4(basicVertex.lightDir * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.lightDir) * 0.5 + 0.5, 1.f);
         break;
     case 4:
-        outFragColor = float4(basicVertex.viewDir * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.viewDir) * 0.5 + 0.5, 1.f);
         break;
     }
 
     if (sd.lightEnabled > 0)
     {
-        uint nti = md.normal_texture_index;
-        uint nsi = md.normal_sampler_index;
-
-        texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
-        SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
-
-        float3 lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
-
-        float3 V = basicVertex.viewDir;
-        float3 L = basicVertex.lightDir;
+        float3 V = normalize(basicVertex.viewDir);
+        float3 L = normalize(basicVertex.lightDir);
         float3 N = lightNormal;
         float3 H = L + V;
 

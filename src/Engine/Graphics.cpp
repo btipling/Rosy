@@ -411,6 +411,7 @@ namespace {
 	{
 		[[maybe_unused]] std::array<float, 16> transform;
 		[[maybe_unused]] std::array<float, 16> normal_transform;
+		[[maybe_unused]] std::array<float, 16> object_space_transform;
 	};
 
 	struct graphics_stats {
@@ -4072,6 +4073,7 @@ namespace {
 				go_data.push_back({
 				.transform = go.transform,
 				.normal_transform = go.normal_transform,
+				.object_space_transform = go.object_space_transform,
 					});
 				for (const auto& s : go.surface_data)
 				{

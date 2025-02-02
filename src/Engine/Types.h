@@ -52,6 +52,7 @@ namespace rosy
 		std::vector<surface_graphics_data> surface_data{};
 		std::array<float, 16> transform;
 		std::array<float, 16> normal_transform;
+		std::array<float, 16> object_space_transform;
 	};
 
 	struct engine_stats
