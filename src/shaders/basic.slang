@@ -79,7 +79,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
-    output.basicVertex.normal = normal;
+    output.basicVertex.normal = mul(float3x3(gd.normalTransform), normal);
     output.basicVertex.color = v.color;
     output.basicVertex.tangent = tangent * v.tangent.w;
     output.basicVertex.viewDir = view;

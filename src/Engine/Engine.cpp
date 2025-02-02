@@ -51,8 +51,8 @@ result engine::init()
 	l->info("Engine init begin");
 	rosy_packager::asset a{};
 	{
-		a.asset_path = "..\\assets\\sponza\\sponza.rsy";
-		//a.asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
+		// a.asset_path = "..\\assets\\sponza\\sponza.rsy";
+		a.asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
 		{
 			if (const auto res = a.read(l); res != result::ok)
 			{
