@@ -84,6 +84,8 @@ namespace rosy
 		std::array<float, 16> vp{};
 		std::array<float, 16> shadow_projection_near{};
 		std::array<float, 4> position{};
+		float pitch{ 0.f };
+		float yaw{ 0.f };
 	};
 
 	struct light_read_write_state

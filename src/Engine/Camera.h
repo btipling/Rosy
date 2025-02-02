@@ -10,9 +10,11 @@ namespace rosy
 	{
 		log const* l{ nullptr };
 
-		float starting_x{ 0 };
-		float starting_y{ 0 };
-		float starting_z{ 0 };
+		float starting_x{ 0.f };
+		float starting_y{ 0.f };
+		float starting_z{ 0.f };
+		float starting_pitch{ 0.f };
+		float starting_yaw{ 0.f };
 
 		double g{ 0.5f }; // projection plane distance
 		double s{ 1.f }; // aspect ratio
@@ -23,7 +25,9 @@ namespace rosy
 		std::array<float, 16> v; // view
 		std::array<float, 16> vp; // view projection
 		std::array<float, 16> r; // camera rotation
-		std::array<float, 4> position; // camera projection
+		std::array<float, 4> position; // camera position
+		float pitch{ 0.f };
+		float yaw{ 0.f };
 
 		result init(log const* new_log, config cfg);
 		void deinit() const;

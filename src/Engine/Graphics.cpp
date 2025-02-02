@@ -5246,6 +5246,11 @@ namespace {
 							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0], scene_data.camera_position[1], scene_data.camera_position[2]);
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn();
+							ImGui::Text("Camera Orientation");
+							ImGui::TableNextColumn();
+							ImGui::Text("Pitch: %.2f Yaw: %.2f)", rls->cam.pitch, rls->cam.yaw);
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
 							ImGui::Text("Light direction");
 							ImGui::TableNextColumn();
 							ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1], scene_data.sunlight[2]);

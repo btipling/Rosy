@@ -67,6 +67,8 @@ namespace
 				rls->cam.v = cam->v;
 				rls->cam.vp = cam->vp;
 				rls->cam.position = cam->position;
+				rls->cam.pitch = cam->pitch;
+				rls->cam.yaw = cam->yaw;
 			}
 
 			{
@@ -170,7 +172,7 @@ namespace
 	scene_graph_processor* sgp{ nullptr };
 }
 
-result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_cam)
+result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 {
 	{
 		// Init level state
@@ -193,7 +195,27 @@ result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_ca
 			return result::allocation_failure;
 		}
 		ls->l = new_log;
-		ls->cam = new_cam;
+
+		// Camera initialization
+		{
+			cam = new(std::nothrow) camera{};
+			cam->starting_x = -5.88f;
+			cam->starting_y = 3.86f;
+			cam->starting_z = -1.13f;
+			cam->starting_pitch = 0.65f;
+			cam->starting_yaw = -1.58f;
+			if (cam == nullptr)
+			{
+				ls->l->error("Error allocating camera");
+				return result::allocation_failure;
+			}
+			if (auto const res = cam->init(ls->l, new_cfg); res != result::ok)
+			{
+				ls->l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
+				return res;
+			}
+		}
+		ls->cam = cam;
 		ls->rls = &rls;
 		ls->wls = &wls;
 	}
@@ -213,6 +235,13 @@ result level::init(log* new_log, [[maybe_unused]] config new_cfg, camera* new_ca
 // ReSharper disable once CppMemberFunctionMayBeStatic
 void level::deinit()
 {
+	if (cam)
+	{
+		cam->deinit();
+		delete cam;
+		cam = nullptr;
+	}
+
 	if (sgp)
 	{
 		delete sgp;

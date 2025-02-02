@@ -367,6 +367,8 @@ result camera::init(log const* new_log, const config cfg)
 		sc->l = new_log;
 		sc->cfg = cfg;
 		sc->position = glm::vec3(starting_x, starting_y, starting_z);
+		sc->pitch = starting_pitch;
+		sc->yaw = starting_yaw;
 		if (const auto res = sc->init(); res != result::ok)
 		{
 			l->error("graphics_device initialization failed");
@@ -405,6 +407,8 @@ result camera::update(const uint32_t viewport_width, const uint32_t viewport_hei
 	v = mat4_to_array(view);
 	vp = mat4_to_array(proj * view);
 	r = mat4_to_array(sc->get_rotation_matrix());
+	yaw = sc->yaw;
+	pitch = sc->pitch;
 	const auto pos_r = glm::value_ptr(sc->position);
 	for (uint64_t i{0}; i < 3; i += 1) position[i] = pos_r[i];
 
