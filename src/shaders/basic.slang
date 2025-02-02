@@ -103,12 +103,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     float3 ambientLight = sd.ambientColor.xyz;
     float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
-    uint cti = md.color_texture_index;
-    uint csi = md.color_sampler_index;
-
-    texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
-    SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
-    float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
 
     float shadowFactor = 1.f;
     uint csmSampler = sd.csmIndexSampler;
@@ -117,15 +111,29 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csmNear)];
     shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
 
-    float4 outFragColor = imageTextureColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
-    // float4 outFragColor = float4(basicVertex.normal * 0.5 + 0.5, 1.f) * float4(ambientLight + shadowFactor * sunLight, 1.0);
-    // float4 outFragColor = float4(basicVertex.tangent * 0.5 + 0.5, 1.f) * float4(ambientLight + shadowFactor * sunLight, 1.0);
+    float4 outFragColor;
+    switch (sd.fragmentOutput) {
+    case 0:
+            uint cti = md.color_texture_index;
+            uint csi = md.color_sampler_index;
+
+            texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
+            SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
+            float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
+            outFragColor = imageTextureColor;
+            break;
+    case 1:
+        outFragColor = float4(basicVertex.normal * 0.5 + 0.5, 1.f);
+        break;
+    case 2:
+        outFragColor = float4(basicVertex.tangent * 0.5 + 0.5, 1.f);
+        break;
+    case 3:
+        outFragColor = float4(L * 0.5 + 0.5, 1.f);
+        break;
+    }
 
     Fragment output;
-    // output.color = float4(L * 0.5 + 0.5, 1.f);
-    // output.color = float4(L * 0.5 + 0.5, 1.f);
-    // output.color = float4(basicVertex.tangent.xyz * 0.5 + 0.5, 1.f);
-    // output.color = float4(basicVertex.normal * 0.5 + 0.5, 1.f);
-    output.color = outFragColor;
+    output.color = outFragColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
     return output;
 }

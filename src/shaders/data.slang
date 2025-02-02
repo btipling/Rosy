@@ -30,6 +30,7 @@ public struct BasicGraphicsData {
     public float4x4 transform;
     public float4x4 normalTransform;
 };
+
 public struct CSM
 {
     public float4 near;
