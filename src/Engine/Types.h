@@ -114,11 +114,13 @@ namespace rosy
 		bool reverse_winding_order_enabled{ false };
 		bool cull_enabled{ false };
 		bool wire_enabled{ false };
+		bool thick_wire_lines{ false };
 	};
 
 	struct fragment_config_state
 	{
 		int output{ 0 }; // 0 normal, 1 normals, 2 tangent, 3 light
+		bool light_enabled{ false };
 	};
 
 	struct read_level_state

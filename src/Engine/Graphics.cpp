@@ -14,7 +14,6 @@
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
 #include <filesystem>
-#include <glm/fwd.hpp>
 
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
@@ -282,9 +281,10 @@ namespace {
 		[[maybe_unused]] std::array<float, 4> camera_position{};
 		[[maybe_unused]] std::array<float, 4> ambient_color{};
 		[[maybe_unused]] std::array<float, 4> sunlight_color{};
-		[[maybe_unused]] glm::uint csm_index_sampler{ 0 };
-		[[maybe_unused]] glm::uint csm_index_near{ 0 };
-		[[maybe_unused]] glm::uint fragment_output{ 0 };
+		[[maybe_unused]] uint32_t csm_index_sampler{ 0 };
+		[[maybe_unused]] uint32_t csm_index_near{ 0 };
+		[[maybe_unused]] uint32_t fragment_output{ 0 };
+		[[maybe_unused]] uint32_t light_enabled{ 0 };
 	};
 
 	struct allocated_image
@@ -400,7 +400,7 @@ namespace {
 		[[maybe_unused]] VkDeviceAddress scene_buffer{ 0 };
 		[[maybe_unused]] VkDeviceAddress vertex_buffer{ 0 };
 		[[maybe_unused]] VkDeviceAddress go_buffer{ 0 };
-		[[maybe_unused]] glm::uint pass_number;
+		[[maybe_unused]] uint32_t pass_number;
 	};
 
 	struct graphic_object_data
@@ -4300,10 +4300,17 @@ namespace {
 					}
 
 					{
-						vkCmdSetLineWidth(cf.command_buffer, 1.f);
 						vkCmdSetFrontFaceEXT(cf.command_buffer, rls->draw_config.reverse_winding_order_enabled ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE);
 						vkCmdSetCullModeEXT(cf.command_buffer, rls->draw_config.cull_enabled ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE);
 						vkCmdSetPolygonModeEXT(cf.command_buffer, rls->draw_config.wire_enabled ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL);
+						if (rls->draw_config.wire_enabled && rls->draw_config.thick_wire_lines)
+						{
+							vkCmdSetLineWidth(cf.command_buffer, 4.f);
+						}
+						else
+						{
+							vkCmdSetLineWidth(cf.command_buffer, 1.f);
+						}
 					}
 					{
 						vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
@@ -5207,6 +5214,7 @@ namespace {
 
 		result update(const read_level_state& new_rls)
 		{
+			const uint32_t light_enabled = new_rls.fragment_config.light_enabled ? 1 : 0;
 			const gpu_scene_data sd{
 				.view = new_rls.cam.v,
 				.proj = new_rls.cam.p,
@@ -5219,6 +5227,7 @@ namespace {
 				.csm_index_sampler = shadow_map_image.ds_index_sampler,
 				.csm_index_near = shadow_map_image.ds_index_near,
 				.fragment_output = static_cast<uint32_t>(new_rls.fragment_config.output),
+				.light_enabled = light_enabled,
 			};
 			rls = &new_rls;
 			scene_data = sd;
@@ -5309,25 +5318,6 @@ namespace {
 								ImGui::EndTable();
 							}
 						}
-						if (ImGui::CollapsingHeader("Draw config"))
-						{
-							if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-							{
-								ImGui::TableNextRow();
-								ImGui::TableNextColumn();
-								ImGui::Checkbox("Enable cull", &wls->draw_config.cull_enabled);
-								ImGui::TableNextColumn();
-								ImGui::Checkbox("Enable wireframe", &wls->draw_config.wire_enabled);
-
-								ImGui::TableNextRow();
-								ImGui::TableNextColumn();
-								ImGui::Checkbox("Toggle winding order", &wls->draw_config.reverse_winding_order_enabled);
-								ImGui::TableNextColumn();
-								ImGui::Text("");
-
-								ImGui::EndTable();
-							}
-						}
 						if (ImGui::CollapsingHeader("Shadow map"))
 						{
 							const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
@@ -5337,12 +5327,41 @@ namespace {
 							const ImVec2 content_area = ImGui::GetContentRegionAvail();
 							ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near), content_area, uv_min, uv_max, tint_col, border_col);
 						}
+						if (ImGui::CollapsingHeader("Draw config"))
+						{
+							if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable wireframe", &wls->draw_config.wire_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Thick lines", &wls->draw_config.thick_wire_lines);
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Toggle winding order", &wls->draw_config.reverse_winding_order_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable cull", &wls->draw_config.cull_enabled);
+
+								ImGui::EndTable();
+							}
+						}
 						if (ImGui::CollapsingHeader("Fragment Config"))
 						{
 							ImGui::RadioButton("color", &wls->fragment_config.output, 0); ImGui::SameLine();
 							ImGui::RadioButton("normal", &wls->fragment_config.output, 1); ImGui::SameLine();
 							ImGui::RadioButton("tangent", &wls->fragment_config.output, 2); ImGui::SameLine();
 							ImGui::RadioButton("light", &wls->fragment_config.output, 3);
+							if (ImGui::BeginTable("##ToggleFragmentOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::Checkbox("Enable light", &wls->fragment_config.light_enabled);
+								ImGui::TableNextColumn();
+								ImGui::Text("");
+
+								ImGui::EndTable();
+							}
 						}
 						ImGui::EndTabItem();
 					}

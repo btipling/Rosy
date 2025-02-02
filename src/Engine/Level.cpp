@@ -71,20 +71,14 @@ namespace
 				rls->cam.yaw = cam->yaw;
 			}
 			{
-				// Fragment config
-				rls->fragment_config = wls->fragment_config;
-			}
-			{
 				// Configure draw options based on writable level state
 				rls->debug_enabled = wls->enable_edit;
-				rls->draw_config.cull_enabled = wls->draw_config.cull_enabled;
-				rls->draw_config.reverse_winding_order_enabled = wls->draw_config.reverse_winding_order_enabled;
-				rls->draw_config.wire_enabled = wls->draw_config.wire_enabled;
-
-				rls->light.depth_bias_enabled = wls->light.depth_bias_enabled;
-				rls->light.depth_bias_clamp = wls->light.depth_bias_clamp;
-				rls->light.depth_bias_constant = wls->light.depth_bias_constant;
-				rls->light.depth_bias_slope_factor = wls->light.depth_bias_slope_factor;
+				rls->draw_config = wls->draw_config;
+				rls->light = wls->light;
+			}
+			{
+				// Fragment config
+				rls->fragment_config = wls->fragment_config;
 			}
 
 			rls->debug_objects.clear();
@@ -190,6 +184,9 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 			wls.light.depth_bias_slope_factor = -163.064f;
 			wls.draw_config.cull_enabled = true;
 			wls.light.depth_bias_enabled = true;
+			wls.draw_config.thick_wire_lines = false;
+			wls.fragment_config.output = 0;
+			wls.fragment_config.light_enabled = true;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)

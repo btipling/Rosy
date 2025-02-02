@@ -133,7 +133,11 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         break;
     }
 
+    if (sd.lightEnabled > 0) {
+        outFragColor = outFragColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
+    }
+
     Fragment output;
-    output.color = outFragColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
+    output.color = outFragColor;
     return output;
 }

@@ -51,6 +51,7 @@ public struct SceneData
     public uint csmIndexSampler;
     public uint csmIndexNear;
     public uint fragmentOutput;
+    public uint lightEnabled;
 };
 
 public struct Fragment
