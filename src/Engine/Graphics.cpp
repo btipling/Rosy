@@ -5289,6 +5289,23 @@ namespace {
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();
+
+						if (!rls->mob_states.empty())
+						if (ImGui::CollapsingHeader("Mobs"))
+						{
+
+							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								for (const auto [name, position] : rls->mob_states) {
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text(name.c_str());
+									ImGui::TableNextColumn();
+									ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+								}
+								ImGui::EndTable();
+							}
+						}
 					}
 					if (ImGui::BeginTabItem("Edit"))
 					{

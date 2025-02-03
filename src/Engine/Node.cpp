@@ -80,5 +80,4 @@ void node::debug()
 	{
 		n->debug();
 	}
-	children.erase(children.begin(), children.end());
 }

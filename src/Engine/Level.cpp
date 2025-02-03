@@ -58,7 +58,7 @@ namespace
 
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
-		node* level_game_node;
+		node* level_game_node{ nullptr };
 
 		rosy::result init()
 		{
@@ -92,7 +92,7 @@ namespace
 			if (level_game_node->children.empty()) return {};
 			for (node* root_node = level_game_node->children[0]; node* child : root_node->children)
 			{
-				if (child->name == "mob")
+				if (child->name == "mobs")
 				{
 					return child->children;
 				}
