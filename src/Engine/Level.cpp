@@ -4,7 +4,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.inl>
 #include <glm/gtx/quaternion.hpp>
 
@@ -69,7 +68,7 @@ namespace
 				l->error("root scene_objects allocation failed");
 				return result::allocation_failure;
 			};
-			if (const auto res = level_game_node->init(l); res != result::ok)
+			if (const auto res = level_game_node->init(l, {}); res != result::ok)
 			{
 				l->error("root scene_objects initialization failed");
 				return result::error;
@@ -318,7 +317,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			ls->l->error("initial scene_objects allocation failed");
 			return result::allocation_failure;
 		}
-		if (const auto res = new_game_node->init(ls->l); res != result::ok)
+		if (const auto res = new_game_node->init(ls->l, new_node.transform); res != result::ok)
 		{
 			ls->l->error("initial scene_objects initialization failed");
 			new_game_node->deinit();
@@ -343,6 +342,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		assert(queue_item.game_node != nullptr);
 
 		glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
+		const glm::mat4 transform = gltf_to_ndc * queue_item.parent_transform * node_transform;
 
 		if (queue_item.stack_node.mesh_id < new_asset.meshes.size()) {
 			sgp->mesh_queue.push(queue_item.stack_node.mesh_id);
@@ -353,7 +353,6 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				sgp->mesh_queue.pop();
 				const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
 				graphics_object go{};
-				const glm::mat4 transform = gltf_to_ndc * queue_item.parent_transform * node_transform;
 				const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
 				const glm::mat4 normal_transform = glm::transpose(object_space_transform);
 				go.transform = mat4_to_array(transform);
@@ -392,7 +391,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				ls->l->error("Error allocating new game node in set asset");
 				return result::allocation_failure;
 			}
-			if (const auto res = new_game_node->init(ls->l); res != result::ok)
+			if (const auto res = new_game_node->init(ls->l, mat4_to_array(transform)); res != result::ok)
 			{
 				ls->l->error("Error initializing new game node in set asset");
 				new_game_node->deinit();

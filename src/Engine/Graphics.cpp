@@ -4844,6 +4844,7 @@ namespace {
 							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
 							{
+								vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
 								size_t current_mesh_index = UINT64_MAX;
 								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : opaque_graphics)
 								{
@@ -4879,6 +4880,8 @@ namespace {
 									color_component_flags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 									vkCmdSetColorWriteMaskEXT(cf.command_buffer, 0, 1, &color_component_flags);
 									vkCmdSetColorBlendEquationEXT(cf.command_buffer, 0, 1, &blend_equation);
+									vkCmdSetCullModeEXT(cf.command_buffer, VK_CULL_MODE_NONE);
+									vkCmdSetDepthWriteEnableEXT(cf.command_buffer, VK_FALSE);
 								}
 								current_mesh_index = UINT64_MAX;
 								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : blended_graphics)
