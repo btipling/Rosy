@@ -1,5 +1,5 @@
 #include "Level.h"
-
+#include "Node.h"
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
@@ -41,7 +41,6 @@ namespace
 
 	struct stack_item
 	{
-		std::vector<scene_object> scene_objects;
 		rosy_packager::node stack_node;
 		glm::mat4 parent_transform{ glm::mat4{1.f} };
 	};
@@ -59,23 +58,30 @@ namespace
 
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
-		scene_object* scene_obj;
+		node* level_game_node;
 
 		rosy::result init()
 		{
-			scene_obj = new(std::nothrow) scene_object;
-			if (scene_obj == nullptr)
+			level_game_node = new(std::nothrow) node;
+			if (level_game_node == nullptr)
 			{
 				l->error("root scene_objects allocation failed");
 				return result::allocation_failure;
 			};
+			if (const auto res = level_game_node->init(l); res != result::ok)
+			{
+				l->error("root scene_objects initialization failed");
+				return result::error;
+			}
+			level_game_node->name = "rosy_root";
 			return result::ok;
 		}
 
 		void deinit()
 		{
-			scene_obj->deinit();
-			scene_obj = nullptr;
+			level_game_node->deinit();
+			delete level_game_node;
+			level_game_node = nullptr;
 		}
 
 		rosy::result update() const
@@ -215,12 +221,12 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 			new_log->error("level_state allocation failed");
 			return result::allocation_failure;
 		}
+		ls->l = new_log;
 		if (const auto res = ls->init(); res != result::ok)
 		{
 			new_log->error("level_state init failed");
 			return res;
 		}
-		ls->l = new_log;
 
 		// Camera initialization
 		{
@@ -294,8 +300,24 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	while (!sgp->mesh_queue.empty()) sgp->mesh_queue.pop();
 
 	for (const auto& node_index : nodes) {
+		const rosy_packager::node new_node = new_asset.nodes[node_index];
+
+		auto game_object = new(std::nothrow) node;
+		if (game_object == nullptr)
+		{
+			ls->l->error("initial scene_objects allocation failed");
+			return result::allocation_failure;
+		}
+		if (const auto res = game_object->init(ls->l); res != result::ok)
+		{
+			ls->l->error("initial scene_objects initialization failed");
+			return result::error;
+		}
+
+		game_object->name = std::string(new_node.name.begin(), new_node.name.end());
+		ls->level_game_node->children.push_back(game_object);
 		sgp->queue.push({
-			.stack_node = new_asset.nodes[node_index],
+			.stack_node = new_node,
 			.parent_transform = glm::mat4{1.f},
 			});
 	}
@@ -351,12 +373,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		for (const size_t child_index : queue_item.stack_node.child_nodes)
 		{
 			const rosy_packager::node new_node = new_asset.nodes[child_index];
-			scene_object so{};
+			/*node game_node{};
 			if (!new_node.name.empty())
 			{
-				so.name = new_node.name.data();
-			}
-			queue_item.scene_objects.push_back(so);
+				game_node.name = new_node.name.data();
+			}*/
 			sgp->queue.push({
 				.stack_node = new_node,
 				.parent_transform = queue_item.parent_transform * node_transform,
@@ -364,6 +385,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		}
 	}
 
+	ls->l->info(std::format("num scene objects on root: {} {} {}", ls->level_game_node->children.size(), ls->level_game_node->name, ls->level_game_node->children[0]->name));
+	ls->level_game_node->debug();
 	return result::ok;
 }
 
