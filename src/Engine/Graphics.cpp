@@ -4355,6 +4355,35 @@ namespace {
 					vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
 				}
 				{
+					VkBufferMemoryBarrier2 buffer_barrier{
+						.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+						.pNext = nullptr,
+						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.srcQueueFamilyIndex = 0,
+						.dstQueueFamilyIndex = 0,
+						.buffer = scene_buffer.scene_buffer.buffer,
+						.offset = 0,
+						.size = sizeof(gpu_scene_data),
+					};
+
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = 1,
+						.pBufferMemoryBarriers = &buffer_barrier,
+						.imageMemoryBarrierCount = 0,
+						.pImageMemoryBarriers = nullptr,
+					};
+
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
+				{
 					// Update scene buffer
 					vkCmdUpdateBuffer(cf.command_buffer, scene_buffer.scene_buffer.buffer, 0, sizeof(gpu_scene_data), &scene_data);
 				}
