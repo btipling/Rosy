@@ -2,6 +2,7 @@
 #include "Node.h"
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
+#include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.inl>
@@ -11,6 +12,8 @@ using namespace rosy;
 
 constexpr size_t max_node_stack_size = 4'096;
 constexpr size_t max_stack_item_list = 16'384;
+
+const std::string mobs_node_name{ "mobs" };
 
 namespace
 {
@@ -43,6 +46,7 @@ namespace
 		node* game_node{ nullptr };
 		rosy_packager::node stack_node;
 		glm::mat4 parent_transform{ glm::mat4{1.f} };
+		bool is_mob{ false };
 	};
 
 	struct scene_graph_processor
@@ -86,11 +90,11 @@ namespace
 			}
 		}
 
-		std::vector<node*> get_mobs() const
+		std::vector<node*> get_mobs()
 		{
 			if (level_game_node == nullptr) return {};
 			if (level_game_node->children.empty()) return {};
-			for (const node* root_node = level_game_node->children[0]; node* child : root_node->children)
+			for (node* root_node = level_game_node->children[0]; node* child : root_node->children)
 			{
 				if (child->name == "mobs")
 				{
@@ -100,7 +104,7 @@ namespace
 			return {};
 		}
 
-		rosy::result update() const
+		rosy::result update()
 		{
 			{
 				// Configure initial camera
@@ -121,10 +125,10 @@ namespace
 				// Fragment config
 				rls->fragment_config = wls->fragment_config;
 			}
-			rls->mob_states.clear();
+			rls->graphic_objects.mob_states.clear();
 			for (const node* const n : get_mobs())
 			{
-				rls->mob_states.push_back({
+				rls->graphic_objects.mob_states.push_back({
 					.name = n->name,
 					.position = {n->position[0], n->position[1], n->position[2]},
 				});
@@ -352,8 +356,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			.game_node = new_game_node,
 			.stack_node = new_node,
 			.parent_transform = glm::mat4{1.f},
+			.is_mob = false,
 			});
 	}
+
+	std::vector<graphics_object> mob_graphics_objects;
 
 	size_t go_index{ 0 };
 	while (sgp->queue.size() > 0)
@@ -399,7 +406,13 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					sgp->mesh_queue.push(child_mesh_index);
 				}
-				graphics_objects.push_back(go);
+				if (queue_item.is_mob)
+				{
+					mob_graphics_objects.push_back(go);
+				} else
+				{
+					graphics_objects.push_back(go);
+				}
 				go_index += 1;
 			}
 		}
@@ -421,15 +434,18 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			}
 			new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
 			queue_item.game_node->children.push_back(new_game_node);
+			const bool is_mob = queue_item.is_mob || new_game_node->name == mobs_node_name;
 			sgp->queue.push({
 				.game_node = new_game_node,
 				.stack_node = new_node,
 				.parent_transform = queue_item.parent_transform * node_transform,
+				.is_mob = is_mob,
 				});
 		}
 	}
 
-	ls->l->info(std::format("num scene objects on root: {} {} {}", ls->level_game_node->children.size(), ls->level_game_node->name, ls->level_game_node->children[0]->name));
+	rls.graphic_objects.num_static_objects = graphics_objects.size();
+	graphics_objects.insert(graphics_objects.end(), mob_graphics_objects.begin(), mob_graphics_objects.end());
 	ls->level_game_node->debug();
 	return result::ok;
 }

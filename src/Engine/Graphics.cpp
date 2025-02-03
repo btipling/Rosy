@@ -5319,13 +5319,13 @@ namespace {
 						}
 						ImGui::EndTabItem();
 
-						if (!rls->mob_states.empty())
+						if (!rls->graphic_objects.mob_states.empty())
 						if (ImGui::CollapsingHeader("Mobs"))
 						{
 
 							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 							{
-								for (const auto [name, position] : rls->mob_states) {
+								for (const auto [name, position] : rls->graphic_objects.mob_states) {
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
 									ImGui::Text(name.c_str());
