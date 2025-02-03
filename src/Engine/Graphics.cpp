@@ -4105,7 +4105,7 @@ namespace {
 
 					if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &graphic_objects_buffer.go_buffer.buffer, &graphic_objects_buffer.go_buffer.allocation, &graphic_objects_buffer.go_buffer.info); res != VK_SUCCESS)
 					{
-						l->error(std::format("Error creating graphics objects buffer: {}", static_cast<uint8_t>(res)));
+						l->error(std::format("Error creating graphics objects buffer: {} {}", static_cast<uint8_t>(res), string_VkResult(res)));
 						return result::error;
 					}
 					{
@@ -4844,6 +4844,7 @@ namespace {
 							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
 							{
+								vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
 								size_t current_mesh_index = UINT64_MAX;
 								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : opaque_graphics)
 								{
@@ -4879,6 +4880,8 @@ namespace {
 									color_component_flags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 									vkCmdSetColorWriteMaskEXT(cf.command_buffer, 0, 1, &color_component_flags);
 									vkCmdSetColorBlendEquationEXT(cf.command_buffer, 0, 1, &blend_equation);
+									vkCmdSetCullModeEXT(cf.command_buffer, VK_CULL_MODE_NONE);
+									vkCmdSetDepthWriteEnableEXT(cf.command_buffer, VK_FALSE);
 								}
 								current_mesh_index = UINT64_MAX;
 								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : blended_graphics)
@@ -5286,6 +5289,23 @@ namespace {
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();
+
+						if (!rls->mob_states.empty())
+						if (ImGui::CollapsingHeader("Mobs"))
+						{
+
+							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								for (const auto [name, position] : rls->mob_states) {
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text(name.c_str());
+									ImGui::TableNextColumn();
+									ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+								}
+								ImGui::EndTable();
+							}
+						}
 					}
 					if (ImGui::BeginTabItem("Edit"))
 					{

@@ -24,6 +24,7 @@ using namespace rosy_packager;
 //       // index 0 - num transforms -> always 1 to represent a single std::array<float, 16>
 //       // index 1 -> num mesh ids -> always 1 to represent a single uint32_t
 //       // index 2 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
+//       // index 3 - num characters -> a std::vector<char> to represent a node name
 // 7. Per Image
 // 7a.Image size layout: std::array<size_t, 1>
 //       // index 0 - num characters -> a std::vector<char> to represent an image name
@@ -55,7 +56,7 @@ rosy::result asset::write(const rosy::log* l)
 		const file_header header{
 			.magic = rosy_format,
 			.version = current_version,
-			.endianness = std::endian::native == std::endian::little ? 1 : 0,
+			.endianness = 1, // for std::endian::little
 			.root_scene = root_scene,
 		};
 		size_t res = fwrite(&header, sizeof(header), num_headers, stream);
@@ -156,7 +157,7 @@ rosy::result asset::write(const rosy::log* l)
 
 	// WRITE ALL NODES ONE AT A TIME
 
-	for (const auto& [transform, mesh_id, child_nodes] : nodes) {
+	for (const auto& [transform, mesh_id, child_nodes, node_name_chars] : nodes) {
 
 		// WRITE ONE NODE SIZE
 
@@ -164,16 +165,17 @@ rosy::result asset::write(const rosy::log* l)
 		constexpr size_t num_mesh_ids{ 1 };
 		{
 			const size_t num_child_nodes{ child_nodes.size() };
+			const size_t num_name_chars{ node_name_chars.size() };
 			constexpr size_t lookup_sizes = 1;
-			const std::array<size_t, 3> node_sizes{ num_transforms, num_mesh_ids, num_child_nodes };
+			const std::array<size_t, 4> node_sizes{ num_transforms, num_mesh_ids, num_child_nodes, num_name_chars };
 			size_t res = fwrite(&node_sizes, sizeof(node_sizes), lookup_sizes, stream);
 			if (res != lookup_sizes) {
 				l->error(std::format("failed to write {}/{} node_sizes", res, lookup_sizes));
 				return rosy::result::write_failed;
 			}
 			l->debug(std::format(
-				"wrote {} sizes, num_transforms: {} num_mesh_ids: {} num_child_nodes: {}",
-				res, num_transforms, num_mesh_ids, num_child_nodes));
+				"wrote {} sizes, num_transforms: {} num_mesh_ids: {}, num_child_nodes: {},  num_name_chars: {}",
+				res, num_mesh_ids, num_child_nodes, num_transforms, num_name_chars));
 		}
 
 		// WRITE ONE NODE TRANSFORM
@@ -207,6 +209,17 @@ rosy::result asset::write(const rosy::log* l)
 				return rosy::result::write_failed;
 			}
 			l->debug(std::format("wrote {} node child nodes", res));
+		}
+
+		// WRITE ONE NODE NAME CHARS
+
+		{
+			size_t res = fwrite(node_name_chars.data(), sizeof(char), node_name_chars.size(), stream);
+			if (res != node_name_chars.size()) {
+				l->error(std::format("failed to write {}/{} node name chars", res, node_name_chars.size()));
+				return rosy::result::write_failed;
+			}
+			l->debug(std::format("wrote {} node node name chars", res));
 		}
 	}
 
@@ -472,9 +485,10 @@ rosy::result asset::read(rosy::log* l)
 		size_t num_transforms{ 0 };
 		size_t num_mesh_ids{ 0 };
 		size_t num_child_nodes{ 0 };
+		size_t num_node_name_chars{ 0 };
 		{
 			constexpr size_t lookup_sizes = 1;
-			std::array<size_t, 3> node_sizes{ 0, 0, 0 };
+			std::array<size_t, 4> node_sizes{ 0, 0, 0, 0 };
 			size_t res = fread(&node_sizes, sizeof(node_sizes), lookup_sizes, stream);
 			if (res != lookup_sizes) {
 				l->error(std::format("failed to read {}/{} node_sizes", res, lookup_sizes));
@@ -483,14 +497,16 @@ rosy::result asset::read(rosy::log* l)
 			num_transforms = node_sizes[0];
 			num_mesh_ids = node_sizes[1];
 			num_child_nodes = node_sizes[2];
+			num_node_name_chars = node_sizes[3];
 			l->debug(std::format(
-				"read {} sizes, num_transforms: {} num_mesh_ids: {} num_child_nodes: {}",
-				res, num_transforms, num_mesh_ids, num_child_nodes));
+				"read {} sizes, num_transforms: {} num_mesh_ids: {} num_child_nodes: {} num_node_name_chars: {}",
+				res, num_transforms, num_mesh_ids, num_child_nodes, num_node_name_chars));
 			assert(num_transforms == 1);
 			assert(num_mesh_ids == 1);
 		}
 
 		n.child_nodes.resize(num_child_nodes);
+		n.name.resize(num_node_name_chars);
 
 		// READ ONE NODE TRANSFORM
 
@@ -523,6 +539,17 @@ rosy::result asset::read(rosy::log* l)
 				return rosy::result::read_failed;
 			}
 			l->debug(std::format("read {} node child nodes", res));
+		}
+
+		// READ ONE NODE NAME CHARS
+
+		{
+			size_t res = fread(n.name.data(), sizeof(char), num_node_name_chars, stream);
+			if (res != num_node_name_chars) {
+				l->error(std::format("failed to read {}/{} node name chars", res, num_node_name_chars));
+				return rosy::result::read_failed;
+			}
+			l->debug(std::format("read {} node name chars", res));
 		}
 
 		// ADD MESH TO ASSET

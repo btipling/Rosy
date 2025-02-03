@@ -1,10 +1,9 @@
 #include "Level.h"
-
+#include "Node.h"
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.inl>
 #include <glm/gtx/quaternion.hpp>
 
@@ -41,6 +40,7 @@ namespace
 
 	struct stack_item
 	{
+		node* game_node{ nullptr };
 		rosy_packager::node stack_node;
 		glm::mat4 parent_transform{ glm::mat4{1.f} };
 	};
@@ -58,8 +58,49 @@ namespace
 
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
+		node* level_game_node{ nullptr };
 
-		rosy::result update() const
+		rosy::result init()
+		{
+			level_game_node = new(std::nothrow) node;
+			if (level_game_node == nullptr)
+			{
+				l->error("root scene_objects allocation failed");
+				return result::allocation_failure;
+			};
+			if (const auto res = level_game_node->init(l, {}); res != result::ok)
+			{
+				l->error("root scene_objects initialization failed");
+				return result::error;
+			}
+			level_game_node->name = "rosy_root";
+			return result::ok;
+		}
+
+		void deinit()
+		{
+			if (level_game_node != nullptr) {
+				level_game_node->deinit();
+				delete level_game_node;
+				level_game_node = nullptr;
+			}
+		}
+
+		std::vector<node*> get_mobs()
+		{
+			if (level_game_node == nullptr) return {};
+			if (level_game_node->children.empty()) return {};
+			for (node* root_node = level_game_node->children[0]; node* child : root_node->children)
+			{
+				if (child->name == "mobs")
+				{
+					return child->children;
+				}
+			}
+			return {};
+		}
+
+		rosy::result update()
 		{
 			{
 				// Configure initial camera
@@ -80,6 +121,14 @@ namespace
 				// Fragment config
 				rls->fragment_config = wls->fragment_config;
 			}
+			rls->mob_states.clear();
+			for (const node* const n : get_mobs())
+			{
+				rls->mob_states.push_back({
+					.name = n->name,
+					.position = {n->position[0], n->position[1], n->position[2]},
+				});
+			}
 
 			rls->debug_objects.clear();
 			{
@@ -92,8 +141,8 @@ namespace
 					// Lighting math
 
 					{
-						const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * wls->light_debug.sun_distance});
-						debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * wls->light_debug.sun_distance});
+						const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 1.f * wls->light_debug.sun_distance });
+						debug_light_translate = glm::translate(glm::mat4(1.f), { 0.f, 0.f, -1.f * wls->light_debug.sun_distance });
 						const glm::quat pitch_rotation = angleAxis(-wls->light_debug.sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
 						const glm::quat yaw_rotation = angleAxis(wls->light_debug.sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
 						light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
@@ -197,6 +246,11 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 			return result::allocation_failure;
 		}
 		ls->l = new_log;
+		if (const auto res = ls->init(); res != result::ok)
+		{
+			new_log->error("level_state init failed");
+			return res;
+		}
 
 		// Camera initialization
 		{
@@ -251,6 +305,7 @@ void level::deinit()
 	}
 	if (ls)
 	{
+		ls->deinit();
 		delete ls;
 		ls = nullptr;
 	}
@@ -264,13 +319,38 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	const auto& [nodes] = new_asset.scenes[root_scene_index];
 	if (nodes.size() < 1) return result::invalid_argument;
 
-	// Reset state
-	while (!sgp->queue.empty()) sgp->queue.pop();
-	while (!sgp->mesh_queue.empty()) sgp->mesh_queue.pop();
+	{
+		// Clear existing game nodes
+		for (node* n : ls->level_game_node->children) n->deinit();
+		ls->level_game_node->children.clear();
+	}
+	{
+		// Reset state
+		while (!sgp->queue.empty()) sgp->queue.pop();
+		while (!sgp->mesh_queue.empty()) sgp->mesh_queue.pop();
+	}
 
 	for (const auto& node_index : nodes) {
+		const rosy_packager::node new_node = new_asset.nodes[node_index];
+
+		auto new_game_node = new(std::nothrow) node;
+		if (new_game_node == nullptr)
+		{
+			ls->l->error("initial scene_objects allocation failed");
+			return result::allocation_failure;
+		}
+		if (const auto res = new_game_node->init(ls->l, new_node.transform); res != result::ok)
+		{
+			ls->l->error("initial scene_objects initialization failed");
+			new_game_node->deinit();
+			return result::error;
+		}
+
+		new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+		ls->level_game_node->children.push_back(new_game_node);
 		sgp->queue.push({
-			.stack_node = new_asset.nodes[node_index],
+			.game_node = new_game_node,
+			.stack_node = new_node,
 			.parent_transform = glm::mat4{1.f},
 			});
 	}
@@ -279,10 +359,12 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	while (sgp->queue.size() > 0)
 	{
 		// ReSharper disable once CppUseStructuredBinding Visual studio wants to make this a reference, and it shouldn't be.
-		const stack_item queue_item = sgp->queue.front();
+		stack_item queue_item = sgp->queue.front();
 		sgp->queue.pop();
+		assert(queue_item.game_node != nullptr);
 
 		glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
+		const glm::mat4 transform = gltf_to_ndc * queue_item.parent_transform * node_transform;
 
 		if (queue_item.stack_node.mesh_id < new_asset.meshes.size()) {
 			sgp->mesh_queue.push(queue_item.stack_node.mesh_id);
@@ -293,7 +375,6 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				sgp->mesh_queue.pop();
 				const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
 				graphics_object go{};
-				const glm::mat4 transform = gltf_to_ndc * queue_item.parent_transform * node_transform;
 				const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
 				const glm::mat4 normal_transform = glm::transpose(object_space_transform);
 				go.transform = mat4_to_array(transform);
@@ -325,13 +406,31 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 
 		for (const size_t child_index : queue_item.stack_node.child_nodes)
 		{
+			const rosy_packager::node new_node = new_asset.nodes[child_index];
+			auto new_game_node = new(std::nothrow) node;
+			if (new_game_node == nullptr)
+			{
+				ls->l->error("Error allocating new game node in set asset");
+				return result::allocation_failure;
+			}
+			if (const auto res = new_game_node->init(ls->l, mat4_to_array(transform)); res != result::ok)
+			{
+				ls->l->error("Error initializing new game node in set asset");
+				new_game_node->deinit();
+				return result::error;
+			}
+			new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+			queue_item.game_node->children.push_back(new_game_node);
 			sgp->queue.push({
-				.stack_node = new_asset.nodes[child_index],
+				.game_node = new_game_node,
+				.stack_node = new_node,
 				.parent_transform = queue_item.parent_transform * node_transform,
 				});
 		}
 	}
 
+	ls->l->info(std::format("num scene objects on root: {} {} {}", ls->level_game_node->children.size(), ls->level_game_node->name, ls->level_game_node->children[0]->name));
+	ls->level_game_node->debug();
 	return result::ok;
 }
 
