@@ -4105,7 +4105,7 @@ namespace {
 
 					if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &graphic_objects_buffer.go_buffer.buffer, &graphic_objects_buffer.go_buffer.allocation, &graphic_objects_buffer.go_buffer.info); res != VK_SUCCESS)
 					{
-						l->error(std::format("Error creating graphics objects buffer: {}", static_cast<uint8_t>(res)));
+						l->error(std::format("Error creating graphics objects buffer: {} {}", static_cast<uint8_t>(res), string_VkResult(res)));
 						return result::error;
 					}
 					{

@@ -137,7 +137,17 @@ namespace rosy
 	struct scene_object
 	{
 		std::string name{};
-		std::vector<scene_object> children;
+		std::vector<scene_object*> children;
+
+		void deinit()
+		{
+			for (scene_object* so : children)
+			{
+				so->deinit();
+				delete so;
+			}
+			children.erase(children.begin(), children.end());
+		}
 	};
 
 	struct read_level_state
@@ -148,7 +158,7 @@ namespace rosy
 		bool debug_enabled{ false };
 		std::vector<debug_object> debug_objects{};
 		fragment_config_state fragment_config{};
-		std::vector<scene_object> objects;
+		std::vector<scene_object> scene_objects;
 	};
 
 	struct write_level_state

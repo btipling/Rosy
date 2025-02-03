@@ -59,6 +59,24 @@ namespace
 
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
+		scene_object* scene_obj;
+
+		rosy::result init()
+		{
+			scene_obj = new(std::nothrow) scene_object;
+			if (scene_obj == nullptr)
+			{
+				l->error("root scene_objects allocation failed");
+				return result::allocation_failure;
+			};
+			return result::ok;
+		}
+
+		void deinit()
+		{
+			scene_obj->deinit();
+			scene_obj = nullptr;
+		}
 
 		rosy::result update() const
 		{
@@ -197,6 +215,11 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 			new_log->error("level_state allocation failed");
 			return result::allocation_failure;
 		}
+		if (const auto res = ls->init(); res != result::ok)
+		{
+			new_log->error("level_state init failed");
+			return res;
+		}
 		ls->l = new_log;
 
 		// Camera initialization
@@ -252,6 +275,7 @@ void level::deinit()
 	}
 	if (ls)
 	{
+		ls->deinit();
 		delete ls;
 		ls = nullptr;
 	}
