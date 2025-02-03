@@ -21,10 +21,10 @@ using namespace rosy_packager;
 //       // index 0 - num nodes -> a std::vector<uint32_t> of node indices
 // 6. Per Node
 // 6a. Node size layout: std::array<size_t, 3>
-//       // index 0 - num characters -> a std::vector<char> to represent a node name
-//       // index 1 - num transforms -> always 1 to represent a single std::array<float, 16>
-//       // index 2 -> num mesh ids -> always 1 to represent a single uint32_t
-//       // index 3 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
+//       // index 0 - num transforms -> always 1 to represent a single std::array<float, 16>
+//       // index 1 -> num mesh ids -> always 1 to represent a single uint32_t
+//       // index 2 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
+//       // index 3 - num characters -> a std::vector<char> to represent a node name
 // 7. Per Image
 // 7a.Image size layout: std::array<size_t, 1>
 //       // index 0 - num characters -> a std::vector<char> to represent an image name
