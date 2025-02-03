@@ -86,11 +86,11 @@ namespace
 			}
 		}
 
-		std::vector<node*> get_mobs()
+		std::vector<node*> get_mobs() const
 		{
 			if (level_game_node == nullptr) return {};
 			if (level_game_node->children.empty()) return {};
-			for (node* root_node = level_game_node->children[0]; node* child : root_node->children)
+			for (const node* root_node = level_game_node->children[0]; node* child : root_node->children)
 			{
 				if (child->name == "mobs")
 				{
@@ -100,7 +100,7 @@ namespace
 			return {};
 		}
 
-		rosy::result update()
+		rosy::result update() const
 		{
 			{
 				// Configure initial camera

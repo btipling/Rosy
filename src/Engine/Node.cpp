@@ -10,14 +10,6 @@ using namespace rosy;
 
 namespace
 {
-	std::array<float, 16> mat4_to_array(glm::mat4 m)
-	{
-		std::array<float, 16> a{};
-		const auto pos_r = glm::value_ptr(m);
-		for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
-		return a;
-	}
-
 	glm::mat4 array_to_mat4(const std::array<float, 16>& a)
 	{
 		glm::mat4 m{};
