@@ -41,6 +41,7 @@ namespace
 
 	struct stack_item
 	{
+		node* game_node{ nullptr };
 		rosy_packager::node stack_node;
 		glm::mat4 parent_transform{ glm::mat4{1.f} };
 	};
@@ -79,9 +80,11 @@ namespace
 
 		void deinit()
 		{
-			level_game_node->deinit();
-			delete level_game_node;
-			level_game_node = nullptr;
+			if (level_game_node != nullptr) {
+				level_game_node->deinit();
+				delete level_game_node;
+				level_game_node = nullptr;
+			}
 		}
 
 		rosy::result update() const
@@ -117,8 +120,8 @@ namespace
 					// Lighting math
 
 					{
-						const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * wls->light_debug.sun_distance});
-						debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * wls->light_debug.sun_distance});
+						const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 1.f * wls->light_debug.sun_distance });
+						debug_light_translate = glm::translate(glm::mat4(1.f), { 0.f, 0.f, -1.f * wls->light_debug.sun_distance });
 						const glm::quat pitch_rotation = angleAxis(-wls->light_debug.sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
 						const glm::quat yaw_rotation = angleAxis(wls->light_debug.sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
 						light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
@@ -295,28 +298,37 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	const auto& [nodes] = new_asset.scenes[root_scene_index];
 	if (nodes.size() < 1) return result::invalid_argument;
 
-	// Reset state
-	while (!sgp->queue.empty()) sgp->queue.pop();
-	while (!sgp->mesh_queue.empty()) sgp->mesh_queue.pop();
+	{
+		// Clear existing game nodes
+		for (node* n : ls->level_game_node->children) n->deinit();
+		ls->level_game_node->children.clear();
+	}
+	{
+		// Reset state
+		while (!sgp->queue.empty()) sgp->queue.pop();
+		while (!sgp->mesh_queue.empty()) sgp->mesh_queue.pop();
+	}
 
 	for (const auto& node_index : nodes) {
 		const rosy_packager::node new_node = new_asset.nodes[node_index];
 
-		auto game_object = new(std::nothrow) node;
-		if (game_object == nullptr)
+		auto new_game_node = new(std::nothrow) node;
+		if (new_game_node == nullptr)
 		{
 			ls->l->error("initial scene_objects allocation failed");
 			return result::allocation_failure;
 		}
-		if (const auto res = game_object->init(ls->l); res != result::ok)
+		if (const auto res = new_game_node->init(ls->l); res != result::ok)
 		{
 			ls->l->error("initial scene_objects initialization failed");
+			new_game_node->deinit();
 			return result::error;
 		}
 
-		game_object->name = std::string(new_node.name.begin(), new_node.name.end());
-		ls->level_game_node->children.push_back(game_object);
+		new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+		ls->level_game_node->children.push_back(new_game_node);
 		sgp->queue.push({
+			.game_node = new_game_node,
 			.stack_node = new_node,
 			.parent_transform = glm::mat4{1.f},
 			});
@@ -328,6 +340,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		// ReSharper disable once CppUseStructuredBinding Visual studio wants to make this a reference, and it shouldn't be.
 		stack_item queue_item = sgp->queue.front();
 		sgp->queue.pop();
+		assert(queue_item.game_node != nullptr);
 
 		glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
 
@@ -373,12 +386,22 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		for (const size_t child_index : queue_item.stack_node.child_nodes)
 		{
 			const rosy_packager::node new_node = new_asset.nodes[child_index];
-			/*node game_node{};
-			if (!new_node.name.empty())
+			auto new_game_node = new(std::nothrow) node;
+			if (new_game_node == nullptr)
 			{
-				game_node.name = new_node.name.data();
-			}*/
+				ls->l->error("Error allocating new game node in set asset");
+				return result::allocation_failure;
+			}
+			if (const auto res = new_game_node->init(ls->l); res != result::ok)
+			{
+				ls->l->error("Error initializing new game node in set asset");
+				new_game_node->deinit();
+				return result::error;
+			}
+			new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+			queue_item.game_node->children.push_back(new_game_node);
 			sgp->queue.push({
+				.game_node = new_game_node,
 				.stack_node = new_node,
 				.parent_transform = queue_item.parent_transform * node_transform,
 				});
