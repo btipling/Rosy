@@ -41,6 +41,7 @@ namespace
 
 	struct stack_item
 	{
+		std::vector<scene_object> scene_objects;
 		rosy_packager::node stack_node;
 		glm::mat4 parent_transform{ glm::mat4{1.f} };
 	};
@@ -279,7 +280,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	while (sgp->queue.size() > 0)
 	{
 		// ReSharper disable once CppUseStructuredBinding Visual studio wants to make this a reference, and it shouldn't be.
-		const stack_item queue_item = sgp->queue.front();
+		stack_item queue_item = sgp->queue.front();
 		sgp->queue.pop();
 
 		glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
@@ -325,8 +326,15 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 
 		for (const size_t child_index : queue_item.stack_node.child_nodes)
 		{
+			const rosy_packager::node new_node = new_asset.nodes[child_index];
+			scene_object so{};
+			if (!new_node.name.empty())
+			{
+				so.name = new_node.name.data();
+			}
+			queue_item.scene_objects.push_back(so);
 			sgp->queue.push({
-				.stack_node = new_asset.nodes[child_index],
+				.stack_node = new_node,
 				.parent_transform = queue_item.parent_transform * node_transform,
 				});
 		}

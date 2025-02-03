@@ -136,7 +136,7 @@ namespace rosy
 
 	struct scene_object
 	{
-		std::string name{ "" };
+		std::string name{};
 		std::vector<scene_object> children;
 	};
 

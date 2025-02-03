@@ -56,7 +56,7 @@ rosy::result asset::write(const rosy::log* l)
 		const file_header header{
 			.magic = rosy_format,
 			.version = current_version,
-			.endianness = std::endian::native == std::endian::little ? 1 : 0,
+			.endianness = 1, // for std::endian::little
 			.root_scene = root_scene,
 		};
 		size_t res = fwrite(&header, sizeof(header), num_headers, stream);
@@ -214,7 +214,7 @@ rosy::result asset::write(const rosy::log* l)
 		// WRITE ONE NODE NAME CHARS
 
 		{
-			size_t res = fwrite(node_name_chars.data(), sizeof(uint32_t), node_name_chars.size(), stream);
+			size_t res = fwrite(node_name_chars.data(), sizeof(char), node_name_chars.size(), stream);
 			if (res != node_name_chars.size()) {
 				l->error(std::format("failed to write {}/{} node name chars", res, node_name_chars.size()));
 				return rosy::result::write_failed;
@@ -506,6 +506,7 @@ rosy::result asset::read(rosy::log* l)
 		}
 
 		n.child_nodes.resize(num_child_nodes);
+		n.name.resize(num_node_name_chars);
 
 		// READ ONE NODE TRANSFORM
 
@@ -543,7 +544,7 @@ rosy::result asset::read(rosy::log* l)
 		// READ ONE NODE NAME CHARS
 
 		{
-			size_t res = fread(n.name.data(), sizeof(uint32_t), num_node_name_chars, stream);
+			size_t res = fread(n.name.data(), sizeof(char), num_node_name_chars, stream);
 			if (res != num_node_name_chars) {
 				l->error(std::format("failed to read {}/{} node name chars", res, num_node_name_chars));
 				return rosy::result::read_failed;

@@ -275,6 +275,7 @@ rosy::result gltf::import(rosy::log* l)
 	{
 		node n{};
 		n.mesh_id = static_cast<uint32_t>(gltf_node.meshIndex.value_or(SIZE_MAX));
+		std::ranges::copy(gltf_node.name, std::back_inserter(n.name));
 
 		auto& [tr, ro, sc] = std::get<fastgltf::TRS>(gltf_node.transform);
 
