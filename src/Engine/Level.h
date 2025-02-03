@@ -11,6 +11,7 @@ namespace rosy {
 		camera* cam{ nullptr };
 		read_level_state rls{};
 		write_level_state wls{};
+		graphics_object_update graphics_object_update_data{};
 		std::vector<graphics_object> graphics_objects;
 
 		result init(log* new_log, [[maybe_unused]] config new_cfg);

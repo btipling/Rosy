@@ -513,6 +513,7 @@ namespace {
 		std::vector<surface_graphics_data> shadow_casting_graphics{};
 		std::vector<surface_graphics_data> opaque_graphics{};
 		std::vector<surface_graphics_data> blended_graphics{};
+		graphics_object_update graphics_object_update_data{};
 		std::vector<VkShaderEXT> scene_shaders;
 		VkPipelineLayout scene_layout;
 
@@ -4068,14 +4069,14 @@ namespace {
 			blended_graphics.clear();
 			std::vector<graphic_object_data> go_data{};
 			go_data.reserve(graphics_objects.size());
-			for (const auto& go : graphics_objects)
+			for (const auto& [surface_data, transform, normal_transform, object_space_transform] : graphics_objects)
 			{
 				go_data.push_back({
-				.transform = go.transform,
-				.normal_transform = go.normal_transform,
-				.object_space_transform = go.object_space_transform,
+				.transform = transform,
+				.normal_transform = normal_transform,
+				.object_space_transform = object_space_transform,
 					});
-				for (const auto& s : go.surface_data)
+				for (const auto& s : surface_data)
 				{
 					shadow_casting_graphics.push_back(s);
 					if (s.blended)
@@ -4237,6 +4238,12 @@ namespace {
 			return result::ok;
 		}
 
+		result update_graphic_objects(const graphics_object_update& new_graphics_objects_update)
+		{
+			graphics_object_update_data = new_graphics_objects_update;
+			return result::ok;
+		}
+
 		result render()
 		{
 			const auto start = std::chrono::system_clock::now();
@@ -4355,6 +4362,8 @@ namespace {
 					vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
 				}
 				{
+
+					//std::vector<VkBufferMemoryBarrier2>
 					VkBufferMemoryBarrier2 buffer_barrier{
 						.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
 						.pNext = nullptr,
@@ -5320,21 +5329,21 @@ namespace {
 						ImGui::EndTabItem();
 
 						if (!rls->graphic_objects.mob_states.empty())
-						if (ImGui::CollapsingHeader("Mobs"))
-						{
-
-							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							if (ImGui::CollapsingHeader("Mobs"))
 							{
-								for (const auto [name, position] : rls->graphic_objects.mob_states) {
-									ImGui::TableNextRow();
-									ImGui::TableNextColumn();
-									ImGui::Text(name.c_str());
-									ImGui::TableNextColumn();
-									ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+
+								if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+								{
+									for (const auto [name, position] : rls->graphic_objects.mob_states) {
+										ImGui::TableNextRow();
+										ImGui::TableNextColumn();
+										ImGui::Text(name.c_str());
+										ImGui::TableNextColumn();
+										ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+									}
+									ImGui::EndTable();
 								}
-								ImGui::EndTable();
 							}
-						}
 					}
 					if (ImGui::BeginTabItem("Edit"))
 					{
@@ -5608,9 +5617,13 @@ result graphics::set_asset(const rosy_packager::asset& a, const std::vector<grap
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result graphics::update(const read_level_state& rls)
+result graphics::update(const read_level_state& rls, const graphics_object_update& new_graphics_objects_update)
 {
 	if (const auto res = gd->update(rls); res != result::ok)
+	{
+		return res;
+	}
+	if (const auto res = gd->update_graphic_objects(new_graphics_objects_update); res != result::ok)
 	{
 		return res;
 	}

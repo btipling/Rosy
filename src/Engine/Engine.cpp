@@ -258,7 +258,7 @@ result engine::render()
 		if (const auto res = lvl->update(); res != result::ok) {
 			return res;
 		}
-		if (const auto res = gfx->update(lvl->rls); res != result::ok) {
+		if (const auto res = gfx->update(lvl->rls, lvl->graphics_object_update_data); res != result::ok) {
 			return res;
 		}
 		const auto end = std::chrono::system_clock::now();

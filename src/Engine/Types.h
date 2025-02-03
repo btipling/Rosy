@@ -56,6 +56,12 @@ namespace rosy
 		std::array<float, 16> object_space_transform;
 	};
 
+	struct graphics_object_update
+	{
+		size_t offset{ 0 };
+		std::vector<graphics_object> graphic_objects{};
+	};
+
 	struct engine_stats
 	{
 		float a_fps{ 0.f };
