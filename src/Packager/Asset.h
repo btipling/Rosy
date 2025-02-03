@@ -51,6 +51,7 @@ namespace rosy_packager {
 		std::array<float, 16> transform;
 		std::uint32_t mesh_id{UINT32_MAX}; // UINT32_MAX == not present
 		std::vector<uint32_t> child_nodes;
+		std::vector<char> name;
 	};
 
 	struct scene

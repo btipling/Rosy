@@ -2,6 +2,7 @@
 #include <array>
 #include <vector>
 #include <cstdint>
+#include <string>
 
 // These are type declarations, not default configurations. Configure those in Level.cpp or elsewhere.
 namespace rosy
@@ -133,6 +134,12 @@ namespace rosy
 		bool shadows_enabled{ false };
 	};
 
+	struct scene_object
+	{
+		std::string name{ "" };
+		std::vector<scene_object> children;
+	};
+
 	struct read_level_state
 	{
 		read_camera cam{};
@@ -141,6 +148,7 @@ namespace rosy
 		bool debug_enabled{ false };
 		std::vector<debug_object> debug_objects{};
 		fragment_config_state fragment_config{};
+		std::vector<scene_object> objects;
 	};
 
 	struct write_level_state
