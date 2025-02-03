@@ -4363,20 +4363,23 @@ namespace {
 				}
 				{
 
-					//std::vector<VkBufferMemoryBarrier2>
-					VkBufferMemoryBarrier2 buffer_barrier{
-						.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-						.pNext = nullptr,
-						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
-						.srcQueueFamilyIndex = 0,
-						.dstQueueFamilyIndex = 0,
-						.buffer = scene_buffer.scene_buffer.buffer,
-						.offset = 0,
-						.size = sizeof(gpu_scene_data),
-					};
+					std::vector<VkBufferMemoryBarrier2> buffer_barriers;
+					{
+						VkBufferMemoryBarrier2 buffer_barrier{
+							.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+							.pNext = nullptr,
+							.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+							.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+							.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+							.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+							.srcQueueFamilyIndex = 0,
+							.dstQueueFamilyIndex = 0,
+							.buffer = scene_buffer.scene_buffer.buffer,
+							.offset = 0,
+							.size = sizeof(gpu_scene_data),
+						};
+						buffer_barriers.push_back(buffer_barrier);
+					}
 
 					const VkDependencyInfo dependency_info{
 						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -4384,8 +4387,8 @@ namespace {
 						.dependencyFlags = 0,
 						.memoryBarrierCount = 0,
 						.pMemoryBarriers = nullptr,
-						.bufferMemoryBarrierCount = 1,
-						.pBufferMemoryBarriers = &buffer_barrier,
+						.bufferMemoryBarrierCount = static_cast<uint32_t>(buffer_barriers.size()),
+						.pBufferMemoryBarriers = buffer_barriers.data(),
 						.imageMemoryBarrierCount = 0,
 						.pImageMemoryBarriers = nullptr,
 					};
