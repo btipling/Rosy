@@ -86,7 +86,21 @@ namespace
 			}
 		}
 
-		rosy::result update() const
+		std::vector<node*> get_mobs()
+		{
+			if (level_game_node == nullptr) return {};
+			if (level_game_node->children.empty()) return {};
+			for (node* root_node = level_game_node->children[0]; node* child : root_node->children)
+			{
+				if (child->name == "mob")
+				{
+					return child->children;
+				}
+			}
+			return {};
+		}
+
+		rosy::result update()
 		{
 			{
 				// Configure initial camera
@@ -106,6 +120,14 @@ namespace
 			{
 				// Fragment config
 				rls->fragment_config = wls->fragment_config;
+			}
+			rls->mob_states.clear();
+			for (const node* const n : get_mobs())
+			{
+				rls->mob_states.push_back({
+					.name = n->name,
+					.position = {n->position[0], n->position[1], n->position[2]},
+				});
 			}
 
 			rls->debug_objects.clear();

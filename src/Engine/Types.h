@@ -134,6 +134,12 @@ namespace rosy
 		bool shadows_enabled{ false };
 	};
 
+	struct mob_state
+	{
+		std::string name;
+		std::array<float, 3> position;
+	};
+
 	struct read_level_state
 	{
 		read_camera cam{};
@@ -142,6 +148,7 @@ namespace rosy
 		bool debug_enabled{ false };
 		std::vector<debug_object> debug_objects{};
 		fragment_config_state fragment_config{};
+		std::vector<mob_state> mob_states{};
 	};
 
 	struct write_level_state

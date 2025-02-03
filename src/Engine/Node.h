@@ -17,6 +17,7 @@ namespace rosy {
 		[[nodiscard]] auto init(log* new_log, const std::array<float, 16>& transform) -> result;
 		void deinit();
 		void debug();
+
 	};
 
 }
