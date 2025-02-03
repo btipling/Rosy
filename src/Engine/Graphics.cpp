@@ -4380,6 +4380,23 @@ namespace {
 						};
 						buffer_barriers.push_back(buffer_barrier);
 					}
+					if (!graphics_object_update_data.graphic_objects.empty())
+					{
+						VkBufferMemoryBarrier2 buffer_barrier{
+							.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+							.pNext = nullptr,
+							.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+							.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+							.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+							.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+							.srcQueueFamilyIndex = 0,
+							.dstQueueFamilyIndex = 0,
+							.buffer = graphic_objects_buffer.go_buffer.buffer,
+							.offset = graphics_object_update_data.offset,
+							.size = sizeof(graphic_object_data),
+						};
+						buffer_barriers.push_back(buffer_barrier);
+					}
 
 					const VkDependencyInfo dependency_info{
 						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -4398,6 +4415,13 @@ namespace {
 				{
 					// Update scene buffer
 					vkCmdUpdateBuffer(cf.command_buffer, scene_buffer.scene_buffer.buffer, 0, sizeof(gpu_scene_data), &scene_data);
+				}
+				if (!graphics_object_update_data.graphic_objects.empty())
+				{
+					vkCmdUpdateBuffer(cf.command_buffer, graphic_objects_buffer.go_buffer.buffer, graphics_object_update_data.offset, sizeof(graphic_object_data), graphics_object_update_data.graphic_objects.data());
+					// Clear out state so that we avoid unnecessary updates.
+					graphics_object_update_data.offset = 0;
+					graphics_object_update_data.graphic_objects.clear();
 				}
 				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 			}
