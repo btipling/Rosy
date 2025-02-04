@@ -67,6 +67,8 @@ struct node_state
 			transform[2],
 			position
 		);
+		object_space_transform = glm::inverse(static_cast<glm::mat3>(parent_transform * transform));
+		normal_transform = glm::transpose(object_space_transform);
 	}
 };
 
