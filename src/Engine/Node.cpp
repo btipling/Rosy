@@ -37,6 +37,17 @@ struct node_state
 		transform = array_to_mat4(new_transform);
 		position = transform * glm::vec4(0.f, 0.f, 0.f, 1.f);
 	}
+
+	void set_position(const std::array<float, 3>& new_position)
+	{
+		position = glm::vec4(new_position[0], new_position[1], new_position[2], 1.f);
+		transform = glm::mat4(
+			transform[0],
+			transform[1],
+			transform[2],
+			position
+		);
+	}
 };
 
 result node::init(rosy::log* new_log, const std::array<float, 16>& transform)
@@ -63,6 +74,13 @@ void node::deinit()
 	children.erase(children.begin(), children.end());
 	delete ns;
 	ns = nullptr;
+}
+
+auto node::set_position(const std::array<float, 3>& new_position) -> result
+{
+	ns->set_position(new_position);
+	position = vec4_to_array(ns->position);
+	return result::ok;
 }
 
 void node::debug()

@@ -127,15 +127,24 @@ namespace
 			}
 			{
 				// Mob state
+				std::vector<node*> mobs = get_mobs();
 				if (wls->mob_edit.submitted)
 				{
 					rls->mob_read.clear_edits = true;
-				} else
+					if (mobs.size() > wls->mob_edit.edit_index)
+					{
+						if (const auto res = mobs[0]->set_position(wls->mob_edit.position); res != result::ok)
+						{
+							l->error("Error updating mob position");
+						}
+					}
+				}
+				else
 				{
 					rls->mob_read.clear_edits = false;
 				}
 				rls->mob_read.mob_states.clear();
-				for (const node* const n : get_mobs())
+				for (const node* const n : mobs)
 				{
 					rls->mob_read.mob_states.push_back({
 						.name = n->name,

@@ -16,6 +16,7 @@ namespace rosy {
 
 		[[nodiscard]] auto init(log* new_log, const std::array<float, 16>& transform) -> result;
 		void deinit();
+		[[nodiscard]] auto set_position(const std::array<float, 3>& new_position) -> result;
 		void debug();
 	};
 
