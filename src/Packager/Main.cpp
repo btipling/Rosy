@@ -57,8 +57,6 @@ int main(const int argc, char* argv[])
 	if (const auto res = g.gltf_asset.write(&l); res != rosy::result::ok) {
 		return EXIT_FAILURE;
 	}
-#define MANUAL_TANGENT
-#ifdef MANUAL_TANGENT
 	int i{ 0 };
 	for (const auto p : g.gltf_asset.meshes[0].positions)
 	{
@@ -71,7 +69,6 @@ int main(const int argc, char* argv[])
 		));
 		i += 1;
 	}
-#endif
 
 	const auto end = std::chrono::system_clock::now();
 	const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);

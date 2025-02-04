@@ -2,6 +2,7 @@
 #include "Node.h"
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
+#include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.inl>
@@ -12,9 +13,10 @@ using namespace rosy;
 constexpr size_t max_node_stack_size = 4'096;
 constexpr size_t max_stack_item_list = 16'384;
 
+const std::string mobs_node_name{ "mobs" };
+
 namespace
 {
-
 	std::array<float, 16> mat4_to_array(glm::mat4 m)
 	{
 		std::array<float, 16> a{};
@@ -43,6 +45,7 @@ namespace
 		node* game_node{ nullptr };
 		rosy_packager::node stack_node;
 		glm::mat4 parent_transform{ glm::mat4{1.f} };
+		bool is_mob{ false };
 	};
 
 	struct scene_graph_processor
@@ -68,7 +71,7 @@ namespace
 				l->error("root scene_objects allocation failed");
 				return result::allocation_failure;
 			};
-			if (const auto res = level_game_node->init(l, {}); res != result::ok)
+			if (const auto res = level_game_node->init(l, {}, {}); res != result::ok)
 			{
 				l->error("root scene_objects initialization failed");
 				return result::error;
@@ -86,11 +89,11 @@ namespace
 			}
 		}
 
-		std::vector<node*> get_mobs() const
+		std::vector<node*> get_mobs()
 		{
 			if (level_game_node == nullptr) return {};
 			if (level_game_node->children.empty()) return {};
-			for (const node* root_node = level_game_node->children[0]; node* child : root_node->children)
+			for (node* root_node = level_game_node->children[0]; node * child : root_node->children)
 			{
 				if (child->name == "mobs")
 				{
@@ -100,7 +103,7 @@ namespace
 			return {};
 		}
 
-		rosy::result update() const
+		rosy::result update(bool* updated)
 		{
 			{
 				// Configure initial camera
@@ -121,13 +124,37 @@ namespace
 				// Fragment config
 				rls->fragment_config = wls->fragment_config;
 			}
-			rls->mob_states.clear();
-			for (const node* const n : get_mobs())
 			{
-				rls->mob_states.push_back({
-					.name = n->name,
-					.position = {n->position[0], n->position[1], n->position[2]},
-				});
+				// Mob state
+				std::vector<node*> mobs = get_mobs();
+				if (wls->mob_edit.submitted)
+				{
+					rls->mob_read.clear_edits = true;
+					if (mobs.size() > wls->mob_edit.edit_index)
+					{
+						if (const auto res = mobs[0]->set_position(wls->mob_edit.position); res != result::ok)
+						{
+							l->error("Error updating mob position");
+						}
+						else
+						{
+							*updated = true;
+						}
+
+					}
+				}
+				else
+				{
+					rls->mob_read.clear_edits = false;
+				}
+				rls->mob_read.mob_states.clear();
+				for (const node* const n : mobs)
+				{
+					rls->mob_read.mob_states.push_back({
+						.name = n->name,
+						.position = {n->position[0], n->position[1], n->position[2]},
+						});
+				}
 			}
 
 			rls->debug_objects.clear();
@@ -169,10 +196,10 @@ namespace
 					{
 						// Two circles to represent a sun
 						constexpr float angle_step{ glm::pi<float>() / 4.f };
-						for (float i{ 0 }; i < 4; i++) {
+						for (size_t i{ 0 }; i < 4; i++) {
 							debug_object sun_circle;
 							glm::mat4 m{ 1.f };
-							m = glm::rotate(m, angle_step * i, { 1.f, 0.f, 0.f });
+							m = glm::rotate(m, angle_step * static_cast<float>(i), { 1.f, 0.f, 0.f });
 							sun_circle.type = debug_object_type::circle;
 							sun_circle.transform = mat4_to_array(debug_draw_view * m);
 							sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
@@ -339,7 +366,10 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			ls->l->error("initial scene_objects allocation failed");
 			return result::allocation_failure;
 		}
-		if (const auto res = new_game_node->init(ls->l, new_node.transform); res != result::ok)
+
+		const std::array<float, 16> identity_m = mat4_to_array(glm::mat4(1.f));
+
+		if (const auto res = new_game_node->init(ls->l, new_node.transform, identity_m); res != result::ok)
 		{
 			ls->l->error("initial scene_objects initialization failed");
 			new_game_node->deinit();
@@ -352,10 +382,14 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			.game_node = new_game_node,
 			.stack_node = new_node,
 			.parent_transform = glm::mat4{1.f},
+			.is_mob = false,
 			});
 	}
 
-	size_t go_index{ 0 };
+	std::vector<graphics_object> mob_graphics_objects;
+
+	size_t go_mob_index{ 0 };
+	size_t go_static_index{ 0 };
 	while (sgp->queue.size() > 0)
 	{
 		// ReSharper disable once CppUseStructuredBinding Visual studio wants to make this a reference, and it shouldn't be.
@@ -375,6 +409,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				sgp->mesh_queue.pop();
 				const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
 				graphics_object go{};
+				go.index = queue_item.is_mob ? go_mob_index : go_static_index;
 				const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
 				const glm::mat4 normal_transform = glm::transpose(object_space_transform);
 				go.transform = mat4_to_array(transform);
@@ -385,7 +420,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					surface_graphics_data sgd{};
 					sgd.mesh_index = current_mesh_index;
-					sgd.graphics_object_index = go_index;
+					sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
 					sgd.material_index = sur_material;
 					sgd.index_count = sur_count;
 					sgd.start_index = sur_start_index;
@@ -399,8 +434,17 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					sgp->mesh_queue.push(child_mesh_index);
 				}
-				graphics_objects.push_back(go);
-				go_index += 1;
+				if (queue_item.is_mob)
+				{
+					mob_graphics_objects.push_back(go);
+					go_mob_index += 1;
+				}
+				else
+				{
+					graphics_objects.push_back(go);
+					go_static_index += 1;
+				}
+				queue_item.game_node->graphics_objects.push_back(go);
 			}
 		}
 
@@ -413,7 +457,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				ls->l->error("Error allocating new game node in set asset");
 				return result::allocation_failure;
 			}
-			if (const auto res = new_game_node->init(ls->l, mat4_to_array(transform)); res != result::ok)
+			if (const auto res = new_game_node->init(ls->l, mat4_to_array(transform), mat4_to_array(node_transform)); res != result::ok)
 			{
 				ls->l->error("Error initializing new game node in set asset");
 				new_game_node->deinit();
@@ -421,15 +465,27 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			}
 			new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
 			queue_item.game_node->children.push_back(new_game_node);
+			const bool is_mob = queue_item.is_mob || new_game_node->name == mobs_node_name;
 			sgp->queue.push({
 				.game_node = new_game_node,
 				.stack_node = new_node,
 				.parent_transform = queue_item.parent_transform * node_transform,
+				.is_mob = is_mob,
 				});
 		}
 	}
 
-	ls->l->info(std::format("num scene objects on root: {} {} {}", ls->level_game_node->children.size(), ls->level_game_node->name, ls->level_game_node->children[0]->name));
+	rls.graphic_objects.static_objects_offset = go_static_index;
+	static_objects_offset = go_static_index;
+	num_dynamic_objects = go_mob_index;
+	for (size_t i{ 0 }; i < mob_graphics_objects.size(); i++)
+	{
+		for (size_t j{ 0 }; j < mob_graphics_objects[i].surface_data.size(); j++)
+		{
+			mob_graphics_objects[i].surface_data[j].graphic_objects_offset = static_objects_offset;
+		}
+	} 
+	graphics_objects.insert(graphics_objects.end(), mob_graphics_objects.begin(), mob_graphics_objects.end());
 	ls->level_game_node->debug();
 	return result::ok;
 }
@@ -437,5 +493,18 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 // ReSharper disable once CppMemberFunctionMayBeStatic
 result level::update()
 {
-	return ls->update();
+	graphics_object_update_data.graphic_objects.clear();
+	bool updated{ false };
+	if (const auto res = ls->update(&updated); res != result::ok)
+	{
+		ls->l->error("Error updating level state");
+		return res;
+	}
+	if (!updated) return result::ok;
+	graphics_object_update_data.offset = static_objects_offset;
+	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
+
+	const std::vector<node*> mobs = ls->get_mobs();
+	for (node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
+	return result::ok;
 }

@@ -41,6 +41,7 @@ namespace rosy
 	struct  surface_graphics_data
 	{
 		size_t mesh_index{ 0 };
+		size_t graphic_objects_offset{ 0 };
 		size_t graphics_object_index{ 0 };
 		size_t material_index{ 0 };
 		uint32_t index_count{ 0 };
@@ -50,10 +51,17 @@ namespace rosy
 
 	struct graphics_object
 	{
+		size_t index{ 0 };
 		std::vector<surface_graphics_data> surface_data{};
 		std::array<float, 16> transform;
 		std::array<float, 16> normal_transform;
 		std::array<float, 16> object_space_transform;
+	};
+
+	struct graphics_object_update
+	{
+		size_t offset{ 0 };
+		std::vector<graphics_object> graphic_objects{};
 	};
 
 	struct engine_stats
@@ -140,6 +148,25 @@ namespace rosy
 		std::array<float, 3> position;
 	};
 
+	struct mob_edit_state
+	{
+		size_t edit_index{ 0 };
+		std::array<float, 3> position{ 0.f, 0.f, 0.f };
+		bool submitted{ false };
+		bool updated{ false };
+	};
+
+	struct mob_read_state
+	{
+		bool clear_edits{ false };
+		std::vector<mob_state> mob_states{};
+	};
+
+	struct graphic_objects_state
+	{
+		size_t static_objects_offset{ 0 };
+	};
+
 	struct read_level_state
 	{
 		read_camera cam{};
@@ -148,7 +175,8 @@ namespace rosy
 		bool debug_enabled{ false };
 		std::vector<debug_object> debug_objects{};
 		fragment_config_state fragment_config{};
-		std::vector<mob_state> mob_states{};
+		graphic_objects_state graphic_objects{};
+		mob_read_state mob_read{};
 	};
 
 	struct write_level_state
@@ -158,6 +186,7 @@ namespace rosy
 		light_debug_state light_debug{};
 		draw_config_state draw_config{};
 		fragment_config_state fragment_config{};
+		mob_edit_state mob_edit{};
 	};
 
 }

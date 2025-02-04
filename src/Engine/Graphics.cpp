@@ -513,6 +513,7 @@ namespace {
 		std::vector<surface_graphics_data> shadow_casting_graphics{};
 		std::vector<surface_graphics_data> opaque_graphics{};
 		std::vector<surface_graphics_data> blended_graphics{};
+		graphics_object_update graphics_object_update_data{};
 		std::vector<VkShaderEXT> scene_shaders;
 		VkPipelineLayout scene_layout;
 
@@ -4068,14 +4069,14 @@ namespace {
 			blended_graphics.clear();
 			std::vector<graphic_object_data> go_data{};
 			go_data.reserve(graphics_objects.size());
-			for (const auto& go : graphics_objects)
+			for (const auto& [go_index, surface_data, transform, normal_transform, object_space_transform] : graphics_objects)
 			{
 				go_data.push_back({
-				.transform = go.transform,
-				.normal_transform = go.normal_transform,
-				.object_space_transform = go.object_space_transform,
+				.transform = transform,
+				.normal_transform = normal_transform,
+				.object_space_transform = object_space_transform,
 					});
-				for (const auto& s : go.surface_data)
+				for (const auto& s : surface_data)
 				{
 					shadow_casting_graphics.push_back(s);
 					if (s.blended)
@@ -4237,6 +4238,12 @@ namespace {
 			return result::ok;
 		}
 
+		result update_graphic_objects(const graphics_object_update& new_graphics_objects_update)
+		{
+			graphics_object_update_data = new_graphics_objects_update;
+			return result::ok;
+		}
+
 		result render()
 		{
 			const auto start = std::chrono::system_clock::now();
@@ -4355,8 +4362,75 @@ namespace {
 					vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
 				}
 				{
+					std::vector<VkBufferMemoryBarrier2> buffer_barriers;
+					{
+						VkBufferMemoryBarrier2 buffer_barrier{
+							.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+							.pNext = nullptr,
+							.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+							.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+							.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+							.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+							.srcQueueFamilyIndex = 0,
+							.dstQueueFamilyIndex = 0,
+							.buffer = scene_buffer.scene_buffer.buffer,
+							.offset = 0,
+							.size = sizeof(gpu_scene_data),
+						};
+						buffer_barriers.push_back(buffer_barrier);
+					}
+					if (!graphics_object_update_data.graphic_objects.empty())
+					{
+						VkBufferMemoryBarrier2 buffer_barrier{
+							.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+							.pNext = nullptr,
+							.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+							.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+							.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+							.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+							.srcQueueFamilyIndex = 0,
+							.dstQueueFamilyIndex = 0,
+							.buffer = graphic_objects_buffer.go_buffer.buffer,
+							.offset = graphics_object_update_data.offset,
+							.size = sizeof(graphic_object_data),
+						};
+						buffer_barriers.push_back(buffer_barrier);
+					}
+
+					const VkDependencyInfo dependency_info{
+						.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+						.pNext = nullptr,
+						.dependencyFlags = 0,
+						.memoryBarrierCount = 0,
+						.pMemoryBarriers = nullptr,
+						.bufferMemoryBarrierCount = static_cast<uint32_t>(buffer_barriers.size()),
+						.pBufferMemoryBarriers = buffer_barriers.data(),
+						.imageMemoryBarrierCount = 0,
+						.pImageMemoryBarriers = nullptr,
+					};
+
+					vkCmdPipelineBarrier2(cf.command_buffer, &dependency_info);
+				}
+				{
 					// Update scene buffer
 					vkCmdUpdateBuffer(cf.command_buffer, scene_buffer.scene_buffer.buffer, 0, sizeof(gpu_scene_data), &scene_data);
+				}
+				if (!graphics_object_update_data.graphic_objects.empty())
+				{
+					std::vector<graphic_object_data> updated;
+					updated.reserve(graphics_object_update_data.graphic_objects.size());
+					for (const auto gou : graphics_object_update_data.graphic_objects)
+					{
+						updated.push_back({
+							.transform = gou.transform,
+							.normal_transform = gou.normal_transform,
+							.object_space_transform = gou.object_space_transform,
+							});
+					}
+					vkCmdUpdateBuffer(cf.command_buffer, graphic_objects_buffer.go_buffer.buffer, sizeof(graphic_object_data) * graphics_object_update_data.offset, sizeof(graphic_object_data) * updated.size(), updated.data());
+					// Clear out state so that we avoid unnecessary updates.
+					graphics_object_update_data.offset = 0;
+					graphics_object_update_data.graphic_objects.clear();
 				}
 				vkCmdEndDebugUtilsLabelEXT(cf.command_buffer);
 			}
@@ -4485,7 +4559,7 @@ namespace {
 					vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadow_layout, 0, 1, &descriptor_set, 0, nullptr);
 					{
 						size_t current_mesh_index = UINT64_MAX;
-						for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : shadow_casting_graphics)
+						for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : shadow_casting_graphics)
 						{
 							auto& gpu_mesh = gpu_meshes[mesh_index];
 							if (mesh_index != current_mesh_index)
@@ -4496,7 +4570,7 @@ namespace {
 							gpu_shadow_push_constants pc{
 								.scene_buffer = scene_buffer.scene_buffer_address,
 								.vertex_buffer = gpu_mesh.vertex_buffer_address,
-								.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+								.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
 								.pass_number = 0,
 							};
 							vkCmdPushConstants(cf.command_buffer, shadow_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_shadow_push_constants), &pc);
@@ -4846,7 +4920,7 @@ namespace {
 							{
 								vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
 								size_t current_mesh_index = UINT64_MAX;
-								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : opaque_graphics)
+								for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : opaque_graphics)
 								{
 									auto& gpu_mesh = gpu_meshes[mesh_index];
 									if (mesh_index != current_mesh_index)
@@ -4857,7 +4931,7 @@ namespace {
 									gpu_draw_push_constants pc{
 										.scene_buffer = scene_buffer.scene_buffer_address,
 										.vertex_buffer = gpu_mesh.vertex_buffer_address,
-										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
 										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
 									};
 									vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
@@ -4884,7 +4958,7 @@ namespace {
 									vkCmdSetDepthWriteEnableEXT(cf.command_buffer, VK_FALSE);
 								}
 								current_mesh_index = UINT64_MAX;
-								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : blended_graphics)
+								for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : blended_graphics)
 								{
 									auto& gpu_mesh = gpu_meshes[mesh_index];
 									if (mesh_index != current_mesh_index)
@@ -4895,7 +4969,7 @@ namespace {
 									gpu_draw_push_constants pc{
 										.scene_buffer = scene_buffer.scene_buffer_address,
 										.vertex_buffer = gpu_mesh.vertex_buffer_address,
-										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
 										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
 									};
 									vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
@@ -5260,6 +5334,7 @@ namespace {
 		{
 			//ImGui::ShowDemoWindow();
 
+			constexpr auto button_dims = ImVec2(150.f, 40.f);
 			ImGuiWindowFlags window_flags{ 0 };
 			window_flags |= ImGuiWindowFlags_NoCollapse;
 			if (ImGui::Begin("Game State", nullptr, window_flags))
@@ -5290,22 +5365,22 @@ namespace {
 						}
 						ImGui::EndTabItem();
 
-						if (!rls->mob_states.empty())
-						if (ImGui::CollapsingHeader("Mobs"))
-						{
-
-							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+						if (!rls->mob_read.mob_states.empty())
+							if (ImGui::CollapsingHeader("Mobs"))
 							{
-								for (const auto [name, position] : rls->mob_states) {
-									ImGui::TableNextRow();
-									ImGui::TableNextColumn();
-									ImGui::Text(name.c_str());
-									ImGui::TableNextColumn();
-									ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+
+								if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+								{
+									for (const auto [name, position] : rls->mob_read.mob_states) {
+										ImGui::TableNextRow();
+										ImGui::TableNextColumn();
+										ImGui::Text(name.c_str());
+										ImGui::TableNextColumn();
+										ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+									}
+									ImGui::EndTable();
 								}
-								ImGui::EndTable();
 							}
-						}
 					}
 					if (ImGui::BeginTabItem("Edit"))
 					{
@@ -5433,6 +5508,38 @@ namespace {
 								ImGui::EndTable();
 							}
 						}
+						if (ImGui::CollapsingHeader("Mobs"))
+						{
+							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								for (const auto [name, position] : rls->mob_read.mob_states) {
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text(name.c_str());
+									ImGui::TableNextColumn();
+									ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+								}
+								ImGui::EndTable();
+							}
+
+							if (ImGui::BeginCombo("Select mob", rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
+							{
+								for (int i = 0; i < rls->mob_read.mob_states.size(); ++i) {
+									const auto [name, position] = rls->mob_read.mob_states[i];
+									const bool is_selected = (wls->mob_edit.edit_index == i);
+									if (ImGui::Selectable(name.c_str(), is_selected)) {
+										wls->mob_edit.edit_index = i;
+									}
+									if (is_selected) {
+										ImGui::SetItemDefaultFocus();
+									}
+								}
+								ImGui::EndCombo();
+							}
+							if (!wls->mob_edit.updated) wls->mob_edit.position = rls->mob_read.mob_states[wls->mob_edit.edit_index].position;
+							if (ImGui::InputFloat3("position", wls->mob_edit.position.data())) wls->mob_edit.updated = true;
+							if (ImGui::Button("Update", button_dims)) wls->mob_edit.submitted = true;
+						}
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();
@@ -5499,6 +5606,14 @@ namespace {
 				}
 			}
 			ImGui::End();
+			{
+				// Update necessary states
+				if (rls->mob_read.clear_edits)
+				{
+					wls->mob_edit.submitted = false;
+					wls->mob_edit.updated = false;
+				}
+			}
 
 			return result::ok;
 		}
@@ -5579,9 +5694,13 @@ result graphics::set_asset(const rosy_packager::asset& a, const std::vector<grap
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result graphics::update(const read_level_state& rls)
+result graphics::update(const read_level_state& rls, const graphics_object_update& new_graphics_objects_update)
 {
 	if (const auto res = gd->update(rls); res != result::ok)
+	{
+		return res;
+	}
+	if (const auto res = gd->update_graphic_objects(new_graphics_objects_update); res != result::ok)
 	{
 		return res;
 	}

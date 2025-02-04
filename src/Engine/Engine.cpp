@@ -51,8 +51,9 @@ result engine::init()
 	l->info("Engine init begin");
 	rosy_packager::asset a{};
 	{
-		// a.asset_path = "..\\assets\\sponza\\sponza.rsy";
+		//a.asset_path = "..\\assets\\sponza\\sponza.rsy";
 		a.asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
+		//a.asset_path = "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.rsy";
 		{
 			if (const auto res = a.read(l); res != result::ok)
 			{
@@ -258,7 +259,7 @@ result engine::render()
 		if (const auto res = lvl->update(); res != result::ok) {
 			return res;
 		}
-		if (const auto res = gfx->update(lvl->rls); res != result::ok) {
+		if (const auto res = gfx->update(lvl->rls, lvl->graphics_object_update_data); res != result::ok) {
 			return res;
 		}
 		const auto end = std::chrono::system_clock::now();

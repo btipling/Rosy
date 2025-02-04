@@ -18,7 +18,7 @@ namespace rosy
 
 		[[nodiscard]] result init(SDL_Window* new_window, log const* new_log, config cfg);
 		[[nodiscard]] result set_asset(const rosy_packager::asset& a, const std::vector<graphics_object>& graphics_objects, write_level_state* wls) const;
-		[[nodiscard]] result update(const read_level_state& rls);
+		[[nodiscard]] result update(const read_level_state& rls, const graphics_object_update& graphics_objects_update);
 		[[nodiscard]] result render(bool render_ui, const engine_stats& stats);
 		[[nodiscard]] result resize();
 		void deinit();
