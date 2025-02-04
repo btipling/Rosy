@@ -5324,6 +5324,7 @@ namespace {
 		{
 			//ImGui::ShowDemoWindow();
 
+			constexpr auto button_dims = ImVec2(150.f, 40.f);
 			ImGuiWindowFlags window_flags{ 0 };
 			window_flags |= ImGuiWindowFlags_NoCollapse;
 			if (ImGui::Begin("Game State", nullptr, window_flags))
@@ -5354,13 +5355,13 @@ namespace {
 						}
 						ImGui::EndTabItem();
 
-						if (!rls->graphic_objects.mob_states.empty())
+						if (!rls->mob_read.mob_states.empty())
 							if (ImGui::CollapsingHeader("Mobs"))
 							{
 
 								if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 								{
-									for (const auto [name, position] : rls->graphic_objects.mob_states) {
+									for (const auto [name, position] : rls->mob_read.mob_states) {
 										ImGui::TableNextRow();
 										ImGui::TableNextColumn();
 										ImGui::Text(name.c_str());
@@ -5501,7 +5502,7 @@ namespace {
 						{
 							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 							{
-								for (const auto [name, position] : rls->graphic_objects.mob_states) {
+								for (const auto [name, position] : rls->mob_read.mob_states) {
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
 									ImGui::Text(name.c_str());
@@ -5511,10 +5512,10 @@ namespace {
 								ImGui::EndTable();
 							}
 
-							if (ImGui::BeginCombo("Select mob", rls->graphic_objects.mob_states[wls->mob_edit.edit_index].name.c_str()))
+							if (ImGui::BeginCombo("Select mob", rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
 							{
-								for (int i = 0; i < rls->graphic_objects.mob_states.size(); ++i) {
-									const auto [name, position] = rls->graphic_objects.mob_states[i];
+								for (int i = 0; i < rls->mob_read.mob_states.size(); ++i) {
+									const auto [name, position] = rls->mob_read.mob_states[i];
 									const bool is_selected = (wls->mob_edit.edit_index == i);
 									if (ImGui::Selectable(name.c_str(), is_selected)) {
 										wls->mob_edit.edit_index = i;
@@ -5525,8 +5526,9 @@ namespace {
 								}
 								ImGui::EndCombo();
 							}
-							wls->mob_edit.position = rls->graphic_objects.mob_states[wls->mob_edit.edit_index].position;
-							ImGui::InputFloat3("position", wls->mob_edit.position.data());
+							if (!wls->mob_edit.updated) wls->mob_edit.position = rls->mob_read.mob_states[wls->mob_edit.edit_index].position;
+							if (ImGui::InputFloat3("position", wls->mob_edit.position.data())) wls->mob_edit.updated = true;
+							if (ImGui::Button("Update", button_dims)) wls->mob_edit.submitted = true;
 						}
 						ImGui::EndTabItem();
 					}
@@ -5594,6 +5596,14 @@ namespace {
 				}
 			}
 			ImGui::End();
+			{
+				// Update necessary states
+				if (rls->mob_read.clear_edits)
+				{
+					wls->mob_edit.submitted = false;
+					wls->mob_edit.updated = false;
+				}
+			}
 
 			return result::ok;
 		}

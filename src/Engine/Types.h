@@ -150,12 +150,19 @@ namespace rosy
 	{
 		size_t edit_index{ 0 };
 		std::array<float, 3> position{ 0.f, 0.f, 0.f };
+		bool submitted{ false };
+		bool updated{ false };
+	};
+
+	struct mob_read_state
+	{
+		bool clear_edits{ false };
+		std::vector<mob_state> mob_states{};
 	};
 
 	struct graphic_objects_state
 	{
 		size_t num_static_objects{ 0 };
-		std::vector<mob_state> mob_states{};
 	};
 
 	struct read_level_state
@@ -167,6 +174,7 @@ namespace rosy
 		std::vector<debug_object> debug_objects{};
 		fragment_config_state fragment_config{};
 		graphic_objects_state graphic_objects{};
+		mob_read_state mob_read{};
 	};
 
 	struct write_level_state

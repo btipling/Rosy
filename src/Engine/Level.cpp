@@ -125,13 +125,23 @@ namespace
 				// Fragment config
 				rls->fragment_config = wls->fragment_config;
 			}
-			rls->graphic_objects.mob_states.clear();
-			for (const node* const n : get_mobs())
 			{
-				rls->graphic_objects.mob_states.push_back({
-					.name = n->name,
-					.position = {n->position[0], n->position[1], n->position[2]},
-				});
+				// Mob state
+				if (wls->mob_edit.submitted)
+				{
+					rls->mob_read.clear_edits = true;
+				} else
+				{
+					rls->mob_read.clear_edits = false;
+				}
+				rls->mob_read.mob_states.clear();
+				for (const node* const n : get_mobs())
+				{
+					rls->mob_read.mob_states.push_back({
+						.name = n->name,
+						.position = {n->position[0], n->position[1], n->position[2]},
+						});
+				}
 			}
 
 			rls->debug_objects.clear();
@@ -173,10 +183,10 @@ namespace
 					{
 						// Two circles to represent a sun
 						constexpr float angle_step{ glm::pi<float>() / 4.f };
-						for (float i{ 0 }; i < 4; i++) {
+						for (size_t i{ 0 }; i < 4; i++) {
 							debug_object sun_circle;
 							glm::mat4 m{ 1.f };
-							m = glm::rotate(m, angle_step * i, { 1.f, 0.f, 0.f });
+							m = glm::rotate(m, angle_step * static_cast<float>(i), { 1.f, 0.f, 0.f });
 							sun_circle.type = debug_object_type::circle;
 							sun_circle.transform = mat4_to_array(debug_draw_view * m);
 							sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
