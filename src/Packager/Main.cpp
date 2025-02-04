@@ -8,7 +8,6 @@ int main(const int argc, char* argv[])
 {
 
 	rosy::log l{};
-	l.level = rosy::log_level::debug;
 #ifdef ROSY_LOG_LEVEL_DEBUG
 	l.level = rosy::log_level::debug;
 #endif

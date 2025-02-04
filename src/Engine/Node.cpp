@@ -104,6 +104,8 @@ auto node::set_position(const std::array<float, 3>& new_position) -> result
 	ns->set_position(new_position);
 	transform = mat4_to_array(ns->parent_transform * ns->transform);
 	position = vec4_to_array(ns->position);
+	object_space_transform = mat4_to_array(ns->object_space_transform);
+	normal_transform = mat4_to_array(ns->normal_transform);
 	for (node* n : children)
 	{
 		n->update_parent_transform(transform);
@@ -116,6 +118,8 @@ void node::update_parent_transform(const std::array<float, 16>& new_parent_trans
 	ns->update_parent_transform(new_parent_transform);
 	transform = mat4_to_array(ns->parent_transform * ns->transform);
 	position = vec4_to_array(ns->position);
+	object_space_transform = mat4_to_array(ns->object_space_transform);
+	normal_transform = mat4_to_array(ns->normal_transform);
 	for (node* n : children)
 	{
 		n->update_parent_transform(transform);
