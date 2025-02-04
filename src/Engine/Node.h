@@ -10,6 +10,7 @@ namespace rosy {
 	{
 		log* l{ nullptr };
 		node_state* ns{ nullptr };
+		std::vector<graphics_object> graphics_objects;
 		std::string name{};
 		std::vector<node*> children;
 		std::array<float, 16> transform;

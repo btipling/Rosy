@@ -94,7 +94,9 @@ auto node::set_position(const std::array<float, 3>& new_position) -> result
 
 void node::debug()
 {
-	l->debug(std::format("game node name: {}", name));
+	size_t num_surfaces{ 0 };
+	for (const auto& go : graphics_objects) num_surfaces += go.surface_data.size();
+	l->debug(std::format("game node name: {} num graphic objects: {} num surfaces: {}", name, graphics_objects.size(), num_surfaces));
 	for (node* n : children)
 	{
 		n->debug();

@@ -445,6 +445,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					graphics_objects.push_back(go);
 				}
+				queue_item.game_node->graphics_objects.push_back(go);
 				go_index += 1;
 			}
 		}
