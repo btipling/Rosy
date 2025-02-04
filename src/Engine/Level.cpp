@@ -475,8 +475,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		}
 	}
 
-	rls.graphic_objects.static_objects_offset = go_static_index - 1;
-	static_objects_offset = go_static_index - 1;
+	rls.graphic_objects.static_objects_offset = go_static_index;
+	static_objects_offset = go_static_index;
 	num_dynamic_objects = go_mob_index;
 	for (size_t i{ 0 }; i < mob_graphics_objects.size(); i++)
 	{

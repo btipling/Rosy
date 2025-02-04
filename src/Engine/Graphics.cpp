@@ -4417,7 +4417,7 @@ namespace {
 				}
 				if (!graphics_object_update_data.graphic_objects.empty())
 				{
-					vkCmdUpdateBuffer(cf.command_buffer, graphic_objects_buffer.go_buffer.buffer, graphics_object_update_data.offset, sizeof(graphic_object_data), graphics_object_update_data.graphic_objects.data());
+					vkCmdUpdateBuffer(cf.command_buffer, graphic_objects_buffer.go_buffer.buffer, graphics_object_update_data.offset, sizeof(graphic_object_data) * graphics_object_update_data.graphic_objects.size(), graphics_object_update_data.graphic_objects.data());
 					// Clear out state so that we avoid unnecessary updates.
 					graphics_object_update_data.offset = 0;
 					graphics_object_update_data.graphic_objects.clear();
