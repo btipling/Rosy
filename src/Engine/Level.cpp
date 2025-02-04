@@ -502,7 +502,6 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 result level::update()
 {
 	graphics_object_update_data.graphic_objects.clear();
-	graphics_object_update_data.graphic_objects.reserve(num_dynamic_objects);
 	bool updated{ false };
 	if (const auto res = ls->update(&updated); res != result::ok)
 	{
@@ -510,6 +509,8 @@ result level::update()
 		return res;
 	}
 	if (!updated) return result::ok;
+
+	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
 	const std::vector<node*> mobs = ls->get_mobs();
 	for (node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
