@@ -12,9 +12,10 @@ namespace rosy {
 		node_state* ns{ nullptr };
 		std::string name{};
 		std::vector<node*> children;
+		std::array<float, 16> transform;
 		std::array<float, 4> position;
 
-		[[nodiscard]] auto init(log* new_log, const std::array<float, 16>& transform) -> result;
+		[[nodiscard]] auto init(log* new_log, const std::array<float, 16>& new_transform) -> result;
 		void deinit();
 		[[nodiscard]] auto set_position(const std::array<float, 3>& new_position) -> result;
 		void debug();

@@ -17,7 +17,6 @@ const std::string mobs_node_name{ "mobs" };
 
 namespace
 {
-
 	std::array<float, 16> mat4_to_array(glm::mat4 m)
 	{
 		std::array<float, 16> a{};
@@ -49,10 +48,18 @@ namespace
 		bool is_mob{ false };
 	};
 
+	struct mob_stack_item
+	{
+		node const* n{ nullptr };
+		glm::mat4 parent_transform{ glm::mat4{1.f} };
+	};
+
 	struct scene_graph_processor
 	{
 		std::queue<stack_item> queue{};
 		std::queue<uint32_t> mesh_queue{};
+		std::queue<mob_stack_item> mob_queue{};
+		std::queue<uint32_t> mob_mesh_queue{};
 	};
 
 	struct level_state
@@ -94,7 +101,7 @@ namespace
 		{
 			if (level_game_node == nullptr) return {};
 			if (level_game_node->children.empty()) return {};
-			for (node* root_node = level_game_node->children[0]; node* child : root_node->children)
+			for (node* root_node = level_game_node->children[0]; node * child : root_node->children)
 			{
 				if (child->name == "mobs")
 				{
@@ -104,7 +111,7 @@ namespace
 			return {};
 		}
 
-		rosy::result update()
+		rosy::result update(bool* updated)
 		{
 			{
 				// Configure initial camera
@@ -137,6 +144,11 @@ namespace
 						{
 							l->error("Error updating mob position");
 						}
+						else
+						{
+							*updated = true;
+						}
+
 					}
 				}
 				else
@@ -428,7 +440,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				if (queue_item.is_mob)
 				{
 					mob_graphics_objects.push_back(go);
-				} else
+				}
+				else
 				{
 					graphics_objects.push_back(go);
 				}
@@ -472,5 +485,116 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 // ReSharper disable once CppMemberFunctionMayBeStatic
 result level::update()
 {
-	return ls->update();
+	graphics_object_update_data.graphic_objects.clear();
+	bool updated{ false };
+	if (const auto res = ls->update(&updated); res != result::ok)
+	{
+		ls->l->error("Error updating level state");
+		return res;
+	}
+	if (!updated) return result::ok;
+
+	const std::vector<node*> mobs = ls->get_mobs();
+
+	// Run through an abbreviated scene graph update just for mobs
+	if (mobs.empty()) return result::ok;
+
+	{
+		// Reset state
+		while (!sgp->mob_queue.empty()) sgp->mob_queue.pop();
+	}
+
+	for (const node* n : mobs) sgp->mob_queue.push({ .n = n, .parent_transform = glm::mat4{1.f} });
+
+	std::vector<graphics_object> mob_graphics_objects;
+
+	//size_t go_index{ 0 };
+	while (sgp->queue.size() > 0)
+	{
+		// ReSharper disable once CppUseStructuredBinding Visual studio wants to make this a reference, and it shouldn't be.
+		mob_stack_item queue_item = sgp->mob_queue.front();
+		sgp->queue.pop();
+		assert(queue_item.n != nullptr);
+
+		glm::mat4 node_transform = array_to_mat4(queue_item.n->transform);
+		const glm::mat4 transform = gltf_to_ndc * queue_item.parent_transform * node_transform;
+
+		/*if (queue_item.stack_node.mesh_id < new_asset.meshes.size()) {
+			sgp->mesh_queue.push(queue_item.stack_node.mesh_id);
+
+			while (sgp->mesh_queue.size() > 0)
+			{
+				const auto current_mesh_index = sgp->mesh_queue.front();
+				sgp->mesh_queue.pop();
+				const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
+				graphics_object go{};
+				const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
+				const glm::mat4 normal_transform = glm::transpose(object_space_transform);
+				go.transform = mat4_to_array(transform);
+				go.normal_transform = mat4_to_array(normal_transform);
+				go.object_space_transform = mat4_to_array(object_space_transform);
+				go.surface_data.reserve(current_mesh.surfaces.size());
+				for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
+				{
+					surface_graphics_data sgd{};
+					sgd.mesh_index = current_mesh_index;
+					sgd.graphics_object_index = go_index;
+					sgd.material_index = sur_material;
+					sgd.index_count = sur_count;
+					sgd.start_index = sur_start_index;
+					if (new_asset.materials.size() > sur_material && new_asset.materials[sur_material].alpha_mode != 0) {
+						sgd.blended = true;
+					}
+					go.surface_data.push_back(sgd);
+				}
+
+				for (const uint32_t child_mesh_index : current_mesh.child_meshes)
+				{
+					sgp->mesh_queue.push(child_mesh_index);
+				}
+				if (queue_item.is_mob)
+				{
+					mob_graphics_objects.push_back(go);
+				}
+				else
+				{
+					graphics_objects.push_back(go);
+				}
+				go_index += 1;
+			}
+		}
+
+		for (const size_t child_index : queue_item.stack_node.child_nodes)
+		{
+			const rosy_packager::node new_node = new_asset.nodes[child_index];
+			auto new_game_node = new(std::nothrow) node;
+			if (new_game_node == nullptr)
+			{
+				ls->l->error("Error allocating new game node in set asset");
+				return result::allocation_failure;
+			}
+			if (const auto res = new_game_node->init(ls->l, mat4_to_array(transform)); res != result::ok)
+			{
+				ls->l->error("Error initializing new game node in set asset");
+				new_game_node->deinit();
+				return result::error;
+			}
+			new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+			queue_item.game_node->children.push_back(new_game_node);
+			const bool is_mob = queue_item.is_mob || new_game_node->name == mobs_node_name;
+			sgp->queue.push({
+				.game_node = new_game_node,
+				.stack_node = new_node,
+				.parent_transform = queue_item.parent_transform * node_transform,
+				.is_mob = is_mob,
+				});
+		}*/
+	}
+
+	rls.graphic_objects.num_static_objects = graphics_objects.size();
+	graphics_objects.insert(graphics_objects.end(), mob_graphics_objects.begin(), mob_graphics_objects.end());
+	ls->level_game_node->debug();
+
+
+	return result::ok;
 }

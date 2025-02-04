@@ -10,6 +10,14 @@ using namespace rosy;
 
 namespace
 {
+	std::array<float, 16> mat4_to_array(glm::mat4 m)
+	{
+		std::array<float, 16> a{};
+		const auto pos_r = glm::value_ptr(m);
+		for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
+		return a;
+	}
+
 	glm::mat4 array_to_mat4(const std::array<float, 16>& a)
 	{
 		glm::mat4 m{};
@@ -50,7 +58,7 @@ struct node_state
 	}
 };
 
-result node::init(rosy::log* new_log, const std::array<float, 16>& transform)
+result node::init(rosy::log* new_log, const std::array<float, 16>& new_transform)
 {
 	l = new_log;
 	ns = new(std::nothrow) node_state;
@@ -59,7 +67,8 @@ result node::init(rosy::log* new_log, const std::array<float, 16>& transform)
 		l->error("Error allocating node state");
 		return result::allocation_failure;
 	}
-	ns->set_transform(transform);
+	ns->set_transform(new_transform);
+	transform = mat4_to_array(ns->transform);
 	position = vec4_to_array(ns->position);
 	return result::ok;
 }
