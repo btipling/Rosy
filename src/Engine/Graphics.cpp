@@ -4417,7 +4417,17 @@ namespace {
 				}
 				if (!graphics_object_update_data.graphic_objects.empty())
 				{
-					vkCmdUpdateBuffer(cf.command_buffer, graphic_objects_buffer.go_buffer.buffer, graphics_object_update_data.offset, sizeof(graphic_object_data) * graphics_object_update_data.graphic_objects.size(), graphics_object_update_data.graphic_objects.data());
+					std::vector<graphic_object_data> updated;
+					updated.reserve(graphics_object_update_data.graphic_objects.size());
+					for (const auto gou : graphics_object_update_data.graphic_objects)
+					{
+						updated.push_back({
+							.transform = gou.transform,
+							.normal_transform = gou.normal_transform,
+							.object_space_transform = gou.object_space_transform,
+							});
+					}
+					vkCmdUpdateBuffer(cf.command_buffer, graphic_objects_buffer.go_buffer.buffer, sizeof(graphic_object_data) * graphics_object_update_data.offset, sizeof(graphic_object_data) * updated.size(), updated.data());
 					// Clear out state so that we avoid unnecessary updates.
 					graphics_object_update_data.offset = 0;
 					graphics_object_update_data.graphic_objects.clear();
