@@ -501,7 +501,7 @@ result level::update()
 		return res;
 	}
 	if (!updated) return result::ok;
-
+	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
 	const std::vector<node*> mobs = ls->get_mobs();
