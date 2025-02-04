@@ -4362,7 +4362,6 @@ namespace {
 					vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
 				}
 				{
-
 					std::vector<VkBufferMemoryBarrier2> buffer_barriers;
 					{
 						VkBufferMemoryBarrier2 buffer_barrier{
@@ -5496,6 +5495,36 @@ namespace {
 								ImGui::Text("");
 
 								ImGui::EndTable();
+							}
+						}
+						if (ImGui::CollapsingHeader("Mobs"))
+						{
+							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								for (const auto [name, position] : rls->graphic_objects.mob_states) {
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text(name.c_str());
+									ImGui::TableNextColumn();
+									ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+								}
+								ImGui::EndTable();
+							}
+
+							static int item_current = 0;
+							if (ImGui::BeginCombo("Select mob", rls->graphic_objects.mob_states[item_current].name.c_str()))
+							{
+								for (int i = 0; i < rls->graphic_objects.mob_states.size(); ++i) {
+									const auto [name, position] = rls->graphic_objects.mob_states[i];
+									const bool is_selected = (item_current == i);
+									if (ImGui::Selectable(name.c_str(), is_selected)) {
+										item_current = i;
+									}
+									if (is_selected) {
+										ImGui::SetItemDefaultFocus();
+									}
+								}
+								ImGui::EndCombo();
 							}
 						}
 						ImGui::EndTabItem();
