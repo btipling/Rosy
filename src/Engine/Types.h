@@ -146,6 +146,12 @@ namespace rosy
 		std::array<float, 3> position;
 	};
 
+	struct mob_edit_state
+	{
+		size_t edit_index{ 0 };
+		std::array<float, 3> position{ 0.f, 0.f, 0.f };
+	};
+
 	struct graphic_objects_state
 	{
 		size_t num_static_objects{ 0 };
@@ -170,6 +176,7 @@ namespace rosy
 		light_debug_state light_debug{};
 		draw_config_state draw_config{};
 		fragment_config_state fragment_config{};
+		mob_edit_state mob_edit{};
 	};
 
 }

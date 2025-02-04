@@ -5511,14 +5511,13 @@ namespace {
 								ImGui::EndTable();
 							}
 
-							static int item_current = 0;
-							if (ImGui::BeginCombo("Select mob", rls->graphic_objects.mob_states[item_current].name.c_str()))
+							if (ImGui::BeginCombo("Select mob", rls->graphic_objects.mob_states[wls->mob_edit.edit_index].name.c_str()))
 							{
 								for (int i = 0; i < rls->graphic_objects.mob_states.size(); ++i) {
 									const auto [name, position] = rls->graphic_objects.mob_states[i];
-									const bool is_selected = (item_current == i);
+									const bool is_selected = (wls->mob_edit.edit_index == i);
 									if (ImGui::Selectable(name.c_str(), is_selected)) {
-										item_current = i;
+										wls->mob_edit.edit_index = i;
 									}
 									if (is_selected) {
 										ImGui::SetItemDefaultFocus();
@@ -5526,6 +5525,8 @@ namespace {
 								}
 								ImGui::EndCombo();
 							}
+							wls->mob_edit.position = rls->graphic_objects.mob_states[wls->mob_edit.edit_index].position;
+							ImGui::InputFloat3("position", wls->mob_edit.position.data());
 						}
 						ImGui::EndTabItem();
 					}
