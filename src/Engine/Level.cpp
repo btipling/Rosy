@@ -48,18 +48,10 @@ namespace
 		bool is_mob{ false };
 	};
 
-	struct mob_stack_item
-	{
-		node const* n{ nullptr };
-		glm::mat4 parent_transform{ glm::mat4{1.f} };
-	};
-
 	struct scene_graph_processor
 	{
 		std::queue<stack_item> queue{};
 		std::queue<uint32_t> mesh_queue{};
-		std::queue<mob_stack_item> mob_queue{};
-		std::queue<uint32_t> mob_mesh_queue{};
 	};
 
 	struct level_state
