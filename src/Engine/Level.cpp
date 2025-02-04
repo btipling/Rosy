@@ -396,7 +396,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 
 	std::vector<graphics_object> mob_graphics_objects;
 
-	size_t go_index{ 0 };
+	size_t go_mob_index{ 0 };
+	size_t go_static_index{ 0 };
 	while (sgp->queue.size() > 0)
 	{
 		// ReSharper disable once CppUseStructuredBinding Visual studio wants to make this a reference, and it shouldn't be.
@@ -416,6 +417,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				sgp->mesh_queue.pop();
 				const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
 				graphics_object go{};
+				go.index = queue_item.is_mob ? go_mob_index : go_static_index;
 				const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
 				const glm::mat4 normal_transform = glm::transpose(object_space_transform);
 				go.transform = mat4_to_array(transform);
@@ -426,7 +428,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					surface_graphics_data sgd{};
 					sgd.mesh_index = current_mesh_index;
-					sgd.graphics_object_index = go_index;
+					sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
 					sgd.material_index = sur_material;
 					sgd.index_count = sur_count;
 					sgd.start_index = sur_start_index;
@@ -443,13 +445,14 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				if (queue_item.is_mob)
 				{
 					mob_graphics_objects.push_back(go);
+					go_mob_index += 1;
 				}
 				else
 				{
 					graphics_objects.push_back(go);
+					go_static_index += 1;
 				}
 				queue_item.game_node->graphics_objects.push_back(go);
-				go_index += 1;
 			}
 		}
 
@@ -480,7 +483,16 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		}
 	}
 
-	rls.graphic_objects.num_static_objects = graphics_objects.size();
+	rls.graphic_objects.static_objects_offset = go_static_index - 1;
+	static_objects_offset = go_static_index - 1;
+	num_dynamic_objects = go_mob_index;
+	for (size_t i{ 0 }; i < mob_graphics_objects.size(); i++)
+	{
+		for (size_t j{ 0 }; j < mob_graphics_objects[i].surface_data.size(); j++)
+		{
+			mob_graphics_objects[i].surface_data[j].graphic_objects_offset = static_objects_offset;
+		}
+	} 
 	graphics_objects.insert(graphics_objects.end(), mob_graphics_objects.begin(), mob_graphics_objects.end());
 	ls->level_game_node->debug();
 	return result::ok;
@@ -490,6 +502,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 result level::update()
 {
 	graphics_object_update_data.graphic_objects.clear();
+	graphics_object_update_data.graphic_objects.reserve(num_dynamic_objects);
 	bool updated{ false };
 	if (const auto res = ls->update(&updated); res != result::ok)
 	{
@@ -499,6 +512,6 @@ result level::update()
 	if (!updated) return result::ok;
 
 	const std::vector<node*> mobs = ls->get_mobs();
-
+	for (node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
 	return result::ok;
 }

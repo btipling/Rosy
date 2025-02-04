@@ -4069,7 +4069,7 @@ namespace {
 			blended_graphics.clear();
 			std::vector<graphic_object_data> go_data{};
 			go_data.reserve(graphics_objects.size());
-			for (const auto& [surface_data, transform, normal_transform, object_space_transform] : graphics_objects)
+			for (const auto& [go_index, surface_data, transform, normal_transform, object_space_transform] : graphics_objects)
 			{
 				go_data.push_back({
 				.transform = transform,
@@ -4549,7 +4549,7 @@ namespace {
 					vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadow_layout, 0, 1, &descriptor_set, 0, nullptr);
 					{
 						size_t current_mesh_index = UINT64_MAX;
-						for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : shadow_casting_graphics)
+						for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : shadow_casting_graphics)
 						{
 							auto& gpu_mesh = gpu_meshes[mesh_index];
 							if (mesh_index != current_mesh_index)
@@ -4560,7 +4560,7 @@ namespace {
 							gpu_shadow_push_constants pc{
 								.scene_buffer = scene_buffer.scene_buffer_address,
 								.vertex_buffer = gpu_mesh.vertex_buffer_address,
-								.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+								.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphic_objects_offset + graphics_object_index),
 								.pass_number = 0,
 							};
 							vkCmdPushConstants(cf.command_buffer, shadow_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_shadow_push_constants), &pc);
@@ -4910,7 +4910,7 @@ namespace {
 							{
 								vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
 								size_t current_mesh_index = UINT64_MAX;
-								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : opaque_graphics)
+								for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : opaque_graphics)
 								{
 									auto& gpu_mesh = gpu_meshes[mesh_index];
 									if (mesh_index != current_mesh_index)
@@ -4921,7 +4921,7 @@ namespace {
 									gpu_draw_push_constants pc{
 										.scene_buffer = scene_buffer.scene_buffer_address,
 										.vertex_buffer = gpu_mesh.vertex_buffer_address,
-										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphic_objects_offset + graphics_object_index),
 										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
 									};
 									vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
@@ -4948,7 +4948,7 @@ namespace {
 									vkCmdSetDepthWriteEnableEXT(cf.command_buffer, VK_FALSE);
 								}
 								current_mesh_index = UINT64_MAX;
-								for (auto& [mesh_index, graphics_object_index, material_index, index_count, start_index, blended] : blended_graphics)
+								for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : blended_graphics)
 								{
 									auto& gpu_mesh = gpu_meshes[mesh_index];
 									if (mesh_index != current_mesh_index)
@@ -4959,7 +4959,7 @@ namespace {
 									gpu_draw_push_constants pc{
 										.scene_buffer = scene_buffer.scene_buffer_address,
 										.vertex_buffer = gpu_mesh.vertex_buffer_address,
-										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphics_object_index),
+										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * graphic_objects_offset + graphics_object_index),
 										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
 									};
 									vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);

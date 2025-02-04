@@ -39,6 +39,8 @@ struct node_state
 {
 	glm::mat4 parent_transform{};
 	glm::mat4 transform{};
+	glm::mat4 object_space_transform{};
+	glm::mat4 normal_transform{};
 	glm::vec4 position{};
 
 	void set_transform(const std::array<float, 16>& new_transform, const std::array<float, 16>& new_parent_transform)
@@ -46,6 +48,8 @@ struct node_state
 		parent_transform = array_to_mat4(new_parent_transform);
 		transform = array_to_mat4(new_transform);
 		position = transform * glm::vec4(0.f, 0.f, 0.f, 1.f);
+		object_space_transform = glm::inverse(static_cast<glm::mat3>(parent_transform * transform));
+		normal_transform = glm::transpose(object_space_transform);
 	}
 
 	void update_parent_transform(const std::array<float, 16>& new_parent_transform)
@@ -77,6 +81,8 @@ result node::init(rosy::log* new_log, const std::array<float, 16>& new_transform
 	}
 	ns->set_transform(new_transform, new_parent_transform);
 	transform = mat4_to_array(ns->parent_transform * ns->transform);
+	object_space_transform = mat4_to_array(ns->object_space_transform);
+	normal_transform = mat4_to_array(ns->normal_transform );
 	position = vec4_to_array(ns->position);
 	return result::ok;
 }
@@ -113,6 +119,22 @@ void node::update_parent_transform(const std::array<float, 16>& new_parent_trans
 	for (node* n : children)
 	{
 		n->update_parent_transform(transform);
+	}
+}
+
+void node::populate_graph(std::vector<graphics_object> graph)
+{
+	for (auto go : graphics_objects)
+	{
+		assert(graph.size() > go.index);
+		go.transform = transform;
+		go.normal_transform = normal_transform;
+		go.object_space_transform = object_space_transform;
+		graph[go.index] = go;
+	}
+	for (node* n : children)
+	{
+		n->populate_graph(graph);
 	}
 }
 

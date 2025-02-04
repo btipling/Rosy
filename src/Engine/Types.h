@@ -41,6 +41,7 @@ namespace rosy
 	struct  surface_graphics_data
 	{
 		size_t mesh_index{ 0 };
+		size_t graphic_objects_offset{ 0 };
 		size_t graphics_object_index{ 0 };
 		size_t material_index{ 0 };
 		uint32_t index_count{ 0 };
@@ -50,6 +51,7 @@ namespace rosy
 
 	struct graphics_object
 	{
+		size_t index{ 0 };
 		std::vector<surface_graphics_data> surface_data{};
 		std::array<float, 16> transform;
 		std::array<float, 16> normal_transform;
@@ -162,7 +164,7 @@ namespace rosy
 
 	struct graphic_objects_state
 	{
-		size_t num_static_objects{ 0 };
+		size_t static_objects_offset{ 0 };
 	};
 
 	struct read_level_state
