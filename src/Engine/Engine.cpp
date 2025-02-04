@@ -52,8 +52,8 @@ result engine::init()
 	rosy_packager::asset a{};
 	{
 		//a.asset_path = "..\\assets\\sponza\\sponza.rsy";
-		//a.asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
-		a.asset_path = "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.gltf";
+		a.asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
+		//a.asset_path = "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.rsy";
 		{
 			if (const auto res = a.read(l); res != result::ok)
 			{
