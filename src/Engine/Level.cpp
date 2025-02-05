@@ -367,6 +367,7 @@ void level::deinit()
 
 result level::set_asset(const rosy_packager::asset& new_asset)
 {
+	// Traverse the assets to construct the scene graph and track important game play entities.
 	const size_t root_scene_index = static_cast<size_t>(new_asset.root_scene);
 	if (new_asset.scenes.size() <= root_scene_index) return result::invalid_argument;
 
@@ -476,6 +477,10 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 					{
 						surface_graphics_data sgd{};
 						sgd.mesh_index = current_mesh_index;
+						// The index written to the surface graphic object is critical for pulling its transforms out of the buffer for rendering.
+						// The two separate indices indicate where renderer's buffer on the GPU its data will live. An offset is used for
+						// mobs that is equal to the total number of static surface graphic objects as mobs are all at the end of the buffer.
+						// The go_mob_index is also used to identify individual mobs for game play purposes.
 						sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
 						sgd.material_index = sur_material;
 						sgd.index_count = sur_count;
@@ -519,22 +524,30 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		{
 			// This is the same node initialization sequence from the root's scenes logic above.
 			const rosy_packager::node new_node = new_asset.nodes[child_index];
+
 			auto new_game_node = new(std::nothrow) node;
 			if (new_game_node == nullptr)
 			{
 				ls->l->error("Error allocating new game node in set asset");
 				return result::allocation_failure;
 			}
+
 			if (const auto res = new_game_node->init(ls->l, mat4_to_array(transform), mat4_to_array(node_transform)); res != result::ok)
 			{
 				ls->l->error("Error initializing new game node in set asset");
 				new_game_node->deinit();
 				return result::error;
 			}
+
 			new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+
+			// New nodes are recorded as children of their parent to form a scene graph.
 			queue_item.game_node->children.push_back(new_game_node);
 
-			const bool is_mob = queue_item.is_mob || new_game_node->name == mobs_node_name; // Mobs are in the "mob" node
+			// Mobs are a child of "mob" node or are ancestors of the "mob" node's children
+			const bool is_mob = queue_item.is_mob || new_game_node->name == mobs_node_name;
+
+			// Add the node to the node queue to have their meshes and primitives processed.
 			sgp->queue.push({
 				.game_node = new_game_node,
 				.stack_node = new_node,
@@ -544,18 +557,30 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		}
 	}
 
-	rls.graphic_objects.static_objects_offset = go_static_index;
-	static_objects_offset = go_static_index;
-	num_dynamic_objects = go_mob_index;
-	for (size_t i{ 0 }; i < mob_graphics_objects.size(); i++)
 	{
-		for (size_t j{ 0 }; j < mob_graphics_objects[i].surface_data.size(); j++)
+		// Record the indices of static and mob graphics objects for rendering and other uses as explained above.
+		rls.graphic_objects.static_objects_offset = go_static_index;
+		static_objects_offset = go_static_index;
+		num_dynamic_objects = go_mob_index;
+	}
+	{
+		// It is at this point that the total number of static graphic object is known. Traverse all the mobs graphic object to record that offset.
+		for (size_t i{ 0 }; i < mob_graphics_objects.size(); i++)
 		{
-			mob_graphics_objects[i].surface_data[j].graphic_objects_offset = static_objects_offset;
+			for (size_t j{ 0 }; j < mob_graphics_objects[i].surface_data.size(); j++)
+			{
+				mob_graphics_objects[i].surface_data[j].graphic_objects_offset = static_objects_offset;
+			}
 		}
 	}
-	graphics_objects.insert(graphics_objects.end(), mob_graphics_objects.begin(), mob_graphics_objects.end());
-	ls->level_game_node->debug();
+	{
+		// Merge the static objects and mob graphic objects into one vector to be sent to the renderer for the initial upload to the gpu
+		graphics_objects.insert(graphics_objects.end(), mob_graphics_objects.begin(), mob_graphics_objects.end());
+	}
+	{
+		// Print the result of all this if debug logging is on.
+		ls->level_game_node->debug();
+	}
 	return result::ok;
 }
 
