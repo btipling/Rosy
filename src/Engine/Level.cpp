@@ -368,6 +368,7 @@ void level::deinit()
 result level::set_asset(const rosy_packager::asset& new_asset)
 {
 	// Traverse the assets to construct the scene graph and track important game play entities.
+
 	const size_t root_scene_index = static_cast<size_t>(new_asset.root_scene);
 	if (new_asset.scenes.size() <= root_scene_index) return result::invalid_argument;
 
@@ -525,6 +526,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			// This is the same node initialization sequence from the root's scenes logic above.
 			const rosy_packager::node new_node = new_asset.nodes[child_index];
 
+			// Create the pointer
 			auto new_game_node = new(std::nothrow) node;
 			if (new_game_node == nullptr)
 			{
@@ -532,6 +534,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				return result::allocation_failure;
 			}
 
+			// Initialize its state
 			if (const auto res = new_game_node->init(ls->l, mat4_to_array(transform), mat4_to_array(node_transform)); res != result::ok)
 			{
 				ls->l->error("Error initializing new game node in set asset");
@@ -539,6 +542,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				return result::error;
 			}
 
+			// Give it a name
 			new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
 
 			// New nodes are recorded as children of their parent to form a scene graph.
