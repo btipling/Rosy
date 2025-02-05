@@ -23,7 +23,7 @@ namespace rosy {
 		void deinit();
 		[[nodiscard]] auto set_position(const std::array<float, 3>& new_position) -> result;
 		void update_parent_transform(const std::array<float, 16>& new_parent_transform);
-		void populate_graph(std::vector<graphics_object>& graph);
+		void populate_graph(std::vector<graphics_object>& graph) const;
 		void debug();
 	};
 

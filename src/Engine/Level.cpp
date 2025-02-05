@@ -115,11 +115,11 @@ namespace
 			}
 		}
 
-		std::vector<node*> get_mobs()
+		[[nodiscard]] std::vector<node*> get_mobs() const
 		{
 			if (level_game_node == nullptr) return {};
 			if (level_game_node->children.empty()) return {};
-			for (node* root_node = level_game_node->children[0]; node * child : root_node->children)
+			for (const node* root_node = level_game_node->children[0]; node * child : root_node->children)
 			{
 				if (child->name == "mobs")
 				{
@@ -129,7 +129,7 @@ namespace
 			return {};
 		}
 
-		rosy::result update(bool* updated)
+		rosy::result update(bool* updated) const
 		{
 			{
 				// Configure initial camera
@@ -530,7 +530,6 @@ result level::update()
 	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
-	const std::vector<node*> mobs = ls->get_mobs();
-	for (node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
+	for (const std::vector<node*> mobs = ls->get_mobs(); node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
 	return result::ok;
 }
