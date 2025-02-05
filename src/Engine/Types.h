@@ -188,5 +188,4 @@ namespace rosy
 		fragment_config_state fragment_config{};
 		mob_edit_state mob_edit{};
 	};
-
 }

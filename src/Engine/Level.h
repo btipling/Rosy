@@ -22,3 +22,5 @@ namespace rosy {
 		void deinit();
 	};
 }
+
+

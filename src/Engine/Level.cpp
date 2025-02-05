@@ -1,5 +1,6 @@
 #include "Level.h"
 #include "Node.h"
+#include "Components.h"
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <algorithm>
@@ -9,6 +10,7 @@
 #include <glm/gtx/quaternion.hpp>
 #pragma warning(disable: 4127)
 #include <flecs.h>
+#include <numbers>
 #pragma warning(default: 4127)
 
 using namespace rosy;
@@ -57,6 +59,14 @@ namespace
 		std::queue<uint32_t> mesh_queue{};
 	};
 
+	// Game nodes are double referenced by entity id and index in a vector.
+	struct game_node_reference
+	{
+		ecs_entity_t id{ 0 };
+		size_t index{ 0 };
+		node* node{ nullptr };
+	};
+
 	struct level_state
 	{
 		rosy::log* l{ nullptr };
@@ -65,11 +75,12 @@ namespace
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
 		node* level_game_node{ nullptr };
-		std::vector<node*> game_nodes;
+		// Important game nodes that can be referenced via their graphics object index
+		std::vector<game_node_reference> game_nodes;
 
 		// ECS
 		ecs_world_t* world{ nullptr};
-		ecs_entity_t e{};
+		ecs_entity_t level{};
 
 		rosy::result init()
 		{
@@ -92,23 +103,42 @@ namespace
 				l->error("flecs world init failed");
 				return result::error;
 			}
-			e = ecs_new(world);
-			assert(ecs_is_alive(world, e));
+			level = ecs_new(world);
+			assert(ecs_is_alive(world, level));
+
+			init_components();
+			init_tags();
 
 			return result::ok;
 		}
 
+		void init_components() const
+		{
+			ECS_COMPONENT(world, c_position);
+		}
+
+		void init_tags() const
+		{
+			ECS_TAG(world, t_rosy);
+			ECS_TAG(world, t_mob);
+			ECS_TAG(world, t_floor);
+		}
+
 		void deinit()
 		{
+			for (const game_node_reference gnr : game_nodes)
+			{
+				ecs_delete(world, gnr.id);
+			}
 			if (level_game_node != nullptr) {
 				level_game_node->deinit();
 				delete level_game_node;
 				level_game_node = nullptr;
 			}
-			if (ecs_is_alive(world, e))
+			if (ecs_is_alive(world, level))
 			{
-				ecs_delete(world, e);
-				assert(!ecs_is_alive(world, e));
+				ecs_delete(world, level);
+				assert(!ecs_is_alive(world, level));
 			}
 			if (world != nullptr)
 			{
@@ -585,6 +615,22 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		// Print the result of all this if debug logging is on.
 		ls->level_game_node->debug();
 	}
+	{
+		// Initialize ECS game nodes
+		std::vector<node*> mobs = ls->get_mobs();
+		ls->game_nodes.resize(mobs.size());
+		for (size_t i{0}; i < mobs.size(); i++)
+		{
+			node* n = mobs[i];
+			ecs_entity_t id = ecs_new(ls->world);
+
+			ls->game_nodes[i] = {
+				.id = id,
+				.index = i,
+				.node = n,
+			};
+		}
+	}
 	return result::ok;
 }
 
@@ -602,6 +648,6 @@ result level::update()
 	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
-	for (const std::vector<node*> mobs = ls->get_mobs(); node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
+	for (const std::vector<node*> mobs = ls->get_mobs(); const node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
 	return result::ok;
 }
