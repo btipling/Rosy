@@ -57,18 +57,18 @@ Global
 		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Debug|x64.Build.0 = Debug|x64
 		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Debug|x86.ActiveCfg = Debug|x64
 		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Debug|x86.Build.0 = Debug|x64
-		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x64.ActiveCfg = RelWithDebInfo|x64
-		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x64.Build.0 = RelWithDebInfo|x64
-		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x86.ActiveCfg = RelWithDebInfo|x64
-		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x86.Build.0 = RelWithDebInfo|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x64.ActiveCfg = Debug|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x64.Build.0 = Debug|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x86.ActiveCfg = Debug|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Profile|x86.Build.0 = Debug|x64
 		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Release|x64.ActiveCfg = Release|x64
 		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Release|x64.Build.0 = Release|x64
 		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Release|x86.ActiveCfg = Release|x64
 		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Release|x86.Build.0 = Release|x64
-		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Renderdoc|x64.ActiveCfg = Renderdoc|x64
-		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Renderdoc|x64.Build.0 = Renderdoc|x64
-		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Renderdoc|x86.ActiveCfg = Renderdoc|x64
-		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Renderdoc|x86.Build.0 = Renderdoc|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Renderdoc|x64.ActiveCfg = RelWithDebInfo|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Renderdoc|x64.Build.0 = RelWithDebInfo|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Renderdoc|x86.ActiveCfg = RelWithDebInfo|x64
+		{7B86B1E5-5648-3CC2-A377-063A7C9D37AE}.Renderdoc|x86.Build.0 = RelWithDebInfo|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

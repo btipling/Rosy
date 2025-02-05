@@ -7,6 +7,9 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.inl>
 #include <glm/gtx/quaternion.hpp>
+#pragma warning(disable: 4127)
+#include <flecs.h>
+#pragma warning(default: 4127)
 
 using namespace rosy;
 
@@ -63,6 +66,10 @@ namespace
 		write_level_state const* wls{ nullptr };
 		node* level_game_node{ nullptr };
 
+		// ECS
+		ecs_world_t* world{ nullptr};
+		ecs_entity_t e{};
+
 		rosy::result init()
 		{
 			level_game_node = new(std::nothrow) node;
@@ -77,6 +84,16 @@ namespace
 				return result::error;
 			}
 			level_game_node->name = "rosy_root";
+
+			world = ecs_init();
+			if (world == nullptr)
+			{
+				l->error("flecs world init failed");
+				return result::error;
+			}
+			e = ecs_new(world);
+			assert(ecs_is_alive(world, e));
+
 			return result::ok;
 		}
 
@@ -87,13 +104,22 @@ namespace
 				delete level_game_node;
 				level_game_node = nullptr;
 			}
+			if (ecs_is_alive(world, e))
+			{
+				ecs_delete(world, e);
+				assert(!ecs_is_alive(world, e));
+			}
+			if (world != nullptr)
+			{
+				ecs_fini(world);
+			}
 		}
 
-		std::vector<node*> get_mobs()
+		[[nodiscard]] std::vector<node*> get_mobs() const
 		{
 			if (level_game_node == nullptr) return {};
 			if (level_game_node->children.empty()) return {};
-			for (node* root_node = level_game_node->children[0]; node * child : root_node->children)
+			for (const node* root_node = level_game_node->children[0]; node * child : root_node->children)
 			{
 				if (child->name == "mobs")
 				{
@@ -103,7 +129,7 @@ namespace
 			return {};
 		}
 
-		rosy::result update(bool* updated)
+		rosy::result update(bool* updated) const
 		{
 			{
 				// Configure initial camera
@@ -504,7 +530,6 @@ result level::update()
 	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
-	const std::vector<node*> mobs = ls->get_mobs();
-	for (node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
+	for (const std::vector<node*> mobs = ls->get_mobs(); node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
 	return result::ok;
 }

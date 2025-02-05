@@ -128,7 +128,7 @@ void node::update_parent_transform(const std::array<float, 16>& new_parent_trans
 	}
 }
 
-void node::populate_graph(std::vector<graphics_object>& graph)
+void node::populate_graph(std::vector<graphics_object>& graph) const
 {
 	for (auto go : graphics_objects)
 	{

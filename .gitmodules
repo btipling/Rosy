@@ -1,0 +1,12 @@
+[submodule "src/libs/fastgltf"]
+	path = src/libs/fastgltf
+	url = git@github.com:spnda/fastgltf.git
+[submodule "src/libs/KTX-Software"]
+	path = src/libs/KTX-Software
+	url = git@github.com:KhronosGroup/KTX-Software.git
+[submodule "src/libs/SDL"]
+	path = src/libs/SDL
+	url = git@github.com:libsdl-org/SDL.git
+[submodule "src/libs/flecs"]
+	path = src/libs/flecs
+	url = git@github.com:SanderMertens/flecs.git
