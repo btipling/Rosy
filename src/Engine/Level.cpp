@@ -65,6 +65,7 @@ namespace
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
 		node* level_game_node{ nullptr };
+		std::vector<node*> game_nodes;
 
 		// ECS
 		ecs_world_t* world{ nullptr};
@@ -383,9 +384,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		while (!sgp->mesh_queue.empty()) sgp->mesh_queue.pop();
 	}
 
+	// Prepopulate the node queue with the root scenes nodes
 	for (const auto& node_index : nodes) {
 		const rosy_packager::node new_node = new_asset.nodes[node_index];
 
+		// Game nodes are a game play representation of a graphics object, and can be static or a mob.
 		auto new_game_node = new(std::nothrow) node;
 		if (new_game_node == nullptr)
 		{
@@ -393,8 +396,10 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			return result::allocation_failure;
 		}
 
+		// The initial parent transform to populate the scene graph hierarchy is an identity matrix.
 		const std::array<float, 16> identity_m = mat4_to_array(glm::mat4(1.f));
 
+		// All nodes must be initialized here and below.
 		if (const auto res = new_game_node->init(ls->l, new_node.transform, identity_m); res != result::ok)
 		{
 			ls->l->error("initial scene_objects initialization failed");
@@ -402,18 +407,24 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			return result::error;
 		}
 
+		// All nodes have a name.
 		new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+
+		// Root nodes are directly owned by the level state.
 		ls->level_game_node->children.push_back(new_game_node);
+
+		// Populate the node queue.
 		sgp->queue.push({
 			.game_node = new_game_node,
 			.stack_node = new_node,
 			.parent_transform = glm::mat4{1.f},
-			.is_mob = false,
+			.is_mob = false, // Root nodes are assumed to be static.
 			});
 	}
 
 	std::vector<graphics_object> mob_graphics_objects;
 
+	// Use two indices to track either static graphics objects or dynamic "mobs"
 	size_t go_mob_index{ 0 };
 	size_t go_static_index{ 0 };
 	while (sgp->queue.size() > 0)
@@ -426,56 +437,87 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
 		const glm::mat4 transform = gltf_to_ndc * queue_item.parent_transform * node_transform;
 
+		// Advance the next item in the node queue
 		if (queue_item.stack_node.mesh_id < new_asset.meshes.size()) {
+			// Each node has a mesh id. Add to mesh queue.
 			sgp->mesh_queue.push(queue_item.stack_node.mesh_id);
 
+			//Advance the next item in the mesh queue. 
 			while (sgp->mesh_queue.size() > 0)
 			{
+				// Get mesh index for current mesh in queue and remove from queue.
 				const auto current_mesh_index = sgp->mesh_queue.front();
 				sgp->mesh_queue.pop();
+
+				// Get the mesh from the asset using the mesh index
 				const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
+
+				// Declare a new graphics object.
 				graphics_object go{};
-				go.index = queue_item.is_mob ? go_mob_index : go_static_index;
-				const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
-				const glm::mat4 normal_transform = glm::transpose(object_space_transform);
-				go.transform = mat4_to_array(transform);
-				go.normal_transform = mat4_to_array(normal_transform);
-				go.object_space_transform = mat4_to_array(object_space_transform);
-				go.surface_data.reserve(current_mesh.surfaces.size());
-				for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
+
 				{
-					surface_graphics_data sgd{};
-					sgd.mesh_index = current_mesh_index;
-					sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
-					sgd.material_index = sur_material;
-					sgd.index_count = sur_count;
-					sgd.start_index = sur_start_index;
-					if (new_asset.materials.size() > sur_material && new_asset.materials[sur_material].alpha_mode != 0) {
-						sgd.blended = true;
-					}
-					go.surface_data.push_back(sgd);
+					// There are two separate sets of indices to track, one for static graphics objects and one for dynamic "mobs"
+					go.index = queue_item.is_mob ? go_mob_index : go_static_index;
 				}
 
-				for (const uint32_t child_mesh_index : current_mesh.child_meshes)
 				{
-					sgp->mesh_queue.push(child_mesh_index);
+					// Record the assets transforms from the asset
+					const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
+					const glm::mat4 normal_transform = glm::transpose(object_space_transform);
+					go.transform = mat4_to_array(transform);
+					go.normal_transform = mat4_to_array(normal_transform);
+					go.object_space_transform = mat4_to_array(object_space_transform);
 				}
-				if (queue_item.is_mob)
+
 				{
-					mob_graphics_objects.push_back(go);
-					go_mob_index += 1;
+					// Each mesh has any number of surfaces that are derived from gltf primitives for example. These are what are given to the renderer to draw.
+					go.surface_data.reserve(current_mesh.surfaces.size());
+					for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
+					{
+						surface_graphics_data sgd{};
+						sgd.mesh_index = current_mesh_index;
+						sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
+						sgd.material_index = sur_material;
+						sgd.index_count = sur_count;
+						sgd.start_index = sur_start_index;
+						if (new_asset.materials.size() > sur_material && new_asset.materials[sur_material].alpha_mode != 0) {
+							sgd.blended = true;
+						}
+						go.surface_data.push_back(sgd);
+					}
 				}
-				else
+
 				{
-					graphics_objects.push_back(go);
-					go_static_index += 1;
+					// Each mesh may have an arbitrary number of child meshes. Add them to the mesh queue.
+					for (const uint32_t child_mesh_index : current_mesh.child_meshes)
+					{
+						sgp->mesh_queue.push(child_mesh_index);
+					}
 				}
-				queue_item.game_node->graphics_objects.push_back(go);
+				{
+					// Dynamic "mobs" are put at the end of the buffer in the renderer so they can be updated dynamically without having to update
+					// the entire graphics object buffer. Here is where they are put into one of the two buckets, either static which go in the front of the buffer
+					// or mob which go at the end.
+					if (queue_item.is_mob)
+					{
+						mob_graphics_objects.push_back(go);
+						go_mob_index += 1;
+					}
+					else
+					{
+						graphics_objects.push_back(go);
+						go_static_index += 1;
+					}
+					// Also track all the graphic objects in a combined bucket.
+					queue_item.game_node->graphics_objects.push_back(go);
+				}
 			}
 		}
 
+		// Each node can have an arbitrary number of child nodes.
 		for (const size_t child_index : queue_item.stack_node.child_nodes)
 		{
+			// This is the same node initialization sequence from the root's scenes logic above.
 			const rosy_packager::node new_node = new_asset.nodes[child_index];
 			auto new_game_node = new(std::nothrow) node;
 			if (new_game_node == nullptr)
@@ -491,7 +533,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			}
 			new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
 			queue_item.game_node->children.push_back(new_game_node);
-			const bool is_mob = queue_item.is_mob || new_game_node->name == mobs_node_name;
+
+			const bool is_mob = queue_item.is_mob || new_game_node->name == mobs_node_name; // Mobs are in the "mob" node
 			sgp->queue.push({
 				.game_node = new_game_node,
 				.stack_node = new_node,
@@ -510,7 +553,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		{
 			mob_graphics_objects[i].surface_data[j].graphic_objects_offset = static_objects_offset;
 		}
-	} 
+	}
 	graphics_objects.insert(graphics_objects.end(), mob_graphics_objects.begin(), mob_graphics_objects.end());
 	ls->level_game_node->debug();
 	return result::ok;
