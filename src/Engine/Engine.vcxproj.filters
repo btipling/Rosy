@@ -130,7 +130,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="..\libs\SDL3.lib" />
-    <Library Include="..\libs\ktx.lib" />
+    <Library Include="..\libs\SDL\build\Debug\SDL3.lib" />
+    <Library Include="..\libs\KTX-Software\build\Debug\ktx.lib" />
   </ItemGroup>
 </Project>
