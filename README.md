@@ -8,6 +8,10 @@ This is a hobby project to build a game engine and eventually a game in my spare
 
 This project will likely not build for anyone else at this time. See assets and hardware section below.
 
+### Vulkan SDK
+
+The most recent version of the Vulkan SDK should be on the system.
+
 ### Git submodules
 
 KTX, SDL3, Fastgltf and flecs are now gitsubmodules, build the dlls and include next to binary, add lib files after building
