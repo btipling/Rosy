@@ -1,5 +1,6 @@
 #include "Level.h"
 #include "Node.h"
+#include <print>
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <algorithm>
@@ -12,11 +13,7 @@
 #pragma warning(default: 4127)
 #include <numbers>
 
-
-
-
 using namespace rosy;
-
 
 namespace rosy {
 	// Components
@@ -38,6 +35,7 @@ namespace rosy {
 	ECS_TAG_DECLARE(t_rosy);
 	struct t_floor {};
 	ECS_TAG_DECLARE(t_floor);
+
 }
 
 
@@ -93,6 +91,14 @@ namespace
 		node* node{ nullptr };
 	};
 
+	// TODO: add level state context to world.
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	void detect_mob(ecs_iter_t* it) {
+		const auto p = ecs_field(it, c_mob, 0);
+
+		std::println("system running [{}]", static_cast<int>(p->index));
+	}
+
 	struct level_state
 	{
 		rosy::log* l{ nullptr };
@@ -134,6 +140,7 @@ namespace
 
 			init_components();
 			init_tags();
+			init_systems();
 
 			return result::ok;
 		}
@@ -148,6 +155,11 @@ namespace
 		{
 			ECS_TAG_DEFINE(world, t_rosy);
 			ECS_TAG_DEFINE(world, t_floor);
+		}
+
+		void init_systems() const
+		{
+			ECS_SYSTEM(world, detect_mob, EcsOnUpdate, c_mob);
 		}
 
 		void deinit()
