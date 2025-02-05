@@ -182,7 +182,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;$(ProjectDir)\..\libs\tracy;$(ProjectDir)\..\libs\imgui;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\KTX-Software\include;$(ProjectDir)\..\libs\SDL\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;$(ProjectDir)\..\libs\tracy;$(ProjectDir)\..\libs\imgui;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\KTX-Software\include;$(ProjectDir)\..\libs\SDL\include;$(ProjectDir)\..\libs\flecs\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -200,7 +200,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;$(ProjectDir)\..\libs\tracy;$(ProjectDir)\..\libs\imgui;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\KTX-Software\include;$(ProjectDir)\..\libs\SDL\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;$(ProjectDir)\..\libs\tracy;$(ProjectDir)\..\libs\imgui;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\KTX-Software\include;$(ProjectDir)\..\libs\SDL\include;$(ProjectDir)\..\libs\flecs\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/MP  /DRENDERDOC %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -220,7 +220,7 @@
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/MP /DTRACY_ENABLE %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;$(ProjectDir)\..\libs\tracy;$(ProjectDir)\..\libs\imgui;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\KTX-Software\include;$(ProjectDir)\..\libs\SDL\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;$(ProjectDir)\..\libs\tracy;$(ProjectDir)\..\libs\imgui;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\KTX-Software\include;$(ProjectDir)\..\libs\SDL\include;$(ProjectDir)\..\libs\flecs\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -236,7 +236,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;$(ProjectDir)\..\libs\tracy;$(ProjectDir)\..\libs\imgui;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\KTX-Software\include;$(ProjectDir)\..\libs\SDL\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\libs\fastgltf\include;$(ProjectDir)\..\libs\tracy;$(ProjectDir)\..\libs\imgui;$(VULKAN_SDK)\Include;$(ProjectDir)\..\libs\KTX-Software\include;$(ProjectDir)\..\libs\SDL\include;$(ProjectDir)\..\libs\flecs\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -286,6 +286,7 @@
     <ClCompile Include="Telemetry.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Library Include="..\libs\flecs\out\Debug\flecs.lib" />
     <Library Include="..\libs\KTX-Software\build\Debug\ktx.lib" />
     <Library Include="..\libs\SDL\build\Debug\SDL3.lib" />
   </ItemGroup>

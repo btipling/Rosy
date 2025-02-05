@@ -7,6 +7,9 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.inl>
 #include <glm/gtx/quaternion.hpp>
+#pragma warning(disable: 4127)
+#include <flecs.h>
+#pragma warning(default: 4127)
 
 using namespace rosy;
 
@@ -63,6 +66,10 @@ namespace
 		write_level_state const* wls{ nullptr };
 		node* level_game_node{ nullptr };
 
+		// ECS
+		ecs_world_t* world{ nullptr};
+		ecs_entity_t e{};
+
 		rosy::result init()
 		{
 			level_game_node = new(std::nothrow) node;
@@ -77,6 +84,16 @@ namespace
 				return result::error;
 			}
 			level_game_node->name = "rosy_root";
+
+			world = ecs_init();
+			if (world == nullptr)
+			{
+				l->error("flecs world init failed");
+				return result::error;
+			}
+			e = ecs_new(world);
+			assert(ecs_is_alive(world, e));
+
 			return result::ok;
 		}
 
@@ -86,6 +103,15 @@ namespace
 				level_game_node->deinit();
 				delete level_game_node;
 				level_game_node = nullptr;
+			}
+			if (ecs_is_alive(world, e))
+			{
+				ecs_delete(world, e);
+				assert(!ecs_is_alive(world, e));
+			}
+			if (world != nullptr)
+			{
+				ecs_fini(world);
 			}
 		}
 

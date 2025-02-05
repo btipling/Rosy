@@ -7,3 +7,6 @@
 [submodule "src/libs/SDL"]
 	path = src/libs/SDL
 	url = git@github.com:libsdl-org/SDL.git
+[submodule "src/libs/flecs"]
+	path = src/libs/flecs
+	url = git@github.com:SanderMertens/flecs.git

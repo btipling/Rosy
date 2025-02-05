@@ -14,7 +14,8 @@ The most recent version of the Vulkan SDK should be on the system.
 
 ### Git submodules
 
-KTX, SDL3, Fastgltf and flecs are now gitsubmodules, build the dlls and include next to binary, add lib files after building
+KTX, SDL3, Fastgltf and flecs are now gitsubmodules
+SDL3 and flecs are dynamically linked, build the dlls and include next to binary, add lib files after building
 
 ```
 git submodule init
@@ -40,6 +41,13 @@ Add fastgltf project to VS if it's not already there and build it
 cd .\libs\SDL\
 cmake . -B build
 cmake --build build
+```
+
+#### flecs
+```
+cd .\libs\flecs\
+cmake . -B out
+cmake --build out
 ```
 
 ### Assets 
