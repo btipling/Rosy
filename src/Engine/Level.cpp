@@ -1,6 +1,5 @@
 #include "Level.h"
 #include "Node.h"
-#include "Components.h"
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <algorithm>
@@ -10,10 +9,34 @@
 #include <glm/gtx/quaternion.hpp>
 #pragma warning(disable: 4127)
 #include <flecs.h>
-#include <numbers>
 #pragma warning(default: 4127)
+#include <numbers>
+
+
+
 
 using namespace rosy;
+
+
+namespace rosy {
+	// Components
+	struct c_position
+	{
+		float x{ 0.f };
+		float y{ 0.f };
+		float z{ 0.f };
+	};
+	ECS_COMPONENT_DECLARE(c_position);
+
+	// Tags
+	struct t_mob {};
+	ECS_TAG_DECLARE(t_mob);
+	struct t_rosy {};
+	ECS_TAG_DECLARE(t_rosy);
+	struct t_floor {};
+	ECS_TAG_DECLARE(t_floor);
+}
+
 
 constexpr size_t max_node_stack_size = 4'096;
 constexpr size_t max_stack_item_list = 16'384;
@@ -62,7 +85,7 @@ namespace
 	// Game nodes are double referenced by entity id and index in a vector.
 	struct game_node_reference
 	{
-		ecs_entity_t id{ 0 };
+		ecs_entity_t entity{ 0 };
 		size_t index{ 0 };
 		node* node{ nullptr };
 	};
@@ -114,21 +137,21 @@ namespace
 
 		void init_components() const
 		{
-			ECS_COMPONENT(world, c_position);
+			ECS_COMPONENT_DEFINE(world, c_position);
 		}
 
 		void init_tags() const
 		{
-			ECS_TAG(world, t_rosy);
-			ECS_TAG(world, t_mob);
-			ECS_TAG(world, t_floor);
+			ECS_TAG_DEFINE(world, t_mob);
+			ECS_TAG_DEFINE(world, t_rosy);
+			ECS_TAG_DEFINE(world, t_floor);
 		}
 
 		void deinit()
 		{
 			for (const game_node_reference gnr : game_nodes)
 			{
-				ecs_delete(world, gnr.id);
+				ecs_delete(world, gnr.entity);
 			}
 			if (level_game_node != nullptr) {
 				level_game_node->deinit();
@@ -622,13 +645,20 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		for (size_t i{0}; i < mobs.size(); i++)
 		{
 			node* n = mobs[i];
-			ecs_entity_t id = ecs_new(ls->world);
+			ecs_entity_t node_entity = ecs_new(ls->world);
 
 			ls->game_nodes[i] = {
-				.id = id,
+				.entity = node_entity,
 				.index = i,
 				.node = n,
 			};
+
+			ecs_add(ls->world, node_entity, t_mob);
+
+			if (n->name == "rosy")
+			{
+				ecs_add(ls->world, node_entity, t_rosy);
+			}
 		}
 	}
 	return result::ok;
