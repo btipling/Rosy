@@ -125,6 +125,8 @@ namespace
 			if (const auto res = level_game_node->init(l, {}, {}); res != result::ok)
 			{
 				l->error("root scene_objects initialization failed");
+				delete level_game_node;
+				level_game_node = nullptr;
 				return result::error;
 			}
 			level_game_node->name = "rosy_root";
@@ -473,7 +475,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		if (const auto res = new_game_node->init(ls->l, new_node.transform, identity_m); res != result::ok)
 		{
 			ls->l->error("initial scene_objects initialization failed");
-			new_game_node->deinit();
+			new_game_node->deinit(); delete new_game_node;
+			delete new_game_node;
 			return result::error;
 		}
 
@@ -607,6 +610,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			{
 				ls->l->error("Error initializing new game node in set asset");
 				new_game_node->deinit();
+				delete new_game_node;
 				return result::error;
 			}
 
