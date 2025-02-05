@@ -1,5 +1,6 @@
 #include "Level.h"
 #include "Node.h"
+#include <print>
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <algorithm>
@@ -10,8 +11,33 @@
 #pragma warning(disable: 4127)
 #include <flecs.h>
 #pragma warning(default: 4127)
+#include <numbers>
 
 using namespace rosy;
+
+namespace rosy {
+	// Components
+	struct c_position
+	{
+		float x{ 0.f };
+		float y{ 0.f };
+		float z{ 0.f };
+	};
+	ECS_COMPONENT_DECLARE(c_position);
+	struct c_mob
+	{
+		size_t index{ 0 };
+	};
+	ECS_COMPONENT_DECLARE(c_mob);
+
+	// Tags
+	struct t_rosy {};
+	ECS_TAG_DECLARE(t_rosy);
+	struct t_floor {};
+	ECS_TAG_DECLARE(t_floor);
+
+}
+
 
 constexpr size_t max_node_stack_size = 4'096;
 constexpr size_t max_stack_item_list = 16'384;
@@ -57,6 +83,22 @@ namespace
 		std::queue<uint32_t> mesh_queue{};
 	};
 
+	// Game nodes are double referenced by entity id and index in a vector.
+	struct game_node_reference
+	{
+		ecs_entity_t entity{ 0 };
+		size_t index{ 0 };
+		node* node{ nullptr };
+	};
+
+	// TODO: add level state context to world.
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	void detect_mob(ecs_iter_t* it) {
+		const auto p = ecs_field(it, c_mob, 0);
+
+		std::println("system running [{}]", static_cast<int>(p->index));
+	}
+
 	struct level_state
 	{
 		rosy::log* l{ nullptr };
@@ -65,10 +107,12 @@ namespace
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
 		node* level_game_node{ nullptr };
+		// Important game nodes that can be referenced via their graphics object index
+		std::vector<game_node_reference> game_nodes;
 
 		// ECS
 		ecs_world_t* world{ nullptr};
-		ecs_entity_t e{};
+		ecs_entity_t level{};
 
 		rosy::result init()
 		{
@@ -91,23 +135,48 @@ namespace
 				l->error("flecs world init failed");
 				return result::error;
 			}
-			e = ecs_new(world);
-			assert(ecs_is_alive(world, e));
+			level = ecs_new(world);
+			assert(ecs_is_alive(world, level));
+
+			init_components();
+			init_tags();
+			init_systems();
 
 			return result::ok;
 		}
 
+		void init_components() const
+		{
+			ECS_COMPONENT_DEFINE(world, c_position);
+			ECS_COMPONENT_DEFINE(world, c_mob);
+		}
+
+		void init_tags() const
+		{
+			ECS_TAG_DEFINE(world, t_rosy);
+			ECS_TAG_DEFINE(world, t_floor);
+		}
+
+		void init_systems() const
+		{
+			ECS_SYSTEM(world, detect_mob, EcsOnUpdate, c_mob);
+		}
+
 		void deinit()
 		{
+			for (const game_node_reference gnr : game_nodes)
+			{
+				ecs_delete(world, gnr.entity);
+			}
 			if (level_game_node != nullptr) {
 				level_game_node->deinit();
 				delete level_game_node;
 				level_game_node = nullptr;
 			}
-			if (ecs_is_alive(world, e))
+			if (ecs_is_alive(world, level))
 			{
-				ecs_delete(world, e);
-				assert(!ecs_is_alive(world, e));
+				ecs_delete(world, level);
+				assert(!ecs_is_alive(world, level));
 			}
 			if (world != nullptr)
 			{
@@ -129,7 +198,7 @@ namespace
 			return {};
 		}
 
-		rosy::result update(bool* updated) const
+		rosy::result update(bool* updated, uint64_t delta_time) const
 		{
 			{
 				// Configure initial camera
@@ -262,7 +331,7 @@ namespace
 					rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
 				}
 			}
-
+			ecs_progress(world, static_cast<float>(delta_time));
 			return result::ok;
 		}
 	};
@@ -366,6 +435,8 @@ void level::deinit()
 
 result level::set_asset(const rosy_packager::asset& new_asset)
 {
+	// Traverse the assets to construct the scene graph and track important game play entities.
+
 	const size_t root_scene_index = static_cast<size_t>(new_asset.root_scene);
 	if (new_asset.scenes.size() <= root_scene_index) return result::invalid_argument;
 
@@ -383,9 +454,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		while (!sgp->mesh_queue.empty()) sgp->mesh_queue.pop();
 	}
 
+	// Prepopulate the node queue with the root scenes nodes
 	for (const auto& node_index : nodes) {
 		const rosy_packager::node new_node = new_asset.nodes[node_index];
 
+		// Game nodes are a game play representation of a graphics object, and can be static or a mob.
 		auto new_game_node = new(std::nothrow) node;
 		if (new_game_node == nullptr)
 		{
@@ -393,8 +466,10 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			return result::allocation_failure;
 		}
 
+		// The initial parent transform to populate the scene graph hierarchy is an identity matrix.
 		const std::array<float, 16> identity_m = mat4_to_array(glm::mat4(1.f));
 
+		// All nodes must be initialized here and below.
 		if (const auto res = new_game_node->init(ls->l, new_node.transform, identity_m); res != result::ok)
 		{
 			ls->l->error("initial scene_objects initialization failed");
@@ -402,18 +477,24 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 			return result::error;
 		}
 
+		// All nodes have a name.
 		new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+
+		// Root nodes are directly owned by the level state.
 		ls->level_game_node->children.push_back(new_game_node);
+
+		// Populate the node queue.
 		sgp->queue.push({
 			.game_node = new_game_node,
 			.stack_node = new_node,
 			.parent_transform = glm::mat4{1.f},
-			.is_mob = false,
+			.is_mob = false, // Root nodes are assumed to be static.
 			});
 	}
 
 	std::vector<graphics_object> mob_graphics_objects;
 
+	// Use two indices to track either static graphics objects or dynamic "mobs"
 	size_t go_mob_index{ 0 };
 	size_t go_static_index{ 0 };
 	while (sgp->queue.size() > 0)
@@ -426,72 +507,119 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
 		const glm::mat4 transform = gltf_to_ndc * queue_item.parent_transform * node_transform;
 
+		// Advance the next item in the node queue
 		if (queue_item.stack_node.mesh_id < new_asset.meshes.size()) {
+			// Each node has a mesh id. Add to mesh queue.
 			sgp->mesh_queue.push(queue_item.stack_node.mesh_id);
 
+			//Advance the next item in the mesh queue. 
 			while (sgp->mesh_queue.size() > 0)
 			{
+				// Get mesh index for current mesh in queue and remove from queue.
 				const auto current_mesh_index = sgp->mesh_queue.front();
 				sgp->mesh_queue.pop();
+
+				// Get the mesh from the asset using the mesh index
 				const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
+
+				// Declare a new graphics object.
 				graphics_object go{};
-				go.index = queue_item.is_mob ? go_mob_index : go_static_index;
-				const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
-				const glm::mat4 normal_transform = glm::transpose(object_space_transform);
-				go.transform = mat4_to_array(transform);
-				go.normal_transform = mat4_to_array(normal_transform);
-				go.object_space_transform = mat4_to_array(object_space_transform);
-				go.surface_data.reserve(current_mesh.surfaces.size());
-				for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
+
 				{
-					surface_graphics_data sgd{};
-					sgd.mesh_index = current_mesh_index;
-					sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
-					sgd.material_index = sur_material;
-					sgd.index_count = sur_count;
-					sgd.start_index = sur_start_index;
-					if (new_asset.materials.size() > sur_material && new_asset.materials[sur_material].alpha_mode != 0) {
-						sgd.blended = true;
-					}
-					go.surface_data.push_back(sgd);
+					// There are two separate sets of indices to track, one for static graphics objects and one for dynamic "mobs"
+					go.index = queue_item.is_mob ? go_mob_index : go_static_index;
 				}
 
-				for (const uint32_t child_mesh_index : current_mesh.child_meshes)
 				{
-					sgp->mesh_queue.push(child_mesh_index);
+					// Record the assets transforms from the asset
+					const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
+					const glm::mat4 normal_transform = glm::transpose(object_space_transform);
+					go.transform = mat4_to_array(transform);
+					go.normal_transform = mat4_to_array(normal_transform);
+					go.object_space_transform = mat4_to_array(object_space_transform);
 				}
-				if (queue_item.is_mob)
+
 				{
-					mob_graphics_objects.push_back(go);
-					go_mob_index += 1;
+					// Each mesh has any number of surfaces that are derived from gltf primitives for example. These are what are given to the renderer to draw.
+					go.surface_data.reserve(current_mesh.surfaces.size());
+					for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
+					{
+						surface_graphics_data sgd{};
+						sgd.mesh_index = current_mesh_index;
+						// The index written to the surface graphic object is critical for pulling its transforms out of the buffer for rendering.
+						// The two separate indices indicate where renderer's buffer on the GPU its data will live. An offset is used for
+						// mobs that is equal to the total number of static surface graphic objects as mobs are all at the end of the buffer.
+						// The go_mob_index is also used to identify individual mobs for game play purposes.
+						sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
+						sgd.material_index = sur_material;
+						sgd.index_count = sur_count;
+						sgd.start_index = sur_start_index;
+						if (new_asset.materials.size() > sur_material && new_asset.materials[sur_material].alpha_mode != 0) {
+							sgd.blended = true;
+						}
+						go.surface_data.push_back(sgd);
+					}
 				}
-				else
+
 				{
-					graphics_objects.push_back(go);
-					go_static_index += 1;
+					// Each mesh may have an arbitrary number of child meshes. Add them to the mesh queue.
+					for (const uint32_t child_mesh_index : current_mesh.child_meshes)
+					{
+						sgp->mesh_queue.push(child_mesh_index);
+					}
 				}
-				queue_item.game_node->graphics_objects.push_back(go);
+				{
+					// Dynamic "mobs" are put at the end of the buffer in the renderer so they can be updated dynamically without having to update
+					// the entire graphics object buffer. Here is where they are put into one of the two buckets, either static which go in the front of the buffer
+					// or mob which go at the end.
+					if (queue_item.is_mob)
+					{
+						mob_graphics_objects.push_back(go);
+						go_mob_index += 1;
+					}
+					else
+					{
+						graphics_objects.push_back(go);
+						go_static_index += 1;
+					}
+					// Also track all the graphic objects in a combined bucket.
+					queue_item.game_node->graphics_objects.push_back(go);
+				}
 			}
 		}
 
+		// Each node can have an arbitrary number of child nodes.
 		for (const size_t child_index : queue_item.stack_node.child_nodes)
 		{
+			// This is the same node initialization sequence from the root's scenes logic above.
 			const rosy_packager::node new_node = new_asset.nodes[child_index];
+
+			// Create the pointer
 			auto new_game_node = new(std::nothrow) node;
 			if (new_game_node == nullptr)
 			{
 				ls->l->error("Error allocating new game node in set asset");
 				return result::allocation_failure;
 			}
+
+			// Initialize its state
 			if (const auto res = new_game_node->init(ls->l, mat4_to_array(transform), mat4_to_array(node_transform)); res != result::ok)
 			{
 				ls->l->error("Error initializing new game node in set asset");
 				new_game_node->deinit();
 				return result::error;
 			}
+
+			// Give it a name
 			new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+
+			// New nodes are recorded as children of their parent to form a scene graph.
 			queue_item.game_node->children.push_back(new_game_node);
+
+			// Mobs are a child of "mob" node or are ancestors of the "mob" node's children
 			const bool is_mob = queue_item.is_mob || new_game_node->name == mobs_node_name;
+
+			// Add the node to the node queue to have their meshes and primitives processed.
 			sgp->queue.push({
 				.game_node = new_game_node,
 				.stack_node = new_node,
@@ -501,27 +629,63 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		}
 	}
 
-	rls.graphic_objects.static_objects_offset = go_static_index;
-	static_objects_offset = go_static_index;
-	num_dynamic_objects = go_mob_index;
-	for (size_t i{ 0 }; i < mob_graphics_objects.size(); i++)
 	{
-		for (size_t j{ 0 }; j < mob_graphics_objects[i].surface_data.size(); j++)
+		// Record the indices of static and mob graphics objects for rendering and other uses as explained above.
+		rls.graphic_objects.static_objects_offset = go_static_index;
+		static_objects_offset = go_static_index;
+		num_dynamic_objects = go_mob_index;
+	}
+	{
+		// It is at this point that the total number of static graphic object is known. Traverse all the mobs graphic object to record that offset.
+		for (size_t i{ 0 }; i < mob_graphics_objects.size(); i++)
 		{
-			mob_graphics_objects[i].surface_data[j].graphic_objects_offset = static_objects_offset;
+			for (size_t j{ 0 }; j < mob_graphics_objects[i].surface_data.size(); j++)
+			{
+				mob_graphics_objects[i].surface_data[j].graphic_objects_offset = static_objects_offset;
+			}
 		}
-	} 
-	graphics_objects.insert(graphics_objects.end(), mob_graphics_objects.begin(), mob_graphics_objects.end());
-	ls->level_game_node->debug();
+	}
+	{
+		// Merge the static objects and mob graphic objects into one vector to be sent to the renderer for the initial upload to the gpu
+		graphics_objects.insert(graphics_objects.end(), mob_graphics_objects.begin(), mob_graphics_objects.end());
+	}
+	{
+		// Print the result of all this if debug logging is on.
+		ls->level_game_node->debug();
+	}
+	{
+		// Initialize ECS game nodes
+		std::vector<node*> mobs = ls->get_mobs();
+		ls->game_nodes.resize(mobs.size());
+		for (size_t i{0}; i < mobs.size(); i++)
+		{
+			node* n = mobs[i];
+			ecs_entity_t node_entity = ecs_new(ls->world);
+
+			ls->game_nodes[i] = {
+				.entity = node_entity,
+				.index = i,
+				.node = n,
+			};
+
+			c_mob m{ i };
+			ecs_set_id(ls->world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
+
+			if (n->name == "rosy")
+			{
+				ecs_add(ls->world, node_entity, t_rosy);
+			}
+		}
+	}
 	return result::ok;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result level::update()
+result level::update(const uint64_t delta_time)
 {
 	graphics_object_update_data.graphic_objects.clear();
 	bool updated{ false };
-	if (const auto res = ls->update(&updated); res != result::ok)
+	if (const auto res = ls->update(&updated, delta_time); res != result::ok)
 	{
 		ls->l->error("Error updating level state");
 		return res;
@@ -530,6 +694,6 @@ result level::update()
 	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
-	for (const std::vector<node*> mobs = ls->get_mobs(); node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
+	for (const std::vector<node*> mobs = ls->get_mobs(); const node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
 	return result::ok;
 }

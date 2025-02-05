@@ -18,7 +18,9 @@ namespace rosy {
 
 		result init(log* new_log, [[maybe_unused]] config new_cfg);
 		result set_asset(const rosy_packager::asset& new_asset);
-		result update();
+		result update(uint64_t delta_time);
 		void deinit();
 	};
 }
+
+
