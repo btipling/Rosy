@@ -15,6 +15,8 @@ namespace rosy
 	{
 		log* l{ nullptr };
 		SDL_Window* window{ nullptr };
+		uint64_t start_time{ 0 };
+		uint64_t last_frame_time{ 0 };
 		level* lvl{ nullptr };
 		graphics* gfx{ nullptr };
 		bool render_ui{ true };

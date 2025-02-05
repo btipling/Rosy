@@ -27,10 +27,13 @@ namespace rosy {
 		float z{ 0.f };
 	};
 	ECS_COMPONENT_DECLARE(c_position);
+	struct c_mob
+	{
+		size_t index{ 0 };
+	};
+	ECS_COMPONENT_DECLARE(c_mob);
 
 	// Tags
-	struct t_mob {};
-	ECS_TAG_DECLARE(t_mob);
 	struct t_rosy {};
 	ECS_TAG_DECLARE(t_rosy);
 	struct t_floor {};
@@ -138,11 +141,11 @@ namespace
 		void init_components() const
 		{
 			ECS_COMPONENT_DEFINE(world, c_position);
+			ECS_COMPONENT_DEFINE(world, c_mob);
 		}
 
 		void init_tags() const
 		{
-			ECS_TAG_DEFINE(world, t_mob);
 			ECS_TAG_DEFINE(world, t_rosy);
 			ECS_TAG_DEFINE(world, t_floor);
 		}
@@ -183,7 +186,7 @@ namespace
 			return {};
 		}
 
-		rosy::result update(bool* updated) const
+		rosy::result update(bool* updated, uint64_t delta_time) const
 		{
 			{
 				// Configure initial camera
@@ -316,7 +319,7 @@ namespace
 					rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
 				}
 			}
-
+			ecs_progress(world, static_cast<float>(delta_time));
 			return result::ok;
 		}
 	};
@@ -653,7 +656,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				.node = n,
 			};
 
-			ecs_add(ls->world, node_entity, t_mob);
+			c_mob m{ i };
+			ecs_set_id(ls->world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
 
 			if (n->name == "rosy")
 			{
@@ -665,11 +669,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result level::update()
+result level::update(const uint64_t delta_time)
 {
 	graphics_object_update_data.graphic_objects.clear();
 	bool updated{ false };
-	if (const auto res = ls->update(&updated); res != result::ok)
+	if (const auto res = ls->update(&updated, delta_time); res != result::ok)
 	{
 		ls->l->error("Error updating level state");
 		return res;

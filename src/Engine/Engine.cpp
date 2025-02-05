@@ -49,6 +49,14 @@ result engine::init()
 #endif
 
 	l->info("Engine init begin");
+
+	SDL_Time tick;
+	if (!SDL_GetCurrentTime(&tick)) {
+		l->error(std::format("Failed to get SDL time: {}", SDL_GetError()));
+		return result::error;
+	}
+	start_time = tick;
+
 	rosy_packager::asset a{};
 	{
 		//a.asset_path = "..\\assets\\sponza\\sponza.rsy";
@@ -250,13 +258,22 @@ result engine::run()
 
 result engine::render()
 {
+	SDL_Time tick = 0;
+	if (!SDL_GetCurrentTime(&tick))
+	{
+		l->error(std::format("Error getting current SDL tick: {}", SDL_GetError()));
+		return result::error;
+	}
+	const uint64_t frame_time{ tick - start_time };
+	const uint64_t delta_time{ frame_time - last_frame_time };
+
 	const auto render_start = std::chrono::system_clock::now();
 	if (const auto res =  lvl->cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
 		return res;
 	}
 	{
 		const auto update_start = std::chrono::system_clock::now();
-		if (const auto res = lvl->update(); res != result::ok) {
+		if (const auto res = lvl->update(delta_time); res != result::ok) {
 			return res;
 		}
 		if (const auto res = gfx->update(lvl->rls, lvl->graphics_object_update_data); res != result::ok) {
@@ -277,6 +294,7 @@ result engine::render()
 		stats.a_fps = std::numbers::pi_v<float> *stats.r_fps;
 		stats.d_fps = (std::numbers::pi_v<float> *stats.r_fps) * (180.f / std::numbers::pi_v<float>);
 	}
+	last_frame_time = frame_time;
 	FrameMark;
 	return result::ok;
 }
