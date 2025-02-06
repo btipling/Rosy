@@ -199,8 +199,7 @@ namespace
 			bool updated = false;
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
-				auto [step, dir] = movements[i];
-				step.position = 0;
+				auto& [step, dir] = movements[i];
 				const auto current_state = time_step(l, step, static_cast<double>(dt) / sdl_time_to_seconds);
 				movements[i].current_state = current_state;
 				if (current_state.velocity < 0.0 || is_equal(current_state.velocity, 0.0, 0.01))
