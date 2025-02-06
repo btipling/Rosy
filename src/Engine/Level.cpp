@@ -91,13 +91,8 @@ namespace
 		node* node{ nullptr };
 	};
 
-	// TODO: add level state context to world.
-	// ReSharper disable once CppParameterMayBeConstPtrOrRef
-	void detect_mob(ecs_iter_t* it) {
-		const auto p = ecs_field(it, c_mob, 0);
-
-		std::println("system running [{}]", static_cast<int>(p->index));
-	}
+	void detect_mob(ecs_iter_t* it);
+	void detect_mob2(ecs_iter_t* it);
 
 	struct level_state
 	{
@@ -111,7 +106,7 @@ namespace
 		std::vector<game_node_reference> game_nodes;
 
 		// ECS
-		ecs_world_t* world{ nullptr};
+		ecs_world_t* world{ nullptr };
 		ecs_entity_t level{};
 
 		rosy::result init()
@@ -159,9 +154,49 @@ namespace
 			ECS_TAG_DEFINE(world, t_floor);
 		}
 
-		void init_systems() const
+		void init_systems()
 		{
-			ECS_SYSTEM(world, detect_mob, EcsOnUpdate, c_mob);
+
+			{
+				ecs_system_desc_t desc = { 0 };
+				{
+					ecs_entity_desc_t e_desc = { 0 };
+					e_desc.id = 0;
+					e_desc.name = "detect_mob";
+					{
+						ecs_id_t add_ids[3];
+						add_ids[0] = { ecs_dependson(EcsOnUpdate) };
+						add_ids[1] = EcsOnUpdate;
+						add_ids[2] = 0;
+						e_desc.add = add_ids;
+					}
+					desc.entity = ecs_entity_init(world, &e_desc);
+				}
+				desc.query.expr = "c_mob";
+				desc.ctx = static_cast<void*>(this);
+				desc.callback = detect_mob;
+				ecs_system_init(world, &desc);
+			}
+			{
+				ecs_system_desc_t desc = { 0 };
+				{
+					ecs_entity_desc_t e_desc = { 0 };
+					e_desc.id = 0;
+					e_desc.name = "detect_mob2";
+					{
+						ecs_id_t add_ids[3];
+						add_ids[0] = { ecs_dependson(EcsOnUpdate) };
+						add_ids[1] = EcsOnUpdate;
+						add_ids[2] = 0;
+						e_desc.add = add_ids;
+					}
+					desc.entity = ecs_entity_init(world, &e_desc);
+				}
+				desc.query.expr = "c_mob";
+				desc.ctx = static_cast<void*>(this);
+				desc.callback = detect_mob2;
+				ecs_system_init(world, &desc);
+			}
 		}
 
 		void deinit()
@@ -340,6 +375,27 @@ namespace
 
 	level_state* ls{ nullptr };
 	scene_graph_processor* sgp{ nullptr };
+
+	// TODO: add level state context to world.
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	void detect_mob(ecs_iter_t* it) {
+		const auto ctx = static_cast<level_state*>(it->param);
+		const auto p = ecs_field(it, c_mob, 0);
+
+		for (int i = 0; i < it->count; i++) {
+			ctx->l->info(std::format("system running [{}]", static_cast<int>(p[i].index)));
+		}
+	}
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	void detect_mob2(ecs_iter_t* it) {
+		const auto ctx = static_cast<level_state*>(it->param);
+		const auto p = ecs_field(it, c_mob, 0);
+
+		for (int i = 0; i < it->count; i++) {
+			ctx->l->info(std::format("detect_mob2 system running [{}]", static_cast<int>(p[i].index)));
+		}
+	}
+
 }
 
 result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
@@ -661,7 +717,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		// Initialize ECS game nodes
 		std::vector<node*> mobs = ls->get_mobs();
 		ls->game_nodes.resize(mobs.size());
-		for (size_t i{0}; i < mobs.size(); i++)
+		for (size_t i{ 0 }; i < mobs.size(); i++)
 		{
 			node* n = mobs[i];
 			ecs_entity_t node_entity = ecs_new(ls->world);
@@ -698,6 +754,6 @@ result level::update(const uint64_t delta_time)
 	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
-	for (const std::vector<node*> mobs = ls->get_mobs(); const node* n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
+	for (const std::vector<node*> mobs = ls->get_mobs(); const node * n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
 	return result::ok;
 }
