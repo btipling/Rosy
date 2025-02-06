@@ -12,46 +12,13 @@ using namespace rosy;
 
 namespace
 {
-	struct state
+	struct move_state
 	{
 		double position = 0;
 		double velocity = 0;
-
-		state operator*(const double value) const
-		{
-			state rv;
-			rv.position = position * value;
-			rv.velocity = velocity * value;
-			return rv;
-		}
-
-
-		state operator+(const double value) const
-		{
-			state rv;
-			rv.position = position + value;
-			rv.velocity = velocity + value;
-			return rv;
-		}
-
-		state operator*(const state other) const
-		{
-			state rv;
-			rv.position = position * other.position;
-			rv.velocity = velocity * other.velocity;
-			return rv;
-		}
-
-		state operator+(const state other) const
-		{
-			state rv;
-			rv.position = position + other.position;
-			rv.velocity = velocity + other.velocity;
-			return rv;
-		}
 	};
 
-	state time_step([[maybe_unused]] rosy::log const* l, state& current_state, const double frame_time)
+	move_state time_step([[maybe_unused]] rosy::log const* l, move_state& current_state, const double frame_time)
 	{
 		current_state.position += current_state.velocity * frame_time;
 		current_state.velocity = 0;
@@ -67,7 +34,7 @@ namespace
 			horizontal,
 			vertical,
 		};
-		state current_state;
+		move_state current_state;
 		direction dir;
 	};
 
@@ -140,25 +107,25 @@ namespace
 			return toMat4(yaw_rotation) * toMat4(pitch_rotation);
 		}
 
-		void integrate_all()
+		void schedule_moves()
 		{
 			double base_velocity = 5.0;
 			base_velocity = go_fast ? base_velocity * 2.0 : base_velocity;
 			if (velocity.x != 0)
 			{
-				integrate(movement::direction::horizontal, std::abs(velocity.x) * base_velocity);
+				add_movement(movement::direction::horizontal, std::abs(velocity.x) * base_velocity);
 			}
 			if (velocity.y != 0)
 			{
-				integrate(movement::direction::vertical, std::abs(velocity.y) * base_velocity);
+				add_movement(movement::direction::vertical, std::abs(velocity.y) * base_velocity);
 			}
 			if (velocity.z != 0)
 			{
-				integrate(movement::direction::depth, std::abs(velocity.z) * base_velocity);
+				add_movement(movement::direction::depth, std::abs(velocity.z) * base_velocity);
 			}
 		}
 
-		void integrate(const movement::direction direction, const double v)
+		void add_movement(const movement::direction direction, const double v)
 		{
 			bool found = false;
 			for (size_t i{ 0 }; i < movements.size(); i++)
@@ -183,49 +150,39 @@ namespace
 
 		result update(const uint64_t dt)
 		{
-			integrate_all();
-			int to_remove{ -1 };
+			schedule_moves();
 			const glm::mat4 camera_rotation = get_rotation_matrix();
 
-
-			float vel_x{ 0.f };
-			float vel_y{ 0.f };
-			float vel_z{ 0.f };
-			SDL_Time tick = 0;
-			if (!SDL_GetCurrentTime(&tick))
-			{
-				return result::error;
-			}
+			glm::vec4 vel{ 0.f };
 			bool updated = false;
+
+			std::vector<movement> next_movements;
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
-				auto& [step, dir] = movements[i];
-				const auto current_state = time_step(l, step, static_cast<double>(dt) / sdl_time_to_seconds);
-				movements[i].current_state = current_state;
-				if (current_state.velocity < 0.0 || is_equal(current_state.velocity, 0.0, 0.01))
-				{
-					to_remove = static_cast<int>(i);
-				}
-				switch (dir)
+				auto mv = movements[i];
+				const auto current_state = time_step(l, mv.current_state, static_cast<double>(dt) / sdl_time_to_seconds);
+				mv.current_state = current_state;
+				if (current_state.velocity > 0.0) next_movements.push_back(mv);
+				switch (mv.dir)
 				{
 				case movement::horizontal:
 					updated = true;
-					vel_x = static_cast<float>(current_state.position) * velocity.x;
+					vel[0] = static_cast<float>(current_state.position) * velocity.x;
 					break;
 				case movement::vertical:
 					updated = true;
-					vel_y = static_cast<float>(current_state.position) * velocity.y;
+					vel[1] = static_cast<float>(current_state.position) * velocity.y;
 					break;
 				case movement::direction::depth:
 					updated = true;
-					vel_z = static_cast<float>(current_state.position) * velocity.z;
+					vel[2] = static_cast<float>(current_state.position) * velocity.z;
 					break;
 				}
 			}
-			if (to_remove > -1) movements.erase(movements.begin() + to_remove);
+			movements = next_movements;
 			if (!updated) return result::ok;
 
-			position += glm::vec3(camera_rotation * glm::vec4(vel_x, vel_y, vel_z, 0.f));
+			position += glm::vec3(camera_rotation * vel);
 			return result::ok;
 		}
 
