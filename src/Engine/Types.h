@@ -177,6 +177,7 @@ namespace rosy
 		fragment_config_state fragment_config{};
 		graphic_objects_state graphic_objects{};
 		mob_read_state mob_read{};
+		float target_fps{ 0.f };
 	};
 
 	struct write_level_state
@@ -187,5 +188,8 @@ namespace rosy
 		draw_config_state draw_config{};
 		fragment_config_state fragment_config{};
 		mob_edit_state mob_edit{};
+		float target_fps{ 0.f };
 	};
+
+	constexpr uint64_t sdl_time_to_seconds{ 1'000'000'000 };
 }

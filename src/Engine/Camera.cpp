@@ -51,88 +51,13 @@ namespace
 		}
 	};
 
-	struct derivative
+	state time_step([[maybe_unused]] rosy::log const* l, state& current_state, const double frame_time)
 	{
-		double dx_velocity = 0;      // dx_velocity/dt = velocity
-		double dv_acceleration = 0;  // dv_acceleration/dt = acceleration
-
-		derivative operator*(const double  value) const
-		{
-			derivative rv;
-			rv.dx_velocity = dx_velocity * value;
-			rv.dv_acceleration = dv_acceleration * value;
-			return rv;
-		}
-
-		derivative operator+(const double value) const
-		{
-			derivative rv;
-			rv.dx_velocity = dx_velocity + value;
-			rv.dv_acceleration = dv_acceleration + value;
-			return rv;
-		}
-
-		derivative operator*(const derivative other) const
-		{
-			derivative rv;
-			rv.dx_velocity = dx_velocity * other.dx_velocity;
-			rv.dv_acceleration = dv_acceleration * other.dv_acceleration;
-			return rv;
-		}
-
-		derivative operator+(const derivative other) const
-		{
-			derivative rv;
-			rv.dx_velocity = dx_velocity + other.dx_velocity;
-			rv.dv_acceleration = dv_acceleration + other.dv_acceleration;
-			return rv;
-		}
-	};
-
-	constexpr double delta_time = 0.01f;
-
-	struct time_ctx
-	{
-		double time = 0.f;
-		double accumulator = 0.f;
-		state previous_state{};
-		state current_state{};
-
-	};
-
-	void integrate(state& state, [[maybe_unused]] double t, const double frame_time) {
-		state.position = state.position * frame_time;
-		state.velocity = state.velocity * frame_time;
+		current_state.position += current_state.velocity * frame_time;
+		current_state.velocity = 0;
+		return current_state;
 	}
 
-	time_ctx time_step([[maybe_unused]] rosy::log const* l, const time_ctx& ctx, double frame_time)
-	{
-		state current_state = ctx.current_state;
-		state previous_state = ctx.previous_state;
-		double accumulator = ctx.accumulator;
-		double t = ctx.time;
-		frame_time = std::min(frame_time, 0.25);
-
-		accumulator += frame_time;
-
-		while (accumulator >= delta_time)
-		{
-			previous_state = current_state;
-			integrate(current_state, t, delta_time);
-			t += delta_time;
-			accumulator -= delta_time;
-		}
-
-		const double alpha = accumulator / delta_time;
-
-		const state next_state = current_state * alpha + previous_state * (1.0f - alpha);
-		time_ctx new_ctx;
-		new_ctx.time = t;
-		new_ctx.accumulator = accumulator;
-		new_ctx.current_state = next_state;
-		new_ctx.previous_state = previous_state;
-		return new_ctx;
-	}
 
 	struct movement
 	{
@@ -142,7 +67,7 @@ namespace
 			horizontal,
 			vertical,
 		};
-		time_ctx step;
+		state current_state;
 		direction dir;
 	};
 
@@ -156,8 +81,6 @@ namespace
 
 	struct synthetic_camera
 	{
-		SDL_Time start_time;
-		SDL_Time last_time;
 		rosy::log const* l{ nullptr };
 		config cfg{};
 
@@ -170,8 +93,6 @@ namespace
 
 		result init()
 		{
-			if (!SDL_GetCurrentTime(&start_time)) return result::error;
-			last_time = start_time;
 			movements.reserve(6);
 			return result::ok;
 		}
@@ -221,18 +142,19 @@ namespace
 
 		void integrate_all()
 		{
-			const double base_velocity = go_fast ? 0.1 : 0.025;
+			double base_velocity = 5.0;
+			base_velocity = go_fast ? base_velocity * 2.0 : base_velocity;
 			if (velocity.x != 0)
 			{
-				integrate(movement::direction::horizontal, velocity.x * base_velocity);
+				integrate(movement::direction::horizontal, std::abs(velocity.x) * base_velocity);
 			}
 			if (velocity.y != 0)
 			{
-				integrate(movement::direction::vertical, velocity.y * base_velocity);
+				integrate(movement::direction::vertical, std::abs(velocity.y) * base_velocity);
 			}
 			if (velocity.z != 0)
 			{
-				integrate(movement::direction::depth, velocity.z * base_velocity);
+				integrate(movement::direction::depth, std::abs(velocity.z) * base_velocity);
 			}
 		}
 
@@ -243,74 +165,67 @@ namespace
 			{
 				if (movement mv = movements[i]; mv.dir == direction)
 				{
-					mv.step.current_state.velocity = v;
+					mv.current_state.velocity = v;
 					movements[i] = mv;
 					found = true;
 				}
 			}
 			if (!found) {
 				movements.push_back({
-					.step = {
-						.time = 0.f,
-						.accumulator = 0.f,
-						.previous_state = {},
-						.current_state = {
-							.position = 0.05f * v,
-							.velocity = v,
-						},
+					.current_state = {
+						.position = 0,
+						.velocity = v,
 					},
 					.dir = direction,
 					});
 			}
 		}
 
-		result update()
+		result update(const uint64_t dt)
 		{
 			integrate_all();
 			int to_remove{ -1 };
 			const glm::mat4 camera_rotation = get_rotation_matrix();
 
 
-			glm::vec4 vel = { 0.f, 0.f, 0.f, 0.f };
+			float vel_x{ 0.f };
+			float vel_y{ 0.f };
+			float vel_z{ 0.f };
 			SDL_Time tick = 0;
 			if (!SDL_GetCurrentTime(&tick))
 			{
-				l->error(std::format("Error getting current SDL tick: {}", SDL_GetError()));
 				return result::error;
 			}
-			const SDL_Time frame_time = tick - last_time;
-			last_time = tick;
-			const auto dt = static_cast<double>(frame_time);
 			bool updated = false;
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
-				movement mv = movements[i];
-				const auto new_step = time_step(l, mv.step, dt);
-				movements[i].step = new_step;
-				if (is_equal(new_step.current_state.velocity, 0.0))
+				auto& [step, dir] = movements[i];
+				const auto current_state = time_step(l, step, static_cast<double>(dt) / sdl_time_to_seconds);
+				movements[i].current_state = current_state;
+				if (current_state.velocity < 0.0 || is_equal(current_state.velocity, 0.0, 0.01))
 				{
 					to_remove = static_cast<int>(i);
 				}
-				switch (mv.dir)
+				switch (dir)
 				{
 				case movement::horizontal:
 					updated = true;
-					vel[0] = static_cast<float>(mv.step.current_state.position);
+					vel_x = static_cast<float>(current_state.position) * velocity.x;
 					break;
 				case movement::vertical:
 					updated = true;
-					vel[1] = static_cast<float>(mv.step.current_state.position);
+					vel_y = static_cast<float>(current_state.position) * velocity.y;
 					break;
 				case movement::direction::depth:
 					updated = true;
-					vel[2] = static_cast<float>(mv.step.current_state.position);
+					vel_z = static_cast<float>(current_state.position) * velocity.z;
 					break;
 				}
 			}
 			if (to_remove > -1) movements.erase(movements.begin() + to_remove);
 			if (!updated) return result::ok;
 
-			position += glm::vec3(camera_rotation * vel);
+			position += glm::vec3(camera_rotation * glm::vec4(vel_x, vel_y, vel_z, 0.f));
 			return result::ok;
 		}
 
@@ -340,7 +255,6 @@ namespace
 				yaw -= event.motion.xrel / 500.f;
 				pitch += event.motion.yrel / 500.f;
 			}
-			update();
 			return result::ok;
 		}
 	};
@@ -393,9 +307,9 @@ void camera::deinit() const
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::update(const uint32_t viewport_width, const uint32_t viewport_height)
+result camera::update(const uint32_t viewport_width, const uint32_t viewport_height, const uint64_t dt)
 {
-	if (const auto res = sc->update(); res != result::ok)
+	if (const auto res = sc->update(dt); res != result::ok)
 	{
 		return res;
 	}
@@ -410,7 +324,7 @@ result camera::update(const uint32_t viewport_width, const uint32_t viewport_hei
 	yaw = sc->yaw;
 	pitch = sc->pitch;
 	const auto pos_r = glm::value_ptr(sc->position);
-	for (uint64_t i{0}; i < 3; i += 1) position[i] = pos_r[i];
+	for (uint64_t i{ 0 }; i < 3; i += 1) position[i] = pos_r[i];
 
 	return result::ok;
 }

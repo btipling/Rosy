@@ -140,6 +140,8 @@ namespace
 			level = ecs_new(world);
 			assert(ecs_is_alive(world, level));
 
+			ecs_set_target_fps(world, 120.f);
+
 			init_components();
 			init_tags();
 			init_systems();
@@ -256,6 +258,10 @@ namespace
 
 		rosy::result update(bool* updated, uint64_t delta_time) const
 		{
+			if (rls->target_fps != wls->target_fps) {
+				ecs_set_target_fps(world, wls->target_fps);
+				rls->target_fps = wls->target_fps;
+			}
 			{
 				// Configure initial camera
 				rls->cam.p = cam->p;
@@ -408,10 +414,10 @@ namespace
 			ecs_entity_t e = it->entities[i];
 
 			const game_node_reference ref = ctx->game_nodes[p[i].index];
-			ctx->l->info(std::format("mob detected @ index {} with name: '{}'", static_cast<int>(p[i].index), ref.node->name));
+			ctx->l->debug(std::format("mob detected @ index {} with name: '{}'", static_cast<int>(p[i].index), ref.node->name));
 			if (ecs_has_id(ctx->world, e, ecs_id(t_rosy)))
 			{
-				ctx->l->info(std::format("Rosy detected!"));
+				ctx->l->debug(std::format("Rosy detected!"));
 			}
 		}
 	}
@@ -422,10 +428,9 @@ namespace
 		const auto ctx = static_cast<level_state*>(it->param);
 
 		for (int i = 0; i < it->count; i++) {
-			ctx->l->info(std::format("floor detected"));
+			ctx->l->debug(std::format("floor detected"));
 		}
 	}
-
 }
 
 result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
@@ -448,6 +453,7 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 			wls.fragment_config.light_enabled = true;
 			wls.fragment_config.tangent_space_enabled = true;
 			wls.fragment_config.shadows_enabled = true;
+			wls.target_fps = 120.f;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)
