@@ -176,9 +176,8 @@ namespace
 			}
 			if (!cursor_enabled) return result::ok;
 			if (event.type == SDL_EVENT_MOUSE_MOTION) {
-				yaw -= event.motion.xrel / 500.f;
-				pitch += event.motion.yrel / 500.f;
-				position += glm::vec3(get_rotation_matrix() * glm::vec4{ 0.f });
+				yaw -= event.motion.xrel / 250.f;
+				pitch += event.motion.yrel / 250.f;
 			}
 			return result::ok;
 		}
