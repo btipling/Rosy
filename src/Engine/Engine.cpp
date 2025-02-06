@@ -299,7 +299,7 @@ result engine::run_frame()
 		}
 	}
 	{
-		// Track update time
+		// Record update time
 		const auto end = std::chrono::system_clock::now();
 		const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - update_start);
 		stats.level_update_time = elapsed.count() / 1000.f;
