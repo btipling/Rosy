@@ -13,6 +13,7 @@
 #include <client/TracyProfiler.hpp>
 #endif
 
+constexpr uint64_t sdl_time_to_seconds{ 1'000'000'000 };
 
 using namespace rosy;
 

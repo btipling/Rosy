@@ -190,6 +190,4 @@ namespace rosy
 		mob_edit_state mob_edit{};
 		float target_fps{ 0.f };
 	};
-
-	constexpr uint64_t sdl_time_to_seconds{ 1'000'000'000 };
 }
