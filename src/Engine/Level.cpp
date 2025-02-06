@@ -140,6 +140,8 @@ namespace
 			level = ecs_new(world);
 			assert(ecs_is_alive(world, level));
 
+			ecs_set_target_fps(world, 120.f);
+
 			init_components();
 			init_tags();
 			init_systems();
@@ -408,10 +410,10 @@ namespace
 			ecs_entity_t e = it->entities[i];
 
 			const game_node_reference ref = ctx->game_nodes[p[i].index];
-			ctx->l->info(std::format("mob detected @ index {} with name: '{}'", static_cast<int>(p[i].index), ref.node->name));
+			ctx->l->debug(std::format("mob detected @ index {} with name: '{}'", static_cast<int>(p[i].index), ref.node->name));
 			if (ecs_has_id(ctx->world, e, ecs_id(t_rosy)))
 			{
-				ctx->l->info(std::format("Rosy detected!"));
+				ctx->l->debug(std::format("Rosy detected!"));
 			}
 		}
 	}
@@ -422,7 +424,7 @@ namespace
 		const auto ctx = static_cast<level_state*>(it->param);
 
 		for (int i = 0; i < it->count; i++) {
-			ctx->l->info(std::format("floor detected"));
+			ctx->l->debug(std::format("floor detected"));
 		}
 	}
 
