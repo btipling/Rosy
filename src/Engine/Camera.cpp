@@ -12,20 +12,6 @@ using namespace rosy;
 
 namespace
 {
-	struct move_state
-	{
-		double position = 0;
-		double velocity = 0;
-	};
-
-	move_state time_step([[maybe_unused]] rosy::log const* l, move_state& current_state, const double frame_time)
-	{
-		current_state.position += current_state.velocity * frame_time;
-		current_state.velocity = 0;
-		return current_state;
-	}
-
-
 	struct movement
 	{
 		enum direction : uint8_t
@@ -34,7 +20,8 @@ namespace
 			horizontal,
 			vertical,
 		};
-		move_state current_state;
+		double position = 0;
+		double velocity = 0;
 		direction dir;
 	};
 
@@ -132,17 +119,15 @@ namespace
 			{
 				if (movement mv = movements[i]; mv.dir == direction)
 				{
-					mv.current_state.velocity = v;
+					mv.velocity = v;
 					movements[i] = mv;
 					found = true;
 				}
 			}
 			if (!found) {
 				movements.push_back({
-					.current_state = {
-						.position = 0,
-						.velocity = v,
-					},
+					.position = 0,
+					.velocity = v,
 					.dir = direction,
 					});
 			}
@@ -156,33 +141,28 @@ namespace
 			glm::vec4 vel{ 0.f };
 			bool updated = false;
 
-			std::vector<movement> next_movements;
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
-				auto mv = movements[i];
-				const auto current_state = time_step(l, mv.current_state, static_cast<double>(dt) / sdl_time_to_seconds);
-				mv.current_state = current_state;
-				if (current_state.velocity > 0.0) next_movements.push_back(mv);
-				switch (mv.dir)
+				auto [mv_position, mv_velocity, dir] = movements[i];
+				mv_position += mv_velocity * static_cast<double>(dt) / sdl_time_to_seconds;
+				switch (dir)
 				{
 				case movement::horizontal:
 					updated = true;
-					vel[0] = static_cast<float>(current_state.position) * velocity.x;
+					vel[0] = static_cast<float>(mv_position) * velocity.x;
 					break;
 				case movement::vertical:
 					updated = true;
-					vel[1] = static_cast<float>(current_state.position) * velocity.y;
+					vel[1] = static_cast<float>(mv_position) * velocity.y;
 					break;
 				case movement::direction::depth:
 					updated = true;
-					vel[2] = static_cast<float>(current_state.position) * velocity.z;
+					vel[2] = static_cast<float>(mv_position) * velocity.z;
 					break;
 				}
 			}
-			movements = next_movements;
-			if (!updated) return result::ok;
-
-			position += glm::vec3(camera_rotation * vel);
+			movements.clear();
+			if (updated) position += glm::vec3(camera_rotation * vel);
 			return result::ok;
 		}
 
@@ -211,6 +191,7 @@ namespace
 			if (event.type == SDL_EVENT_MOUSE_MOTION) {
 				yaw -= event.motion.xrel / 500.f;
 				pitch += event.motion.yrel / 500.f;
+				position += glm::vec3(get_rotation_matrix() * glm::vec4{ 0.f });
 			}
 			return result::ok;
 		}
