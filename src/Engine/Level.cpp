@@ -258,6 +258,10 @@ namespace
 
 		rosy::result update(bool* updated, uint64_t delta_time) const
 		{
+			if (rls->target_fps != wls->target_fps) {
+				ecs_set_target_fps(world, wls->target_fps);
+				rls->target_fps = wls->target_fps;
+			}
 			{
 				// Configure initial camera
 				rls->cam.p = cam->p;
@@ -427,7 +431,6 @@ namespace
 			ctx->l->debug(std::format("floor detected"));
 		}
 	}
-
 }
 
 result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
@@ -450,6 +453,7 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 			wls.fragment_config.light_enabled = true;
 			wls.fragment_config.tangent_space_enabled = true;
 			wls.fragment_config.shadows_enabled = true;
+			wls.target_fps = 120.f;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)

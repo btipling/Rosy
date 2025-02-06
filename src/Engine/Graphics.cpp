@@ -5540,6 +5540,18 @@ namespace {
 							if (ImGui::InputFloat3("position", wls->mob_edit.position.data())) wls->mob_edit.updated = true;
 							if (ImGui::Button("Update", button_dims)) wls->mob_edit.submitted = true;
 						}
+						if (ImGui::CollapsingHeader("Performance"))
+						{
+							if (ImGui::BeginTable("##PerformanceOptions", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::SliderFloat("Target fps", &wls->target_fps, 30.f, 480.f, "%.1f", 0);
+
+
+								ImGui::EndTable();
+							}
+						}
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();

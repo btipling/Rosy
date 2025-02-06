@@ -268,7 +268,7 @@ result engine::render()
 	const uint64_t delta_time{ frame_time - last_frame_time };
 
 	const auto render_start = std::chrono::system_clock::now();
-	if (const auto res =  lvl->cam->update(gfx->viewport_width, gfx->viewport_height); res != result::ok) {
+	if (const auto res =  lvl->cam->update(gfx->viewport_width, gfx->viewport_height, delta_time); res != result::ok) {
 		return res;
 	}
 	{
