@@ -249,7 +249,7 @@ result engine::run()
 		if (!should_run) break;
 		if (!cursor_enabled) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		if (const auto res = run_frame(); res != result::ok) {
-			l->error(std::format("render failed: {}", static_cast<uint8_t>(res)));
+			l->error(std::format("frame failed: {}", static_cast<uint8_t>(res)));
 			return res;
 		}
 	}
