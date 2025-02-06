@@ -94,24 +94,6 @@ namespace
 			return toMat4(yaw_rotation) * toMat4(pitch_rotation);
 		}
 
-		void schedule_moves()
-		{
-			double base_velocity = 5.0;
-			base_velocity = go_fast ? base_velocity * 2.0 : base_velocity;
-			if (velocity.x != 0)
-			{
-				add_movement(movement::direction::horizontal, std::abs(velocity.x) * base_velocity);
-			}
-			if (velocity.y != 0)
-			{
-				add_movement(movement::direction::vertical, std::abs(velocity.y) * base_velocity);
-			}
-			if (velocity.z != 0)
-			{
-				add_movement(movement::direction::depth, std::abs(velocity.z) * base_velocity);
-			}
-		}
-
 		void add_movement(const movement::direction direction, const double v)
 		{
 			bool found = false;
@@ -135,12 +117,21 @@ namespace
 
 		result update(const double dt)
 		{
-			schedule_moves();
-			const glm::mat4 camera_rotation = get_rotation_matrix();
-
+			double base_velocity = 5.0;
+			base_velocity = go_fast ? base_velocity * 2.0 : base_velocity;
+			if (velocity.x != 0)
+			{
+				add_movement(movement::direction::horizontal, std::abs(velocity.x) * base_velocity);
+			}
+			if (velocity.y != 0)
+			{
+				add_movement(movement::direction::vertical, std::abs(velocity.y) * base_velocity);
+			}
+			if (velocity.z != 0)
+			{
+				add_movement(movement::direction::depth, std::abs(velocity.z) * base_velocity);
+			}
 			glm::vec4 vel{ 0.f };
-			bool updated = false;
-
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
 				auto [mv_position, mv_velocity, dir] = movements[i];
@@ -148,21 +139,18 @@ namespace
 				switch (dir)
 				{
 				case movement::horizontal:
-					updated = true;
 					vel[0] = static_cast<float>(mv_position) * velocity.x;
 					break;
 				case movement::vertical:
-					updated = true;
 					vel[1] = static_cast<float>(mv_position) * velocity.y;
 					break;
 				case movement::direction::depth:
-					updated = true;
 					vel[2] = static_cast<float>(mv_position) * velocity.z;
 					break;
 				}
 			}
 			movements.clear();
-			if (updated) position += glm::vec3(camera_rotation * vel);
+			position += glm::vec3(get_rotation_matrix() * vel);
 			return result::ok;
 		}
 
