@@ -120,7 +120,7 @@ result engine::init()
 			return result::error;
 		}
 
-		if(!SDL_AddEventWatch(event_handler, static_cast<void*>(this)))
+		if (!SDL_AddEventWatch(event_handler, static_cast<void*>(this)))
 		{
 			l->error(std::format("Failed to add event watcher: {}", SDL_GetError()));
 			return result::error;
@@ -258,7 +258,7 @@ result engine::run()
 
 result engine::run_frame()
 {
-	uint64_t frame_time;
+	uint64_t current_frame_time;
 	std::chrono::time_point<std::chrono::system_clock> render_start;
 
 	{
@@ -269,16 +269,39 @@ result engine::run_frame()
 			l->error(std::format("Error getting current SDL tick: {}", SDL_GetError()));
 			return result::error;
 		}
-		frame_time = tick - start_time;
+		current_frame_time = tick - start_time;
 		render_start = std::chrono::system_clock::now();
 	}
 	{
+		// Prepare frame
+		lvl->setup_frame();
+	}
+	// Track update time
+	const auto update_start = std::chrono::system_clock::now();
+	{
 		// Update
-		const uint64_t delta_time{ frame_time - last_frame_time };
-		const double dt = static_cast<double>(delta_time) / sdl_time_to_seconds;
-		if (const auto res = update(dt); res != result::ok) {
+		const uint64_t delta_time{ current_frame_time - last_frame_time };
+		double dt = static_cast<double>(delta_time) / sdl_time_to_seconds;
+		if (dt > 0.25) dt = 0.25;
+
+		if (const auto res = lvl->update(gfx->viewport_width, gfx->viewport_height, dt); res != result::ok) {
 			return res;
 		}
+	}
+	{
+		// Process updates
+		if (const auto res = lvl->process(); res != result::ok) {
+			return res;
+		}
+		if (const auto res = gfx->update(lvl->rls, lvl->graphics_object_update_data); res != result::ok) {
+			return res;
+		}
+	}
+	{
+		// Track update time
+		const auto end = std::chrono::system_clock::now();
+		const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - update_start);
+		stats.level_update_time = elapsed.count() / 1000.f;
 	}
 	{
 		// Render
@@ -294,26 +317,9 @@ result engine::run_frame()
 		stats.r_fps = 1.f / (stats.frame_time / 1000.f);
 		stats.a_fps = std::numbers::pi_v<float> *stats.r_fps;
 		stats.d_fps = (std::numbers::pi_v<float> *stats.r_fps) * (180.f / std::numbers::pi_v<float>);
-		last_frame_time = frame_time;
+		last_frame_time = current_frame_time;
 	}
 
 	FrameMark;
-	return result::ok;
-}
-
-result engine::update(const double dt)
-{
-	{
-		const auto update_start = std::chrono::system_clock::now();
-		if (const auto res = lvl->update(gfx->viewport_width, gfx->viewport_height, dt); res != result::ok) {
-			return res;
-		}
-		if (const auto res = gfx->update(lvl->rls, lvl->graphics_object_update_data); res != result::ok) {
-			return res;
-		}
-		const auto end = std::chrono::system_clock::now();
-		const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - update_start);
-		stats.level_update_time = elapsed.count() / 1000.f;
-	}
 	return result::ok;
 }
