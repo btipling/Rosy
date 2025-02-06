@@ -1,5 +1,4 @@
 #include "Camera.h"
-#include "Math.h"
 #include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <format>

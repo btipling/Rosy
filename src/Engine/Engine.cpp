@@ -28,7 +28,7 @@ static bool event_handler(void* userdata, SDL_Event* event) {  // NOLINT(misc-us
 			eng->l->error(std::format("resizing-event: gfx failed to resize swapchain {}\n", static_cast<uint8_t>(res)));
 			return false;
 		}
-		if (result res = eng->render(); res != result::ok) {
+		if (result res = eng->run_frame(); res != result::ok) {
 			eng->l->error(std::format("resizing-event: gfx failed to render {}\n", static_cast<uint8_t>(res)));
 			return false;
 		}
@@ -247,7 +247,7 @@ result engine::run()
 		}
 		if (!should_run) break;
 		if (!cursor_enabled) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-		if (const auto res = render(); res != result::ok) {
+		if (const auto res = run_frame(); res != result::ok) {
 			l->error(std::format("render failed: {}", static_cast<uint8_t>(res)));
 			return res;
 		}
@@ -256,25 +256,56 @@ result engine::run()
 	return result::ok;
 }
 
-result engine::render()
+result engine::run_frame()
 {
-	SDL_Time tick = 0;
-	if (!SDL_GetCurrentTime(&tick))
-	{
-		l->error(std::format("Error getting current SDL tick: {}", SDL_GetError()));
-		return result::error;
-	}
-	const uint64_t frame_time{ tick - start_time };
-	const uint64_t delta_time{ frame_time - last_frame_time };
-	const double dt = static_cast<double>(delta_time) / sdl_time_to_seconds;
+	uint64_t frame_time;
+	std::chrono::time_point<std::chrono::system_clock> render_start;
 
-	const auto render_start = std::chrono::system_clock::now();
-	if (const auto res =  lvl->cam->update(gfx->viewport_width, gfx->viewport_height, dt); res != result::ok) {
-		return res;
+	{
+		// Start timing
+		SDL_Time tick = 0;
+		if (!SDL_GetCurrentTime(&tick))
+		{
+			l->error(std::format("Error getting current SDL tick: {}", SDL_GetError()));
+			return result::error;
+		}
+		frame_time = tick - start_time;
+		render_start = std::chrono::system_clock::now();
 	}
+	{
+		// Update
+		const uint64_t delta_time{ frame_time - last_frame_time };
+		const double dt = static_cast<double>(delta_time) / sdl_time_to_seconds;
+		if (const auto res = update(dt); res != result::ok) {
+			return res;
+		}
+	}
+	{
+		// Render
+		if (const auto res = gfx->render(render_ui, stats); res != result::ok) {
+			return res;
+		}
+	}
+	{
+		// Track timing
+		const auto end = std::chrono::system_clock::now();
+		const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - render_start);
+		stats.frame_time = elapsed.count() / 1000.f;
+		stats.r_fps = 1.f / (stats.frame_time / 1000.f);
+		stats.a_fps = std::numbers::pi_v<float> *stats.r_fps;
+		stats.d_fps = (std::numbers::pi_v<float> *stats.r_fps) * (180.f / std::numbers::pi_v<float>);
+		last_frame_time = frame_time;
+	}
+
+	FrameMark;
+	return result::ok;
+}
+
+result engine::update(const double dt)
+{
 	{
 		const auto update_start = std::chrono::system_clock::now();
-		if (const auto res = lvl->update(dt); res != result::ok) {
+		if (const auto res = lvl->update(gfx->viewport_width, gfx->viewport_height, dt); res != result::ok) {
 			return res;
 		}
 		if (const auto res = gfx->update(lvl->rls, lvl->graphics_object_update_data); res != result::ok) {
@@ -284,18 +315,5 @@ result engine::render()
 		const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - update_start);
 		stats.level_update_time = elapsed.count() / 1000.f;
 	}
-	if (const auto res = gfx->render(render_ui, stats); res != result::ok) {
-		return res;
-	}
-	{
-		const auto end = std::chrono::system_clock::now();
-		const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - render_start);
-		stats.frame_time = elapsed.count() / 1000.f;
-		stats.r_fps = 1.f / (stats.frame_time / 1000.f);
-		stats.a_fps = std::numbers::pi_v<float> *stats.r_fps;
-		stats.d_fps = (std::numbers::pi_v<float> *stats.r_fps) * (180.f / std::numbers::pi_v<float>);
-	}
-	last_frame_time = frame_time;
-	FrameMark;
 	return result::ok;
 }

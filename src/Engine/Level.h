@@ -18,7 +18,7 @@ namespace rosy {
 
 		result init(log* new_log, [[maybe_unused]] config new_cfg);
 		result set_asset(const rosy_packager::asset& new_asset);
-		result update(double dt);
+		result update(const uint32_t viewport_width, const uint32_t viewport_height, double dt);
 		void deinit();
 	};
 }

@@ -25,7 +25,8 @@ namespace rosy
 
 		[[nodiscard]] result init();
 		[[nodiscard]] result run();
-		[[nodiscard]] result render();
+		[[nodiscard]] result run_frame();
+		[[nodiscard]] result update(double dt);
 		void deinit();
 	};
 }

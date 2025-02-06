@@ -794,9 +794,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	return result::ok;
 }
 
-// ReSharper disable once CppMemberFunctionMayBeStatic
-result level::update(const double dt)
+result level::update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt)
 {
+	if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
+		return res;
+	}
 	graphics_object_update_data.graphic_objects.clear();
 	bool updated{ false };
 	if (const auto res = ls->update(&updated, dt); res != result::ok)
@@ -804,7 +806,9 @@ result level::update(const double dt)
 		ls->l->error("Error updating level state");
 		return res;
 	}
+
 	if (!updated) return result::ok;
+
 	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
