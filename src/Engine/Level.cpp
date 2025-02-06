@@ -25,6 +25,7 @@ const std::string mobs_node_name{ "mobs" };
 
 namespace
 {
+	/**** ECS DEFINITIONS ****/
 
 	// Components
 	struct c_position
@@ -42,10 +43,16 @@ namespace
 	ECS_COMPONENT_DECLARE(c_mob);
 
 	// Tags
-	struct t_rosy {};
+	struct [[maybe_unused]] t_rosy {};
 	ECS_TAG_DECLARE(t_rosy);
-	struct t_floor {};
+	struct [[maybe_unused]] t_floor {};
 	ECS_TAG_DECLARE(t_floor);
+
+	// System definitions are forward declared and defined at the end.
+	void detect_mob(ecs_iter_t* it);
+	void detect_floor(ecs_iter_t* it);
+
+	/**** LEVEL STATE DEFINITIONS ****/
 
 	std::array<float, 16> mat4_to_array(glm::mat4 m)
 	{
@@ -91,8 +98,6 @@ namespace
 		[[maybe_unused]] size_t index{ 0 };
 		node* node{ nullptr };
 	};
-
-	void detect_mob(ecs_iter_t* it);
 
 	struct level_state
 	{
@@ -142,6 +147,28 @@ namespace
 			return result::ok;
 		}
 
+		void deinit()
+		{
+			for (const game_node_reference gnr : game_nodes)
+			{
+				ecs_delete(world, gnr.entity);
+			}
+			if (level_game_node != nullptr) {
+				level_game_node->deinit();
+				delete level_game_node;
+				level_game_node = nullptr;
+			}
+			if (ecs_is_alive(world, level))
+			{
+				ecs_delete(world, level);
+				assert(!ecs_is_alive(world, level));
+			}
+			if (world != nullptr)
+			{
+				ecs_fini(world);
+			}
+		}
+
 		void init_components() const
 		{
 			ECS_COMPONENT_DEFINE(world, c_position);
@@ -177,27 +204,25 @@ namespace
 				desc.callback = detect_mob;
 				ecs_system_init(world, &desc);
 			}
-		}
-
-		void deinit()
-		{
-			for (const game_node_reference gnr : game_nodes)
 			{
-				ecs_delete(world, gnr.entity);
-			}
-			if (level_game_node != nullptr) {
-				level_game_node->deinit();
-				delete level_game_node;
-				level_game_node = nullptr;
-			}
-			if (ecs_is_alive(world, level))
-			{
-				ecs_delete(world, level);
-				assert(!ecs_is_alive(world, level));
-			}
-			if (world != nullptr)
-			{
-				ecs_fini(world);
+				ecs_system_desc_t desc{};
+				{
+					ecs_entity_desc_t e_desc{};
+					e_desc.id = 0;
+					e_desc.name = "detect_floor";
+					{
+						ecs_id_t add_ids[3];
+						add_ids[0] = { ecs_dependson(EcsOnUpdate) };
+						add_ids[1] = EcsOnUpdate;
+						add_ids[2] = 0;
+						e_desc.add = add_ids;
+					}
+					desc.entity = ecs_entity_init(world, &e_desc);
+				}
+				desc.query.expr = "t_floor";
+				desc.ctx = static_cast<void*>(this);
+				desc.callback = detect_floor;
+				ecs_system_init(world, &desc);
 			}
 		}
 
@@ -208,6 +233,20 @@ namespace
 			for (const node* root_node = level_game_node->children[0]; node * child : root_node->children)
 			{
 				if (child->name == "mobs")
+				{
+					return child->children;
+				}
+			}
+			return {};
+		}
+
+		[[nodiscard]] std::vector<node*> get_static() const
+		{
+			if (level_game_node == nullptr) return {};
+			if (level_game_node->children.empty()) return {};
+			for (const node* root_node = level_game_node->children[0]; node * child : root_node->children)
+			{
+				if (child->name == "static")
 				{
 					return child->children;
 				}
@@ -356,15 +395,34 @@ namespace
 	level_state* ls{ nullptr };
 	scene_graph_processor* sgp{ nullptr };
 
+	// **** ECS SYSTEM DEFINITIONS ****/
+
 	// TODO: add level state context to world.
 	// ReSharper disable once CppParameterMayBeConstPtrOrRef
-	void detect_mob(ecs_iter_t* it) {
+	void detect_mob(ecs_iter_t* it)
+	{
 		const auto ctx = static_cast<level_state*>(it->param);
 		const auto p = ecs_field(it, c_mob, 0);
 
 		for (int i = 0; i < it->count; i++) {
+			ecs_entity_t e = it->entities[i];
+
 			const game_node_reference ref = ctx->game_nodes[p[i].index];
 			ctx->l->info(std::format("mob detected @ index {} with name: '{}'", static_cast<int>(p[i].index), ref.node->name));
+			if (ecs_has_id(ctx->world, e, ecs_id(t_rosy)))
+			{
+				ctx->l->info(std::format("Rosy detected!"));
+			}
+		}
+	}
+
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	void detect_floor(ecs_iter_t* it)
+	{
+		const auto ctx = static_cast<level_state*>(it->param);
+
+		for (int i = 0; i < it->count; i++) {
+			ctx->l->info(std::format("floor detected"));
 		}
 	}
 
@@ -687,25 +745,43 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	}
 	{
 		// Initialize ECS game nodes
-		std::vector<node*> mobs = ls->get_mobs();
-		ls->game_nodes.resize(mobs.size());
-		for (size_t i{ 0 }; i < mobs.size(); i++)
 		{
-			node* n = mobs[i];
-			ecs_entity_t node_entity = ecs_new(ls->world);
-
-			ls->game_nodes[i] = {
-				.entity = node_entity,
-				.index = i,
-				.node = n,
-			};
-
-			c_mob m{ i };
-			ecs_set_id(ls->world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
-
-			if (n->name == "rosy")
+			// Track mobs
+			std::vector<node*> mobs = ls->get_mobs();
+			ls->game_nodes.resize(mobs.size());
+			for (size_t i{ 0 }; i < mobs.size(); i++)
 			{
-				ecs_add(ls->world, node_entity, t_rosy);
+				node* n = mobs[i];
+				ecs_entity_t node_entity = ecs_new(ls->world);
+
+				ls->game_nodes[i] = {
+					.entity = node_entity,
+					.index = i,
+					.node = n,
+				};
+
+				c_mob m{ i };
+				ecs_set_id(ls->world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
+
+				if (n->name == "rosy")
+				{
+					ecs_add(ls->world, node_entity, t_rosy);
+				}
+			}
+		}
+		{
+			// Track special static objects
+			std::vector<node*> static_objects = ls->get_static();
+			for (size_t i{ 0 }; i < static_objects.size(); i++)
+			{
+				node* n = static_objects[i];
+				ecs_entity_t node_entity = ecs_new(ls->world);
+
+				if (n->name == "floor")
+				{
+					ecs_add(ls->world, node_entity, t_floor);
+					break;
+				}
 			}
 		}
 	}
