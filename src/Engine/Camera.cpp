@@ -1,5 +1,4 @@
 #include "Camera.h"
-#include "Math.h"
 #include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <format>
@@ -12,53 +11,6 @@ using namespace rosy;
 
 namespace
 {
-	struct state
-	{
-		double position = 0;
-		double velocity = 0;
-
-		state operator*(const double value) const
-		{
-			state rv;
-			rv.position = position * value;
-			rv.velocity = velocity * value;
-			return rv;
-		}
-
-
-		state operator+(const double value) const
-		{
-			state rv;
-			rv.position = position + value;
-			rv.velocity = velocity + value;
-			return rv;
-		}
-
-		state operator*(const state other) const
-		{
-			state rv;
-			rv.position = position * other.position;
-			rv.velocity = velocity * other.velocity;
-			return rv;
-		}
-
-		state operator+(const state other) const
-		{
-			state rv;
-			rv.position = position + other.position;
-			rv.velocity = velocity + other.velocity;
-			return rv;
-		}
-	};
-
-	state time_step([[maybe_unused]] rosy::log const* l, state& current_state, const double frame_time)
-	{
-		current_state.position += current_state.velocity * frame_time;
-		current_state.velocity = 0;
-		return current_state;
-	}
-
-
 	struct movement
 	{
 		enum direction : uint8_t
@@ -67,7 +19,8 @@ namespace
 			horizontal,
 			vertical,
 		};
-		state current_state;
+		double position = 0;
+		double velocity = 0;
 		direction dir;
 	};
 
@@ -140,92 +93,63 @@ namespace
 			return toMat4(yaw_rotation) * toMat4(pitch_rotation);
 		}
 
-		void integrate_all()
-		{
-			double base_velocity = 5.0;
-			base_velocity = go_fast ? base_velocity * 2.0 : base_velocity;
-			if (velocity.x != 0)
-			{
-				integrate(movement::direction::horizontal, std::abs(velocity.x) * base_velocity);
-			}
-			if (velocity.y != 0)
-			{
-				integrate(movement::direction::vertical, std::abs(velocity.y) * base_velocity);
-			}
-			if (velocity.z != 0)
-			{
-				integrate(movement::direction::depth, std::abs(velocity.z) * base_velocity);
-			}
-		}
-
-		void integrate(const movement::direction direction, const double v)
+		void add_movement(const movement::direction direction, const double v)
 		{
 			bool found = false;
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
 				if (movement mv = movements[i]; mv.dir == direction)
 				{
-					mv.current_state.velocity = v;
+					mv.velocity = v;
 					movements[i] = mv;
 					found = true;
 				}
 			}
 			if (!found) {
 				movements.push_back({
-					.current_state = {
-						.position = 0,
-						.velocity = v,
-					},
+					.position = 0,
+					.velocity = v,
 					.dir = direction,
 					});
 			}
 		}
 
-		result update(const uint64_t dt)
+		result update(const double dt)
 		{
-			integrate_all();
-			int to_remove{ -1 };
-			const glm::mat4 camera_rotation = get_rotation_matrix();
-
-
-			float vel_x{ 0.f };
-			float vel_y{ 0.f };
-			float vel_z{ 0.f };
-			SDL_Time tick = 0;
-			if (!SDL_GetCurrentTime(&tick))
+			double base_velocity = 5.0;
+			base_velocity = go_fast ? base_velocity * 2.0 : base_velocity;
+			if (velocity.x != 0)
 			{
-				return result::error;
+				add_movement(movement::direction::horizontal, std::abs(velocity.x) * base_velocity);
 			}
-			bool updated = false;
+			if (velocity.y != 0)
+			{
+				add_movement(movement::direction::vertical, std::abs(velocity.y) * base_velocity);
+			}
+			if (velocity.z != 0)
+			{
+				add_movement(movement::direction::depth, std::abs(velocity.z) * base_velocity);
+			}
+			glm::vec4 vel{ 0.f };
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
-				auto& [step, dir] = movements[i];
-				const auto current_state = time_step(l, step, static_cast<double>(dt) / sdl_time_to_seconds);
-				movements[i].current_state = current_state;
-				if (current_state.velocity < 0.0 || is_equal(current_state.velocity, 0.0, 0.01))
-				{
-					to_remove = static_cast<int>(i);
-				}
+				auto [mv_position, mv_velocity, dir] = movements[i];
+				mv_position += mv_velocity * dt;
 				switch (dir)
 				{
 				case movement::horizontal:
-					updated = true;
-					vel_x = static_cast<float>(current_state.position) * velocity.x;
+					vel[0] = static_cast<float>(mv_position) * velocity.x;
 					break;
 				case movement::vertical:
-					updated = true;
-					vel_y = static_cast<float>(current_state.position) * velocity.y;
+					vel[1] = static_cast<float>(mv_position) * velocity.y;
 					break;
 				case movement::direction::depth:
-					updated = true;
-					vel_z = static_cast<float>(current_state.position) * velocity.z;
+					vel[2] = static_cast<float>(mv_position) * velocity.z;
 					break;
 				}
 			}
-			if (to_remove > -1) movements.erase(movements.begin() + to_remove);
-			if (!updated) return result::ok;
-
-			position += glm::vec3(camera_rotation * glm::vec4(vel_x, vel_y, vel_z, 0.f));
+			movements.clear();
+			position += glm::vec3(get_rotation_matrix() * vel);
 			return result::ok;
 		}
 
@@ -252,8 +176,8 @@ namespace
 			}
 			if (!cursor_enabled) return result::ok;
 			if (event.type == SDL_EVENT_MOUSE_MOTION) {
-				yaw -= event.motion.xrel / 500.f;
-				pitch += event.motion.yrel / 500.f;
+				yaw -= event.motion.xrel / 250.f;
+				pitch += event.motion.yrel / 250.f;
 			}
 			return result::ok;
 		}
@@ -307,7 +231,7 @@ void camera::deinit() const
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::update(const uint32_t viewport_width, const uint32_t viewport_height, const uint64_t dt)
+result camera::update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt)
 {
 	if (const auto res = sc->update(dt); res != result::ok)
 	{

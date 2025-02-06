@@ -3269,8 +3269,8 @@ namespace {
 			sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			sampler_create_info.magFilter = VK_FILTER_NEAREST;
-			sampler_create_info.minFilter = VK_FILTER_NEAREST;
+			sampler_create_info.magFilter = VK_FILTER_LINEAR;
+			sampler_create_info.minFilter = VK_FILTER_LINEAR;
 			if (const VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &default_sampler); res != VK_SUCCESS)
 			{
 				l->error(std::format("Error creating default sampler: {}", static_cast<uint8_t>(res)));

@@ -256,12 +256,17 @@ namespace
 			return {};
 		}
 
-		rosy::result update(bool* updated, uint64_t delta_time) const
+		rosy::result setup_frame() const
 		{
 			if (rls->target_fps != wls->target_fps) {
 				ecs_set_target_fps(world, wls->target_fps);
 				rls->target_fps = wls->target_fps;
 			}
+			return result::ok;
+		}
+
+		rosy::result update(bool* updated, [[maybe_unused]] double dt) const
+		{
 			{
 				// Configure initial camera
 				rls->cam.p = cam->p;
@@ -393,7 +398,7 @@ namespace
 					rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
 				}
 			}
-			ecs_progress(world, static_cast<float>(delta_time));
+			 ecs_progress(world, static_cast<float>(dt));
 			return result::ok;
 		}
 	};
@@ -411,7 +416,7 @@ namespace
 		const auto p = ecs_field(it, c_mob, 0);
 
 		for (int i = 0; i < it->count; i++) {
-			ecs_entity_t e = it->entities[i];
+			const ecs_entity_t e = it->entities[i];
 
 			const game_node_reference ref = ctx->game_nodes[p[i].index];
 			ctx->l->debug(std::format("mob detected @ index {} with name: '{}'", static_cast<int>(p[i].index), ref.node->name));
@@ -795,19 +800,32 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result level::update(const uint64_t delta_time)
+result level::setup_frame()
 {
 	graphics_object_update_data.graphic_objects.clear();
-	bool updated{ false };
-	if (const auto res = ls->update(&updated, delta_time); res != result::ok)
+	return ls->setup_frame();
+}
+
+result level::update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt)
+{
+	if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
+		return res;
+	}
+	if (const auto res = ls->update(&updated, dt); res != result::ok)
 	{
 		ls->l->error("Error updating level state");
 		return res;
 	}
+	return result::ok;
+}
+
+result level::process()
+{
 	if (!updated) return result::ok;
 	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
 	for (const std::vector<node*> mobs = ls->get_mobs(); const node * n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
+	updated = false;
 	return result::ok;
 }
