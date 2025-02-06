@@ -256,7 +256,7 @@ namespace
 			return {};
 		}
 
-		rosy::result update(bool* updated, uint64_t delta_time) const
+		rosy::result update(bool* updated, double dt) const
 		{
 			if (rls->target_fps != wls->target_fps) {
 				ecs_set_target_fps(world, wls->target_fps);
@@ -393,7 +393,7 @@ namespace
 					rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
 				}
 			}
-			ecs_progress(world, static_cast<float>(delta_time));
+			ecs_progress(world, static_cast<float>(dt));
 			return result::ok;
 		}
 	};
@@ -795,11 +795,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result level::update(const uint64_t delta_time)
+result level::update(const double dt)
 {
 	graphics_object_update_data.graphic_objects.clear();
 	bool updated{ false };
-	if (const auto res = ls->update(&updated, delta_time); res != result::ok)
+	if (const auto res = ls->update(&updated, dt); res != result::ok)
 	{
 		ls->l->error("Error updating level state");
 		return res;

@@ -266,14 +266,15 @@ result engine::render()
 	}
 	const uint64_t frame_time{ tick - start_time };
 	const uint64_t delta_time{ frame_time - last_frame_time };
+	const double dt = static_cast<double>(delta_time) / sdl_time_to_seconds;
 
 	const auto render_start = std::chrono::system_clock::now();
-	if (const auto res =  lvl->cam->update(gfx->viewport_width, gfx->viewport_height, delta_time); res != result::ok) {
+	if (const auto res =  lvl->cam->update(gfx->viewport_width, gfx->viewport_height, dt); res != result::ok) {
 		return res;
 	}
 	{
 		const auto update_start = std::chrono::system_clock::now();
-		if (const auto res = lvl->update(delta_time); res != result::ok) {
+		if (const auto res = lvl->update(dt); res != result::ok) {
 			return res;
 		}
 		if (const auto res = gfx->update(lvl->rls, lvl->graphics_object_update_data); res != result::ok) {

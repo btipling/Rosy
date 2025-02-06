@@ -133,7 +133,7 @@ namespace
 			}
 		}
 
-		result update(const uint64_t dt)
+		result update(const double dt)
 		{
 			schedule_moves();
 			const glm::mat4 camera_rotation = get_rotation_matrix();
@@ -144,7 +144,7 @@ namespace
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
 				auto [mv_position, mv_velocity, dir] = movements[i];
-				mv_position += mv_velocity * static_cast<double>(dt) / sdl_time_to_seconds;
+				mv_position += mv_velocity * dt;
 				switch (dir)
 				{
 				case movement::horizontal:
@@ -245,7 +245,7 @@ void camera::deinit() const
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::update(const uint32_t viewport_width, const uint32_t viewport_height, const uint64_t dt)
+result camera::update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt)
 {
 	if (const auto res = sc->update(dt); res != result::ok)
 	{
