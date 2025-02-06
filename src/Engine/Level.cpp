@@ -15,14 +15,25 @@
 
 using namespace rosy;
 
-namespace rosy {
+
+
+
+constexpr size_t max_node_stack_size = 4'096;
+constexpr size_t max_stack_item_list = 16'384;
+
+const std::string mobs_node_name{ "mobs" };
+
+namespace
+{
+
 	// Components
 	struct c_position
 	{
-		float x{ 0.f };
-		float y{ 0.f };
-		float z{ 0.f };
+		[[maybe_unused]] float x{ 0.f };
+		[[maybe_unused]] float y{ 0.f };
+		[[maybe_unused]] float z{ 0.f };
 	};
+
 	ECS_COMPONENT_DECLARE(c_position);
 	struct c_mob
 	{
@@ -36,16 +47,6 @@ namespace rosy {
 	struct t_floor {};
 	ECS_TAG_DECLARE(t_floor);
 
-}
-
-
-constexpr size_t max_node_stack_size = 4'096;
-constexpr size_t max_stack_item_list = 16'384;
-
-const std::string mobs_node_name{ "mobs" };
-
-namespace
-{
 	std::array<float, 16> mat4_to_array(glm::mat4 m)
 	{
 		std::array<float, 16> a{};
@@ -87,12 +88,11 @@ namespace
 	struct game_node_reference
 	{
 		ecs_entity_t entity{ 0 };
-		size_t index{ 0 };
+		[[maybe_unused]] size_t index{ 0 };
 		node* node{ nullptr };
 	};
 
 	void detect_mob(ecs_iter_t* it);
-	void detect_mob2(ecs_iter_t* it);
 
 	struct level_state
 	{
@@ -158,9 +158,9 @@ namespace
 		{
 
 			{
-				ecs_system_desc_t desc = { 0 };
+				ecs_system_desc_t desc{};
 				{
-					ecs_entity_desc_t e_desc = { 0 };
+					ecs_entity_desc_t e_desc{};
 					e_desc.id = 0;
 					e_desc.name = "detect_mob";
 					{
@@ -175,26 +175,6 @@ namespace
 				desc.query.expr = "c_mob";
 				desc.ctx = static_cast<void*>(this);
 				desc.callback = detect_mob;
-				ecs_system_init(world, &desc);
-			}
-			{
-				ecs_system_desc_t desc = { 0 };
-				{
-					ecs_entity_desc_t e_desc = { 0 };
-					e_desc.id = 0;
-					e_desc.name = "detect_mob2";
-					{
-						ecs_id_t add_ids[3];
-						add_ids[0] = { ecs_dependson(EcsOnUpdate) };
-						add_ids[1] = EcsOnUpdate;
-						add_ids[2] = 0;
-						e_desc.add = add_ids;
-					}
-					desc.entity = ecs_entity_init(world, &e_desc);
-				}
-				desc.query.expr = "c_mob";
-				desc.ctx = static_cast<void*>(this);
-				desc.callback = detect_mob2;
 				ecs_system_init(world, &desc);
 			}
 		}
@@ -383,16 +363,8 @@ namespace
 		const auto p = ecs_field(it, c_mob, 0);
 
 		for (int i = 0; i < it->count; i++) {
-			ctx->l->info(std::format("system running [{}]", static_cast<int>(p[i].index)));
-		}
-	}
-	// ReSharper disable once CppParameterMayBeConstPtrOrRef
-	void detect_mob2(ecs_iter_t* it) {
-		const auto ctx = static_cast<level_state*>(it->param);
-		const auto p = ecs_field(it, c_mob, 0);
-
-		for (int i = 0; i < it->count; i++) {
-			ctx->l->info(std::format("detect_mob2 system running [{}]", static_cast<int>(p[i].index)));
+			const game_node_reference ref = ctx->game_nodes[p[i].index];
+			ctx->l->info(std::format("mob detected @ index {} with name: '{}'", static_cast<int>(p[i].index), ref.node->name));
 		}
 	}
 
