@@ -35,19 +35,36 @@ namespace
 		[[maybe_unused]] float y{ 0.f };
 		[[maybe_unused]] float z{ 0.f };
 	};
-
 	ECS_COMPONENT_DECLARE(c_position);
+
 	struct c_mob
 	{
 		size_t index{ 0 };
 	};
 	ECS_COMPONENT_DECLARE(c_mob);
 
+	struct c_cursor_position
+	{
+		float screen_x{ 0.f };
+		float screen_y{ 0.f };
+	};
+	ECS_COMPONENT_DECLARE(c_cursor_position);
+
+	struct c_rosy_target
+	{
+		float x{ 0.f };
+		float y{ 0.f };
+		float z{ 0.f };
+	};
+	ECS_COMPONENT_DECLARE(c_rosy_target);
+
 	// Tags
 	struct [[maybe_unused]] t_rosy {};
 	ECS_TAG_DECLARE(t_rosy);
 	struct [[maybe_unused]] t_floor {};
 	ECS_TAG_DECLARE(t_floor);
+	struct [[maybe_unused]] t_rosy_action {};
+	ECS_TAG_DECLARE(t_rosy_action);
 
 	// System definitions are forward declared and defined at the end.
 	void detect_mob(ecs_iter_t* it);
@@ -114,7 +131,9 @@ namespace
 
 		// ECS
 		ecs_world_t* world{ nullptr };
-		ecs_entity_t level{};
+		ecs_entity_t level_entity{ 0 };
+		ecs_entity_t rosy_entity{ 0 };
+		ecs_entity_t floor_entity{ 0 };
 
 		bool updated{ false };
 
@@ -162,8 +181,8 @@ namespace
 				l->error("flecs world init failed");
 				return result::error;
 			}
-			level = ecs_new(world);
-			assert(ecs_is_alive(world, level));
+			level_entity = ecs_new(world);
+			assert(ecs_is_alive(world, level_entity));
 
 			ecs_set_target_fps(world, 120.f);
 
@@ -180,10 +199,10 @@ namespace
 			{
 				ecs_delete(world, gnr.entity);
 			}
-			if (ecs_is_alive(world, level))
+			if (ecs_is_alive(world, level_entity))
 			{
-				ecs_delete(world, level);
-				assert(!ecs_is_alive(world, level));
+				ecs_delete(world, level_entity);
+				assert(!ecs_is_alive(world, level_entity));
 			}
 			if (world != nullptr)
 			{
@@ -206,12 +225,15 @@ namespace
 		{
 			ECS_COMPONENT_DEFINE(world, c_position);
 			ECS_COMPONENT_DEFINE(world, c_mob);
+			ECS_COMPONENT_DEFINE(world, c_cursor_position);
+			ECS_COMPONENT_DEFINE(world, c_rosy_target);
 		}
 
 		void init_tags() const
 		{
 			ECS_TAG_DEFINE(world, t_rosy);
 			ECS_TAG_DEFINE(world, t_floor);
+			ECS_TAG_DEFINE(world, t_rosy_action);
 		}
 
 		void init_systems()
@@ -331,6 +353,30 @@ namespace
 			if (const auto res = cam->process_sdl_event(event, cursor_enabled); res != result::ok)
 			{
 				return res;
+			}
+
+			constexpr Uint8 rosy_attention_btn{ 1 };
+			if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
+				l->info(std::format("mouse button down: {}", mbe.button));
+				if (mbe.button == rosy_attention_btn)
+				{
+					ecs_add(world, rosy_entity, t_rosy_action);
+				}
+			}
+			if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
+				l->info(std::format("mouse button down: {}", mbe.button));
+				if (mbe.button == rosy_attention_btn)
+				{
+					ecs_remove(world, rosy_entity, t_rosy_action);
+				}
+			}
+			if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || SDL_EVENT_MOUSE_BUTTON_UP)
+			{
+				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
+				const c_cursor_position c_pos{ .screen_x = mbe.x, .screen_y = mbe.y};
+				ecs_set_id(world, level_entity, ecs_id(c_cursor_position), sizeof(c_cursor_position), &c_pos);
 			}
 			return result::ok;
 		}
@@ -478,7 +524,7 @@ namespace
 	void detect_mob(ecs_iter_t* it)
 	{
 		const auto ctx = static_cast<level_state*>(it->param);
-		const auto p = ecs_field(it, c_mob, 0);
+		const c_mob* p = ecs_field(it, c_mob, 0);
 
 		for (int i = 0; i < it->count; i++) {
 			const ecs_entity_t e = it->entities[i];
@@ -813,6 +859,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 
 				if (n->name == "rosy")
 				{
+					ls->rosy_entity = node_entity;
 					ecs_add(ls->world, node_entity, t_rosy);
 				}
 			}
@@ -827,6 +874,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 
 				if (n->name == "floor")
 				{
+					ls->floor_entity = node_entity;
 					ecs_add(ls->world, node_entity, t_floor);
 					break;
 				}
