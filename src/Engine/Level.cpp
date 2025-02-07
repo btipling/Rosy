@@ -415,10 +415,11 @@ namespace
 		const auto ctx = static_cast<level_state*>(it->param);
 		for (int i = 0; i < it->count; i++) {
 			//const ecs_entity_t e = it->entities[i];
-			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)))
-			{
-				ctx->l->info(std::format("cursor position detected"));
-			}
+			if (!ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position))) continue;
+
+			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
+
+			ctx->l->info(std::format("cursor position detected at {:.1f} {:.1f}", c_pos->screen_x, c_pos->screen_y));
 		}
 	}
 
