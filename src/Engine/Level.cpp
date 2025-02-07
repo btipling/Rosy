@@ -118,7 +118,7 @@ namespace
 
 		bool updated{ false };
 
-		rosy::result init(rosy::log* new_log, const config new_cfg)
+		result init(rosy::log* new_log, const config new_cfg)
 		{
 			l = new_log;
 			level_game_node = new(std::nothrow) node;
@@ -308,7 +308,7 @@ namespace
 			return {};
 		}
 
-		result setup_frame() const
+		[[nodiscard]] result setup_frame() const
 		{
 			if (rls->target_fps != wls->target_fps) {
 				ecs_set_target_fps(world, wls->target_fps);
@@ -317,7 +317,7 @@ namespace
 			return result::ok;
 		}
 
-		result update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt) const
+		[[nodiscard]] result update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt) const
 		{
 			if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
 				return res;
@@ -326,7 +326,7 @@ namespace
 			return result::ok;
 		}
 
-		result process_sdl_event(const SDL_Event& event, const bool cursor_enabled) const
+		[[nodiscard]] result process_sdl_event(const SDL_Event& event, const bool cursor_enabled) const
 		{
 			if (const auto res = cam->process_sdl_event(event, cursor_enabled); res != result::ok)
 			{
@@ -866,7 +866,7 @@ result level::process()
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result level::process_sdl_event(const SDL_Event& event, const bool cursor_enabled)
+result level::process_sdl_event(const SDL_Event& event, bool cursor_enabled)
 {
 	return ls->process_sdl_event(event, cursor_enabled);
 }
