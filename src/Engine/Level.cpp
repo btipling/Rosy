@@ -51,6 +51,7 @@ namespace
 	// System definitions are forward declared and defined at the end.
 	void detect_mob(ecs_iter_t* it);
 	void detect_floor(ecs_iter_t* it);
+	void init_level_state(ecs_iter_t* it);
 
 	/**** LEVEL STATE DEFINITIONS ****/
 
@@ -113,6 +114,8 @@ namespace
 		// ECS
 		ecs_world_t* world{ nullptr };
 		ecs_entity_t level{};
+
+		bool updated{ false };
 
 		rosy::result init()
 		{
@@ -185,8 +188,28 @@ namespace
 
 		void init_systems()
 		{
-
 			{
+				// Load initial writable state from renderer
+				ecs_system_desc_t desc{};
+				{
+					ecs_entity_desc_t e_desc{};
+					e_desc.id = 0;
+					e_desc.name = "init_level_state";
+					{
+						ecs_id_t add_ids[3];
+						add_ids[0] = { ecs_dependson(flecs::OnLoad) };
+						add_ids[1] = flecs::OnLoad;
+						add_ids[2] = 0;
+						e_desc.add = add_ids;
+					}
+					desc.entity = ecs_entity_init(world, &e_desc);
+				}
+				desc.ctx = static_cast<void*>(this);
+				desc.callback = init_level_state;
+				ecs_system_init(world, &desc);
+			}
+			{
+				// Detect mob
 				ecs_system_desc_t desc{};
 				{
 					ecs_entity_desc_t e_desc{};
@@ -207,6 +230,7 @@ namespace
 				ecs_system_init(world, &desc);
 			}
 			{
+				// Detect floor
 				ecs_system_desc_t desc{};
 				{
 					ecs_entity_desc_t e_desc{};
@@ -265,140 +289,9 @@ namespace
 			return result::ok;
 		}
 
-		rosy::result update(bool* updated, [[maybe_unused]] double dt) const
+		rosy::result update([[maybe_unused]] const double dt) const
 		{
-			{
-				// Configure initial camera
-				rls->cam.p = cam->p;
-				rls->cam.v = cam->v;
-				rls->cam.vp = cam->vp;
-				rls->cam.position = cam->position;
-				rls->cam.pitch = cam->pitch;
-				rls->cam.yaw = cam->yaw;
-			}
-			{
-				// Configure draw options based on writable level state
-				rls->debug_enabled = wls->enable_edit;
-				rls->draw_config = wls->draw_config;
-				rls->light = wls->light;
-			}
-			{
-				// Fragment config
-				rls->fragment_config = wls->fragment_config;
-			}
-			{
-				// Mob state
-				std::vector<node*> mobs = get_mobs();
-				if (wls->mob_edit.submitted)
-				{
-					rls->mob_read.clear_edits = true;
-					if (mobs.size() > wls->mob_edit.edit_index)
-					{
-						if (const auto res = mobs[0]->set_position(wls->mob_edit.position); res != result::ok)
-						{
-							l->error("Error updating mob position");
-						}
-						else
-						{
-							*updated = true;
-						}
-
-					}
-				}
-				else
-				{
-					rls->mob_read.clear_edits = false;
-				}
-				rls->mob_read.mob_states.clear();
-				for (const node* const n : mobs)
-				{
-					rls->mob_read.mob_states.push_back({
-						.name = n->name,
-						.position = {n->position[0], n->position[1], n->position[2]},
-						});
-				}
-			}
-
-			rls->debug_objects.clear();
-			{
-				// Light & Shadow logic
-				glm::mat4 light_sun_view;
-				glm::mat4 debug_light_sun_view;
-				glm::mat4 debug_light_translate;
-				glm::mat4 light_line_rot;
-				{
-					// Lighting math
-
-					{
-						const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 1.f * wls->light_debug.sun_distance });
-						debug_light_translate = glm::translate(glm::mat4(1.f), { 0.f, 0.f, -1.f * wls->light_debug.sun_distance });
-						const glm::quat pitch_rotation = angleAxis(-wls->light_debug.sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
-						const glm::quat yaw_rotation = angleAxis(wls->light_debug.sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
-						light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
-
-						const auto camera_position = glm::vec3(light_line_rot * glm::vec4(0.f, 0.f, -wls->light_debug.sun_distance, 0.f));
-						auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
-						light_sun_view = light_line_rot * light_translate;
-						debug_light_sun_view = light_line_rot * (wls->light_debug.enable_light_perspective ? light_translate : debug_light_translate);
-
-						rls->light.sunlight = { sunlight[0], sunlight[1], sunlight[2], sunlight[3] };
-					};
-				}
-
-				if (wls->light_debug.enable_sun_debug) {
-					// Generate debug lines for light and shadow debugging
-					const glm::mat4 debug_draw_view = light_line_rot * debug_light_translate;
-					const glm::mat4 debug_light_line = glm::scale(debug_draw_view, { wls->light_debug.sun_distance, wls->light_debug.sun_distance, wls->light_debug.sun_distance });
-
-					debug_object line;
-					line.type = debug_object_type::line;
-					line.transform = mat4_to_array(debug_light_line);
-					line.color = { 1.f, 0.f, 0.f, 1.f };
-					if (wls->light_debug.enable_sun_debug) rls->debug_objects.push_back(line);
-					{
-						// Two circles to represent a sun
-						constexpr float angle_step{ glm::pi<float>() / 4.f };
-						for (size_t i{ 0 }; i < 4; i++) {
-							debug_object sun_circle;
-							glm::mat4 m{ 1.f };
-							m = glm::rotate(m, angle_step * static_cast<float>(i), { 1.f, 0.f, 0.f });
-							sun_circle.type = debug_object_type::circle;
-							sun_circle.transform = mat4_to_array(debug_draw_view * m);
-							sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
-							rls->debug_objects.push_back(sun_circle);
-						}
-					}
-				}
-
-				glm::mat4 cam_lv;
-				glm::mat4 cam_lp;
-				{
-					// Create Light view and projection
-
-					const float cascade_level = wls->light_debug.cascade_level;
-					auto light_projections = glm::mat4(
-						glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
-						glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
-						glm::vec4(0.f, 0.f, -1.f / wls->light_debug.orthographic_depth, 0.f),
-						glm::vec4(0.f, 0.f, 0.f, 1.f)
-					);
-
-					const glm::mat4 lv = light_sun_view;
-					const glm::mat4 lp = light_projections;
-					cam_lv = glm::inverse(debug_light_sun_view);
-					cam_lp = wls->light_debug.enable_light_perspective ? light_projections : array_to_mat4((rls->cam.p));
-					rls->cam.shadow_projection_near = mat4_to_array(lp * glm::inverse(lv));
-				}
-
-				if (wls->light_debug.enable_light_cam)
-				{
-					// Set debug lighting options on
-					rls->debug_enabled = false;
-					rls->cam.v = mat4_to_array(cam_lv);
-					rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
-				}
-			}
-			 ecs_progress(world, static_cast<float>(dt));
+			ecs_progress(world, static_cast<float>(dt));
 			return result::ok;
 		}
 	};
@@ -408,7 +301,139 @@ namespace
 
 	// **** ECS SYSTEM DEFINITIONS ****/
 
-	// TODO: add level state context to world.
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	void init_level_state(ecs_iter_t* it)
+	{
+		const auto ctx = static_cast<level_state*>(it->param);
+
+		{
+			// Configure initial camera
+			ctx->rls->cam.p = ctx->cam->p;
+			ctx->rls->cam.v = ctx->cam->v;
+			ctx->rls->cam.vp = ctx->cam->vp;
+			ctx->rls->cam.position = ctx->cam->position;
+			ctx->rls->cam.pitch = ctx->cam->pitch;
+			ctx->rls->cam.yaw = ctx->cam->yaw;
+		}
+		{
+			// Configure draw options based on writable level state
+			ctx->rls->debug_enabled = ctx->wls->enable_edit;
+			ctx->rls->draw_config = ctx->wls->draw_config;
+			ctx->rls->light = ctx->wls->light;
+		}
+		{
+			// Fragment config
+			ctx->rls->fragment_config = ctx->wls->fragment_config;
+		}
+		{
+			// Mob state
+			const std::vector<node*> mobs = ctx->get_mobs();
+			if (ctx->wls->mob_edit.submitted)
+			{
+				ctx->rls->mob_read.clear_edits = true;
+				if (mobs.size() > ctx->wls->mob_edit.edit_index)
+				{
+					if (const auto res = mobs[0]->set_position(ctx->wls->mob_edit.position); res != result::ok)
+					{
+						ctx->l->error("Error updating mob position");
+					}
+					ctx->updated = true;
+				}
+			}
+			else
+			{
+				ctx->rls->mob_read.clear_edits = false;
+			}
+			ctx->rls->mob_read.mob_states.clear();
+			for (const node* const n : mobs)
+			{
+				ctx->rls->mob_read.mob_states.push_back({
+					.name = n->name,
+					.position = {n->position[0], n->position[1], n->position[2]},
+					});
+			}
+		}
+		ctx->rls->debug_objects.clear();
+		{
+			// Light & Shadow logic
+			glm::mat4 light_sun_view;
+			glm::mat4 debug_light_sun_view;
+			glm::mat4 debug_light_translate;
+			glm::mat4 light_line_rot;
+			{
+				// Lighting math
+
+				{
+					const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 1.f * ctx->wls->light_debug.sun_distance });
+					debug_light_translate = glm::translate(glm::mat4(1.f), { 0.f, 0.f, -1.f * ctx->wls->light_debug.sun_distance });
+					const glm::quat pitch_rotation = angleAxis(-ctx->wls->light_debug.sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
+					const glm::quat yaw_rotation = angleAxis(ctx->wls->light_debug.sun_yaw, glm::vec3{ 0.f, -1.f, 0.f });
+					light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
+
+					const auto camera_position = glm::vec3(light_line_rot * glm::vec4(0.f, 0.f, -ctx->wls->light_debug.sun_distance, 0.f));
+					auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
+					light_sun_view = light_line_rot * light_translate;
+					debug_light_sun_view = light_line_rot * (ctx->wls->light_debug.enable_light_perspective ? light_translate : debug_light_translate);
+
+					ctx->rls->light.sunlight = { sunlight[0], sunlight[1], sunlight[2], sunlight[3] };
+				};
+			}
+
+			if (ctx->wls->light_debug.enable_sun_debug) {
+				// Generate debug lines for light and shadow debugging
+				const glm::mat4 debug_draw_view = light_line_rot * debug_light_translate;
+				const glm::mat4 debug_light_line = glm::scale(debug_draw_view, { ctx->wls->light_debug.sun_distance, ctx->wls->light_debug.sun_distance, ctx->wls->light_debug.sun_distance });
+
+				debug_object line;
+				line.type = debug_object_type::line;
+				line.transform = mat4_to_array(debug_light_line);
+				line.color = { 1.f, 0.f, 0.f, 1.f };
+				if (ctx->wls->light_debug.enable_sun_debug) ctx->rls->debug_objects.push_back(line);
+				{
+					// Two circles to represent a sun
+					constexpr float angle_step{ glm::pi<float>() / 4.f };
+					for (size_t i{ 0 }; i < 4; i++) {
+						debug_object sun_circle;
+						glm::mat4 m{ 1.f };
+						m = glm::rotate(m, angle_step * static_cast<float>(i), { 1.f, 0.f, 0.f });
+						sun_circle.type = debug_object_type::circle;
+						sun_circle.transform = mat4_to_array(debug_draw_view * m);
+						sun_circle.color = { 0.976f, 0.912f, 0.609f, 1.f };
+						ctx->rls->debug_objects.push_back(sun_circle);
+					}
+				}
+			}
+
+			glm::mat4 cam_lv;
+			glm::mat4 cam_lp;
+			{
+				// Create Light view and projection
+
+				const float cascade_level = ctx->wls->light_debug.cascade_level;
+				auto light_projections = glm::mat4(
+					glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
+					glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
+					glm::vec4(0.f, 0.f, -1.f / ctx->wls->light_debug.orthographic_depth, 0.f),
+					glm::vec4(0.f, 0.f, 0.f, 1.f)
+				);
+
+				const glm::mat4 lv = light_sun_view;
+				const glm::mat4 lp = light_projections;
+				cam_lv = glm::inverse(debug_light_sun_view);
+				cam_lp = ctx->wls->light_debug.enable_light_perspective ? light_projections : array_to_mat4((ctx->rls->cam.p));
+				ctx->rls->cam.shadow_projection_near = mat4_to_array(lp * glm::inverse(lv));
+			}
+
+			if (ctx->wls->light_debug.enable_light_cam)
+			{
+				// Set debug lighting options on
+				ctx->rls->debug_enabled = false;
+				ctx->rls->cam.v = mat4_to_array(cam_lv);
+				ctx->rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
+			}
+		}
+	}
+
 	// ReSharper disable once CppParameterMayBeConstPtrOrRef
 	void detect_mob(ecs_iter_t* it)
 	{
@@ -811,7 +836,7 @@ result level::update(const uint32_t viewport_width, const uint32_t viewport_heig
 	if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
 		return res;
 	}
-	if (const auto res = ls->update(&updated, dt); res != result::ok)
+	if (const auto res = ls->update(dt); res != result::ok)
 	{
 		ls->l->error("Error updating level state");
 		return res;
@@ -821,11 +846,11 @@ result level::update(const uint32_t viewport_width, const uint32_t viewport_heig
 
 result level::process()
 {
-	if (!updated) return result::ok;
+	if (!ls->updated) return result::ok;
 	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
 	for (const std::vector<node*> mobs = ls->get_mobs(); const node * n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
-	updated = false;
+	ls->updated = false;
 	return result::ok;
 }

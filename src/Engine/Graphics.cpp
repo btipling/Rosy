@@ -38,9 +38,6 @@ namespace {
 	constexpr uint32_t descriptor_max_sampled_image_descriptors{ 100'000 };
 	constexpr uint32_t descriptor_max_sample_descriptors{ 1000 };
 
-	constexpr double pi{ 3.1415926535897932384626433832795028841971693993751058209749445923078164062 };  // NOLINT(modernize-use-std-numbers)
-	constexpr size_t debug_draw_circle_num_segments{ 100 };
-
 	struct descriptor_set_allocator
 	{
 		uint32_t max_indices{ 1000 };
@@ -147,6 +144,9 @@ namespace {
 		"VK_LAYER_KHRONOS_shader_object",
 		"VK_LAYER_KHRONOS_synchronization2",
 	};
+
+	constexpr double pi{ 3.1415926535897932384626433832795028841971693993751058209749445923078164062 };  // NOLINT(modernize-use-std-numbers)
+	constexpr size_t debug_draw_circle_num_segments{ 100 };
 
 	const char* default_instance_extensions[] = {
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
