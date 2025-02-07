@@ -419,7 +419,33 @@ namespace
 
 			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
 
-			ctx->l->info(std::format("cursor position detected at {:.1f} {:.1f}", c_pos->screen_x, c_pos->screen_y));
+			const float a = ctx->cam->aspect_ratio;
+			const float d = static_cast<float>(ctx->cam->g) * -1.f;
+			const float w = ctx->cam->viewport_width;
+			const float h = ctx->cam->viewport_height;
+			const float x_s = c_pos->screen_x;
+			const float y_s = c_pos->screen_y;
+
+			const float d1 = (2 * a) / w;
+			const float d2 = 2 / h * -1.f;
+			const float d3 = d;
+			const float x = (((2.f * a) / -w) * 1) - 1.f;
+			const float y = ((2.f/h) * 1) + 1.f;
+			const auto screen_to_view = glm::mat3(
+				glm::vec3(d1, 0.f, 0.f),
+				glm::vec3(0.f, d2, 0.f),
+				glm::vec3(x, y, d3));
+
+			const glm::vec3 view_space_coords = screen_to_view * glm::vec3(x_s, y_s, 1.f);
+
+			const glm::vec3 view_ray = normalize(glm::vec3(view_space_coords[0], view_space_coords[1], view_space_coords[2]));
+
+			ctx->l->info(std::format(
+				"screen space: ({:.1f}, {:.1f}) view_space: ({:.3f}, {:.3f}, {:.3f}) ray: ({:.3f}, {:.3f}, {:.3f}) d1: {:.3f} d2: {:.3f} d3: {:.3f} x: {:.3f} y: {:.3f}",
+				x_s, y_s,
+				view_space_coords[0], view_space_coords[1], view_space_coords[2],
+				view_ray[0], view_ray[1], view_ray[2],
+				d1, d2, d3, x, y));
 		}
 	}
 
