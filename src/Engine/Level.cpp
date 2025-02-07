@@ -70,6 +70,7 @@ namespace
 	void detect_mob(ecs_iter_t* it);
 	void detect_floor(ecs_iter_t* it);
 	void init_level_state(ecs_iter_t* it);
+	void move_rosy(ecs_iter_t* it);
 
 	/**** LEVEL STATE DEFINITIONS ****/
 
@@ -300,6 +301,27 @@ namespace
 				desc.callback = detect_floor;
 				ecs_system_init(world, &desc);
 			}
+			{
+				// Move rosy
+				ecs_system_desc_t desc{};
+				{
+					ecs_entity_desc_t e_desc{};
+					e_desc.id = 0;
+					e_desc.name = "move_rosy";
+					{
+						ecs_id_t add_ids[3];
+						add_ids[0] = { ecs_dependson(EcsOnUpdate) };
+						add_ids[1] = EcsOnUpdate;
+						add_ids[2] = 0;
+						e_desc.add = add_ids;
+					}
+					desc.entity = ecs_entity_init(world, &e_desc);
+				}
+				desc.query.expr = "t_rosy_action";
+				desc.ctx = static_cast<void*>(this);
+				desc.callback = move_rosy;
+				ecs_system_init(world, &desc);
+			}
 		}
 
 		[[nodiscard]] std::vector<node*> get_mobs() const
@@ -386,6 +408,19 @@ namespace
 	scene_graph_processor* sgp{ nullptr };
 
 	// **** ECS SYSTEM DEFINITIONS ****/
+
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	void move_rosy(ecs_iter_t* it)
+	{
+		const auto ctx = static_cast<level_state*>(it->param);
+		for (int i = 0; i < it->count; i++) {
+			//const ecs_entity_t e = it->entities[i];
+			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)))
+			{
+				ctx->l->info(std::format("cursor position detected"));
+			}
+		}
+	}
 
 	// ReSharper disable once CppParameterMayBeConstPtrOrRef
 	void init_level_state(ecs_iter_t* it)
