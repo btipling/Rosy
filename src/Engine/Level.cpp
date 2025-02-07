@@ -43,6 +43,12 @@ namespace
 	};
 	ECS_COMPONENT_DECLARE(c_mob);
 
+	struct c_static
+	{
+		size_t index{ 0 };
+	};
+	ECS_COMPONENT_DECLARE(c_static);
+
 	struct c_cursor_position
 	{
 		float screen_x{ 0.f };
@@ -88,6 +94,14 @@ namespace
 		const auto pos_r = glm::value_ptr(m);
 		for (uint64_t i{ 0 }; i < 16; i++) pos_r[i] = a[i];
 		return m;
+	}
+
+	glm::vec4 array_to_vec4(const std::array<float, 4>& a)
+	{
+		glm::vec4 v{};
+		const auto pos_r = glm::value_ptr(v);
+		for (uint64_t i{ 0 }; i < 4; i++) pos_r[i] = a[i];
+		return v;
 	}
 
 	constexpr auto gltf_to_ndc = glm::mat4(
@@ -226,6 +240,7 @@ namespace
 		{
 			ECS_COMPONENT_DEFINE(world, c_position);
 			ECS_COMPONENT_DEFINE(world, c_mob);
+			ECS_COMPONENT_DEFINE(world, c_static);
 			ECS_COMPONENT_DEFINE(world, c_cursor_position);
 			ECS_COMPONENT_DEFINE(world, c_rosy_target);
 		}
@@ -419,6 +434,11 @@ namespace
 
 			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
 
+			const auto floor = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
+
+			const node* floor_node = ctx->get_static()[floor->index];
+			const glm::mat4 to_floor_space = glm::inverse(array_to_mat4(ctx->cam->v) * array_to_mat4(floor_node->transform));
+
 			const float a = ctx->cam->aspect_ratio;
 			const float d = static_cast<float>(ctx->cam->g) * -1.f;
 			const float w = ctx->cam->viewport_width;
@@ -439,13 +459,17 @@ namespace
 			const glm::vec3 view_space_coords = screen_to_view * glm::vec3(x_s, y_s, 1.f);
 
 			const glm::vec3 view_ray = normalize(glm::vec3(view_space_coords[0], view_space_coords[1], view_space_coords[2]));
+			const auto floor_ray_ray = normalize(glm::vec3(to_floor_space * glm::vec4(view_ray, 1.f)));
+			const auto floor_camera_pos = to_floor_space * glm::vec4(0.f, 0.f, 0.f, 1.f);
+
 
 			ctx->l->info(std::format(
-				"screen space: ({:.1f}, {:.1f}) view_space: ({:.3f}, {:.3f}, {:.3f}) ray: ({:.3f}, {:.3f}, {:.3f}) d1: {:.3f} d2: {:.3f} d3: {:.3f} x: {:.3f} y: {:.3f}",
+				"screen space: ({:.1f}, {:.1f}) view_space: ({:.3f}, {:.3f}, {:.3f}) view ray: ({:.3f}, {:.3f}, {:.3f}) floor ray: ({:.3f}, {:.3f}, {:.3f}) floor camera: ({:.3f}, {:.3f}, {:.3f}) ",
 				x_s, y_s,
 				view_space_coords[0], view_space_coords[1], view_space_coords[2],
 				view_ray[0], view_ray[1], view_ray[2],
-				d1, d2, d3, x, y));
+				floor_ray_ray[0], floor_ray_ray[1], floor_ray_ray[2],
+				floor_camera_pos[0], floor_camera_pos[1], floor_camera_pos[2]));
 		}
 	}
 
@@ -938,6 +962,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					ls->floor_entity = node_entity;
 					ecs_add(ls->world, node_entity, t_floor);
+					c_static m{ i };
+					ecs_set_id(ls->world, node_entity, ecs_id(c_static), sizeof(c_static), &m);
 					break;
 				}
 			}
