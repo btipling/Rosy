@@ -237,7 +237,7 @@ result engine::run()
 					render_ui = !render_ui;
 				}
 			}
-			if (const auto res = lvl->cam->process_sdl_event(event, !cursor_enabled); res != result::ok) {
+			if (const auto res = lvl->process_sdl_event(event, !cursor_enabled); res != result::ok) {
 				return res;
 			}
 

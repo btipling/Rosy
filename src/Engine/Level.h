@@ -1,14 +1,13 @@
 #pragma once
 #include "Types.h"
 #include "Telemetry.h"
-#include "Camera.h"
 #include "../Packager/Asset.h"
+#include <SDL3/SDL.h>
 
 namespace rosy {
 
 	struct level
 	{
-		camera* cam{ nullptr };
 		read_level_state rls{};
 		write_level_state wls{};
 		graphics_object_update graphics_object_update_data{};
@@ -21,6 +20,7 @@ namespace rosy {
 		result setup_frame();
 		result update(const uint32_t viewport_width, const uint32_t viewport_height, double dt);
 		result process();
+		result process_sdl_event(const SDL_Event& event, bool cursor_enabled);
 		void deinit();
 	};
 }

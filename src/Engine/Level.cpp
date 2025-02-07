@@ -1,5 +1,6 @@
 #include "Level.h"
 #include "Node.h"
+#include "Camera.h"
 #include <print>
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -117,8 +118,9 @@ namespace
 
 		bool updated{ false };
 
-		rosy::result init()
+		rosy::result init(rosy::log* new_log, const config new_cfg)
 		{
+			l = new_log;
 			level_game_node = new(std::nothrow) node;
 			if (level_game_node == nullptr)
 			{
@@ -133,6 +135,26 @@ namespace
 				return result::error;
 			}
 			level_game_node->name = "rosy_root";
+
+			// Camera initialization
+			{
+				cam = new(std::nothrow) camera{};
+				if (cam == nullptr)
+				{
+					l->error("Error allocating camera");
+					return result::allocation_failure;
+				}
+				cam->starting_x = -5.88f;
+				cam->starting_y = 3.86f;
+				cam->starting_z = -1.13f;
+				cam->starting_pitch = 0.65f;
+				cam->starting_yaw = -1.58f;
+				if (auto const res = cam->init(l, new_cfg); res != result::ok)
+				{
+					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
 
 			world = ecs_init();
 			if (world == nullptr)
@@ -158,11 +180,6 @@ namespace
 			{
 				ecs_delete(world, gnr.entity);
 			}
-			if (level_game_node != nullptr) {
-				level_game_node->deinit();
-				delete level_game_node;
-				level_game_node = nullptr;
-			}
 			if (ecs_is_alive(world, level))
 			{
 				ecs_delete(world, level);
@@ -171,6 +188,17 @@ namespace
 			if (world != nullptr)
 			{
 				ecs_fini(world);
+			}
+			if (cam)
+			{
+				cam->deinit();
+				delete cam;
+				cam = nullptr;
+			}
+			if (level_game_node != nullptr) {
+				level_game_node->deinit();
+				delete level_game_node;
+				level_game_node = nullptr;
 			}
 		}
 
@@ -280,7 +308,7 @@ namespace
 			return {};
 		}
 
-		rosy::result setup_frame() const
+		result setup_frame() const
 		{
 			if (rls->target_fps != wls->target_fps) {
 				ecs_set_target_fps(world, wls->target_fps);
@@ -289,9 +317,21 @@ namespace
 			return result::ok;
 		}
 
-		rosy::result update([[maybe_unused]] const double dt) const
+		result update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt) const
 		{
+			if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
+				return res;
+			}
 			ecs_progress(world, static_cast<float>(dt));
+			return result::ok;
+		}
+
+		result process_sdl_event(const SDL_Event& event, const bool cursor_enabled) const
+		{
+			if (const auto res = cam->process_sdl_event(event, cursor_enabled); res != result::ok)
+			{
+				return res;
+			}
 			return result::ok;
 		}
 	};
@@ -463,7 +503,7 @@ namespace
 	}
 }
 
-result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
+result level::init(log* new_log, const config new_cfg)
 {
 	{
 		// Init level state
@@ -491,33 +531,12 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 			new_log->error("level_state allocation failed");
 			return result::allocation_failure;
 		}
-		ls->l = new_log;
-		if (const auto res = ls->init(); res != result::ok)
+		if (const auto res = ls->init(new_log, new_cfg); res != result::ok)
 		{
 			new_log->error("level_state init failed");
 			return res;
 		}
 
-		// Camera initialization
-		{
-			cam = new(std::nothrow) camera{};
-			cam->starting_x = -5.88f;
-			cam->starting_y = 3.86f;
-			cam->starting_z = -1.13f;
-			cam->starting_pitch = 0.65f;
-			cam->starting_yaw = -1.58f;
-			if (cam == nullptr)
-			{
-				ls->l->error("Error allocating camera");
-				return result::allocation_failure;
-			}
-			if (auto const res = cam->init(ls->l, new_cfg); res != result::ok)
-			{
-				ls->l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
-				return res;
-			}
-		}
-		ls->cam = cam;
 		ls->rls = &rls;
 		ls->wls = &wls;
 	}
@@ -537,13 +556,6 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 // ReSharper disable once CppMemberFunctionMayBeStatic
 void level::deinit()
 {
-	if (cam)
-	{
-		cam->deinit();
-		delete cam;
-		cam = nullptr;
-	}
-
 	if (sgp)
 	{
 		delete sgp;
@@ -831,12 +843,10 @@ result level::setup_frame()
 	return ls->setup_frame();
 }
 
+// ReSharper disable once CppMemberFunctionMayBeStatic
 result level::update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt)
 {
-	if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
-		return res;
-	}
-	if (const auto res = ls->update(dt); res != result::ok)
+	if (const auto res = ls->update(viewport_width, viewport_height, dt); res != result::ok)
 	{
 		ls->l->error("Error updating level state");
 		return res;
@@ -853,4 +863,10 @@ result level::process()
 	for (const std::vector<node*> mobs = ls->get_mobs(); const node * n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
 	ls->updated = false;
 	return result::ok;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeStatic
+result level::process_sdl_event(const SDL_Event& event, const bool cursor_enabled)
+{
+	return ls->process_sdl_event(event, cursor_enabled);
 }
