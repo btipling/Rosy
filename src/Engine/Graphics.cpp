@@ -5000,10 +5000,11 @@ namespace {
 							};
 							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, debug_layout, 0, 1, &descriptor_set, 0, nullptr);
-							for (const auto [obj_type, obj_transform, obj_color] : rls->debug_objects) {
+							for (const auto [obj_type, obj_transform, obj_color, flags] : rls->debug_objects) {
 								gpu_debug_push_constants dpc{
 									.transform = obj_transform,
 									.color = obj_color,
+									.flags = flags,
 									.scene_buffer = scene_buffer.scene_buffer_address,
 									.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
 								};

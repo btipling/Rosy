@@ -505,6 +505,7 @@ namespace
 					.type = debug_object_type::circle,
 					.transform = mat4_to_array(glm::translate(glm::mat4(1.f), view_click)),
 					.color = {0.f, 1.f, 0.f},
+					.flags = debug_object_flag_no_perspective,
 				};
 			}
 

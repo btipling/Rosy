@@ -81,11 +81,14 @@ namespace rosy
 		cross,
 	};
 
+	inline uint32_t debug_object_flag_no_perspective{ 00000000000000000000000000000001 };
+
 	struct debug_object
 	{
 		debug_object_type type{ debug_object_type::line };
 		std::array<float, 16> transform{};
 		std::array<float, 4> color{};
+		uint32_t flags{ 0 };
 	};
 
 	struct read_camera
