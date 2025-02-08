@@ -2,6 +2,7 @@
 #include <array>
 #include <vector>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 // These are type declarations, not default configurations. Configure those in Level.cpp or elsewhere.
@@ -169,10 +170,7 @@ namespace rosy
 
 	struct pick_debug_read_state
 	{
-		bool debug_picking_enabled{ false };
-		bool picking{ false };
-		debug_object screen_space;
-		debug_object view_space;
+		std::optional<debug_object> picking{std::nullopt};
 		std::vector<debug_object> circles;
 	};
 

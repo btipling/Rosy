@@ -71,6 +71,12 @@ namespace
 	ECS_TAG_DECLARE(t_floor);
 	struct [[maybe_unused]] t_rosy_action {};
 	ECS_TAG_DECLARE(t_rosy_action);
+	struct [[maybe_unused]] t_pick_debugging_enabled {};
+	ECS_TAG_DECLARE(t_pick_debugging_enabled);
+	struct [[maybe_unused]] t_pick_debugging_record {};
+	ECS_TAG_DECLARE(t_pick_debugging_record);
+	struct [[maybe_unused]] t_pick_debugging_clear {};
+	ECS_TAG_DECLARE(t_pick_debugging_clear);
 
 	// System definitions are forward declared and defined at the end.
 	void detect_mob(ecs_iter_t* it);
@@ -250,6 +256,9 @@ namespace
 			ECS_TAG_DEFINE(world, t_rosy);
 			ECS_TAG_DEFINE(world, t_floor);
 			ECS_TAG_DEFINE(world, t_rosy_action);
+			ECS_TAG_DEFINE(world, t_pick_debugging_enabled);
+			ECS_TAG_DEFINE(world, t_pick_debugging_record);
+			ECS_TAG_DEFINE(world, t_pick_debugging_clear);
 		}
 
 		void init_systems()
@@ -393,12 +402,39 @@ namespace
 			}
 
 			constexpr Uint8 rosy_attention_btn{ 1 };
+			constexpr Uint8 pick_debug_toggle_btn{ 2 };
+			constexpr Uint8 pick_debug_record_btn{ 3 };
 			if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
 				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
 				l->info(std::format("mouse button down: {}", mbe.button));
 				if (mbe.button == rosy_attention_btn)
 				{
+				}
+				switch (mbe.button)
+				{
+				case rosy_attention_btn:
 					ecs_add(world, rosy_entity, t_rosy_action);
+					break;
+				case pick_debug_toggle_btn:
+					if (ecs_has_id(world, level_entity, ecs_id(t_pick_debugging_enabled)))
+					{
+						ecs_remove(world, level_entity, t_pick_debugging_enabled);
+					} else
+					{
+						ecs_add(world, level_entity, t_pick_debugging_enabled);
+					}
+					break;
+				case pick_debug_record_btn:
+					if (mbe.clicks > 1)
+					{
+						ecs_add(world, level_entity, t_pick_debugging_clear);
+					} else
+					{
+						ecs_add(world, level_entity, t_pick_debugging_record);
+					}
+					break;
+				default:
+					break;
 				}
 			}
 			if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
@@ -529,6 +565,19 @@ namespace
 			}
 		}
 		ctx->rls->debug_objects.clear();
+		if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_clear)))
+		{
+			ctx->rls->pick_debugging.circles.clear();
+		}
+		if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_enabled)))
+		{
+			ctx->rls->debug_objects.insert(ctx->rls->debug_objects.end(), ctx->rls->pick_debugging.circles.begin(), ctx->rls->pick_debugging.circles.end());
+			if (ctx->rls->pick_debugging.picking.has_value())
+			{
+				ctx->rls->debug_objects.push_back(ctx->rls->pick_debugging.picking.value());
+				ctx->rls->pick_debugging.picking = std::nullopt;
+			}
+		}
 		{
 			// Light & Shadow logic
 			glm::mat4 light_sun_view;
