@@ -283,6 +283,7 @@ namespace {
 		[[maybe_unused]] std::array<float, 4> sunlight_color{};
 		[[maybe_unused]] std::array<uint32_t, 4> flip_lights{ 0, 0, 0, 0 };
 		[[maybe_unused]] std::array<uint32_t, 4> flip_tangents{ 0, 0, 0, 0 };
+		[[maybe_unused]] std::array<float, 2> draw_extent{};
 		[[maybe_unused]] uint32_t csm_index_sampler{ 0 };
 		[[maybe_unused]] uint32_t csm_index_near{ 0 };
 		[[maybe_unused]] uint32_t fragment_output{ 0 };
@@ -5320,6 +5321,7 @@ namespace {
 			sd.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f };
 			sd.flip_lights = { flip_x, flip_y, flip_z, 1 };
 			sd.flip_tangents = { flip_tangent_x, flip_tangent_y, flip_tangent_z, flip_tangent_w };
+			sd.draw_extent = { static_cast<float>(swapchain_extent.width), static_cast<float>(swapchain_extent.height) };
 			sd.csm_index_sampler = shadow_map_image.ds_index_sampler;
 			sd.csm_index_near = shadow_map_image.ds_index_near;
 			sd.fragment_output = static_cast<uint32_t>(new_rls.fragment_config.output);

@@ -511,7 +511,6 @@ namespace
 				};
 			}
 
-
 			//ctx->l->info(std::format("screen space: ({:.1f}, {:.1f}) view_ray: ({:.3f}, {:.3f}, {:.3f}) world_ray: ({:.3f}, {:.3f}, {:.3f})  camera_pos: ({:.3f}, {:.3f}, {:.3f}) intersection(lol): ({:.3f}, {:.3f}, {:.3f}) t: {:.3f}",
 			//	x_s, y_s,
 			//	view_click[0], view_click[1], view_click[2],

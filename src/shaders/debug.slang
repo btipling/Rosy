@@ -12,7 +12,8 @@ DebugVertexStageOutput debugVertMain(uint uiVertexId: SV_VertexID)
     DebugVertexStageOutput output;
     output.debugVertex.color = DebugConstants.color.xyz;
     if (DebugConstants.flags == 1) {
-        output.sv_position = mul(worldMat, v.position);
+        float aspectRatio = sd.drawExtent.x / sd.drawExtent.y;
+        output.sv_position = mul(worldMat, (v.position * float4(1.f, aspectRatio, 1.f, 1.f)));
     } else {
         output.sv_position = mul(mul(sd.viewproj, worldMat), v.position);
     }
