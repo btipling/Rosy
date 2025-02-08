@@ -499,6 +499,15 @@ namespace
 
 			const glm::vec3 intersection_lol = camera_pos + (t * world_ray);
 
+			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_enabled)))
+			{
+				ctx->rls->pick_debugging.picking = {
+					.type = debug_object_type::circle,
+					.transform = mat4_to_array(glm::translate(glm::mat4(1.f), view_click)),
+					.color = {0.f, 1.f, 0.f},
+				};
+			}
+
 
 			//ctx->l->info(std::format("screen space: ({:.1f}, {:.1f}) view_ray: ({:.3f}, {:.3f}, {:.3f}) world_ray: ({:.3f}, {:.3f}, {:.3f})  camera_pos: ({:.3f}, {:.3f}, {:.3f}) intersection(lol): ({:.3f}, {:.3f}, {:.3f}) t: {:.3f}",
 			//	x_s, y_s,

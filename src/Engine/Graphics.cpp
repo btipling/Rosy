@@ -395,6 +395,7 @@ namespace {
 	{
 		[[maybe_unused]] std::array<float, 16> transform{};
 		[[maybe_unused]] std::array<float, 4> color{};
+		[[maybe_unused]] uint32_t flags{ 0 };
 		[[maybe_unused]] VkDeviceAddress scene_buffer{ 0 };
 		[[maybe_unused]] VkDeviceAddress debug_draw_buffer{ 0 };
 	};
