@@ -96,7 +96,7 @@ namespace
 		return m;
 	}
 
-	glm::vec4 array_to_vec4(const std::array<float, 4>& a)
+	[[maybe_unused]] glm::vec4 array_to_vec4(const std::array<float, 4>& a)
 	{
 		glm::vec4 v{};
 		const auto pos_r = glm::value_ptr(v);
@@ -434,42 +434,45 @@ namespace
 
 			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
 
-			const auto floor = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
+			//const auto floor = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
 
-			const node* floor_node = ctx->get_static()[floor->index];
-			const glm::mat4 to_floor_space = glm::inverse(array_to_mat4(ctx->cam->v) * array_to_mat4(floor_node->transform));
+			//const node* floor_node = ctx->get_static()[floor->index];
+			const glm::vec3 camera_pos = glm::vec3(ctx->cam->position[0], ctx->cam->position[1], ctx->cam->position[2]);
 
-			const float a = ctx->cam->aspect_ratio;
-			const float d = static_cast<float>(ctx->cam->g) * -1.f;
+			const float a = static_cast<float>(ctx->cam->s);
 			const float w = ctx->cam->viewport_width;
 			const float h = ctx->cam->viewport_height;
-			const float x_s = c_pos->screen_x;
-			const float y_s = c_pos->screen_y;
+			const float x_s = c_pos->screen_x / w;
+			const float y_s = c_pos->screen_y / h;
+			const float g = static_cast<float>(ctx->cam->g);
 
-			const float d1 = (2 * a) / w;
-			const float d2 = 2 / h * -1.f;
-			const float d3 = d;
-			const float x = (((2.f * a) / -w) * 1) - 1.f;
-			const float y = ((2.f/h) * 1) + 1.f;
-			const auto screen_to_view = glm::mat3(
-				glm::vec3(d1, 0.f, 0.f),
-				glm::vec3(0.f, d2, 0.f),
-				glm::vec3(x, y, d3));
+			const float x_v = ((2.f * x_s) - 1.f) * a;
+			const float y_v = 2.f * y_s - 1.f;
 
-			const glm::vec3 view_space_coords = screen_to_view * glm::vec3(x_s, y_s, 1.f);
+			const glm::vec3 view_click = glm::vec3(x_v, y_v, g);
+			const glm::vec3 world_click =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
+			const glm::vec3 world_ray = normalize(world_click - camera_pos);
 
-			const glm::vec3 view_ray = normalize(glm::vec3(view_space_coords[0], view_space_coords[1], view_space_coords[2]));
-			const auto floor_ray_ray = normalize(glm::vec3(to_floor_space * glm::vec4(view_ray, 1.f)));
-			const auto floor_camera_pos = to_floor_space * glm::vec4(0.f, 0.f, 0.f, 1.f);
+			const glm::vec3 normal = glm::vec3(0.f, 1.f, 0.f);
+			const float plane_distance = 0.f;
+
+			const float normal_dot_camera_pos = glm::dot(normal, camera_pos);
+			const float normal_dot_world_ray =  glm::dot(normal, world_ray);
+			ctx->l->info(std::format("normal_dot_camera_pos {:.3f} normal_dot_world_ray {:.3f}", normal_dot_camera_pos, normal_dot_world_ray));
+			const float t = (-1.f * (normal_dot_camera_pos + plane_distance)) / normal_dot_world_ray;
+
+			const glm::vec3 intersection_lol = camera_pos + (t * world_ray);
 
 
-			ctx->l->info(std::format(
-				"screen space: ({:.1f}, {:.1f}) view_space: ({:.3f}, {:.3f}, {:.3f}) view ray: ({:.3f}, {:.3f}, {:.3f}) floor ray: ({:.3f}, {:.3f}, {:.3f}) floor camera: ({:.3f}, {:.3f}, {:.3f}) ",
-				x_s, y_s,
-				view_space_coords[0], view_space_coords[1], view_space_coords[2],
-				view_ray[0], view_ray[1], view_ray[2],
-				floor_ray_ray[0], floor_ray_ray[1], floor_ray_ray[2],
-				floor_camera_pos[0], floor_camera_pos[1], floor_camera_pos[2]));
+			//ctx->l->info(std::format("screen space: ({:.1f}, {:.1f}) view_ray: ({:.3f}, {:.3f}, {:.3f}) world_ray: ({:.3f}, {:.3f}, {:.3f})  camera_pos: ({:.3f}, {:.3f}, {:.3f}) intersection(lol): ({:.3f}, {:.3f}, {:.3f}) t: {:.3f}",
+			//	x_s, y_s,
+			//	view_click[0], view_click[1], view_click[2],
+			//	world_ray[0], world_ray[1], world_ray[2],
+			//	camera_pos[0], camera_pos[1], camera_pos[2],
+			//	intersection_lol[0], intersection_lol[1], intersection_lol[2],
+			//	t
+			//	));
+
 		}
 	}
 

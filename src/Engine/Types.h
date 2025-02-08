@@ -167,6 +167,15 @@ namespace rosy
 		size_t static_objects_offset{ 0 };
 	};
 
+	struct pick_debug_read_state
+	{
+		bool debug_picking_enabled{ false };
+		bool picking{ false };
+		debug_object screen_space;
+		debug_object view_space;
+		std::vector<debug_object> circles;
+	};
+
 	struct read_level_state
 	{
 		read_camera cam{};
@@ -178,6 +187,7 @@ namespace rosy
 		graphic_objects_state graphic_objects{};
 		mob_read_state mob_read{};
 		float target_fps{ 0.f };
+		pick_debug_read_state pick_debugging{};
 	};
 
 	struct write_level_state

@@ -17,7 +17,6 @@ namespace rosy
 		float starting_yaw{ 0.f };
 		float viewport_width{ 0.f };
 		float viewport_height{ 0.f };
-		float aspect_ratio{ 0.f };
 
 		double g{ 0.5f }; // projection plane distance
 		double s{ 1.f }; // aspect ratio
