@@ -501,9 +501,11 @@ namespace
 
 			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_enabled)))
 			{
+				glm::mat4 m = glm::translate(glm::mat4(1.f), view_click);
+				m = glm::scale(m, glm::vec3(0.01f));
 				ctx->rls->pick_debugging.picking = {
 					.type = debug_object_type::circle,
-					.transform = mat4_to_array(glm::translate(glm::mat4(1.f), view_click)),
+					.transform = mat4_to_array(m),
 					.color = {0.f, 1.f, 0.f},
 					.flags = debug_object_flag_no_perspective,
 				};
