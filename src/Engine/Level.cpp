@@ -501,7 +501,7 @@ namespace
 
 			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_enabled)))
 			{
-				glm::mat4 m = glm::translate(glm::mat4(1.f), view_click);
+				glm::mat4 m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
 				m = glm::scale(m, glm::vec3(0.01f));
 				ctx->rls->pick_debugging.picking = {
 					.type = debug_object_type::circle,
