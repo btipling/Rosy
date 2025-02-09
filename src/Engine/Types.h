@@ -81,8 +81,9 @@ namespace rosy
 		cross,
 	};
 
-	inline uint32_t debug_object_flag_screen_space { 1 << 0 };
-	inline uint32_t debug_object_flag_view_space   { 1 << 1 };
+	inline uint32_t debug_object_flag_screen_space         { 1 << 0 };
+	inline uint32_t debug_object_flag_view_space           { 1 << 1 };
+	inline uint32_t debug_object_flag_transform_is_points  { 1 << 2 };
 
 	struct debug_object
 	{

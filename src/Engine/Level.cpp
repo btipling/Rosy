@@ -515,22 +515,21 @@ namespace
 				};
 				if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_record)))
 				{
-					float distance{ 0.f };
-					while (true) {
-						glm::vec3 draw_location = world_ray * distance;
-						if (distance > 1'000.f) break;
-						distance += 2.f;
-						const glm::mat4 camera_pos_t = glm::translate(glm::mat4(1.f), camera_pos);
-						const glm::mat4 s = glm::scale(glm::mat4(1.f), glm::vec3(0.01f));
-						const auto r =  glm::inverse(array_to_mat4(ctx->cam->r));
-						const glm::mat4 t = glm::translate(glm::mat4(1.f), draw_location);
-						ctx->rls->pick_debugging.circles.push_back({
-							.type = debug_object_type::line,
-							.transform = mat4_to_array(camera_pos_t * s * t * r),
-							.color =  { 0.f, 1.f, 0.f, 1.f },
-							.flags = 0,
-							});
-					}
+					float distance{ 1000.f };
+					glm::vec3 draw_location = world_ray * distance;
+					distance += 2.f;
+					auto m2 = glm::mat4(
+						glm::vec4(camera_pos, 1.f),
+						glm::vec4(draw_location, 1.f),
+						glm::vec4(1.f),
+						glm::vec4(1.f)
+					);
+					ctx->rls->pick_debugging.circles.push_back({
+						.type = debug_object_type::line,
+						.transform = mat4_to_array(m2),
+						.color =  { 0.f, 1.f, 0.f, 1.f },
+						.flags = debug_object_flag_transform_is_points,
+						});
 					ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
 				}
 			}

@@ -11,6 +11,12 @@ DebugVertexStageOutput debugVertMain(uint uiVertexId: SV_VertexID)
 
     DebugVertexStageOutput output;
     output.debugVertex.color = DebugConstants.color.xyz;
+
+    if (DebugConstants.flags == 4) { // transform is actually vertices
+        output.sv_position = mul(sd.viewproj, float4(worldMat[0][uiVertexId], worldMat[1][uiVertexId], worldMat[2][uiVertexId], worldMat[3][uiVertexId]));
+        return output;
+    }
+
     if (DebugConstants.flags == 1) { // screen space
         float aspectRatio = sd.drawExtent.x / sd.drawExtent.y;
         float4 position = mul(worldMat, (v.position * float4(1.f, aspectRatio, 1.f, 1.f)));
