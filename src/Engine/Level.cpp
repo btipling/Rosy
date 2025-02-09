@@ -426,7 +426,7 @@ namespace
 					}
 					else
 					{
-						const uint32_t space = mbe.clicks > 1 ? debug_object_flag_screen_space : debug_object_flag_view_space;
+						const uint32_t space = mbe.clicks > 2 ? debug_object_flag_view_space : debug_object_flag_screen_space;
 						const c_pick_debugging_enabled pick{ .space = space };
 						ecs_set_id(world, level_entity, ecs_id(c_pick_debugging_enabled), sizeof(c_pick_debugging_enabled), &pick);
 					}
@@ -509,13 +509,20 @@ namespace
 
 			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 			{
-				glm::mat4 m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
+				const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
+				glm::mat4 m;
+				if (pick_debugging->space & debug_object_flag_screen_space) {
+					m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
+				} else
+				{
+					m = glm::translate(glm::mat4(1.f), view_click);
+				}
 				m = glm::scale(m, glm::vec3(0.01f));
 				ctx->rls->pick_debugging.picking = {
 					.type = debug_object_type::circle,
 					.transform = mat4_to_array(m),
 					.color = {0.f, 1.f, 0.f},
-					.flags = debug_object_flag_screen_space,
+					.flags = pick_debugging->space,
 				};
 			}
 
