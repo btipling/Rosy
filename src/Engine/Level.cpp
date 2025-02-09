@@ -64,6 +64,12 @@ namespace
 	};
 	ECS_COMPONENT_DECLARE(c_rosy_target);
 
+	struct c_pick_debugging_enabled
+	{
+		uint32_t space{ debug_object_flag_screen_space };
+	};
+	ECS_COMPONENT_DECLARE(c_pick_debugging_enabled);
+
 	// Tags
 	struct [[maybe_unused]] t_rosy {};
 	ECS_TAG_DECLARE(t_rosy);
@@ -71,8 +77,6 @@ namespace
 	ECS_TAG_DECLARE(t_floor);
 	struct [[maybe_unused]] t_rosy_action {};
 	ECS_TAG_DECLARE(t_rosy_action);
-	struct [[maybe_unused]] t_pick_debugging_enabled {};
-	ECS_TAG_DECLARE(t_pick_debugging_enabled);
 	struct [[maybe_unused]] t_pick_debugging_record {};
 	ECS_TAG_DECLARE(t_pick_debugging_record);
 	struct [[maybe_unused]] t_pick_debugging_clear {};
@@ -249,6 +253,7 @@ namespace
 			ECS_COMPONENT_DEFINE(world, c_static);
 			ECS_COMPONENT_DEFINE(world, c_cursor_position);
 			ECS_COMPONENT_DEFINE(world, c_rosy_target);
+			ECS_COMPONENT_DEFINE(world, c_pick_debugging_enabled);
 		}
 
 		void init_tags() const
@@ -256,7 +261,6 @@ namespace
 			ECS_TAG_DEFINE(world, t_rosy);
 			ECS_TAG_DEFINE(world, t_floor);
 			ECS_TAG_DEFINE(world, t_rosy_action);
-			ECS_TAG_DEFINE(world, t_pick_debugging_enabled);
 			ECS_TAG_DEFINE(world, t_pick_debugging_record);
 			ECS_TAG_DEFINE(world, t_pick_debugging_clear);
 		}
@@ -416,19 +420,23 @@ namespace
 					ecs_add(world, rosy_entity, t_rosy_action);
 					break;
 				case pick_debug_toggle_btn:
-					if (ecs_has_id(world, level_entity, ecs_id(t_pick_debugging_enabled)))
+					if (mbe.clicks == 1 && ecs_has_id(world, level_entity, ecs_id(c_pick_debugging_enabled)))
 					{
-						ecs_remove(world, level_entity, t_pick_debugging_enabled);
-					} else
+						ecs_remove(world, level_entity, c_pick_debugging_enabled);
+					}
+					else
 					{
-						ecs_add(world, level_entity, t_pick_debugging_enabled);
+						const uint32_t space = mbe.clicks > 1 ? debug_object_flag_screen_space : debug_object_flag_view_space;
+						const c_pick_debugging_enabled pick{ .space = space };
+						ecs_set_id(world, level_entity, ecs_id(c_pick_debugging_enabled), sizeof(c_pick_debugging_enabled), &pick);
 					}
 					break;
 				case pick_debug_record_btn:
 					if (mbe.clicks > 1)
 					{
 						ecs_add(world, level_entity, t_pick_debugging_clear);
-					} else
+					}
+					else
 					{
 						ecs_add(world, level_entity, t_pick_debugging_record);
 					}
@@ -499,7 +507,7 @@ namespace
 
 			const glm::vec3 intersection_lol = camera_pos + (t * world_ray);
 
-			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_enabled)))
+			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 			{
 				glm::mat4 m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
 				m = glm::scale(m, glm::vec3(0.01f));
@@ -580,7 +588,7 @@ namespace
 		{
 			ctx->rls->pick_debugging.circles.clear();
 		}
-		if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_enabled)))
+		if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 		{
 			ctx->rls->debug_objects.insert(ctx->rls->debug_objects.end(), ctx->rls->pick_debugging.circles.begin(), ctx->rls->pick_debugging.circles.end());
 			if (ctx->rls->pick_debugging.picking.has_value())
