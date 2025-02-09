@@ -507,7 +507,7 @@ namespace
 					.type = debug_object_type::circle,
 					.transform = mat4_to_array(m),
 					.color = {0.f, 1.f, 0.f},
-					.flags = debug_object_flag_no_perspective,
+					.flags = debug_object_flag_screen_space,
 				};
 			}
 

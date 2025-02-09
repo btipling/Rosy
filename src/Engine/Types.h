@@ -81,7 +81,8 @@ namespace rosy
 		cross,
 	};
 
-	inline uint32_t debug_object_flag_no_perspective{ 00000000000000000000000000000001 };
+	inline uint32_t debug_object_flag_screen_space { 1 << 0 };
+	inline uint32_t debug_object_flag_view_space   { 1 << 1 };
 
 	struct debug_object
 	{
