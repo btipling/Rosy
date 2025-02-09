@@ -530,8 +530,8 @@ namespace
 							.color =  { 0.f, 1.f, 0.f, 1.f },
 							.flags = 0,
 							});
-						ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
 					}
+					ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
 				}
 			}
 			else
