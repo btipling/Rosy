@@ -488,7 +488,7 @@ namespace
 			const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
 			const float y_v = (2.f * y_s - 1.f) * fov;
 
-			const glm::vec3 view_click = glm::vec3(x_v, -y_v, 1.f * g);
+			const glm::vec3 view_click = glm::vec3(x_v, -y_v, 2.f * g);
 			const glm::vec3 world_click =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
 			const glm::vec3 world_ray = normalize(world_click - camera_pos);
 
@@ -525,16 +525,22 @@ namespace
 				};
 				if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_record)))
 				{
-					const glm::mat4 s = glm::scale(glm::mat4(1.f), glm::vec3(0.01f));
-					const glm::mat4 r = glm::mat4(1.f); // glm::inverse(array_to_mat4(ctx->cam->r));
-					const glm::mat4 t = glm::translate(glm::mat4(1.f), view_click);
-					ctx->rls->pick_debugging.circles.push_back({
-						.type = debug_object_type::circle,
-						.transform = mat4_to_array(glm::inverse(array_to_mat4(ctx->cam->v)) * s * t * r ),
-						.color =  { 0.f, 1.f, 0.f, 1.f },
-						.flags = 0,
-					});
-					ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
+					float distance{ 0.f };
+					while (true) {
+						glm::vec3 draw_location = view_click * distance;
+						if (distance > 10'000.f) break;
+						distance += 10.f;
+						const glm::mat4 s = glm::scale(glm::mat4(1.f), glm::vec3(0.01f));
+						const glm::mat4 r = glm::mat4(1.f); // glm::inverse(array_to_mat4(ctx->cam->r));
+						const glm::mat4 t = glm::translate(glm::mat4(1.f), draw_location);
+						ctx->rls->pick_debugging.circles.push_back({
+							.type = debug_object_type::circle,
+							.transform = mat4_to_array(glm::inverse(array_to_mat4(ctx->cam->v)) * s * t * r),
+							.color =  { 0.f, 1.f, 0.f, 1.f },
+							.flags = 0,
+							});
+						ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
+					}
 				}
 			}
 
