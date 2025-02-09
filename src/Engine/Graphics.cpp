@@ -931,10 +931,10 @@ namespace {
 				vmaDestroyImage(allocator, draw_image.image, draw_image.allocation);
 			}
 
-			if (desc_storage_images != nullptr)
+			if (desc_samples != nullptr)
 			{
-				delete desc_storage_images;
-				desc_storage_images = nullptr;
+				delete desc_samples;
+				desc_samples = nullptr;
 			}
 
 			if (desc_sampled_images != nullptr)
@@ -943,10 +943,10 @@ namespace {
 				desc_sampled_images = nullptr;
 			}
 
-			if (desc_samples != nullptr)
+			if (desc_storage_images != nullptr)
 			{
-				delete desc_samples;
-				desc_samples = nullptr;
+				delete desc_storage_images;
+				desc_storage_images = nullptr;
 			}
 
 			destroy_swapchain();
