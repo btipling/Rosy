@@ -423,6 +423,7 @@ namespace
 					if (mbe.clicks == 1 && ecs_has_id(world, level_entity, ecs_id(c_pick_debugging_enabled)))
 					{
 						ecs_remove(world, level_entity, c_pick_debugging_enabled);
+						ecs_add(world, level_entity, t_pick_debugging_clear);
 					}
 					else
 					{
@@ -432,14 +433,7 @@ namespace
 					}
 					break;
 				case pick_debug_record_btn:
-					if (mbe.clicks > 1)
-					{
-						ecs_add(world, level_entity, t_pick_debugging_clear);
-					}
-					else
-					{
-						ecs_add(world, level_entity, t_pick_debugging_record);
-					}
+					ecs_add(world, level_entity, t_pick_debugging_record);
 					break;
 				default:
 					break;
@@ -499,14 +493,14 @@ namespace
 			const glm::vec3 world_ray = normalize(world_click - camera_pos);
 
 			const glm::vec3 normal = glm::vec3(0.f, 1.f, 0.f);
-			const float plane_distance = 0.f;
+			//const float plane_distance = 0.f;
 
 			const float normal_dot_camera_pos = glm::dot(normal, camera_pos);
 			const float normal_dot_world_ray =  glm::dot(normal, world_ray);
 			ctx->l->info(std::format("normal_dot_camera_pos {:.3f} normal_dot_world_ray {:.3f}", normal_dot_camera_pos, normal_dot_world_ray));
-			const float t = (-1.f * (normal_dot_camera_pos + plane_distance)) / normal_dot_world_ray;
+			//const float t = (-1.f * (normal_dot_camera_pos + plane_distance)) / normal_dot_world_ray;
 
-			const glm::vec3 intersection_lol = camera_pos + (t * world_ray);
+			//const glm::vec3 intersection_lol = camera_pos + (t * world_ray);
 
 			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 			{
@@ -529,6 +523,19 @@ namespace
 					.color = color,
 					.flags = pick_debugging->space,
 				};
+				if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_record)))
+				{
+					const glm::mat4 s = glm::scale(glm::mat4(1.f), glm::vec3(0.01f));
+					const glm::mat4 r = glm::mat4(1.f); // glm::inverse(array_to_mat4(ctx->cam->r));
+					const glm::mat4 t = glm::translate(glm::mat4(1.f), view_click);
+					ctx->rls->pick_debugging.circles.push_back({
+						.type = debug_object_type::circle,
+						.transform = mat4_to_array(glm::inverse(array_to_mat4(ctx->cam->v)) * s * t * r ),
+						.color =  { 0.f, 1.f, 0.f, 1.f },
+						.flags = 0,
+					});
+					ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
+				}
 			}
 
 			//ctx->l->info(std::format("screen space: ({:.1f}, {:.1f}) view_ray: ({:.3f}, {:.3f}, {:.3f}) world_ray: ({:.3f}, {:.3f}, {:.3f})  camera_pos: ({:.3f}, {:.3f}, {:.3f}) intersection(lol): ({:.3f}, {:.3f}, {:.3f}) t: {:.3f}",
@@ -599,6 +606,7 @@ namespace
 		if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_clear)))
 		{
 			ctx->rls->pick_debugging.circles.clear();
+			ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_clear);
 		}
 		if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 		{
