@@ -456,7 +456,7 @@ namespace
 			if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || SDL_EVENT_MOUSE_BUTTON_UP)
 			{
 				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
-				const c_cursor_position c_pos{ .screen_x = mbe.x, .screen_y = mbe.y};
+				const c_cursor_position c_pos{ .screen_x = mbe.x, .screen_y = mbe.y };
 				ecs_set_id(world, level_entity, ecs_id(c_cursor_position), sizeof(c_cursor_position), &c_pos);
 			}
 			return result::ok;
@@ -486,14 +486,15 @@ namespace
 			const float a = static_cast<float>(ctx->cam->s);
 			const float w = ctx->cam->viewport_width;
 			const float h = ctx->cam->viewport_height;
+			const float fov = static_cast<float>(ctx->cam->fov) / 100.f;
 			const float x_s = c_pos->screen_x / w;
 			const float y_s = c_pos->screen_y / h;
 			const float g = static_cast<float>(ctx->cam->g);
 
-			const float x_v = ((2.f * x_s) - 1.f) * a;
-			const float y_v = 2.f * y_s - 1.f;
+			const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
+			const float y_v = (2.f * y_s - 1.f) * fov;
 
-			const glm::vec3 view_click = glm::vec3(x_v, y_v, g);
+			const glm::vec3 view_click = glm::vec3(x_v, -y_v, 1.f * g);
 			const glm::vec3 world_click =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
 			const glm::vec3 world_ray = normalize(world_click - camera_pos);
 
@@ -515,7 +516,8 @@ namespace
 				if (pick_debugging->space & debug_object_flag_screen_space) {
 					color = { 0.f, 1.f, 0.f, 1.f };
 					m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
-				} else
+				}
+				else
 				{
 					color = { 1.f, 1.f, 0.f, 1.f };
 					m = glm::translate(glm::mat4(1.f), view_click);
@@ -608,7 +610,8 @@ namespace
 				ctx->rls->pick_debugging.picking = std::nullopt;
 			}
 			ctx->rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space ? pick_debug_read_state::picking_space::screen : pick_debug_read_state::picking_space::view;
-		} else
+		}
+		else
 		{
 			ctx->rls->pick_debugging.space = pick_debug_read_state::picking_space::disabled;
 		}
