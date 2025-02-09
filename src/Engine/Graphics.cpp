@@ -5556,6 +5556,24 @@ namespace {
 								ImGui::EndTable();
 							}
 						}
+						if (ImGui::CollapsingHeader("Picking"))
+						{
+							ImVec4 color;
+							switch (rls->pick_debugging.space)
+							{
+							case pick_debug_read_state::picking_space::screen:
+								color = ImVec4(0.f, 1.f, 0.f, 1.f);
+								ImGui::TextColored(color, "Pick debugging in screen space");
+								break;
+							case pick_debug_read_state::picking_space::view:
+								color = ImVec4(1.f, 1.f, 0.f, 1.f);
+								ImGui::TextColored(color, "Pick debugging in view space");
+								break;
+							default:
+								ImGui::Text("Pick debugging disabled");
+								break;
+							}
+						}
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();

@@ -174,6 +174,13 @@ namespace rosy
 
 	struct pick_debug_read_state
 	{
+		enum class picking_space: uint8_t
+		{
+			disabled,
+			screen,
+			view,
+		};
+		picking_space space{ picking_space::disabled };
 		std::optional<debug_object> picking{std::nullopt};
 		std::vector<debug_object> circles;
 	};

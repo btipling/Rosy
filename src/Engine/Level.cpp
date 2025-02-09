@@ -511,17 +511,20 @@ namespace
 			{
 				const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
 				glm::mat4 m;
+				std::array<float, 4> color;
 				if (pick_debugging->space & debug_object_flag_screen_space) {
+					color = { 0.f, 1.f, 0.f, 1.f };
 					m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
 				} else
 				{
+					color = { 1.f, 1.f, 0.f, 1.f };
 					m = glm::translate(glm::mat4(1.f), view_click);
 				}
 				m = glm::scale(m, glm::vec3(0.01f));
 				ctx->rls->pick_debugging.picking = {
 					.type = debug_object_type::circle,
 					.transform = mat4_to_array(m),
-					.color = {0.f, 1.f, 0.f},
+					.color = color,
 					.flags = pick_debugging->space,
 				};
 			}
@@ -597,12 +600,17 @@ namespace
 		}
 		if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 		{
+			const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
 			ctx->rls->debug_objects.insert(ctx->rls->debug_objects.end(), ctx->rls->pick_debugging.circles.begin(), ctx->rls->pick_debugging.circles.end());
 			if (ctx->rls->pick_debugging.picking.has_value())
 			{
 				ctx->rls->debug_objects.push_back(ctx->rls->pick_debugging.picking.value());
 				ctx->rls->pick_debugging.picking = std::nullopt;
 			}
+			ctx->rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space ? pick_debug_read_state::picking_space::screen : pick_debug_read_state::picking_space::view;
+		} else
+		{
+			ctx->rls->pick_debugging.space = pick_debug_read_state::picking_space::disabled;
 		}
 		{
 			// Light & Shadow logic
