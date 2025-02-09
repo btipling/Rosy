@@ -409,12 +409,7 @@ namespace
 			constexpr Uint8 pick_debug_toggle_btn{ 2 };
 			constexpr Uint8 pick_debug_record_btn{ 3 };
 			if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
-				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
-				l->info(std::format("mouse button down: {}", mbe.button));
-				if (mbe.button == rosy_attention_btn)
-				{
-				}
-				switch (mbe.button)
+				switch (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button)
 				{
 				case rosy_attention_btn:
 					ecs_add(world, rosy_entity, t_rosy_action);
@@ -440,12 +435,7 @@ namespace
 				}
 			}
 			if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
-				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
-				l->info(std::format("mouse button down: {}", mbe.button));
-				if (mbe.button == rosy_attention_btn)
-				{
-					ecs_remove(world, rosy_entity, t_rosy_action);
-				}
+				if (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button == rosy_attention_btn) ecs_remove(world, rosy_entity, t_rosy_action);
 			}
 			if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || SDL_EVENT_MOUSE_BUTTON_UP)
 			{
@@ -471,11 +461,7 @@ namespace
 			if (!ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position))) continue;
 
 			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
-
-			//const auto floor = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
-
-			//const node* floor_node = ctx->get_static()[floor->index];
-			const glm::vec3 camera_pos = glm::vec3(ctx->cam->position[0], ctx->cam->position[1], ctx->cam->position[2]);
+			const auto camera_pos = glm::vec3(ctx->cam->position[0], ctx->cam->position[1], ctx->cam->position[2]);
 
 			const float a = static_cast<float>(ctx->cam->s);
 			const float w = ctx->cam->viewport_width;
@@ -488,32 +474,23 @@ namespace
 			const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
 			const float y_v = (2.f * y_s - 1.f) * fov;
 
-			const glm::vec3 view_click = glm::vec3(x_v, -y_v, 2.f * g);
-			const glm::vec3 world_ray =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
+			const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
+			const auto world_ray =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
 
 
 			const glm::vec3 plucker_v = world_ray;
 			const glm::vec3 plucker_m = cross(camera_pos, world_ray);
 
-			const glm::vec3 normal = glm::vec3(0.f, 1.f, 0.f);
-			const float plane_distance = 0.f;
+			constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
+			constexpr float plane_distance = 0.f;
 
 			const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
 			const glm::vec3 d_v = plucker_v * plane_distance;
 
 			const glm::vec3 intersection = m_x_n + d_v;
 			[[maybe_unused]] const float intersection_w = glm::dot(-normal, plucker_v);
-			ctx->l->info(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0]/ intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
-			glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
-			circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
-			circle_m = glm::scale(circle_m, glm::vec3(0.1f));
+			ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
-			ctx->rls->pick_debugging.circles.push_back({
-				.type = debug_object_type::circle,
-				.transform = mat4_to_array(circle_m),
-				.color =  { 0.f, 1.f, 0.f, 1.f },
-				.flags = 0,
-				});
 
 			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 			{
@@ -545,7 +522,7 @@ namespace
 						distance += 10.f;
 						const glm::mat4 camera_pos_t = glm::translate(glm::mat4(1.f), camera_pos);
 						const glm::mat4 s = glm::scale(glm::mat4(1.f), glm::vec3(0.01f));
-						const glm::mat4 r = glm::mat4(1.f); // glm::inverse(array_to_mat4(ctx->cam->r));
+						const auto r =  glm::inverse(array_to_mat4(ctx->cam->r));
 						const glm::mat4 t = glm::translate(glm::mat4(1.f), draw_location);
 						ctx->rls->pick_debugging.circles.push_back({
 							.type = debug_object_type::circle,
@@ -557,15 +534,19 @@ namespace
 					}
 				}
 			}
+			else
+			{
+				glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+				circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
+				circle_m = glm::scale(circle_m, glm::vec3(0.25f));
 
-			//ctx->l->info(std::format("screen space: ({:.1f}, {:.1f}) view_ray: ({:.3f}, {:.3f}, {:.3f}) world_ray: ({:.3f}, {:.3f}, {:.3f})  camera_pos: ({:.3f}, {:.3f}, {:.3f}) intersection(lol): ({:.3f}, {:.3f}, {:.3f}) t: {:.3f}",
-			//	x_s, y_s,
-			//	view_click[0], view_click[1], view_click[2],
-			//	world_ray[0], world_ray[1], world_ray[2],
-			//	camera_pos[0], camera_pos[1], camera_pos[2],
-			//	intersection_lol[0], intersection_lol[1], intersection_lol[2],
-			//	t
-			//	));
+				ctx->rls->pick_debugging.picking = {
+					.type = debug_object_type::circle,
+							.transform = mat4_to_array(circle_m),
+					.color =  { 0.f, 1.f, 0.f, 1.f },
+					.flags = 0,
+				};
+			}
 
 		}
 	}
@@ -638,6 +619,13 @@ namespace
 				ctx->rls->pick_debugging.picking = std::nullopt;
 			}
 			ctx->rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space ? pick_debug_read_state::picking_space::screen : pick_debug_read_state::picking_space::view;
+		}
+		else if (ecs_has_id(ctx->world, ctx->rosy_entity, ecs_id(t_rosy_action)))
+		{
+			if (ctx->rls->pick_debugging.picking.has_value())
+			{
+				ctx->rls->debug_objects.push_back(ctx->rls->pick_debugging.picking.value());
+			}
 		}
 		else
 		{
@@ -826,7 +814,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	if (new_asset.scenes.size() <= root_scene_index) return result::invalid_argument;
 
 	const auto& [nodes] = new_asset.scenes[root_scene_index];
-	if (nodes.size() < 1) return result::invalid_argument;
+	if (nodes.empty()) return result::invalid_argument;
 
 	{
 		// Clear existing game nodes
