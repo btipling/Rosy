@@ -518,14 +518,14 @@ namespace
 					float distance{ 0.f };
 					while (true) {
 						glm::vec3 draw_location = world_ray * distance;
-						if (distance > 10'000.f) break;
-						distance += 10.f;
+						if (distance > 1'000.f) break;
+						distance += 2.f;
 						const glm::mat4 camera_pos_t = glm::translate(glm::mat4(1.f), camera_pos);
 						const glm::mat4 s = glm::scale(glm::mat4(1.f), glm::vec3(0.01f));
 						const auto r =  glm::inverse(array_to_mat4(ctx->cam->r));
 						const glm::mat4 t = glm::translate(glm::mat4(1.f), draw_location);
 						ctx->rls->pick_debugging.circles.push_back({
-							.type = debug_object_type::circle,
+							.type = debug_object_type::line,
 							.transform = mat4_to_array(camera_pos_t * s * t * r),
 							.color =  { 0.f, 1.f, 0.f, 1.f },
 							.flags = 0,
