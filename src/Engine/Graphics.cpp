@@ -91,16 +91,16 @@ namespace {
 
 	/// Graphics Device
 
-	constexpr  uint64_t graphics_created_bit_instance         = { 1ULL <<  0 };
-	constexpr  uint64_t graphics_created_bit_device	          = { 1ULL <<  1 };
-	constexpr  uint64_t graphics_created_bit_surface          = { 1ULL <<  2 };
-	constexpr  uint64_t graphics_created_bit_vma              = { 1ULL <<  3 };
-	constexpr  uint64_t graphics_created_bit_debug_messenger  = { 1ULL <<  4 };
-	constexpr  uint64_t graphics_created_bit_fence            = { 1ULL <<  5 };
-	constexpr  uint64_t graphics_created_bit_command_pool     = { 1ULL <<  6 };
-	constexpr  uint64_t graphics_created_bit_draw_image       = { 1ULL <<  7 };
-	constexpr  uint64_t graphics_created_bit_depth_image      = { 1ULL <<  8 };
-	constexpr  uint64_t graphics_created_bit_ui_pool          = { 1ULL <<  9 };
+	constexpr  uint64_t graphics_created_bit_instance         = { 1ULL << 0 };
+	constexpr  uint64_t graphics_created_bit_device	          = { 1ULL << 1 };
+	constexpr  uint64_t graphics_created_bit_surface          = { 1ULL << 2 };
+	constexpr  uint64_t graphics_created_bit_vma              = { 1ULL << 3 };
+	constexpr  uint64_t graphics_created_bit_debug_messenger  = { 1ULL << 4 };
+	constexpr  uint64_t graphics_created_bit_fence            = { 1ULL << 5 };
+	constexpr  uint64_t graphics_created_bit_command_pool     = { 1ULL << 6 };
+	constexpr  uint64_t graphics_created_bit_draw_image       = { 1ULL << 7 };
+	constexpr  uint64_t graphics_created_bit_depth_image      = { 1ULL << 8 };
+	constexpr  uint64_t graphics_created_bit_ui_pool          = { 1ULL << 9 };
 	constexpr  uint64_t graphics_created_bit_swapchain        = { 1ULL << 10 };
 	constexpr  uint64_t graphics_created_bit_ktx_vdi_info     = { 1ULL << 11 };
 	constexpr  uint64_t graphics_created_bit_descriptor_set   = { 1ULL << 12 };
@@ -480,9 +480,9 @@ namespace {
 		VkSurfaceKHR surface{ nullptr };
 		VkPhysicalDeviceFeatures required_features{};
 
-		allocated_image draw_image;
-		allocated_image depth_image;
-		allocated_image msaa_image;
+		allocated_image draw_image{};
+		allocated_image depth_image{};
+		allocated_image msaa_image{};
 		VkSampleCountFlagBits msaa_samples{ VK_SAMPLE_COUNT_1_BIT };
 		allocated_csm shadow_map_image;
 		uint32_t default_sampler_index{ 0 };
@@ -501,8 +501,8 @@ namespace {
 		// shaders
 		std::vector<VkShaderEXT> debug_shaders;
 		std::vector<VkShaderEXT> shadow_shaders;
-		VkPipelineLayout debug_layout;
-		VkPipelineLayout shadow_layout;
+		VkPipelineLayout debug_layout{};
+		VkPipelineLayout shadow_layout{};
 
 		// Level dependent data
 		std::vector< VkSampler> samplers;
@@ -517,14 +517,14 @@ namespace {
 		std::vector<surface_graphics_data> blended_graphics{};
 		graphics_object_update graphics_object_update_data{};
 		std::vector<VkShaderEXT> scene_shaders;
-		VkPipelineLayout scene_layout;
+		VkPipelineLayout scene_layout{};
 
 		// Buffers
 		gpu_scene_buffers scene_buffer{};
 
 		gpu_scene_data scene_data{};
 		write_level_state* wls{ nullptr };
-		read_level_state const* rls;
+		read_level_state const* rls{ nullptr };
 
 		result init(const config new_cfg)
 		{
@@ -1600,8 +1600,7 @@ namespace {
 				vkGetDeviceQueue2(device, &get_info, &present_queue);
 			}
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_QUEUE;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(present_queue);
@@ -1696,8 +1695,7 @@ namespace {
 				if (const VkResult res = vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain); res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_swapchain;
 				{
-					VkDebugUtilsObjectNameInfoEXT debug_name;
-					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(swapchain);
@@ -2038,8 +2036,7 @@ namespace {
 			}
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(descriptor_pool);
@@ -2071,8 +2068,7 @@ namespace {
 			layout_flags.bindingCount = static_cast<uint32_t>(bindings_flags.size());
 			layout_flags.pBindingFlags = bindings_flags.data();
 
-			VkDescriptorSetLayoutCreateInfo layout_create_info;
-			layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			VkDescriptorSetLayoutCreateInfo layout_create_info{ .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 			layout_create_info.pNext = &layout_flags;
 			layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 			layout_create_info.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -2085,8 +2081,7 @@ namespace {
 			}
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(descriptor_set_layout);
@@ -2108,8 +2103,7 @@ namespace {
 			graphics_created_bitmask |= graphics_created_bit_descriptor_set;
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(descriptor_set);
@@ -2257,8 +2251,7 @@ namespace {
 				if (res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_fence;
 				{
-					VkDebugUtilsObjectNameInfoEXT debug_name;
-					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_FENCE;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_fence);
@@ -2298,8 +2291,7 @@ namespace {
 			graphics_created_bitmask |= graphics_created_bit_ui_pool;
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(ui_pool);
@@ -2772,8 +2764,7 @@ namespace {
 
 			graphics_created_bitmask |= graphics_created_bit_command_pool;
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_command_pool);
@@ -2794,8 +2785,7 @@ namespace {
 				return res;
 			}
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_command_buffer);
@@ -3189,7 +3179,7 @@ namespace {
 					}
 				}
 
-				memcpy(staging.info.pMappedData, debug_vertices.data(), debug_draws_buffer_size);
+				if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, debug_vertices.data(), debug_draws_buffer_size);
 
 				{
 					if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
@@ -3280,8 +3270,7 @@ namespace {
 			}
 			graphics_created_bitmask |= graphics_created_bit_sampler;
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(default_sampler);
@@ -3299,8 +3288,7 @@ namespace {
 					return VK_ERROR_INITIALIZATION_FAILED;
 				}
 				{
-					VkDescriptorImageInfo create_desc_info;
-					create_desc_info.sampler = default_sampler;
+					VkDescriptorImageInfo create_desc_info{ .sampler = default_sampler };
 					create_desc_info.imageView = nullptr;
 					create_desc_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -3477,7 +3465,7 @@ namespace {
 			std::vector<uint32_t> sampler_desc_index;
 			{
 				size_t sampler_index{ 0 };
-				for (const auto [sampler_min_filter, sampler_mag_filter, sampler_wrap_s, sampler_wrap_t] : a.samplers)
+				for (const auto& [sampler_min_filter, sampler_mag_filter, sampler_wrap_s, sampler_wrap_t] : a.samplers)
 				{
 					VkSamplerCreateInfo sampler_create_info = {};
 					sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -3549,7 +3537,7 @@ namespace {
 			{
 				std::vector<gpu_material> materials{};
 				materials.reserve(a.materials.size());
-				for (rosy_packager::material m : a.materials)
+				for (const rosy_packager::material& m : a.materials)
 				{
 					uint32_t color_image_sampler_index = UINT32_MAX;
 					uint32_t color_sampler_index = default_sampler_index;
@@ -3665,7 +3653,7 @@ namespace {
 						}
 					}
 
-					memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
+					if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
 
 					{
 						if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
@@ -3861,8 +3849,8 @@ namespace {
 					}
 				}
 
-				memcpy(staging.info.pMappedData, asset_positions.data(), vertex_buffer_size);
-				memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, asset_indices.data(), index_buffer_size);
+				if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, asset_positions.data(), vertex_buffer_size);
+				if (staging.info.pMappedData != nullptr) memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, asset_indices.data(), index_buffer_size);
 
 				if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
 				{
@@ -4168,7 +4156,7 @@ namespace {
 					}
 				}
 
-				memcpy(staging.info.pMappedData, go_data.data(), graphic_objects_buffer_size);
+				if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, go_data.data(), graphic_objects_buffer_size);
 
 				{
 					if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
@@ -4421,7 +4409,7 @@ namespace {
 				{
 					std::vector<graphic_object_data> updated;
 					updated.reserve(graphics_object_update_data.graphic_objects.size());
-					for (const auto gou : graphics_object_update_data.graphic_objects)
+					for (const auto& gou : graphics_object_update_data.graphic_objects)
 					{
 						updated.push_back({
 							.transform = gou.transform,
@@ -4899,9 +4887,7 @@ namespace {
 							VkSampleMask sample_mask{ ~0U };
 							vkCmdSetSampleMaskEXT(cf.command_buffer, msaa_samples, &sample_mask);
 							VkExtent2D fragment_size = { 2, 2 };
-							VkFragmentShadingRateCombinerOpKHR combiner_ops[2];
-							combiner_ops[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
-							combiner_ops[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+							VkFragmentShadingRateCombinerOpKHR combiner_ops[2]{ VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR , VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR };
 							vkCmdSetFragmentShadingRateKHR(cf.command_buffer, &fragment_size, combiner_ops);
 						}
 						{
@@ -5001,7 +4987,7 @@ namespace {
 							};
 							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, debug_layout, 0, 1, &descriptor_set, 0, nullptr);
-							for (const auto [obj_type, obj_transform, obj_color, flags] : rls->debug_objects) {
+							for (const auto& [obj_type, obj_transform, obj_color, flags] : rls->debug_objects) {
 								gpu_debug_push_constants dpc{
 									.transform = obj_transform,
 									.color = obj_color,
@@ -5375,7 +5361,7 @@ namespace {
 
 								if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 								{
-									for (const auto [name, position] : rls->mob_read.mob_states) {
+									for (const auto& [name, position, target] : rls->mob_read.mob_states) {
 										ImGui::TableNextRow();
 										ImGui::TableNextColumn();
 										ImGui::Text(name.c_str());
@@ -5516,7 +5502,7 @@ namespace {
 						{
 							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 							{
-								for (const auto [name, position] : rls->mob_read.mob_states) {
+								for (const auto& [name, position, target] : rls->mob_read.mob_states) {
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
 									ImGui::Text(name.c_str());
@@ -5529,7 +5515,7 @@ namespace {
 							if (ImGui::BeginCombo("Select mob", rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
 							{
 								for (int i = 0; i < rls->mob_read.mob_states.size(); ++i) {
-									const auto [name, position] = rls->mob_read.mob_states[i];
+									const auto& [name, position, target] = rls->mob_read.mob_states[i];
 									const bool is_selected = (wls->mob_edit.edit_index == i);
 									if (ImGui::Selectable(name.c_str(), is_selected)) {
 										wls->mob_edit.edit_index = i;

@@ -56,13 +56,20 @@ namespace
 	};
 	ECS_COMPONENT_DECLARE(c_cursor_position);
 
-	struct c_rosy_target
+	struct c_target
 	{
 		float x{ 0.f };
 		float y{ 0.f };
 		float z{ 0.f };
 	};
-	ECS_COMPONENT_DECLARE(c_rosy_target);
+	ECS_COMPONENT_DECLARE(c_target);
+
+	struct c_forward
+	{
+		float x{ 0.f }; 
+		float z{ 0.f };
+	};
+	ECS_COMPONENT_DECLARE(c_forward);
 
 	struct c_pick_debugging_enabled
 	{
@@ -252,7 +259,8 @@ namespace
 			ECS_COMPONENT_DEFINE(world, c_mob);
 			ECS_COMPONENT_DEFINE(world, c_static);
 			ECS_COMPONENT_DEFINE(world, c_cursor_position);
-			ECS_COMPONENT_DEFINE(world, c_rosy_target);
+			ECS_COMPONENT_DEFINE(world, c_target);
+			ECS_COMPONENT_DEFINE(world, c_forward);
 			ECS_COMPONENT_DEFINE(world, c_pick_debugging_enabled);
 		}
 
@@ -492,6 +500,10 @@ namespace
 			ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
 
+			glm::vec3 rosy_target =  glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+			c_target target{ .x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z };
+			ecs_set_id(ctx->world, ctx->rosy_entity, ecs_id(c_target), sizeof(c_target), &target);
+
 			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 			{
 				const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
@@ -535,7 +547,7 @@ namespace
 			}
 			else
 			{
-				glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+				glm::mat4 circle_m = glm::translate(glm::mat4(1.f), rosy_target);
 				circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
 				circle_m = glm::scale(circle_m, glm::vec3(0.25f));
 
@@ -594,11 +606,11 @@ namespace
 				ctx->rls->mob_read.clear_edits = false;
 			}
 			ctx->rls->mob_read.mob_states.clear();
-			for (const node* const n : mobs)
+			for (const game_node_reference& nr : ctx->game_nodes)
 			{
 				ctx->rls->mob_read.mob_states.push_back({
-					.name = n->name,
-					.position = {n->position[0], n->position[1], n->position[2]},
+					.name = nr.node->name,
+					.position = {nr.node->position[0], nr.node->position[1], nr.node->position[2]},
 					});
 			}
 		}
@@ -1046,6 +1058,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 
 				c_mob m{ i };
 				ecs_set_id(ls->world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
+				c_forward forward{ .x = 0.f, .z = 1.f };
+				ecs_set_id(ls->world, node_entity, ecs_id(c_forward), sizeof(c_forward), &forward);
 
 				if (n->name == "rosy")
 				{
