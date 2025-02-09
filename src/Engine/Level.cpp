@@ -489,18 +489,31 @@ namespace
 			const float y_v = (2.f * y_s - 1.f) * fov;
 
 			const glm::vec3 view_click = glm::vec3(x_v, -y_v, 2.f * g);
-			const glm::vec3 world_click =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
-			const glm::vec3 world_ray = normalize(world_click - camera_pos);
+			const glm::vec3 world_ray =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
+
+
+			const glm::vec3 plucker_v = world_ray;
+			const glm::vec3 plucker_m = cross(camera_pos, world_ray);
 
 			const glm::vec3 normal = glm::vec3(0.f, 1.f, 0.f);
-			//const float plane_distance = 0.f;
+			const float plane_distance = 0.f;
 
-			const float normal_dot_camera_pos = glm::dot(normal, camera_pos);
-			const float normal_dot_world_ray =  glm::dot(normal, world_ray);
-			ctx->l->info(std::format("normal_dot_camera_pos {:.3f} normal_dot_world_ray {:.3f}", normal_dot_camera_pos, normal_dot_world_ray));
-			//const float t = (-1.f * (normal_dot_camera_pos + plane_distance)) / normal_dot_world_ray;
+			const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
+			const glm::vec3 d_v = plucker_v * plane_distance;
 
-			//const glm::vec3 intersection_lol = camera_pos + (t * world_ray);
+			const glm::vec3 intersection = m_x_n + d_v;
+			[[maybe_unused]] const float intersection_w = glm::dot(-normal, plucker_v);
+			ctx->l->info(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0]/ intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+			glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+			circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
+			circle_m = glm::scale(circle_m, glm::vec3(0.1f));
+
+			ctx->rls->pick_debugging.circles.push_back({
+				.type = debug_object_type::circle,
+				.transform = mat4_to_array(circle_m),
+				.color =  { 0.f, 1.f, 0.f, 1.f },
+				.flags = 0,
+				});
 
 			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 			{
@@ -527,15 +540,16 @@ namespace
 				{
 					float distance{ 0.f };
 					while (true) {
-						glm::vec3 draw_location = view_click * distance;
+						glm::vec3 draw_location = world_ray * distance;
 						if (distance > 10'000.f) break;
 						distance += 10.f;
+						const glm::mat4 camera_pos_t = glm::translate(glm::mat4(1.f), camera_pos);
 						const glm::mat4 s = glm::scale(glm::mat4(1.f), glm::vec3(0.01f));
 						const glm::mat4 r = glm::mat4(1.f); // glm::inverse(array_to_mat4(ctx->cam->r));
 						const glm::mat4 t = glm::translate(glm::mat4(1.f), draw_location);
 						ctx->rls->pick_debugging.circles.push_back({
 							.type = debug_object_type::circle,
-							.transform = mat4_to_array(glm::inverse(array_to_mat4(ctx->cam->v)) * s * t * r),
+							.transform = mat4_to_array(camera_pos_t * s * t * r),
 							.color =  { 0.f, 1.f, 0.f, 1.f },
 							.flags = 0,
 							});

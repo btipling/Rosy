@@ -23,7 +23,6 @@ DebugVertexStageOutput debugVertMain(uint uiVertexId: SV_VertexID)
         position.w = 1.f;
         output.sv_position = position;
     } else {
-        output.debugVertex.color = float3(1.f, 0.f, 0.f);
         output.sv_position = mul(mul(sd.viewproj, worldMat), v.position);
     }
 
