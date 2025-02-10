@@ -91,50 +91,50 @@ namespace {
 
 	/// Graphics Device
 
-	constexpr  uint64_t graphics_created_bit_instance         = 0b0000000000000000000000000000000000000000000000000000000000000001;
-	constexpr  uint64_t graphics_created_bit_device	          = 0b0000000000000000000000000000000000000000000000000000000000000010;
-	constexpr  uint64_t graphics_created_bit_surface          = 0b0000000000000000000000000000000000000000000000000000000000000100;
-	constexpr  uint64_t graphics_created_bit_vma              = 0b0000000000000000000000000000000000000000000000000000000000001000;
-	constexpr  uint64_t graphics_created_bit_debug_messenger  = 0b0000000000000000000000000000000000000000000000000000000000010000;
-	constexpr  uint64_t graphics_created_bit_fence            = 0b0000000000000000000000000000000000000000000000000000000000100000;
-	constexpr  uint64_t graphics_created_bit_command_pool     = 0b0000000000000000000000000000000000000000000000000000000001000000;
-	constexpr  uint64_t graphics_created_bit_draw_image       = 0b0000000000000000000000000000000000000000000000000000000010000000;
-	constexpr  uint64_t graphics_created_bit_depth_image      = 0b0000000000000000000000000000000000000000000000000000000100000000;
-	constexpr  uint64_t graphics_created_bit_ui_pool          = 0b0000000000000000000000000000000000000000000000000000001000000000;
-	constexpr  uint64_t graphics_created_bit_swapchain        = 0b0000000000000000000000000000000000000000000000000000010000000000;
-	constexpr  uint64_t graphics_created_bit_ktx_vdi_info     = 0b0000000000000000000000000000000000000000000000000000100000000000;
-	constexpr  uint64_t graphics_created_bit_descriptor_set   = 0b0000000000000000000000000000000000000000000000000001000000000000;
-	constexpr  uint64_t graphics_created_bit_descriptor_pool  = 0b0000000000000000000000000000000000000000000000000010000000000000;
-	constexpr  uint64_t graphics_created_bit_draw_image_view  = 0b0000000000000000000000000000000000000000000000000100000000000000;
-	constexpr  uint64_t graphics_created_bit_depth_image_view = 0b0000000000000000000000000000000000000000000000001000000000000000;
-	constexpr  uint64_t graphics_created_bit_image_semaphore  = 0b0000000000000000000000000000000000000000000000010000000000000000;
-	constexpr  uint64_t graphics_created_bit_pass_semaphore   = 0b0000000000000000000000000000000000000000000000100000000000000000;
-	constexpr  uint64_t graphics_created_bit_imgui_sdl        = 0b0000000000000000000000000000000000000000000001000000000000000000;
-	constexpr  uint64_t graphics_created_bit_imgui_vk         = 0b0000000000000000000000000000000000000000000010000000000000000000;
-	constexpr  uint64_t graphics_created_bit_imgui_ctx        = 0b0000000000000000000000000000000000000000000100000000000000000000;
-	constexpr  uint64_t graphics_created_bit_vertex_buffer    = 0b0000000000000000000000000000000000000000001000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_index_buffer     = 0b0000000000000000000000000000000000000000010000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_shaders          = 0b0000000000000000000000000000000000000000100000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_pipeline_layout  = 0b0000000000000000000000000000000000000001000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_scene_buffer     = 0b0000000000000000000000000000000000000010000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_materials_buffer = 0b0000000000000000000000000000000000000100000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_graphics_buffer  = 0b0000000000000000000000000000000000001000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_ktx_image        = 0b0000000000000000000000000000000000010000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_ktx_texture      = 0b0000000000000000000000000000000000100000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_sampler          = 0b0000000000000000000000000000000001000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_csm_image        = 0b0000000000000000000000000000000010000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_csm_sampler      = 0b0000000000000000000000000000000100000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_csm_view_sampler = 0b0000000000000000000000000000001000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_csm_view_near    = 0b0000000000000000000000000000010000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_csm_view_middle  = 0b0000000000000000000000000000100000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_csm_view_far     = 0b0000000000000000000000000001000000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_debug_buffer     = 0b0000000000000000000000000010000000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_debug_shaders    = 0b0000000000000000000000000100000000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_debug_pipeline   = 0b0000000000000000000000001000000000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_shadow_shaders   = 0b0000000000000000000000010000000000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_shadow_pipeline  = 0b0000000000000000000000100000000000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_msaa_image       = 0b0000000000000000000001000000000000000000000000000000000000000000;
-	constexpr  uint64_t graphics_created_bit_msaa_image_view  = 0b0000000000000000000010000000000000000000000000000000000000000000;
+	constexpr  uint64_t graphics_created_bit_instance         = { 1ULL << 0 };
+	constexpr  uint64_t graphics_created_bit_device	          = { 1ULL << 1 };
+	constexpr  uint64_t graphics_created_bit_surface          = { 1ULL << 2 };
+	constexpr  uint64_t graphics_created_bit_vma              = { 1ULL << 3 };
+	constexpr  uint64_t graphics_created_bit_debug_messenger  = { 1ULL << 4 };
+	constexpr  uint64_t graphics_created_bit_fence            = { 1ULL << 5 };
+	constexpr  uint64_t graphics_created_bit_command_pool     = { 1ULL << 6 };
+	constexpr  uint64_t graphics_created_bit_draw_image       = { 1ULL << 7 };
+	constexpr  uint64_t graphics_created_bit_depth_image      = { 1ULL << 8 };
+	constexpr  uint64_t graphics_created_bit_ui_pool          = { 1ULL << 9 };
+	constexpr  uint64_t graphics_created_bit_swapchain        = { 1ULL << 10 };
+	constexpr  uint64_t graphics_created_bit_ktx_vdi_info     = { 1ULL << 11 };
+	constexpr  uint64_t graphics_created_bit_descriptor_set   = { 1ULL << 12 };
+	constexpr  uint64_t graphics_created_bit_descriptor_pool  = { 1ULL << 13 };
+	constexpr  uint64_t graphics_created_bit_draw_image_view  = { 1ULL << 14 };
+	constexpr  uint64_t graphics_created_bit_depth_image_view = { 1ULL << 15 };
+	constexpr  uint64_t graphics_created_bit_image_semaphore  = { 1ULL << 16 };
+	constexpr  uint64_t graphics_created_bit_pass_semaphore   = { 1ULL << 17 };
+	constexpr  uint64_t graphics_created_bit_imgui_sdl        = { 1ULL << 18 };
+	constexpr  uint64_t graphics_created_bit_imgui_vk         = { 1ULL << 19 };
+	constexpr  uint64_t graphics_created_bit_imgui_ctx        = { 1ULL << 20 };
+	constexpr  uint64_t graphics_created_bit_vertex_buffer    = { 1ULL << 21 };
+	constexpr  uint64_t graphics_created_bit_index_buffer     = { 1ULL << 22 };
+	constexpr  uint64_t graphics_created_bit_shaders          = { 1ULL << 23 };
+	constexpr  uint64_t graphics_created_bit_pipeline_layout  = { 1ULL << 24 };
+	constexpr  uint64_t graphics_created_bit_scene_buffer     = { 1ULL << 25 };
+	constexpr  uint64_t graphics_created_bit_materials_buffer = { 1ULL << 26 };
+	constexpr  uint64_t graphics_created_bit_graphics_buffer  = { 1ULL << 27 };
+	constexpr  uint64_t graphics_created_bit_ktx_image        = { 1ULL << 28 };
+	constexpr  uint64_t graphics_created_bit_ktx_texture      = { 1ULL << 29 };
+	constexpr  uint64_t graphics_created_bit_sampler          = { 1ULL << 30 };
+	constexpr  uint64_t graphics_created_bit_csm_image        = { 1ULL << 31 };
+	constexpr  uint64_t graphics_created_bit_csm_sampler      = { 1ULL << 32 };
+	constexpr  uint64_t graphics_created_bit_csm_view_sampler = { 1ULL << 33 };
+	constexpr  uint64_t graphics_created_bit_csm_view_near    = { 1ULL << 34 };
+	constexpr  uint64_t graphics_created_bit_csm_view_middle  = { 1ULL << 35 };
+	constexpr  uint64_t graphics_created_bit_csm_view_far     = { 1ULL << 36 };
+	constexpr  uint64_t graphics_created_bit_debug_buffer     = { 1ULL << 37 };
+	constexpr  uint64_t graphics_created_bit_debug_shaders    = { 1ULL << 38 };
+	constexpr  uint64_t graphics_created_bit_debug_pipeline   = { 1ULL << 39 };
+	constexpr  uint64_t graphics_created_bit_shadow_shaders   = { 1ULL << 40 };
+	constexpr  uint64_t graphics_created_bit_shadow_pipeline  = { 1ULL << 41 };
+	constexpr  uint64_t graphics_created_bit_msaa_image       = { 1ULL << 42 };
+	constexpr  uint64_t graphics_created_bit_msaa_image_view  = { 1ULL << 43 };
 
 	constexpr VkSampleCountFlagBits max_msaa_sample_size = VK_SAMPLE_COUNT_4_BIT;
 
@@ -283,6 +283,7 @@ namespace {
 		[[maybe_unused]] std::array<float, 4> sunlight_color{};
 		[[maybe_unused]] std::array<uint32_t, 4> flip_lights{ 0, 0, 0, 0 };
 		[[maybe_unused]] std::array<uint32_t, 4> flip_tangents{ 0, 0, 0, 0 };
+		[[maybe_unused]] std::array<float, 2> draw_extent{};
 		[[maybe_unused]] uint32_t csm_index_sampler{ 0 };
 		[[maybe_unused]] uint32_t csm_index_near{ 0 };
 		[[maybe_unused]] uint32_t fragment_output{ 0 };
@@ -395,6 +396,7 @@ namespace {
 	{
 		[[maybe_unused]] std::array<float, 16> transform{};
 		[[maybe_unused]] std::array<float, 4> color{};
+		[[maybe_unused]] uint32_t flags{ 0 };
 		[[maybe_unused]] VkDeviceAddress scene_buffer{ 0 };
 		[[maybe_unused]] VkDeviceAddress debug_draw_buffer{ 0 };
 	};
@@ -478,9 +480,9 @@ namespace {
 		VkSurfaceKHR surface{ nullptr };
 		VkPhysicalDeviceFeatures required_features{};
 
-		allocated_image draw_image;
-		allocated_image depth_image;
-		allocated_image msaa_image;
+		allocated_image draw_image{};
+		allocated_image depth_image{};
+		allocated_image msaa_image{};
 		VkSampleCountFlagBits msaa_samples{ VK_SAMPLE_COUNT_1_BIT };
 		allocated_csm shadow_map_image;
 		uint32_t default_sampler_index{ 0 };
@@ -499,8 +501,8 @@ namespace {
 		// shaders
 		std::vector<VkShaderEXT> debug_shaders;
 		std::vector<VkShaderEXT> shadow_shaders;
-		VkPipelineLayout debug_layout;
-		VkPipelineLayout shadow_layout;
+		VkPipelineLayout debug_layout{};
+		VkPipelineLayout shadow_layout{};
 
 		// Level dependent data
 		std::vector< VkSampler> samplers;
@@ -515,14 +517,14 @@ namespace {
 		std::vector<surface_graphics_data> blended_graphics{};
 		graphics_object_update graphics_object_update_data{};
 		std::vector<VkShaderEXT> scene_shaders;
-		VkPipelineLayout scene_layout;
+		VkPipelineLayout scene_layout{};
 
 		// Buffers
 		gpu_scene_buffers scene_buffer{};
 
 		gpu_scene_data scene_data{};
 		write_level_state* wls{ nullptr };
-		read_level_state const* rls;
+		read_level_state const* rls{ nullptr };
 
 		result init(const config new_cfg)
 		{
@@ -929,10 +931,10 @@ namespace {
 				vmaDestroyImage(allocator, draw_image.image, draw_image.allocation);
 			}
 
-			if (desc_storage_images != nullptr)
+			if (desc_samples != nullptr)
 			{
-				delete desc_storage_images;
-				desc_storage_images = nullptr;
+				delete desc_samples;
+				desc_samples = nullptr;
 			}
 
 			if (desc_sampled_images != nullptr)
@@ -941,10 +943,10 @@ namespace {
 				desc_sampled_images = nullptr;
 			}
 
-			if (desc_samples != nullptr)
+			if (desc_storage_images != nullptr)
 			{
-				delete desc_samples;
-				desc_samples = nullptr;
+				delete desc_storage_images;
+				desc_storage_images = nullptr;
 			}
 
 			destroy_swapchain();
@@ -1598,8 +1600,7 @@ namespace {
 				vkGetDeviceQueue2(device, &get_info, &present_queue);
 			}
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_QUEUE;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(present_queue);
@@ -1694,8 +1695,7 @@ namespace {
 				if (const VkResult res = vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain); res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_swapchain;
 				{
-					VkDebugUtilsObjectNameInfoEXT debug_name;
-					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(swapchain);
@@ -2036,8 +2036,7 @@ namespace {
 			}
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(descriptor_pool);
@@ -2069,8 +2068,7 @@ namespace {
 			layout_flags.bindingCount = static_cast<uint32_t>(bindings_flags.size());
 			layout_flags.pBindingFlags = bindings_flags.data();
 
-			VkDescriptorSetLayoutCreateInfo layout_create_info;
-			layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			VkDescriptorSetLayoutCreateInfo layout_create_info{ .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 			layout_create_info.pNext = &layout_flags;
 			layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 			layout_create_info.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -2083,8 +2081,7 @@ namespace {
 			}
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(descriptor_set_layout);
@@ -2106,8 +2103,7 @@ namespace {
 			graphics_created_bitmask |= graphics_created_bit_descriptor_set;
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(descriptor_set);
@@ -2255,8 +2251,7 @@ namespace {
 				if (res != VK_SUCCESS) return res;
 				graphics_created_bitmask |= graphics_created_bit_fence;
 				{
-					VkDebugUtilsObjectNameInfoEXT debug_name;
-					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+					VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 					debug_name.pNext = nullptr;
 					debug_name.objectType = VK_OBJECT_TYPE_FENCE;
 					debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_fence);
@@ -2296,8 +2291,7 @@ namespace {
 			graphics_created_bitmask |= graphics_created_bit_ui_pool;
 
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(ui_pool);
@@ -2770,8 +2764,7 @@ namespace {
 
 			graphics_created_bitmask |= graphics_created_bit_command_pool;
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_POOL;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_command_pool);
@@ -2792,8 +2785,7 @@ namespace {
 				return res;
 			}
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_COMMAND_BUFFER;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(immediate_command_buffer);
@@ -3187,7 +3179,7 @@ namespace {
 					}
 				}
 
-				memcpy(staging.info.pMappedData, debug_vertices.data(), debug_draws_buffer_size);
+				if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, debug_vertices.data(), debug_draws_buffer_size);
 
 				{
 					if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
@@ -3278,8 +3270,7 @@ namespace {
 			}
 			graphics_created_bitmask |= graphics_created_bit_sampler;
 			{
-				VkDebugUtilsObjectNameInfoEXT debug_name;
-				debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				VkDebugUtilsObjectNameInfoEXT debug_name{ .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 				debug_name.pNext = nullptr;
 				debug_name.objectType = VK_OBJECT_TYPE_SAMPLER;
 				debug_name.objectHandle = reinterpret_cast<uint64_t>(default_sampler);
@@ -3297,8 +3288,7 @@ namespace {
 					return VK_ERROR_INITIALIZATION_FAILED;
 				}
 				{
-					VkDescriptorImageInfo create_desc_info;
-					create_desc_info.sampler = default_sampler;
+					VkDescriptorImageInfo create_desc_info{ .sampler = default_sampler };
 					create_desc_info.imageView = nullptr;
 					create_desc_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -3475,7 +3465,7 @@ namespace {
 			std::vector<uint32_t> sampler_desc_index;
 			{
 				size_t sampler_index{ 0 };
-				for (const auto [sampler_min_filter, sampler_mag_filter, sampler_wrap_s, sampler_wrap_t] : a.samplers)
+				for (const auto& [sampler_min_filter, sampler_mag_filter, sampler_wrap_s, sampler_wrap_t] : a.samplers)
 				{
 					VkSamplerCreateInfo sampler_create_info = {};
 					sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -3547,7 +3537,7 @@ namespace {
 			{
 				std::vector<gpu_material> materials{};
 				materials.reserve(a.materials.size());
-				for (rosy_packager::material m : a.materials)
+				for (const rosy_packager::material& m : a.materials)
 				{
 					uint32_t color_image_sampler_index = UINT32_MAX;
 					uint32_t color_sampler_index = default_sampler_index;
@@ -3663,7 +3653,7 @@ namespace {
 						}
 					}
 
-					memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
+					if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
 
 					{
 						if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
@@ -3859,8 +3849,8 @@ namespace {
 					}
 				}
 
-				memcpy(staging.info.pMappedData, asset_positions.data(), vertex_buffer_size);
-				memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, asset_indices.data(), index_buffer_size);
+				if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, asset_positions.data(), vertex_buffer_size);
+				if (staging.info.pMappedData != nullptr) memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, asset_indices.data(), index_buffer_size);
 
 				if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
 				{
@@ -4166,7 +4156,7 @@ namespace {
 					}
 				}
 
-				memcpy(staging.info.pMappedData, go_data.data(), graphic_objects_buffer_size);
+				if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, go_data.data(), graphic_objects_buffer_size);
 
 				{
 					if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
@@ -4419,7 +4409,7 @@ namespace {
 				{
 					std::vector<graphic_object_data> updated;
 					updated.reserve(graphics_object_update_data.graphic_objects.size());
-					for (const auto gou : graphics_object_update_data.graphic_objects)
+					for (const auto& gou : graphics_object_update_data.graphic_objects)
 					{
 						updated.push_back({
 							.transform = gou.transform,
@@ -4897,9 +4887,7 @@ namespace {
 							VkSampleMask sample_mask{ ~0U };
 							vkCmdSetSampleMaskEXT(cf.command_buffer, msaa_samples, &sample_mask);
 							VkExtent2D fragment_size = { 2, 2 };
-							VkFragmentShadingRateCombinerOpKHR combiner_ops[2];
-							combiner_ops[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
-							combiner_ops[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+							VkFragmentShadingRateCombinerOpKHR combiner_ops[2]{ VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR , VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR };
 							vkCmdSetFragmentShadingRateKHR(cf.command_buffer, &fragment_size, combiner_ops);
 						}
 						{
@@ -4999,10 +4987,11 @@ namespace {
 							};
 							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, debug_layout, 0, 1, &descriptor_set, 0, nullptr);
-							for (const auto [obj_type, obj_transform, obj_color] : rls->debug_objects) {
+							for (const auto& [obj_type, obj_transform, obj_color, flags] : rls->debug_objects) {
 								gpu_debug_push_constants dpc{
 									.transform = obj_transform,
 									.color = obj_color,
+									.flags = flags,
 									.scene_buffer = scene_buffer.scene_buffer_address,
 									.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
 								};
@@ -5318,6 +5307,7 @@ namespace {
 			sd.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f };
 			sd.flip_lights = { flip_x, flip_y, flip_z, 1 };
 			sd.flip_tangents = { flip_tangent_x, flip_tangent_y, flip_tangent_z, flip_tangent_w };
+			sd.draw_extent = { static_cast<float>(swapchain_extent.width), static_cast<float>(swapchain_extent.height) };
 			sd.csm_index_sampler = shadow_map_image.ds_index_sampler;
 			sd.csm_index_near = shadow_map_image.ds_index_near;
 			sd.fragment_output = static_cast<uint32_t>(new_rls.fragment_config.output);
@@ -5364,23 +5354,6 @@ namespace {
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();
-
-						if (!rls->mob_read.mob_states.empty())
-							if (ImGui::CollapsingHeader("Mobs"))
-							{
-
-								if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-								{
-									for (const auto [name, position] : rls->mob_read.mob_states) {
-										ImGui::TableNextRow();
-										ImGui::TableNextColumn();
-										ImGui::Text(name.c_str());
-										ImGui::TableNextColumn();
-										ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
-									}
-									ImGui::EndTable();
-								}
-							}
 					}
 					if (ImGui::BeginTabItem("Edit"))
 					{
@@ -5412,7 +5385,7 @@ namespace {
 								ImGui::SliderFloat("Light cascade level", &wls->light_debug.cascade_level, 0.f, 50.f);
 								ImGui::SliderFloat("Depth bias constant", &wls->light.depth_bias_constant, -500.f, 500.f);
 								ImGui::SliderFloat("Depth bias clamp", &wls->light.depth_bias_clamp, -500.f, 500.f);
-								ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor, -500.f, 500.f);
+								ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor, -50.f, 50.f);
 								ImGui::EndTable();
 							}
 							if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
@@ -5512,12 +5485,37 @@ namespace {
 						{
 							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 							{
-								for (const auto [name, position] : rls->mob_read.mob_states) {
+								for (const auto& [name, position, yaw, target] : rls->mob_read.mob_states) {
+
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
+									ImGui::Text("name");
+									ImGui::TableNextColumn();
 									ImGui::Text(name.c_str());
+
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text("position");
 									ImGui::TableNextColumn();
 									ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text("yaw");
+									ImGui::TableNextColumn();
+									ImGui::Text("(%.2f)", yaw);
+
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text("target");
+									ImGui::TableNextColumn();
+									ImGui::Text("(%.2f,  %.2f,  %.2f)", target[0], target[1], target[2]);
+
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text("");
+									ImGui::TableNextColumn();
+									ImGui::Text("");
 								}
 								ImGui::EndTable();
 							}
@@ -5525,7 +5523,7 @@ namespace {
 							if (ImGui::BeginCombo("Select mob", rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
 							{
 								for (int i = 0; i < rls->mob_read.mob_states.size(); ++i) {
-									const auto [name, position] = rls->mob_read.mob_states[i];
+									const auto& [name, position, forward, target] = rls->mob_read.mob_states[i];
 									const bool is_selected = (wls->mob_edit.edit_index == i);
 									if (ImGui::Selectable(name.c_str(), is_selected)) {
 										wls->mob_edit.edit_index = i;
@@ -5550,6 +5548,24 @@ namespace {
 
 
 								ImGui::EndTable();
+							}
+						}
+						if (ImGui::CollapsingHeader("Picking"))
+						{
+							ImVec4 color;
+							switch (rls->pick_debugging.space)
+							{
+							case pick_debug_read_state::picking_space::screen:
+								color = ImVec4(0.f, 1.f, 0.f, 1.f);
+								ImGui::TextColored(color, "Pick debugging in screen space");
+								break;
+							case pick_debug_read_state::picking_space::view:
+								color = ImVec4(1.f, 1.f, 0.f, 1.f);
+								ImGui::TextColored(color, "Pick debugging in view space");
+								break;
+							default:
+								ImGui::Text("Pick debugging disabled");
+								break;
 							}
 						}
 						ImGui::EndTabItem();

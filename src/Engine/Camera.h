@@ -15,6 +15,8 @@ namespace rosy
 		float starting_z{ 0.f };
 		float starting_pitch{ 0.f };
 		float starting_yaw{ 0.f };
+		float viewport_width{ 0.f };
+		float viewport_height{ 0.f };
 
 		double g{ 0.5f }; // projection plane distance
 		double s{ 1.f }; // aspect ratio
@@ -31,7 +33,7 @@ namespace rosy
 
 		result init(log const* new_log, config cfg);
 		void deinit() const;
-		result update(uint32_t viewport_width, uint32_t viewport_height, const double dt);
+		result update(uint32_t new_viewport_width, uint32_t new_viewport_height, const double dt);
 		result process_sdl_event(const SDL_Event& event, bool cursor_enabled);
 	};
 }

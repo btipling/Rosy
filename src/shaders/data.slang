@@ -52,6 +52,7 @@ public struct SceneData
     public float4 sunlightColor;
     public uint4 flipLights;
     public uint4 flipTangents;
+    public float2 drawExtent;
     public uint csmIndexSampler;
     public uint csmIndexNear;
     public uint fragmentOutput;
@@ -114,6 +115,7 @@ public struct DebugInputVertex {
 public struct DebugConstant {
     public float4x4 transform;
     public float4 color;
+    public uint flags;
     public SceneData *sd;
     public DebugInputVertex *v;
 }

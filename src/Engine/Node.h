@@ -22,6 +22,7 @@ namespace rosy {
 		[[nodiscard]] auto init(log* new_log, const std::array<float, 16>& new_transform, const std::array<float, 16>& new_parent_transform) -> result;
 		void deinit();
 		[[nodiscard]] auto set_position(const std::array<float, 3>& new_position) -> result;
+		[[nodiscard]] auto update_transform(const std::array<float, 16>& new_parent_transform) -> result;
 		void update_parent_transform(const std::array<float, 16>& new_parent_transform);
 		void populate_graph(std::vector<graphics_object>& graph) const;
 		void debug();

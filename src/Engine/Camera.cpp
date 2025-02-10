@@ -133,7 +133,7 @@ namespace
 			glm::vec4 vel{ 0.f };
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
-				auto [mv_position, mv_velocity, dir] = movements[i];
+				auto& [mv_position, mv_velocity, dir] = movements[i];
 				mv_position += mv_velocity * dt;
 				switch (dir)
 				{
@@ -231,15 +231,16 @@ void camera::deinit() const
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt)
+result camera::update(const uint32_t new_viewport_width, const uint32_t new_viewport_height, const double dt)
 {
 	if (const auto res = sc->update(dt); res != result::ok)
 	{
 		return res;
 	}
-	const float w = static_cast<float>(viewport_width);
-	const float h = static_cast<float>(viewport_height);
-	const auto proj = sc->get_projection(g, w / h, n, f, glm::radians(fov));
+	viewport_width = static_cast<float>(new_viewport_width);
+	viewport_height = static_cast<float>(new_viewport_height);
+	s = viewport_width / viewport_height;
+	const auto proj = sc->get_projection(g, s, n, f, glm::radians(fov));
 	const auto view = sc->get_view_matrix();
 	p = mat4_to_array(proj);
 	v = mat4_to_array(view);

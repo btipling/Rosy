@@ -47,7 +47,15 @@ struct node_state
 	{
 		parent_transform = array_to_mat4(new_parent_transform);
 		transform = array_to_mat4(new_transform);
-		position = transform * glm::vec4(0.f, 0.f, 0.f, 1.f);
+		position = parent_transform * transform * glm::vec4(0.f, 0.f, 0.f, 1.f);
+		object_space_transform = glm::inverse(static_cast<glm::mat3>(parent_transform * transform));
+		normal_transform = glm::transpose(object_space_transform);
+	}
+
+	void update_transform(const std::array<float, 16>& new_transform)
+	{
+		transform = array_to_mat4(new_transform);
+		position = parent_transform * transform * glm::vec4(0.f, 0.f, 0.f, 1.f);
 		object_space_transform = glm::inverse(static_cast<glm::mat3>(parent_transform * transform));
 		normal_transform = glm::transpose(object_space_transform);
 	}
@@ -106,6 +114,24 @@ auto node::set_position(const std::array<float, 3>& new_position) -> result
 	ns->set_position(new_position);
 	transform = mat4_to_array(ns->parent_transform * ns->transform);
 	position = vec4_to_array(ns->position);
+	object_space_transform = mat4_to_array(ns->object_space_transform);
+	normal_transform = mat4_to_array(ns->normal_transform);
+	for (node* n : children)
+	{
+		n->update_parent_transform(transform);
+	}
+	return result::ok;
+}
+
+auto node::update_transform(const std::array<float, 16>& new_transform) -> result
+{
+	ns->update_transform(new_transform);
+	transform = mat4_to_array(ns->parent_transform * ns->transform);
+	position = vec4_to_array(ns->position);
+	if (std::isnan(position[0]) || std::isnan(position[1]) || std::isnan(position[2]) || std::isnan(ns->position[0]) || std::isnan(ns->position[1]) || std::isnan(ns->position[2]))
+	{
+		l->info("error nan");
+	}
 	object_space_transform = mat4_to_array(ns->object_space_transform);
 	normal_transform = mat4_to_array(ns->normal_transform);
 	for (node* n : children)

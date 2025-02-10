@@ -2,6 +2,7 @@
 #include <array>
 #include <vector>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 // These are type declarations, not default configurations. Configure those in Level.cpp or elsewhere.
@@ -80,11 +81,16 @@ namespace rosy
 		cross,
 	};
 
+	inline uint32_t debug_object_flag_screen_space         { 1 << 0 };
+	inline uint32_t debug_object_flag_view_space           { 1 << 1 };
+	inline uint32_t debug_object_flag_transform_is_points  { 1 << 2 };
+
 	struct debug_object
 	{
 		debug_object_type type{ debug_object_type::line };
 		std::array<float, 16> transform{};
 		std::array<float, 4> color{};
+		uint32_t flags{ 0 };
 	};
 
 	struct read_camera
@@ -146,6 +152,8 @@ namespace rosy
 	{
 		std::string name;
 		std::array<float, 3> position;
+		float yaw{ 0.f };
+		std::array<float, 3> target{0.f, 0.f, 0.f};
 	};
 
 	struct mob_edit_state
@@ -167,6 +175,19 @@ namespace rosy
 		size_t static_objects_offset{ 0 };
 	};
 
+	struct pick_debug_read_state
+	{
+		enum class picking_space: uint8_t
+		{
+			disabled,
+			screen,
+			view,
+		};
+		picking_space space{ picking_space::disabled };
+		std::optional<debug_object> picking{std::nullopt};
+		std::vector<debug_object> circles;
+	};
+
 	struct read_level_state
 	{
 		read_camera cam{};
@@ -178,6 +199,7 @@ namespace rosy
 		graphic_objects_state graphic_objects{};
 		mob_read_state mob_read{};
 		float target_fps{ 0.f };
+		pick_debug_read_state pick_debugging{};
 	};
 
 	struct write_level_state

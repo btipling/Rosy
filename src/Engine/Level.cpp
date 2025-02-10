@@ -1,5 +1,6 @@
 #include "Level.h"
 #include "Node.h"
+#include "Camera.h"
 #include <print>
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -14,9 +15,6 @@
 #include <numbers>
 
 using namespace rosy;
-
-
-
 
 constexpr size_t max_node_stack_size = 4'096;
 constexpr size_t max_stack_item_list = 16'384;
@@ -34,24 +32,65 @@ namespace
 		[[maybe_unused]] float y{ 0.f };
 		[[maybe_unused]] float z{ 0.f };
 	};
-
 	ECS_COMPONENT_DECLARE(c_position);
+
 	struct c_mob
 	{
 		size_t index{ 0 };
 	};
 	ECS_COMPONENT_DECLARE(c_mob);
 
+	struct c_static
+	{
+		[[maybe_unused]] size_t index{ 0 };
+	};
+	ECS_COMPONENT_DECLARE(c_static);
+
+	struct c_cursor_position
+	{
+		float screen_x{ 0.f };
+		float screen_y{ 0.f };
+	};
+	ECS_COMPONENT_DECLARE(c_cursor_position);
+
+	struct c_target
+	{
+		float x{ 0.f };
+		float y{ 0.f };
+		float z{ 0.f };
+		[[maybe_unused]] float t{ 0.f };
+	};
+	ECS_COMPONENT_DECLARE(c_target);
+
+	struct c_forward
+	{
+		float yaw{ 0.f };;
+	};
+	ECS_COMPONENT_DECLARE(c_forward);
+
+	struct c_pick_debugging_enabled
+	{
+		uint32_t space{ debug_object_flag_screen_space };
+	};
+	ECS_COMPONENT_DECLARE(c_pick_debugging_enabled);
+
 	// Tags
 	struct [[maybe_unused]] t_rosy {};
 	ECS_TAG_DECLARE(t_rosy);
 	struct [[maybe_unused]] t_floor {};
 	ECS_TAG_DECLARE(t_floor);
+	struct [[maybe_unused]] t_rosy_action {};
+	ECS_TAG_DECLARE(t_rosy_action);
+	struct [[maybe_unused]] t_pick_debugging_record {};
+	ECS_TAG_DECLARE(t_pick_debugging_record);
+	struct [[maybe_unused]] t_pick_debugging_clear {};
+	ECS_TAG_DECLARE(t_pick_debugging_clear);
 
 	// System definitions are forward declared and defined at the end.
 	void detect_mob(ecs_iter_t* it);
 	void detect_floor(ecs_iter_t* it);
 	void init_level_state(ecs_iter_t* it);
+	void move_rosy(ecs_iter_t* it);
 
 	/**** LEVEL STATE DEFINITIONS ****/
 
@@ -69,6 +108,14 @@ namespace
 		const auto pos_r = glm::value_ptr(m);
 		for (uint64_t i{ 0 }; i < 16; i++) pos_r[i] = a[i];
 		return m;
+	}
+
+	[[maybe_unused]] glm::vec4 array_to_vec4(const std::array<float, 4>& a)
+	{
+		glm::vec4 v{};
+		const auto pos_r = glm::value_ptr(v);
+		for (uint64_t i{ 0 }; i < 4; i++) pos_r[i] = a[i];
+		return v;
 	}
 
 	constexpr auto gltf_to_ndc = glm::mat4(
@@ -113,12 +160,15 @@ namespace
 
 		// ECS
 		ecs_world_t* world{ nullptr };
-		ecs_entity_t level{};
+		ecs_entity_t level_entity{ 0 };
+		game_node_reference rosy_reference{};
+		ecs_entity_t floor_entity{ 0 };
 
 		bool updated{ false };
 
-		rosy::result init()
+		result init(rosy::log* new_log, const config new_cfg)
 		{
+			l = new_log;
 			level_game_node = new(std::nothrow) node;
 			if (level_game_node == nullptr)
 			{
@@ -134,14 +184,34 @@ namespace
 			}
 			level_game_node->name = "rosy_root";
 
+			// Camera initialization
+			{
+				cam = new(std::nothrow) camera{};
+				if (cam == nullptr)
+				{
+					l->error("Error allocating camera");
+					return result::allocation_failure;
+				}
+				cam->starting_x = -5.88f;
+				cam->starting_y = 3.86f;
+				cam->starting_z = -1.13f;
+				cam->starting_pitch = 0.65f;
+				cam->starting_yaw = -1.58f;
+				if (auto const res = cam->init(l, new_cfg); res != result::ok)
+				{
+					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
+
 			world = ecs_init();
 			if (world == nullptr)
 			{
 				l->error("flecs world init failed");
 				return result::error;
 			}
-			level = ecs_new(world);
-			assert(ecs_is_alive(world, level));
+			level_entity = ecs_new(world);
+			assert(ecs_is_alive(world, level_entity));
 
 			ecs_set_target_fps(world, 120.f);
 
@@ -158,19 +228,25 @@ namespace
 			{
 				ecs_delete(world, gnr.entity);
 			}
-			if (level_game_node != nullptr) {
-				level_game_node->deinit();
-				delete level_game_node;
-				level_game_node = nullptr;
-			}
-			if (ecs_is_alive(world, level))
+			if (ecs_is_alive(world, level_entity))
 			{
-				ecs_delete(world, level);
-				assert(!ecs_is_alive(world, level));
+				ecs_delete(world, level_entity);
+				assert(!ecs_is_alive(world, level_entity));
 			}
 			if (world != nullptr)
 			{
 				ecs_fini(world);
+			}
+			if (cam)
+			{
+				cam->deinit();
+				delete cam;
+				cam = nullptr;
+			}
+			if (level_game_node != nullptr) {
+				level_game_node->deinit();
+				delete level_game_node;
+				level_game_node = nullptr;
 			}
 		}
 
@@ -178,12 +254,20 @@ namespace
 		{
 			ECS_COMPONENT_DEFINE(world, c_position);
 			ECS_COMPONENT_DEFINE(world, c_mob);
+			ECS_COMPONENT_DEFINE(world, c_static);
+			ECS_COMPONENT_DEFINE(world, c_cursor_position);
+			ECS_COMPONENT_DEFINE(world, c_target);
+			ECS_COMPONENT_DEFINE(world, c_forward);
+			ECS_COMPONENT_DEFINE(world, c_pick_debugging_enabled);
 		}
 
 		void init_tags() const
 		{
 			ECS_TAG_DEFINE(world, t_rosy);
 			ECS_TAG_DEFINE(world, t_floor);
+			ECS_TAG_DEFINE(world, t_rosy_action);
+			ECS_TAG_DEFINE(world, t_pick_debugging_record);
+			ECS_TAG_DEFINE(world, t_pick_debugging_clear);
 		}
 
 		void init_systems()
@@ -250,6 +334,27 @@ namespace
 				desc.callback = detect_floor;
 				ecs_system_init(world, &desc);
 			}
+			{
+				// Move rosy
+				ecs_system_desc_t desc{};
+				{
+					ecs_entity_desc_t e_desc{};
+					e_desc.id = 0;
+					e_desc.name = "move_rosy";
+					{
+						ecs_id_t add_ids[3];
+						add_ids[0] = { ecs_dependson(EcsOnUpdate) };
+						add_ids[1] = EcsOnUpdate;
+						add_ids[2] = 0;
+						e_desc.add = add_ids;
+					}
+					desc.entity = ecs_entity_init(world, &e_desc);
+				}
+				desc.query.expr = "t_rosy_action";
+				desc.ctx = static_cast<void*>(this);
+				desc.callback = move_rosy;
+				ecs_system_init(world, &desc);
+			}
 		}
 
 		[[nodiscard]] std::vector<node*> get_mobs() const
@@ -280,7 +385,7 @@ namespace
 			return {};
 		}
 
-		rosy::result setup_frame() const
+		[[nodiscard]] result setup_frame() const
 		{
 			if (rls->target_fps != wls->target_fps) {
 				ecs_set_target_fps(world, wls->target_fps);
@@ -289,9 +394,62 @@ namespace
 			return result::ok;
 		}
 
-		rosy::result update([[maybe_unused]] const double dt) const
+		[[nodiscard]] result update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt) const
 		{
+			if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
+				return res;
+			}
 			ecs_progress(world, static_cast<float>(dt));
+			return result::ok;
+		}
+
+		[[nodiscard]] result process_sdl_event(const SDL_Event& event, const bool cursor_enabled) const
+		{
+			if (const auto res = cam->process_sdl_event(event, cursor_enabled); res != result::ok)
+			{
+				return res;
+			}
+
+			constexpr Uint8 rosy_attention_btn{ 1 };
+			constexpr Uint8 pick_debug_toggle_btn{ 2 };
+			constexpr Uint8 pick_debug_record_btn{ 3 };
+			const ecs_entity_t rosy_entity = rosy_reference.entity;
+			if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || SDL_EVENT_MOUSE_BUTTON_UP)
+			{
+				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
+				if (std::isnan(mbe.x) || (std::isnan(mbe.y))) return result::ok;
+				const c_cursor_position c_pos{ .screen_x = mbe.x, .screen_y = mbe.y };
+				ecs_set_id(world, level_entity, ecs_id(c_cursor_position), sizeof(c_cursor_position), &c_pos);
+			}
+			if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+				switch (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button)
+				{
+				case rosy_attention_btn:
+					ecs_add(world, rosy_entity, t_rosy_action);
+					break;
+				case pick_debug_toggle_btn:
+					if (mbe.clicks == 1 && ecs_has_id(world, level_entity, ecs_id(c_pick_debugging_enabled)))
+					{
+						ecs_remove(world, level_entity, c_pick_debugging_enabled);
+						ecs_add(world, level_entity, t_pick_debugging_clear);
+					}
+					else
+					{
+						const uint32_t space = mbe.clicks > 2 ? debug_object_flag_view_space : debug_object_flag_screen_space;
+						const c_pick_debugging_enabled pick{ .space = space };
+						ecs_set_id(world, level_entity, ecs_id(c_pick_debugging_enabled), sizeof(c_pick_debugging_enabled), &pick);
+					}
+					break;
+				case pick_debug_record_btn:
+					ecs_add(world, level_entity, t_pick_debugging_record);
+					break;
+				default:
+					break;
+				}
+			}
+			if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+				if (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button == rosy_attention_btn) ecs_remove(world, rosy_entity, t_rosy_action);
+			}
 			return result::ok;
 		}
 	};
@@ -300,6 +458,155 @@ namespace
 	scene_graph_processor* sgp{ nullptr };
 
 	// **** ECS SYSTEM DEFINITIONS ****/
+
+	// ReSharper disable once CppParameterMayBeConstPtrOrRef
+	void move_rosy(ecs_iter_t* it)
+	{
+		const auto ctx = static_cast<level_state*>(it->param);
+		for (int i = 0; i < it->count; i++) {
+			if (!ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position))) continue;
+
+			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
+			const auto camera_pos = glm::vec3(ctx->cam->position[0], ctx->cam->position[1], ctx->cam->position[2]);
+
+			const float a = static_cast<float>(ctx->cam->s);
+			const float w = ctx->cam->viewport_width;
+			const float h = ctx->cam->viewport_height;
+			const float fov = static_cast<float>(ctx->cam->fov) / 100.f;
+			const float x_s = c_pos->screen_x / w;
+			const float y_s = c_pos->screen_y / h;
+			const float g = static_cast<float>(ctx->cam->g);
+
+			const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
+			const float y_v = (2.f * y_s - 1.f) * fov;
+
+			const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
+			const auto world_ray =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
+
+
+			const glm::vec3 plucker_v = world_ray;
+			const glm::vec3 plucker_m = cross(camera_pos, world_ray);
+
+			constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
+			constexpr float plane_distance = 0.f;
+
+			const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
+			const glm::vec3 d_v = plucker_v * plane_distance;
+
+			const glm::vec3 intersection = m_x_n + d_v;
+			[[maybe_unused]] const float intersection_w = glm::dot(-normal, plucker_v);
+			ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+
+			auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+			c_target target{ .x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z };
+			ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target), sizeof(c_target), &target);
+
+			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
+			{
+				const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
+				glm::mat4 m;
+				std::array<float, 4> color;
+				if (pick_debugging->space & debug_object_flag_screen_space) {
+					color = { 0.f, 1.f, 0.f, 1.f };
+					m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
+				}
+				else
+				{
+					color = { 1.f, 1.f, 0.f, 1.f };
+					m = glm::translate(glm::mat4(1.f), view_click);
+				}
+				m = glm::scale(m, glm::vec3(0.01f));
+				ctx->rls->pick_debugging.picking = {
+					.type = debug_object_type::circle,
+					.transform = mat4_to_array(m),
+					.color = color,
+					.flags = pick_debugging->space,
+				};
+				if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_record)))
+				{
+					float distance{ 1000.f };
+					glm::vec3 draw_location = world_ray * distance;
+					distance += 2.f;
+					auto m2 = glm::mat4(
+						glm::vec4(camera_pos, 1.f),
+						glm::vec4(draw_location, 1.f),
+						glm::vec4(1.f),
+						glm::vec4(1.f)
+					);
+					ctx->rls->pick_debugging.circles.push_back({
+						.type = debug_object_type::line,
+						.transform = mat4_to_array(m2),
+						.color =  { 0.f, 1.f, 0.f, 1.f },
+						.flags = debug_object_flag_transform_is_points,
+						});
+					ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
+				}
+			}
+			else
+			{
+				glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+				circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
+				circle_m = glm::scale(circle_m, glm::vec3(0.25f));
+
+				ctx->rls->pick_debugging.picking = {
+					.type = debug_object_type::circle,
+							.transform = mat4_to_array(circle_m),
+					.color =  { 0.f, 1.f, 0.f, 1.f },
+					.flags = 0,
+				};
+			}
+			if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target)))
+			{
+				const auto rosy_position = ctx->rosy_reference.node->position;
+
+				const auto rosy_pos = glm::vec3(rosy_position[0], rosy_position[1], rosy_position[2]);
+				const glm::mat4 rosy_translate = glm::translate(glm::mat4(1.f), rosy_pos);
+
+				constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
+				[[maybe_unused]] constexpr auto game_up =  glm::vec3{ 0.f, 1.f, 0.f };
+				[[maybe_unused]] const auto rosy_forward = static_cast<const c_forward*>(ecs_get_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward)));
+				[[maybe_unused]] const glm::mat4 rosy_transform = array_to_mat4(ctx->rosy_reference.node->transform);
+				{
+					const glm::mat4 to_rosy_space = glm::inverse(rosy_translate);
+					const auto rosy_space_target = glm::vec3(to_rosy_space * glm::vec4(rosy_target, 1.f));
+					if (rosy_space_target != glm::zero<glm::vec3>()) {
+						const float offset = rosy_space_target.x > 0 ? -1.f : 0.f;
+						const float target_game_cos_theta = glm::dot(glm::normalize(rosy_space_target), game_forward);
+						const float target_yaw = std::acos(target_game_cos_theta);
+						const float new_yaw = target_yaw + offset;
+						ctx->l->debug(std::format("(target: ({:.3f}, {:.3f}), {:.3f})) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
+							rosy_space_target[0],
+							rosy_space_target[1],
+							rosy_space_target[2],
+							target_game_cos_theta,
+							target_yaw,
+							offset,
+							new_yaw
+						));
+
+						c_forward nf{ .yaw = target_yaw };
+						ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
+
+						glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{ 0.f, 1.f, 0.f });
+						if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
+						const glm::mat4 r = toMat4(yaw_rotation);
+						const float t = 1.f * it->delta_time;
+						glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
+						const glm::mat4 tr = glm::translate(glm::mat4(1.f), glm::vec3(new_rosy_pos[0] * -1, new_rosy_pos[1], new_rosy_pos[2]));
+
+						if (const auto res = ctx->rosy_reference.node->update_transform(mat4_to_array(gltf_to_ndc * tr * r)); res != result::ok)
+						{
+							ctx->l->error("error transforming rosy");
+						}
+						else
+						{
+							ctx->updated = true;
+						}
+					}
+				}
+			}
+		}
+	}
 
 	// ReSharper disable once CppParameterMayBeConstPtrOrRef
 	void init_level_state(ecs_iter_t* it)
@@ -345,15 +652,57 @@ namespace
 				ctx->rls->mob_read.clear_edits = false;
 			}
 			ctx->rls->mob_read.mob_states.clear();
-			for (const node* const n : mobs)
+			for (const game_node_reference& nr : ctx->game_nodes)
 			{
+				std::array<float, 3> target = {0.f, 0.f, 0.f};
+				float yaw = 0.f;
+				if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_target)))
+				{
+					const auto tc = static_cast<const c_target*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_target)));
+					target = { tc->x, tc->y, tc->z };
+				}
+				if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_forward)))
+				{
+					const auto fc = static_cast<const c_forward*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_forward)));
+					ctx->l->debug(std::format("setting rls yaw: ({:.3f}", fc->yaw));
+					yaw = fc->yaw;
+				}
 				ctx->rls->mob_read.mob_states.push_back({
-					.name = n->name,
-					.position = {n->position[0], n->position[1], n->position[2]},
+					.name = nr.node->name,
+					.position = {nr.node->position[0], nr.node->position[1], nr.node->position[2]},
+					.yaw = yaw,
+					.target = target,
 					});
 			}
 		}
 		ctx->rls->debug_objects.clear();
+		if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_clear)))
+		{
+			ctx->rls->pick_debugging.circles.clear();
+			ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_clear);
+		}
+		if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
+		{
+			const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
+			ctx->rls->debug_objects.insert(ctx->rls->debug_objects.end(), ctx->rls->pick_debugging.circles.begin(), ctx->rls->pick_debugging.circles.end());
+			if (ctx->rls->pick_debugging.picking.has_value())
+			{
+				ctx->rls->debug_objects.push_back(ctx->rls->pick_debugging.picking.value());
+				ctx->rls->pick_debugging.picking = std::nullopt;
+			}
+			ctx->rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space ? pick_debug_read_state::picking_space::screen : pick_debug_read_state::picking_space::view;
+		}
+		else if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(t_rosy_action)))
+		{
+			if (ctx->rls->pick_debugging.picking.has_value())
+			{
+				ctx->rls->debug_objects.push_back(ctx->rls->pick_debugging.picking.value());
+			}
+		}
+		else
+		{
+			ctx->rls->pick_debugging.space = pick_debug_read_state::picking_space::disabled;
+		}
 		{
 			// Light & Shadow logic
 			glm::mat4 light_sun_view;
@@ -438,7 +787,7 @@ namespace
 	void detect_mob(ecs_iter_t* it)
 	{
 		const auto ctx = static_cast<level_state*>(it->param);
-		const auto p = ecs_field(it, c_mob, 0);
+		const c_mob* p = ecs_field(it, c_mob, 0);
 
 		for (int i = 0; i < it->count; i++) {
 			const ecs_entity_t e = it->entities[i];
@@ -463,19 +812,19 @@ namespace
 	}
 }
 
-result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
+result level::init(log* new_log, const config new_cfg)
 {
 	{
 		// Init level state
 		{
 			wls.light_debug.sun_distance = 23.776f;
-			wls.light_debug.sun_pitch = 5.849f;
-			wls.light_debug.sun_yaw = 6.293f;
-			wls.light_debug.orthographic_depth = 49.060f;
-			wls.light_debug.cascade_level = 29.194f;
+			wls.light_debug.sun_pitch = 5.684f;
+			wls.light_debug.sun_yaw = 5.349f;
+			wls.light_debug.orthographic_depth = 76.838f;
+			wls.light_debug.cascade_level = 12.853f;
 			wls.light.depth_bias_constant = -21.882f;
 			wls.light.depth_bias_clamp = -20.937f;
-			wls.light.depth_bias_slope_factor = -163.064f;
+			wls.light.depth_bias_slope_factor = -3.922f;
 			wls.draw_config.cull_enabled = true;
 			wls.light.depth_bias_enabled = true;
 			wls.draw_config.thick_wire_lines = false;
@@ -491,33 +840,12 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 			new_log->error("level_state allocation failed");
 			return result::allocation_failure;
 		}
-		ls->l = new_log;
-		if (const auto res = ls->init(); res != result::ok)
+		if (const auto res = ls->init(new_log, new_cfg); res != result::ok)
 		{
 			new_log->error("level_state init failed");
 			return res;
 		}
 
-		// Camera initialization
-		{
-			cam = new(std::nothrow) camera{};
-			cam->starting_x = -5.88f;
-			cam->starting_y = 3.86f;
-			cam->starting_z = -1.13f;
-			cam->starting_pitch = 0.65f;
-			cam->starting_yaw = -1.58f;
-			if (cam == nullptr)
-			{
-				ls->l->error("Error allocating camera");
-				return result::allocation_failure;
-			}
-			if (auto const res = cam->init(ls->l, new_cfg); res != result::ok)
-			{
-				ls->l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
-				return res;
-			}
-		}
-		ls->cam = cam;
 		ls->rls = &rls;
 		ls->wls = &wls;
 	}
@@ -537,13 +865,6 @@ result level::init(log* new_log, [[maybe_unused]] const config new_cfg)
 // ReSharper disable once CppMemberFunctionMayBeStatic
 void level::deinit()
 {
-	if (cam)
-	{
-		cam->deinit();
-		delete cam;
-		cam = nullptr;
-	}
-
 	if (sgp)
 	{
 		delete sgp;
@@ -565,7 +886,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	if (new_asset.scenes.size() <= root_scene_index) return result::invalid_argument;
 
 	const auto& [nodes] = new_asset.scenes[root_scene_index];
-	if (nodes.size() < 1) return result::invalid_argument;
+	if (nodes.empty()) return result::invalid_argument;
 
 	{
 		// Clear existing game nodes
@@ -790,17 +1111,21 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				node* n = mobs[i];
 				ecs_entity_t node_entity = ecs_new(ls->world);
 
-				ls->game_nodes[i] = {
+				game_node_reference ref = {
 					.entity = node_entity,
 					.index = i,
 					.node = n,
 				};
+				ls->game_nodes[i] = ref;
 
 				c_mob m{ i };
 				ecs_set_id(ls->world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
+				c_forward forward{ .yaw = 0.f };
+				ecs_set_id(ls->world, node_entity, ecs_id(c_forward), sizeof(c_forward), &forward);
 
 				if (n->name == "rosy")
 				{
+					ls->rosy_reference = ref;
 					ecs_add(ls->world, node_entity, t_rosy);
 				}
 			}
@@ -815,7 +1140,10 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 
 				if (n->name == "floor")
 				{
+					ls->floor_entity = node_entity;
 					ecs_add(ls->world, node_entity, t_floor);
+					c_static m{ i };
+					ecs_set_id(ls->world, node_entity, ecs_id(c_static), sizeof(c_static), &m);
 					break;
 				}
 			}
@@ -831,12 +1159,10 @@ result level::setup_frame()
 	return ls->setup_frame();
 }
 
+// ReSharper disable once CppMemberFunctionMayBeStatic
 result level::update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt)
 {
-	if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
-		return res;
-	}
-	if (const auto res = ls->update(dt); res != result::ok)
+	if (const auto res = ls->update(viewport_width, viewport_height, dt); res != result::ok)
 	{
 		ls->l->error("Error updating level state");
 		return res;
@@ -853,4 +1179,10 @@ result level::process()
 	for (const std::vector<node*> mobs = ls->get_mobs(); const node * n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
 	ls->updated = false;
 	return result::ok;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeStatic
+result level::process_sdl_event(const SDL_Event& event, bool cursor_enabled)
+{
+	return ls->process_sdl_event(event, cursor_enabled);
 }
