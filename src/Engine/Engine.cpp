@@ -237,8 +237,10 @@ result engine::run()
 					render_ui = !render_ui;
 				}
 			}
-			if (const auto res = lvl->process_sdl_event(event, !cursor_enabled); res != result::ok) {
-				return res;
+			if (const ImGuiIO& io = ImGui::GetIO(); !io.WantCaptureMouse && !io.WantCaptureKeyboard) {
+				if (const auto res = lvl->process_sdl_event(event, !cursor_enabled); res != result::ok) {
+					return res;
+				}
 			}
 
 		}

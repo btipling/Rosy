@@ -66,8 +66,7 @@ namespace
 
 	struct c_forward
 	{
-		float x{ 0.f }; 
-		float z{ 0.f };
+		float yaw{ 0.f };;
 	};
 	ECS_COMPONENT_DECLARE(c_forward);
 
@@ -164,7 +163,7 @@ namespace
 		// ECS
 		ecs_world_t* world{ nullptr };
 		ecs_entity_t level_entity{ 0 };
-		ecs_entity_t rosy_entity{ 0 };
+		game_node_reference rosy_reference{};
 		ecs_entity_t floor_entity{ 0 };
 
 		bool updated{ false };
@@ -416,6 +415,14 @@ namespace
 			constexpr Uint8 rosy_attention_btn{ 1 };
 			constexpr Uint8 pick_debug_toggle_btn{ 2 };
 			constexpr Uint8 pick_debug_record_btn{ 3 };
+			const ecs_entity_t rosy_entity = rosy_reference.entity;
+			if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || SDL_EVENT_MOUSE_BUTTON_UP)
+			{
+				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
+				if (std::isnan(mbe.x) || (std::isnan(mbe.y))) return result::ok;
+				const c_cursor_position c_pos{ .screen_x = mbe.x, .screen_y = mbe.y };
+				ecs_set_id(world, level_entity, ecs_id(c_cursor_position), sizeof(c_cursor_position), &c_pos);
+			}
 			if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
 				switch (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button)
 				{
@@ -445,12 +452,6 @@ namespace
 			if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
 				if (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button == rosy_attention_btn) ecs_remove(world, rosy_entity, t_rosy_action);
 			}
-			if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || SDL_EVENT_MOUSE_BUTTON_UP)
-			{
-				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
-				const c_cursor_position c_pos{ .screen_x = mbe.x, .screen_y = mbe.y };
-				ecs_set_id(world, level_entity, ecs_id(c_cursor_position), sizeof(c_cursor_position), &c_pos);
-			}
 			return result::ok;
 		}
 	};
@@ -465,7 +466,6 @@ namespace
 	{
 		const auto ctx = static_cast<level_state*>(it->param);
 		for (int i = 0; i < it->count; i++) {
-			//const ecs_entity_t e = it->entities[i];
 			if (!ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position))) continue;
 
 			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
@@ -499,10 +499,9 @@ namespace
 			[[maybe_unused]] const float intersection_w = glm::dot(-normal, plucker_v);
 			ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
-
-			auto rosy_target =  glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+			auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
 			c_target target{ .x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z };
-			ecs_set_id(ctx->world, ctx->rosy_entity, ecs_id(c_target), sizeof(c_target), &target);
+			ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target), sizeof(c_target), &target);
 
 			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 			{
@@ -547,7 +546,7 @@ namespace
 			}
 			else
 			{
-				glm::mat4 circle_m = glm::translate(glm::mat4(1.f), rosy_target);
+				glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 				circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
 				circle_m = glm::scale(circle_m, glm::vec3(0.25f));
 
@@ -558,7 +557,47 @@ namespace
 					.flags = 0,
 				};
 			}
+			if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target)))
+			{
+				const auto rosy_position = ctx->rosy_reference.node->position;
 
+				const glm::mat4 rosy_translate = glm::translate(glm::mat4(1.f), glm::vec3(rosy_position[0], rosy_position[1], rosy_position[2]));
+
+				constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
+				[[maybe_unused]] constexpr auto game_up =  glm::vec3{ 0.f, 1.f, 0.f };
+				[[maybe_unused]] const auto rosy_forward = static_cast<const c_forward*>(ecs_get_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward)));
+				[[maybe_unused]] const glm::mat4 rosy_transform = array_to_mat4(ctx->rosy_reference.node->transform);
+				{
+					const glm::mat4 to_rosy_space = glm::inverse(rosy_translate);
+					const auto rosy_space_target = glm::vec3(to_rosy_space * glm::vec4(rosy_target, 1.f));
+					const float offset = rosy_space_target.x > 0 ? -1.f : 0.f;
+					const float target_game_cos_theta = glm::dot(glm::normalize(rosy_space_target), game_forward);
+					const float target_yaw = std::acos(target_game_cos_theta);
+					const float new_yaw = target_yaw + offset;
+					ctx->l->debug(std::format("(target: ({:.3f}, {:.3f}), {:.3f})) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
+						rosy_space_target[0],
+						rosy_space_target[1],
+						rosy_space_target[2],
+						target_game_cos_theta,
+						target_yaw,
+						offset,
+						new_yaw
+					));
+
+
+					c_forward nf{ .yaw = target_yaw };
+					ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
+
+
+					glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{ 0.f, 1.f, 0.f });
+					if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
+					const glm::mat4 r = toMat4(yaw_rotation);
+					const glm::mat4 tr = rosy_translate;
+
+					ctx->rosy_reference.node->transform = mat4_to_array(gltf_to_ndc * tr * r);
+					ctx->updated = true;
+				}
+			}
 		}
 	}
 
@@ -609,7 +648,7 @@ namespace
 			for (const game_node_reference& nr : ctx->game_nodes)
 			{
 				std::array<float, 3> target = {0.f, 0.f, 0.f};
-				std::array<float, 3> forward = { 0.f, 0.f, 0.f };
+				float yaw = 0.f;
 				if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_target)))
 				{
 					const auto tc = static_cast<const c_target*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_target)));
@@ -618,12 +657,13 @@ namespace
 				if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_forward)))
 				{
 					const auto fc = static_cast<const c_forward*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_forward)));
-					forward = { fc->x, 0.f, fc->z };
+					ctx->l->debug(std::format("setting rls yaw: ({:.3f}", fc->yaw));
+					yaw = fc->yaw;
 				}
 				ctx->rls->mob_read.mob_states.push_back({
 					.name = nr.node->name,
 					.position = {nr.node->position[0], nr.node->position[1], nr.node->position[2]},
-					.forward = forward,
+					.yaw = yaw,
 					.target = target,
 					});
 			}
@@ -645,7 +685,7 @@ namespace
 			}
 			ctx->rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space ? pick_debug_read_state::picking_space::screen : pick_debug_read_state::picking_space::view;
 		}
-		else if (ecs_has_id(ctx->world, ctx->rosy_entity, ecs_id(t_rosy_action)))
+		else if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(t_rosy_action)))
 		{
 			if (ctx->rls->pick_debugging.picking.has_value())
 			{
@@ -771,13 +811,13 @@ result level::init(log* new_log, const config new_cfg)
 		// Init level state
 		{
 			wls.light_debug.sun_distance = 23.776f;
-			wls.light_debug.sun_pitch = 5.849f;
-			wls.light_debug.sun_yaw = 6.293f;
-			wls.light_debug.orthographic_depth = 49.060f;
-			wls.light_debug.cascade_level = 29.194f;
+			wls.light_debug.sun_pitch = 5.684f;
+			wls.light_debug.sun_yaw = 5.349f;
+			wls.light_debug.orthographic_depth = 76.838f;
+			wls.light_debug.cascade_level = 12.853f;
 			wls.light.depth_bias_constant = -21.882f;
 			wls.light.depth_bias_clamp = -20.937f;
-			wls.light.depth_bias_slope_factor = -163.064f;
+			wls.light.depth_bias_slope_factor = -3.922f;
 			wls.draw_config.cull_enabled = true;
 			wls.light.depth_bias_enabled = true;
 			wls.draw_config.thick_wire_lines = false;
@@ -1064,20 +1104,21 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				node* n = mobs[i];
 				ecs_entity_t node_entity = ecs_new(ls->world);
 
-				ls->game_nodes[i] = {
+				game_node_reference ref = {
 					.entity = node_entity,
 					.index = i,
 					.node = n,
 				};
+				ls->game_nodes[i] = ref;
 
 				c_mob m{ i };
 				ecs_set_id(ls->world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
-				c_forward forward{ .x = 0.f, .z = 1.f };
+				c_forward forward{ .yaw = 0.f };
 				ecs_set_id(ls->world, node_entity, ecs_id(c_forward), sizeof(c_forward), &forward);
 
 				if (n->name == "rosy")
 				{
-					ls->rosy_entity = node_entity;
+					ls->rosy_reference = ref;
 					ecs_add(ls->world, node_entity, t_rosy);
 				}
 			}

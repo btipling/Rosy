@@ -5385,7 +5385,7 @@ namespace {
 								ImGui::SliderFloat("Light cascade level", &wls->light_debug.cascade_level, 0.f, 50.f);
 								ImGui::SliderFloat("Depth bias constant", &wls->light.depth_bias_constant, -500.f, 500.f);
 								ImGui::SliderFloat("Depth bias clamp", &wls->light.depth_bias_clamp, -500.f, 500.f);
-								ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor, -500.f, 500.f);
+								ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor, -50.f, 50.f);
 								ImGui::EndTable();
 							}
 							if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
@@ -5485,7 +5485,7 @@ namespace {
 						{
 							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 							{
-								for (const auto& [name, position, forward, target] : rls->mob_read.mob_states) {
+								for (const auto& [name, position, yaw, target] : rls->mob_read.mob_states) {
 
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
@@ -5501,9 +5501,9 @@ namespace {
 
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
-									ImGui::Text("forward");
+									ImGui::Text("yaw");
 									ImGui::TableNextColumn();
-									ImGui::Text("(%.2f,  %.2f,  %.2f)", forward[0], forward[1], forward[2]);
+									ImGui::Text("(%.2f)", yaw);
 
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
