@@ -16,9 +16,6 @@
 
 using namespace rosy;
 
-
-
-
 constexpr size_t max_node_stack_size = 4'096;
 constexpr size_t max_stack_item_list = 16'384;
 
@@ -45,7 +42,7 @@ namespace
 
 	struct c_static
 	{
-		size_t index{ 0 };
+		[[maybe_unused]] size_t index{ 0 };
 	};
 	ECS_COMPONENT_DECLARE(c_static);
 
@@ -61,6 +58,7 @@ namespace
 		float x{ 0.f };
 		float y{ 0.f };
 		float z{ 0.f };
+		[[maybe_unused]] float t{ 0.f };
 	};
 	ECS_COMPONENT_DECLARE(c_target);
 
@@ -561,7 +559,8 @@ namespace
 			{
 				const auto rosy_position = ctx->rosy_reference.node->position;
 
-				const glm::mat4 rosy_translate = glm::translate(glm::mat4(1.f), glm::vec3(rosy_position[0], rosy_position[1], rosy_position[2]));
+				const auto rosy_pos = glm::vec3(rosy_position[0], rosy_position[1], rosy_position[2]);
+				const glm::mat4 rosy_translate = glm::translate(glm::mat4(1.f), rosy_pos);
 
 				constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
 				[[maybe_unused]] constexpr auto game_up =  glm::vec3{ 0.f, 1.f, 0.f };
@@ -570,32 +569,40 @@ namespace
 				{
 					const glm::mat4 to_rosy_space = glm::inverse(rosy_translate);
 					const auto rosy_space_target = glm::vec3(to_rosy_space * glm::vec4(rosy_target, 1.f));
-					const float offset = rosy_space_target.x > 0 ? -1.f : 0.f;
-					const float target_game_cos_theta = glm::dot(glm::normalize(rosy_space_target), game_forward);
-					const float target_yaw = std::acos(target_game_cos_theta);
-					const float new_yaw = target_yaw + offset;
-					ctx->l->debug(std::format("(target: ({:.3f}, {:.3f}), {:.3f})) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
-						rosy_space_target[0],
-						rosy_space_target[1],
-						rosy_space_target[2],
-						target_game_cos_theta,
-						target_yaw,
-						offset,
-						new_yaw
-					));
+					if (rosy_space_target != glm::zero<glm::vec3>()) {
+						const float offset = rosy_space_target.x > 0 ? -1.f : 0.f;
+						const float target_game_cos_theta = glm::dot(glm::normalize(rosy_space_target), game_forward);
+						const float target_yaw = std::acos(target_game_cos_theta);
+						const float new_yaw = target_yaw + offset;
+						ctx->l->debug(std::format("(target: ({:.3f}, {:.3f}), {:.3f})) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
+							rosy_space_target[0],
+							rosy_space_target[1],
+							rosy_space_target[2],
+							target_game_cos_theta,
+							target_yaw,
+							offset,
+							new_yaw
+						));
 
+						c_forward nf{ .yaw = target_yaw };
+						ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
 
-					c_forward nf{ .yaw = target_yaw };
-					ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
+						glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{ 0.f, 1.f, 0.f });
+						if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
+						const glm::mat4 r = toMat4(yaw_rotation);
+						const float t = 1.f * it->delta_time;
+						glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
+						const glm::mat4 tr = glm::translate(glm::mat4(1.f), glm::vec3(new_rosy_pos[0] * -1, new_rosy_pos[1], new_rosy_pos[2]));
 
-
-					glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{ 0.f, 1.f, 0.f });
-					if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
-					const glm::mat4 r = toMat4(yaw_rotation);
-					const glm::mat4 tr = rosy_translate;
-
-					ctx->rosy_reference.node->transform = mat4_to_array(gltf_to_ndc * tr * r);
-					ctx->updated = true;
+						if (const auto res = ctx->rosy_reference.node->update_transform(mat4_to_array(gltf_to_ndc * tr * r)); res != result::ok)
+						{
+							ctx->l->error("error transforming rosy");
+						}
+						else
+						{
+							ctx->updated = true;
+						}
+					}
 				}
 			}
 		}

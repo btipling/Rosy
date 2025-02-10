@@ -133,7 +133,7 @@ namespace
 			glm::vec4 vel{ 0.f };
 			for (size_t i{ 0 }; i < movements.size(); i++)
 			{
-				auto [mv_position, mv_velocity, dir] = movements[i];
+				auto& [mv_position, mv_velocity, dir] = movements[i];
 				mv_position += mv_velocity * dt;
 				switch (dir)
 				{
