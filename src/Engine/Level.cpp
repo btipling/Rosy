@@ -500,7 +500,7 @@ namespace
 			ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
 
-			glm::vec3 rosy_target =  glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+			auto rosy_target =  glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
 			c_target target{ .x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z };
 			ecs_set_id(ctx->world, ctx->rosy_entity, ecs_id(c_target), sizeof(c_target), &target);
 
@@ -608,9 +608,23 @@ namespace
 			ctx->rls->mob_read.mob_states.clear();
 			for (const game_node_reference& nr : ctx->game_nodes)
 			{
+				std::array<float, 3> target = {0.f, 0.f, 0.f};
+				std::array<float, 3> forward = { 0.f, 0.f, 0.f };
+				if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_target)))
+				{
+					const auto tc = static_cast<const c_target*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_target)));
+					target = { tc->x, tc->y, tc->z };
+				}
+				if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_forward)))
+				{
+					const auto fc = static_cast<const c_forward*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_forward)));
+					forward = { fc->x, 0.f, fc->z };
+				}
 				ctx->rls->mob_read.mob_states.push_back({
 					.name = nr.node->name,
 					.position = {nr.node->position[0], nr.node->position[1], nr.node->position[2]},
+					.forward = forward,
+					.target = target,
 					});
 			}
 		}

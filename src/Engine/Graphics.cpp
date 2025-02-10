@@ -5361,7 +5361,7 @@ namespace {
 
 								if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 								{
-									for (const auto& [name, position, target] : rls->mob_read.mob_states) {
+									for (const auto& [name, position, forward, target] : rls->mob_read.mob_states) {
 										ImGui::TableNextRow();
 										ImGui::TableNextColumn();
 										ImGui::Text(name.c_str());
@@ -5502,7 +5502,7 @@ namespace {
 						{
 							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 							{
-								for (const auto& [name, position, target] : rls->mob_read.mob_states) {
+								for (const auto& [name, position, forward, target] : rls->mob_read.mob_states) {
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
 									ImGui::Text(name.c_str());
@@ -5515,7 +5515,7 @@ namespace {
 							if (ImGui::BeginCombo("Select mob", rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
 							{
 								for (int i = 0; i < rls->mob_read.mob_states.size(); ++i) {
-									const auto& [name, position, target] = rls->mob_read.mob_states[i];
+									const auto& [name, position, forward, target] = rls->mob_read.mob_states[i];
 									const bool is_selected = (wls->mob_edit.edit_index == i);
 									if (ImGui::Selectable(name.c_str(), is_selected)) {
 										wls->mob_edit.edit_index = i;

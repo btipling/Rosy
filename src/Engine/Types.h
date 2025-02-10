@@ -152,6 +152,7 @@ namespace rosy
 	{
 		std::string name;
 		std::array<float, 3> position;
+		std::array<float, 3> forward{ 0.f, 0.f, 0.f };
 		std::array<float, 3> target{0.f, 0.f, 0.f};
 	};
 
