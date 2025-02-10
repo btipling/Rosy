@@ -64,7 +64,7 @@ namespace
 
 	struct c_forward
 	{
-		float yaw{ 0.f };;
+		float yaw{ 0.f };
 	};
 	ECS_COMPONENT_DECLARE(c_forward);
 
