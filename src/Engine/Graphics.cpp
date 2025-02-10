@@ -5354,23 +5354,6 @@ namespace {
 							ImGui::EndTable();
 						}
 						ImGui::EndTabItem();
-
-						if (!rls->mob_read.mob_states.empty())
-							if (ImGui::CollapsingHeader("Mobs"))
-							{
-
-								if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-								{
-									for (const auto& [name, position, forward, target] : rls->mob_read.mob_states) {
-										ImGui::TableNextRow();
-										ImGui::TableNextColumn();
-										ImGui::Text(name.c_str());
-										ImGui::TableNextColumn();
-										ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
-									}
-									ImGui::EndTable();
-								}
-							}
 					}
 					if (ImGui::BeginTabItem("Edit"))
 					{
@@ -5503,11 +5486,36 @@ namespace {
 							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 							{
 								for (const auto& [name, position, forward, target] : rls->mob_read.mob_states) {
+
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
+									ImGui::Text("name");
+									ImGui::TableNextColumn();
 									ImGui::Text(name.c_str());
+
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text("position");
 									ImGui::TableNextColumn();
 									ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text("forward");
+									ImGui::TableNextColumn();
+									ImGui::Text("(%.2f,  %.2f,  %.2f)", forward[0], forward[1], forward[2]);
+
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text("target");
+									ImGui::TableNextColumn();
+									ImGui::Text("(%.2f,  %.2f,  %.2f)", target[0], target[1], target[2]);
+
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGui::Text("");
+									ImGui::TableNextColumn();
+									ImGui::Text("");
 								}
 								ImGui::EndTable();
 							}
