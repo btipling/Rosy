@@ -398,9 +398,71 @@ namespace
 
 		[[nodiscard]] result process_sdl_event(const SDL_Event& event, const bool cursor_enabled) const
 		{
-			if (const auto res = cam->process_sdl_event(event, cursor_enabled); res != result::ok)
-			{
-				return res;
+			if (event.type == SDL_EVENT_KEY_DOWN) {
+				if (event.key.key == SDLK_W)
+				{
+					cam->move(camera::direction::z_pos, 1.f);
+				}
+				if (event.key.key == SDLK_S)
+				{
+					cam->move(camera::direction::z_neg, 1.f);
+				}
+				if (event.key.key == SDLK_A)
+				{
+					cam->move(camera::direction::x_neg, 1.f);
+				}
+				if (event.key.key == SDLK_D)
+				{
+					cam->move(camera::direction::x_pos, 1.f);
+				}
+				if (event.key.key == SDLK_SPACE)
+				{
+					cam->move(camera::direction::y_pos, 1.f);
+				}
+				if (event.key.key == SDLK_Z)
+				{
+					cam->move(camera::direction::y_neg, 1.f);
+				}
+				if (event.key.mod & SDL_KMOD_SHIFT)
+				{
+					cam->go_fast();
+				}
+			}
+
+			if (event.type == SDL_EVENT_KEY_UP) {
+				if (event.key.key == SDLK_W)
+				{
+					cam->move(camera::direction::z_pos, 0.f);
+				}
+				if (event.key.key == SDLK_S)
+				{
+					cam->move(camera::direction::z_neg, 0.f);
+				}
+				if (event.key.key == SDLK_A)
+				{
+					cam->move(camera::direction::x_neg, 0.f);
+				}
+				if (event.key.key == SDLK_D)
+				{
+					cam->move(camera::direction::x_pos, 0.f);
+				}
+				if (event.key.key == SDLK_SPACE)
+				{
+					cam->move(camera::direction::y_pos, 0.f);
+				}
+				if (event.key.key == SDLK_Z)
+				{
+					cam->move(camera::direction::y_neg, 0.f);
+				}
+				if (!(event.key.mod & SDL_KMOD_SHIFT))
+				{
+					cam->go_slow();
+				}
+			}
+
+			if (cursor_enabled && event.type == SDL_EVENT_MOUSE_MOTION) {
+				cam->yaw_in_dir(event.motion.xrel / 250.f);
+				cam->pitch_in_dir(event.motion.yrel / 250.f);
 			}
 
 			constexpr Uint8 rosy_attention_btn{ 1 };
@@ -668,7 +730,7 @@ namespace
 			ctx->rls->mob_read.mob_states.clear();
 			for (const game_node_reference& nr : ctx->game_nodes)
 			{
-				std::array<float, 3> target = {0.f, 0.f, 0.f};
+				std::array<float, 3> target = { 0.f, 0.f, 0.f };
 				float yaw = 0.f;
 				if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_target)))
 				{

@@ -78,14 +78,14 @@ namespace
 				glm::vec4(0, 0, b, 0));
 		}
 
-		glm::mat4 get_view_matrix() const
+		[[nodiscard]] glm::mat4 get_view_matrix() const
 		{
 			const glm::mat4 camera_translation = translate(glm::mat4(1.f), position);
 			const glm::mat4 camera_rotation = get_rotation_matrix();
 			return inverse(camera_translation * camera_rotation);
 		}
 
-		glm::mat4 get_rotation_matrix() const
+		[[nodiscard]] glm::mat4 get_rotation_matrix() const
 		{
 			const glm::quat pitch_rotation = angleAxis(pitch, glm::vec3{ 1.f, 0.f, 0.f });
 			const glm::quat yaw_rotation = angleAxis(yaw, glm::vec3{ 0.f, -1.f, 0.f });
@@ -118,15 +118,15 @@ namespace
 		{
 			double base_velocity = 5.0;
 			base_velocity = go_fast ? base_velocity * 2.0 : base_velocity;
-			if (velocity.x != 0)
+			if (velocity.x != 0.f)
 			{
 				add_movement(movement::direction::horizontal, std::abs(velocity.x) * base_velocity);
 			}
-			if (velocity.y != 0)
+			if (velocity.y != 0.f)
 			{
 				add_movement(movement::direction::vertical, std::abs(velocity.y) * base_velocity);
 			}
-			if (velocity.z != 0)
+			if (velocity.z != 0.f)
 			{
 				add_movement(movement::direction::depth, std::abs(velocity.z) * base_velocity);
 			}
@@ -153,33 +153,29 @@ namespace
 			return result::ok;
 		}
 
-		result process_sdl_event(const SDL_Event& event, const bool cursor_enabled)
+		void move(const camera::direction dir, const float speed)
 		{
-			if (event.type == SDL_EVENT_KEY_DOWN) {
-				if (event.key.key == SDLK_W) { velocity.z = 1.f; }
-				if (event.key.key == SDLK_S) { velocity.z = -1.f; }
-				if (event.key.key == SDLK_A) { velocity.x = -1.f; }
-				if (event.key.key == SDLK_D) { velocity.x = 1.f; }
-				if (event.key.key == SDLK_SPACE) { velocity.y = 1.f; }
-				if (event.key.key == SDLK_Z) { velocity.y = -1.f; }
-				if (event.key.mod & SDL_KMOD_SHIFT) { go_fast = true; }
+			switch (dir)
+			{
+			case camera::direction::x_neg:
+				velocity.x = -1.f * speed;
+				break;
+			case camera::direction::x_pos:
+				velocity.x = 1.f * speed;
+				break;
+			case camera::direction::y_neg:
+				velocity.y = -1.f * speed;
+				break;
+			case camera::direction::y_pos:
+				velocity.y = 1.f * speed;
+				break;
+			case camera::direction::z_neg:
+				velocity.z = -1.f * speed;
+				break;
+			case camera::direction::z_pos:
+				velocity.z = 1.f * speed;
+				break;
 			}
-
-			if (event.type == SDL_EVENT_KEY_UP) {
-				if (event.key.key == SDLK_W) { velocity.z = 0; }
-				if (event.key.key == SDLK_S) { velocity.z = 0; }
-				if (event.key.key == SDLK_A) { velocity.x = 0; }
-				if (event.key.key == SDLK_D) { velocity.x = 0; }
-				if (event.key.key == SDLK_SPACE) { velocity.y = 0; }
-				if (event.key.key == SDLK_Z) { velocity.y = 0; }
-				if (!(event.key.mod & SDL_KMOD_SHIFT)) { go_fast = false; }
-			}
-			if (!cursor_enabled) return result::ok;
-			if (event.type == SDL_EVENT_MOUSE_MOTION) {
-				yaw -= event.motion.xrel / 250.f;
-				pitch += event.motion.yrel / 250.f;
-			}
-			return result::ok;
 		}
 	};
 	synthetic_camera* sc{ nullptr };
@@ -212,7 +208,6 @@ result camera::init(log const* new_log, const config cfg)
 			l->error("graphics_device initialization failed");
 			return result::graphics_init_failure;
 		}
-
 		v = mat4_to_array(sc->get_view_matrix());
 	}
 	return result::ok;
@@ -255,10 +250,34 @@ result camera::update(const uint32_t new_viewport_width, const uint32_t new_view
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::process_sdl_event(const SDL_Event& event, const bool cursor_enabled)
+result camera::move(const direction dir, float speed)
 {
-	if (const auto res = sc->process_sdl_event(event, cursor_enabled); res != result::ok) {
-		return res;
-	}
+	sc->move(dir, speed);
 	return result::ok;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeStatic
+result camera::pitch_in_dir(const float vel)
+{
+	sc->pitch += vel;
+	return result::ok;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeStatic
+result camera::yaw_in_dir(const float vel)
+{
+	sc->yaw -= vel;
+	return result::ok;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeStatic
+void camera::go_fast()
+{
+	sc->go_fast = true;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeStatic
+void camera::go_slow()
+{
+	sc->go_fast = false;
 }
