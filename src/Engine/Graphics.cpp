@@ -429,7 +429,6 @@ namespace {
 		config cfg{};
 		uint64_t graphics_created_bitmask{ 0 };
 		bool enable_validation_layers{ true };
-		bool render_ui{ true };
 
 		graphics_stats stats{};
 
@@ -5016,7 +5015,7 @@ namespace {
 
 					// ******** DRAW UI ********* //
 
-					if (render_ui) {
+					if (rls->ui_enabled) {
 						ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cf.command_buffer);
 					}
 					vkCmdEndRendering(cf.command_buffer);
@@ -5736,7 +5735,7 @@ result graphics::update(const read_level_state& rls, const graphics_object_updat
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result graphics::render(const bool render_ui, const engine_stats& stats)
+result graphics::render(const engine_stats& stats)
 {
 	{
 		ImGui_ImplVulkan_NewFrame();
@@ -5750,7 +5749,6 @@ result graphics::render(const bool render_ui, const engine_stats& stats)
 		}
 		ImGui::Render();
 	}
-	gd->render_ui = render_ui;
 	return gd->render();
 }
 

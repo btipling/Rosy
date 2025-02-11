@@ -426,9 +426,17 @@ namespace
 			return result::ok;
 		}
 
-		[[nodiscard]] result process_sdl_event(const SDL_Event& event, const bool cursor_enabled) const
+		[[nodiscard]] result process_sdl_event(const SDL_Event& event) const
 		{
 			if (event.type == SDL_EVENT_KEY_DOWN) {
+				if (event.key.key == SDLK_F1)
+				{
+					rls->ui_enabled = !rls->ui_enabled;
+				}
+				if (event.key.key == SDLK_C)
+				{
+					rls->cursor_enabled = !rls->cursor_enabled;
+				}
 				if (event.key.key == SDLK_W)
 				{
 					free_cam->move(camera::direction::z_pos, 1.f);
@@ -490,7 +498,7 @@ namespace
 				}
 			}
 
-			if (cursor_enabled && event.type == SDL_EVENT_MOUSE_MOTION) {
+			if (!rls->cursor_enabled && event.type == SDL_EVENT_MOUSE_MOTION) {
 				free_cam->yaw_in_dir(event.motion.xrel / 250.f);
 				free_cam->pitch_in_dir(event.motion.yrel / 250.f);
 			}
@@ -1294,7 +1302,7 @@ result level::process()
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result level::process_sdl_event(const SDL_Event& event, bool cursor_enabled)
+result level::process_sdl_event(const SDL_Event& event)
 {
-	return ls->process_sdl_event(event, cursor_enabled);
+	return ls->process_sdl_event(event);
 }

@@ -190,15 +190,19 @@ namespace rosy
 
 	struct read_level_state
 	{
+		float target_fps{ 0.f };
+		bool debug_enabled{ false };
+		bool ui_enabled{ true };
+		bool cursor_enabled{ true };
+
 		read_camera cam{};
+
 		light_read_write_state light{};
 		draw_config_state draw_config{};
-		bool debug_enabled{ false };
 		std::vector<debug_object> debug_objects{};
 		fragment_config_state fragment_config{};
 		graphic_objects_state graphic_objects{};
 		mob_read_state mob_read{};
-		float target_fps{ 0.f };
 		pick_debug_read_state pick_debugging{};
 	};
 
