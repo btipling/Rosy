@@ -3,6 +3,8 @@
 #include "Telemetry.h"
 #include <array>
 
+struct synthetic_camera;
+
 namespace rosy
 {
 	struct camera
@@ -11,6 +13,7 @@ namespace rosy
 
 		log const* l{ nullptr };
 
+		synthetic_camera* sc{ nullptr };
 		float starting_x{ 0.f };
 		float starting_y{ 0.f };
 		float starting_z{ 0.f };
@@ -33,7 +36,7 @@ namespace rosy
 		float yaw{ 0.f };
 
 		result init(log const* new_log, config cfg);
-		void deinit() const;
+		void deinit();
 		result update(uint32_t new_viewport_width, uint32_t new_viewport_height, const double dt);
 		result move(direction dir, float speed);
 		result pitch_in_dir(float vel);

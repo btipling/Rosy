@@ -142,8 +142,12 @@ namespace
 
 	struct level_state
 	{
+
+		enum class camera_choice : uint8_t { game, free };
 		rosy::log* l{ nullptr };
+		camera* game_cam{ nullptr };
 		camera* free_cam{ nullptr };
+		camera_choice active_cam{ camera_choice::game };
 
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
@@ -177,7 +181,7 @@ namespace
 			}
 			level_game_node->name = "rosy_root";
 
-			// Camera initialization
+			// Free camera initialization
 			{
 				free_cam = new(std::nothrow) camera{};
 				if (free_cam == nullptr)
@@ -191,6 +195,26 @@ namespace
 				free_cam->starting_pitch = 0.65f;
 				free_cam->starting_yaw = -1.58f;
 				if (auto const res = free_cam->init(l, new_cfg); res != result::ok)
+				{
+					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
+					return res;
+				}
+			}
+
+			// Game camera initialization
+			{
+				game_cam = new(std::nothrow) camera{};
+				if (free_cam == nullptr)
+				{
+					l->error("Error allocating camera");
+					return result::allocation_failure;
+				}
+				game_cam->starting_x = 0.f;
+				game_cam->starting_y = 10.f;
+				game_cam->starting_z = -10.f;
+				game_cam->starting_pitch = glm::pi<float>() / 4.f;
+				game_cam->starting_yaw = 0.f;
+				if (auto const res = game_cam->init(l, new_cfg); res != result::ok)
 				{
 					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
 					return res;
@@ -229,6 +253,12 @@ namespace
 			if (world != nullptr)
 			{
 				ecs_fini(world);
+			}
+			if (game_cam)
+			{
+				game_cam->deinit();
+				delete game_cam;
+				game_cam = nullptr;
 			}
 			if (free_cam)
 			{
