@@ -26,7 +26,7 @@ namespace
 
 	std::array<float, 16> mat4_to_array(glm::mat4 m)
 	{
-		std::array<float, 16> rv;
+		std::array<float, 16> rv{};
 		const auto pos_r = glm::value_ptr(m);
 		for (uint64_t i{ 0 }; i < 16; i++) rv[i] = pos_r[i];
 		return rv;

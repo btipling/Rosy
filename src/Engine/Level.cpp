@@ -118,13 +118,6 @@ namespace
 		return v;
 	}
 
-	constexpr auto gltf_to_ndc = glm::mat4(
-		glm::vec4(-1.f, 0.f, 0.f, 0.f),
-		glm::vec4(0.f, 1.f, 0.f, 0.f),
-		glm::vec4(0.f, 0.f, 1.f, 0.f),
-		glm::vec4(0.f, 0.f, 0.f, 1.f)
-	);
-
 	struct stack_item
 	{
 		node* game_node{ nullptr };
@@ -280,7 +273,7 @@ namespace
 					e_desc.id = 0;
 					e_desc.name = "init_level_state";
 					{
-						ecs_id_t add_ids[3];
+						ecs_id_t add_ids[3]{};
 						add_ids[0] = { ecs_dependson(flecs::OnLoad) };
 						add_ids[1] = flecs::OnLoad;
 						add_ids[2] = 0;
@@ -300,7 +293,7 @@ namespace
 					e_desc.id = 0;
 					e_desc.name = "detect_mob";
 					{
-						ecs_id_t add_ids[3];
+						ecs_id_t add_ids[3]{};
 						add_ids[0] = { ecs_dependson(EcsOnUpdate) };
 						add_ids[1] = EcsOnUpdate;
 						add_ids[2] = 0;
@@ -321,7 +314,7 @@ namespace
 					e_desc.id = 0;
 					e_desc.name = "detect_floor";
 					{
-						ecs_id_t add_ids[3];
+						ecs_id_t add_ids[3]{};
 						add_ids[0] = { ecs_dependson(EcsOnUpdate) };
 						add_ids[1] = EcsOnUpdate;
 						add_ids[2] = 0;
@@ -342,7 +335,7 @@ namespace
 					e_desc.id = 0;
 					e_desc.name = "move_rosy";
 					{
-						ecs_id_t add_ids[3];
+						ecs_id_t add_ids[3]{};
 						add_ids[0] = { ecs_dependson(EcsOnUpdate) };
 						add_ids[1] = EcsOnUpdate;
 						add_ids[2] = 0;
@@ -498,6 +491,28 @@ namespace
 			ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
 			auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+			const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
+			const node* floor_node = ctx->get_static()[floor_index->index];
+			auto rosy_floor_space_target = glm::inverse(array_to_mat4(floor_node->transform)) * glm::vec4(rosy_target, 1.f);
+			bool exceeds_bounds{ false };
+			for (int j{ 0 }; j < 3; j++)
+			{
+				if (rosy_target[j] < floor_node->bounds.min[j])
+				{
+					rosy_floor_space_target[j] = floor_node->bounds.min[j];
+					exceeds_bounds = true;
+				}
+				if (rosy_floor_space_target[j] > floor_node->bounds.max[j])
+				{
+					rosy_floor_space_target[j] = floor_node->bounds.max[j];
+					exceeds_bounds = true;
+				}
+			}
+			if (exceeds_bounds)
+			{
+				rosy_target = glm::vec3(array_to_mat4(floor_node->transform) * rosy_floor_space_target);
+			}
+
 			c_target target{ .x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z };
 			ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target), sizeof(c_target), &target);
 
@@ -568,11 +583,10 @@ namespace
 				[[maybe_unused]] const glm::mat4 rosy_transform = array_to_mat4(ctx->rosy_reference.node->transform);
 				{
 					const glm::mat4 to_rosy_space = glm::inverse(rosy_translate);
-					const auto rosy_space_target = glm::vec3(to_rosy_space * glm::vec4(rosy_target, 1.f));
-					if (rosy_space_target != glm::zero<glm::vec3>()) {
+					if (const auto rosy_space_target = glm::vec3(to_rosy_space * glm::vec4(rosy_target, 1.f)); rosy_space_target != glm::zero<glm::vec3>()) {
 						const float offset = rosy_space_target.x > 0 ? -1.f : 0.f;
 						const float target_game_cos_theta = glm::dot(glm::normalize(rosy_space_target), game_forward);
-						const float target_yaw = std::acos(target_game_cos_theta);
+						const float target_yaw = -std::acos(target_game_cos_theta);
 						const float new_yaw = target_yaw + offset;
 						ctx->l->debug(std::format("(target: ({:.3f}, {:.3f}), {:.3f})) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
 							rosy_space_target[0],
@@ -592,9 +606,9 @@ namespace
 						const glm::mat4 r = toMat4(yaw_rotation);
 						const float t = 1.f * it->delta_time;
 						glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
-						const glm::mat4 tr = glm::translate(glm::mat4(1.f), glm::vec3(new_rosy_pos[0] * -1, new_rosy_pos[1], new_rosy_pos[2]));
+						const glm::mat4 tr = glm::translate(glm::mat4(1.f), glm::vec3(new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]));
 
-						if (const auto res = ctx->rosy_reference.node->update_transform(mat4_to_array(gltf_to_ndc * tr * r)); res != result::ok)
+						if (const auto res = ctx->rosy_reference.node->update_transform(mat4_to_array(tr * r)); res != result::ok)
 						{
 							ctx->l->error("error transforming rosy");
 						}
@@ -951,8 +965,9 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 		assert(queue_item.game_node != nullptr);
 
 		glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
-		const glm::mat4 transform = gltf_to_ndc * queue_item.parent_transform * node_transform;
-
+		const glm::mat4 transform = queue_item.parent_transform * node_transform;
+		// Set node bounds for bound testing.
+		node_bounds bounds{};
 		// Advance the next item in the node queue
 		if (queue_item.stack_node.mesh_id < new_asset.meshes.size()) {
 			// Each node has a mesh id. Add to mesh queue.
@@ -988,8 +1003,12 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					// Each mesh has any number of surfaces that are derived from gltf primitives for example. These are what are given to the renderer to draw.
 					go.surface_data.reserve(current_mesh.surfaces.size());
-					for (const auto& [sur_start_index, sur_count, sur_material] : current_mesh.surfaces)
+					for (const auto& [sur_start_index, sur_count, sur_material, min_bounds, max_bounds] : current_mesh.surfaces)
 					{
+						for (size_t i{ 0 }; i < 3; i++) {
+							bounds.min[i] = std::min(min_bounds[i], bounds.min[i]);
+							bounds.max[i] = std::max(max_bounds[i], bounds.max[i]);
+						}
 						surface_graphics_data sgd{};
 						sgd.mesh_index = current_mesh_index;
 						// The index written to the surface graphic object is critical for pulling its transforms out of the buffer for rendering.
@@ -1033,6 +1052,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				}
 			}
 		}
+		queue_item.game_node->bounds = bounds;
 
 		// Each node can have an arbitrary number of child nodes.
 		for (const size_t child_index : queue_item.stack_node.child_nodes)
