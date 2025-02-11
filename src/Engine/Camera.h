@@ -2,12 +2,13 @@
 #include "Types.h"
 #include "Telemetry.h"
 #include <array>
-#include <SDL3/SDL.h>
 
 namespace rosy
 {
 	struct camera
 	{
+		enum class direction: uint8_t {x_neg, x_pos, y_neg, y_pos, z_neg, z_pos};
+
 		log const* l{ nullptr };
 
 		float starting_x{ 0.f };
@@ -34,6 +35,10 @@ namespace rosy
 		result init(log const* new_log, config cfg);
 		void deinit() const;
 		result update(uint32_t new_viewport_width, uint32_t new_viewport_height, const double dt);
-		result process_sdl_event(const SDL_Event& event, bool cursor_enabled);
+		result move(direction dir, float speed);
+		result pitch_in_dir(float vel);
+		result yaw_in_dir(float vel);
+		void go_fast();
+		void go_slow();
 	};
 }
