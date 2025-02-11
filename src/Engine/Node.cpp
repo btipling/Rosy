@@ -123,14 +123,15 @@ auto node::set_position(const std::array<float, 3>& new_position) -> result
 	return result::ok;
 }
 
-auto node::update_transform(const std::array<float, 16>& new_transform) -> result
+auto node::update_transform(const std::array<float, 16>& new_parent_transform) -> result
 {
-	ns->update_transform(new_transform);
+	ns->update_transform(new_parent_transform);
 	transform = mat4_to_array(ns->parent_transform * ns->transform);
 	position = vec4_to_array(ns->position);
-	if (std::isnan(position[0]) || std::isnan(position[1]) || std::isnan(position[2]) || std::isnan(ns->position[0]) || std::isnan(ns->position[1]) || std::isnan(ns->position[2]))
+	if (std::isnan(position[0]) || std::isnan(position[1]) || std::isnan(position[2]))
 	{
-		l->info("error nan");
+		l->error("update_transform: error nan");
+		return result::error;
 	}
 	object_space_transform = mat4_to_array(ns->object_space_transform);
 	normal_transform = mat4_to_array(ns->normal_transform);
@@ -156,7 +157,7 @@ void node::update_parent_transform(const std::array<float, 16>& new_parent_trans
 
 void node::populate_graph(std::vector<graphics_object>& graph) const
 {
-	for (auto go : graphics_objects)
+	for (graphics_object go : graphics_objects)
 	{
 		assert(graph.size() > go.index);
 		go.transform = transform;

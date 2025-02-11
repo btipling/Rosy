@@ -1,4 +1,5 @@
 #include "Gltf.h"
+#include <algorithm>
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
 #include <iostream>
@@ -170,6 +171,10 @@ rosy::result gltf::import(rosy::log* l)
 		for (auto& primitive : fast_gltf_mesh.primitives)
 		{
 			// PRIMITIVE SURFACE
+			float min = std::numeric_limits<float>::min();
+			float max = std::numeric_limits<float>::max();
+			std::array<float, 3> min_bounds{ max, max, max };
+			std::array<float, 3> max_bounds{ min, min, min };
 			surface new_surface{};
 			new_surface.start_index = static_cast<uint32_t>(new_mesh.indices.size());
 			new_surface.count = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
@@ -207,6 +212,10 @@ rosy::result gltf::import(rosy::log* l)
 			fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, pos_accessor,
 				[&](const fastgltf::math::fvec3& v, const size_t index) {
 					position new_position{};
+					for (size_t i{ 0 }; i < 3; i++) {
+						min_bounds[i] = std::min(v[i], min_bounds[i]);
+						max_bounds[i] = std::max(v[i], max_bounds[i]);
+					}
 					new_position.vertex = { v[0], v[1], v[2] };
 					new_position.normal = { 1.0f, 0.0f, 0.0f };
 					new_position.tangents = { 1.0f, 0.0f, 0.0f };
@@ -253,6 +262,8 @@ rosy::result gltf::import(rosy::log* l)
 			else {
 				new_surface.material = 0;
 			}
+			new_surface.min_bounds = min_bounds;
+			new_surface.max_bounds = max_bounds;
 			new_mesh.surfaces.push_back(new_surface);
 		}
 		gltf_asset.meshes.push_back(new_mesh);
