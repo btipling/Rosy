@@ -419,7 +419,8 @@ namespace
 
 		[[nodiscard]] result update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt) const
 		{
-			if (const auto res = free_cam->update(viewport_width, viewport_height, dt); res != result::ok) {
+			camera* cam = active_cam == level_state::camera_choice::game ? game_cam :free_cam;
+			if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
 				return res;
 			}
 			ecs_progress(world, static_cast<float>(dt));
@@ -436,15 +437,13 @@ namespace
 				if (event.key.key == SDLK_F2)
 				{
 					active_cam = active_cam == camera_choice::game ? camera_choice::free : camera_choice::game;
-				}
-				if (event.key.key == SDLK_C)
-				{
-					rls->cursor_enabled = !rls->cursor_enabled;
+					if (active_cam == camera_choice::game) rls->cursor_enabled = true;
 				}
 			}
 
 			if (active_cam == camera_choice::free) {
 				if (event.type == SDL_EVENT_KEY_DOWN) {
+					if (event.key.key == SDLK_C) rls->cursor_enabled = !rls->cursor_enabled;
 					if (event.key.key == SDLK_W) free_cam->move(camera::direction::z_pos, 1.f);
 					if (event.key.key == SDLK_S) free_cam->move(camera::direction::z_neg, 1.f);
 					if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_neg, 1.f);
