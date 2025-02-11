@@ -143,7 +143,7 @@ namespace
 	struct level_state
 	{
 		rosy::log* l{ nullptr };
-		camera* cam{ nullptr };
+		camera* free_cam{ nullptr };
 
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
@@ -179,18 +179,18 @@ namespace
 
 			// Camera initialization
 			{
-				cam = new(std::nothrow) camera{};
-				if (cam == nullptr)
+				free_cam = new(std::nothrow) camera{};
+				if (free_cam == nullptr)
 				{
 					l->error("Error allocating camera");
 					return result::allocation_failure;
 				}
-				cam->starting_x = -5.88f;
-				cam->starting_y = 3.86f;
-				cam->starting_z = -1.13f;
-				cam->starting_pitch = 0.65f;
-				cam->starting_yaw = -1.58f;
-				if (auto const res = cam->init(l, new_cfg); res != result::ok)
+				free_cam->starting_x = -5.88f;
+				free_cam->starting_y = 3.86f;
+				free_cam->starting_z = -1.13f;
+				free_cam->starting_pitch = 0.65f;
+				free_cam->starting_yaw = -1.58f;
+				if (auto const res = free_cam->init(l, new_cfg); res != result::ok)
 				{
 					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
 					return res;
@@ -230,11 +230,11 @@ namespace
 			{
 				ecs_fini(world);
 			}
-			if (cam)
+			if (free_cam)
 			{
-				cam->deinit();
-				delete cam;
-				cam = nullptr;
+				free_cam->deinit();
+				delete free_cam;
+				free_cam = nullptr;
 			}
 			if (level_game_node != nullptr) {
 				level_game_node->deinit();
@@ -389,7 +389,7 @@ namespace
 
 		[[nodiscard]] result update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt) const
 		{
-			if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
+			if (const auto res = free_cam->update(viewport_width, viewport_height, dt); res != result::ok) {
 				return res;
 			}
 			ecs_progress(world, static_cast<float>(dt));
@@ -401,68 +401,68 @@ namespace
 			if (event.type == SDL_EVENT_KEY_DOWN) {
 				if (event.key.key == SDLK_W)
 				{
-					cam->move(camera::direction::z_pos, 1.f);
+					free_cam->move(camera::direction::z_pos, 1.f);
 				}
 				if (event.key.key == SDLK_S)
 				{
-					cam->move(camera::direction::z_neg, 1.f);
+					free_cam->move(camera::direction::z_neg, 1.f);
 				}
 				if (event.key.key == SDLK_A)
 				{
-					cam->move(camera::direction::x_neg, 1.f);
+					free_cam->move(camera::direction::x_neg, 1.f);
 				}
 				if (event.key.key == SDLK_D)
 				{
-					cam->move(camera::direction::x_pos, 1.f);
+					free_cam->move(camera::direction::x_pos, 1.f);
 				}
 				if (event.key.key == SDLK_SPACE)
 				{
-					cam->move(camera::direction::y_pos, 1.f);
+					free_cam->move(camera::direction::y_pos, 1.f);
 				}
 				if (event.key.key == SDLK_Z)
 				{
-					cam->move(camera::direction::y_neg, 1.f);
+					free_cam->move(camera::direction::y_neg, 1.f);
 				}
 				if (event.key.mod & SDL_KMOD_SHIFT)
 				{
-					cam->go_fast();
+					free_cam->go_fast();
 				}
 			}
 
 			if (event.type == SDL_EVENT_KEY_UP) {
 				if (event.key.key == SDLK_W)
 				{
-					cam->move(camera::direction::z_pos, 0.f);
+					free_cam->move(camera::direction::z_pos, 0.f);
 				}
 				if (event.key.key == SDLK_S)
 				{
-					cam->move(camera::direction::z_neg, 0.f);
+					free_cam->move(camera::direction::z_neg, 0.f);
 				}
 				if (event.key.key == SDLK_A)
 				{
-					cam->move(camera::direction::x_neg, 0.f);
+					free_cam->move(camera::direction::x_neg, 0.f);
 				}
 				if (event.key.key == SDLK_D)
 				{
-					cam->move(camera::direction::x_pos, 0.f);
+					free_cam->move(camera::direction::x_pos, 0.f);
 				}
 				if (event.key.key == SDLK_SPACE)
 				{
-					cam->move(camera::direction::y_pos, 0.f);
+					free_cam->move(camera::direction::y_pos, 0.f);
 				}
 				if (event.key.key == SDLK_Z)
 				{
-					cam->move(camera::direction::y_neg, 0.f);
+					free_cam->move(camera::direction::y_neg, 0.f);
 				}
 				if (!(event.key.mod & SDL_KMOD_SHIFT))
 				{
-					cam->go_slow();
+					free_cam->go_slow();
 				}
 			}
 
 			if (cursor_enabled && event.type == SDL_EVENT_MOUSE_MOTION) {
-				cam->yaw_in_dir(event.motion.xrel / 250.f);
-				cam->pitch_in_dir(event.motion.yrel / 250.f);
+				free_cam->yaw_in_dir(event.motion.xrel / 250.f);
+				free_cam->pitch_in_dir(event.motion.yrel / 250.f);
 			}
 
 			constexpr Uint8 rosy_attention_btn{ 1 };
@@ -522,21 +522,21 @@ namespace
 			if (!ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position))) continue;
 
 			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
-			const auto camera_pos = glm::vec3(ctx->cam->position[0], ctx->cam->position[1], ctx->cam->position[2]);
+			const auto camera_pos = glm::vec3(ctx->free_cam->position[0], ctx->free_cam->position[1], ctx->free_cam->position[2]);
 
-			const float a = static_cast<float>(ctx->cam->s);
-			const float w = ctx->cam->viewport_width;
-			const float h = ctx->cam->viewport_height;
-			const float fov = static_cast<float>(ctx->cam->fov) / 100.f;
+			const float a = static_cast<float>(ctx->free_cam->s);
+			const float w = ctx->free_cam->viewport_width;
+			const float h = ctx->free_cam->viewport_height;
+			const float fov = static_cast<float>(ctx->free_cam->fov) / 100.f;
 			const float x_s = c_pos->screen_x / w;
 			const float y_s = c_pos->screen_y / h;
-			const float g = static_cast<float>(ctx->cam->g);
+			const float g = static_cast<float>(ctx->free_cam->g);
 
 			const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
 			const float y_v = (2.f * y_s - 1.f) * fov;
 
 			const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
-			const auto world_ray =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
+			const auto world_ray =  glm::vec3(glm::inverse(array_to_mat4(ctx->free_cam->v)) * glm::vec4(view_click, 0.f));
 
 
 			const glm::vec3 plucker_v = world_ray;
@@ -691,12 +691,12 @@ namespace
 
 		{
 			// Configure initial camera
-			ctx->rls->cam.p = ctx->cam->p;
-			ctx->rls->cam.v = ctx->cam->v;
-			ctx->rls->cam.vp = ctx->cam->vp;
-			ctx->rls->cam.position = ctx->cam->position;
-			ctx->rls->cam.pitch = ctx->cam->pitch;
-			ctx->rls->cam.yaw = ctx->cam->yaw;
+			ctx->rls->cam.p = ctx->free_cam->p;
+			ctx->rls->cam.v = ctx->free_cam->v;
+			ctx->rls->cam.vp = ctx->free_cam->vp;
+			ctx->rls->cam.position = ctx->free_cam->position;
+			ctx->rls->cam.pitch = ctx->free_cam->pitch;
+			ctx->rls->cam.yaw = ctx->free_cam->yaw;
 		}
 		{
 			// Configure draw options based on writable level state
