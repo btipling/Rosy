@@ -217,7 +217,7 @@ namespace
 				{
 					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
 					return res;
-				}
+				};
 			}
 
 			world = ecs_init();
@@ -1261,6 +1261,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					ls->rosy_reference = ref;
 					ecs_add(ls->world, node_entity, t_rosy);
+					const std::array<float, 4> pos = ls->rosy_reference.node->position;
+					ls->game_cam->set_game_cam_position({ pos[0], pos[1], pos[2] });
 				}
 			}
 		}
