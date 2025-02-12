@@ -709,6 +709,8 @@ namespace
 					{
 						ctx->updated = true;
 					}
+
+					// Determine the fixed z distance from rosy to position the game camera. This takes the max screen space y and transforms it into world space to calculate the distance to set the camera at.
 					const float max_y_view_space = 2.f * fov;
 					const auto max_view_in_world_space =  glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(0.f, max_y_view_space, 0.f, 0.f));
 					ctx->game_cam->set_position({ new_rosy_pos[0], ctx->game_cam->position[1], new_rosy_pos[2] - max_view_in_world_space.y * 10.f});
