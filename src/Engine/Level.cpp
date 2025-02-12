@@ -712,8 +712,12 @@ namespace
 
 					// Determine the fixed z distance from rosy to position the game camera. This takes the max screen space y and transforms it into world space to calculate the distance to set the camera at.
 					const float max_y_view_space = 2.f * fov;
-					const auto max_view_in_world_space =  glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(0.f, max_y_view_space, 0.f, 0.f));
-					ctx->game_cam->set_position({ new_rosy_pos[0], ctx->game_cam->position[1], new_rosy_pos[2] - max_view_in_world_space.y * 10.f});
+					const auto max_view_in_world_space = glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(0.f, max_y_view_space, 0.f, 0.f));
+					// glm::vec4 new_cam_pos = array_to_mat4(ctx->game_cam->r) * glm::vec4(new_rosy_pos[0], ctx->game_cam->position[1], new_rosy_pos[2] - max_view_in_world_space.y * 10., 1.f)
+					auto new_cam_pos = glm::vec4(new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2], 1.f);
+					new_cam_pos = glm::inverse(array_to_mat4(ctx->game_cam->r)) * new_cam_pos;
+					new_cam_pos = glm::vec4(new_cam_pos[0], ctx->game_cam->position[1], new_cam_pos[2] - (max_view_in_world_space.y * 10.f), 1.f);
+					ctx->game_cam->set_position({ new_cam_pos [0], new_cam_pos [1], new_cam_pos [2]});
 				}
 			}
 		}
@@ -726,6 +730,7 @@ namespace
 
 		{
 			// Write active camera values
+			ctx->game_cam->set_yaw(ctx->wls->game_camera_yaw);
 			camera const* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
 			ctx->rls->cam.p = cam->p;
 			ctx->rls->cam.v = cam->v;

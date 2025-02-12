@@ -271,6 +271,12 @@ void camera::yaw_in_dir(const float vel) const
 	sc->yaw -= vel;
 }
 
+// ReSharper disable once CppMemberFunctionMayBeStatic
+void camera::set_yaw(const float new_yaw) const
+{
+	sc->yaw = new_yaw;
+}
+
 void camera::set_position(const std::array<float, 3> new_position) const
 {
 	sc->set_position(new_position);

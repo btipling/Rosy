@@ -54,9 +54,9 @@ namespace rosy
 	{
 		size_t index{ 0 };
 		std::vector<surface_graphics_data> surface_data{};
-		std::array<float, 16> transform;
-		std::array<float, 16> normal_transform;
-		std::array<float, 16> object_space_transform;
+		std::array<float, 16> transform{};
+		std::array<float, 16> normal_transform{};
+		std::array<float, 16> object_space_transform{};
 	};
 
 	struct graphics_object_update
@@ -215,5 +215,6 @@ namespace rosy
 		fragment_config_state fragment_config{};
 		mob_edit_state mob_edit{};
 		float target_fps{ 0.f };
+		float game_camera_yaw{ 0 };
 	};
 }

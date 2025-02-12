@@ -5567,6 +5567,17 @@ namespace {
 								break;
 							}
 						}
+						if (ImGui::CollapsingHeader("Game Camera"))
+						{
+							if (ImGui::BeginTable("##GameCameraOptions", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::SliderFloat("Yaw", &wls->game_camera_yaw, 0, static_cast<float>(pi) * 4.f, "%.3f", 0);
+
+								ImGui::EndTable();
+							}
+						}
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();
