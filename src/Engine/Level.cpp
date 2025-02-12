@@ -591,7 +591,7 @@ namespace
 			bool exceeds_bounds{ false };
 			for (int j{ 0 }; j < 3; j++)
 			{
-				if (rosy_target[j] < floor_node->bounds.min[j])
+				if (rosy_floor_space_target[j] < floor_node->bounds.min[j])
 				{
 					rosy_floor_space_target[j] = floor_node->bounds.min[j];
 					exceeds_bounds = true;
@@ -949,7 +949,7 @@ result level::init(log* new_log, const config new_cfg)
 			wls.light_debug.sun_pitch = 5.684f;
 			wls.light_debug.sun_yaw = 5.349f;
 			wls.light_debug.orthographic_depth = 76.838f;
-			wls.light_debug.cascade_level = 12.853f;
+			wls.light_debug.cascade_level = 36.f;
 			wls.light.depth_bias_constant = -21.882f;
 			wls.light.depth_bias_clamp = -20.937f;
 			wls.light.depth_bias_slope_factor = -3.922f;
