@@ -83,7 +83,9 @@ struct synthetic_camera
 	{
 		const glm::mat4 camera_translation = translate(glm::mat4(1.f), position);
 		const glm::mat4 camera_rotation = get_rotation_matrix();
-		return inverse(camera_translation * camera_rotation);
+		glm::mat4 m = camera_translation * glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, 10.f)) * camera_rotation * glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -10.f));
+		m = camera_translation * camera_rotation;
+		return inverse(m);
 	}
 
 	[[nodiscard]] glm::mat4 get_rotation_matrix() const
@@ -181,6 +183,15 @@ struct synthetic_camera
 
 	void set_position(const std::array<float, 3> new_position) {
 		position = glm::vec3(new_position[0], new_position[1], new_position[2]);
+		position += glm::vec3(get_rotation_matrix() * glm::vec4{ 0.f, 0.f, -10.f, 0.f });
+	}
+
+
+	void set_yaw_around_position(const float new_yaw, [[maybe_unused]] const std::array<float, 3> new_position)
+	{
+		position = { new_position[0], new_position[1], new_position[2] };
+		yaw = new_yaw;
+		position += glm::vec3(get_rotation_matrix() * glm::vec4{0.f, 0.f, -10.f, 0.f});
 	}
 };
 
@@ -272,12 +283,12 @@ void camera::yaw_in_dir(const float vel) const
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-void camera::set_yaw(const float new_yaw) const
+void camera::set_yaw_around_position(const float new_yaw, const std::array<float, 3> new_position) const
 {
-	sc->yaw = new_yaw;
+	sc->set_yaw_around_position(new_yaw, new_position);
 }
 
-void camera::set_position(const std::array<float, 3> new_position) const
+void camera::set_game_cam_position(const std::array<float, 3> new_position) const
 {
 	sc->set_position(new_position);
 }

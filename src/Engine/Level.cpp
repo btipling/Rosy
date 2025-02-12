@@ -530,7 +530,7 @@ namespace
 			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
 			camera const* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
 
-			const auto camera_pos = glm::vec3(cam->position[0], cam->position[1], cam->position[2]);
+			auto camera_pos = glm::vec3(glm::vec4(cam->position[0], cam->position[1], cam->position[2], 1.f));
 
 			// Get the values used to transform the screen coordinates to view space.
 			const float a = static_cast<float>(cam->s);
@@ -710,14 +710,7 @@ namespace
 						ctx->updated = true;
 					}
 
-					// Determine the fixed z distance from rosy to position the game camera. This takes the max screen space y and transforms it into world space to calculate the distance to set the camera at.
-					const float max_y_view_space = 2.f * fov;
-					const auto max_view_in_world_space = glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(0.f, max_y_view_space, 0.f, 0.f));
-					// glm::vec4 new_cam_pos = array_to_mat4(ctx->game_cam->r) * glm::vec4(new_rosy_pos[0], ctx->game_cam->position[1], new_rosy_pos[2] - max_view_in_world_space.y * 10., 1.f)
-					auto new_cam_pos = glm::vec4(new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2], 1.f);
-					new_cam_pos = glm::inverse(array_to_mat4(ctx->game_cam->r)) * new_cam_pos;
-					new_cam_pos = glm::vec4(new_cam_pos[0], ctx->game_cam->position[1], new_cam_pos[2] - (max_view_in_world_space.y * 10.f), 1.f);
-					ctx->game_cam->set_position({ new_cam_pos [0], new_cam_pos [1], new_cam_pos [2]});
+					ctx->game_cam->set_game_cam_position({ new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
 				}
 			}
 		}
@@ -730,7 +723,8 @@ namespace
 
 		{
 			// Write active camera values
-			ctx->game_cam->set_yaw(ctx->wls->game_camera_yaw);
+			const std::array<float, 4> pos =  ctx->rosy_reference.node->position;
+			ctx->game_cam->set_yaw_around_position(ctx->wls->game_camera_yaw,{pos[0], pos[1], pos[2]});
 			camera const* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
 			ctx->rls->cam.p = cam->p;
 			ctx->rls->cam.v = cam->v;

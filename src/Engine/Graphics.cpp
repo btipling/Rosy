@@ -5573,7 +5573,7 @@ namespace {
 							{
 								ImGui::TableNextRow();
 								ImGui::TableNextColumn();
-								ImGui::SliderFloat("Yaw", &wls->game_camera_yaw, 0, static_cast<float>(pi) * 4.f, "%.3f", 0);
+								ImGui::SliderFloat("Yaw", &wls->game_camera_yaw, 0, static_cast<float>(pi) * 2.f, "%.3f", 0);
 
 								ImGui::EndTable();
 							}
