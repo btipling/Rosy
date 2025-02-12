@@ -226,22 +226,11 @@ result engine::run()
 				should_render = true;
 			}
 			ImGui_ImplSDL3_ProcessEvent(&event);
-			if (event.type == SDL_EVENT_KEY_UP) {
-				if (event.key.key == SDLK_C)
-				{
-					cursor_enabled = !cursor_enabled;
-					SDL_SetWindowRelativeMouseMode(window, !cursor_enabled);
-				}
-				if (event.key.key == SDLK_F1)
-				{
-					render_ui = !render_ui;
-				}
-			}
 			if (const ImGuiIO& io = ImGui::GetIO(); !io.WantCaptureMouse && !io.WantCaptureKeyboard) {
-				if (const auto res = lvl->process_sdl_event(event, !cursor_enabled); res != result::ok) {
+				if (const auto res = lvl->process_sdl_event(event); res != result::ok) {
 					return res;
 				}
-			}
+			};
 
 		}
 		if (!should_render) {
@@ -249,7 +238,8 @@ result engine::run()
 			continue;
 		}
 		if (!should_run) break;
-		if (!cursor_enabled) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+		SDL_SetWindowRelativeMouseMode(window, !lvl->rls.cursor_enabled);
+		if (!lvl->rls.cursor_enabled) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 		if (const auto res = run_frame(); res != result::ok) {
 			l->error(std::format("frame failed: {}", static_cast<uint8_t>(res)));
 			return res;
@@ -308,7 +298,7 @@ result engine::run_frame()
 	}
 	{
 		// Render
-		if (const auto res = gfx->render(render_ui, stats); res != result::ok) {
+		if (const auto res = gfx->render(stats); res != result::ok) {
 			return res;
 		}
 	}

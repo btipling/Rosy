@@ -20,7 +20,7 @@ namespace rosy {
 		result setup_frame();
 		result update(const uint32_t viewport_width, const uint32_t viewport_height, double dt);
 		result process();
-		result process_sdl_event(const SDL_Event& event, bool cursor_enabled);
+		result process_sdl_event(const SDL_Event& event);
 		void deinit();
 	};
 }

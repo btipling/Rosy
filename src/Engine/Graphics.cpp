@@ -429,7 +429,6 @@ namespace {
 		config cfg{};
 		uint64_t graphics_created_bitmask{ 0 };
 		bool enable_validation_layers{ true };
-		bool render_ui{ true };
 
 		graphics_stats stats{};
 
@@ -5016,7 +5015,7 @@ namespace {
 
 					// ******** DRAW UI ********* //
 
-					if (render_ui) {
+					if (rls->ui_enabled) {
 						ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cf.command_buffer);
 					}
 					vkCmdEndRendering(cf.command_buffer);
@@ -5324,6 +5323,11 @@ namespace {
 		{
 			//ImGui::ShowDemoWindow();
 
+			{
+				// Set dual read/write states
+				wls->game_camera_yaw = rls->game_camera_yaw;
+			}
+
 			constexpr auto button_dims = ImVec2(150.f, 40.f);
 			ImGuiWindowFlags window_flags{ 0 };
 			window_flags |= ImGuiWindowFlags_NoCollapse;
@@ -5568,6 +5572,17 @@ namespace {
 								break;
 							}
 						}
+						if (ImGui::CollapsingHeader("Game Camera"))
+						{
+							if (ImGui::BeginTable("##GameCameraOptions", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::SliderFloat("Yaw", &wls->game_camera_yaw, 0, static_cast<float>(pi) * 2.f, "%.3f", 0);
+
+								ImGui::EndTable();
+							}
+						}
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();
@@ -5736,7 +5751,7 @@ result graphics::update(const read_level_state& rls, const graphics_object_updat
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result graphics::render(const bool render_ui, const engine_stats& stats)
+result graphics::render(const engine_stats& stats)
 {
 	{
 		ImGui_ImplVulkan_NewFrame();
@@ -5750,7 +5765,6 @@ result graphics::render(const bool render_ui, const engine_stats& stats)
 		}
 		ImGui::Render();
 	}
-	gd->render_ui = render_ui;
 	return gd->render();
 }
 

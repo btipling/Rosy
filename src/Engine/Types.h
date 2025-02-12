@@ -54,9 +54,9 @@ namespace rosy
 	{
 		size_t index{ 0 };
 		std::vector<surface_graphics_data> surface_data{};
-		std::array<float, 16> transform;
-		std::array<float, 16> normal_transform;
-		std::array<float, 16> object_space_transform;
+		std::array<float, 16> transform{};
+		std::array<float, 16> normal_transform{};
+		std::array<float, 16> object_space_transform{};
 	};
 
 	struct graphics_object_update
@@ -190,16 +190,21 @@ namespace rosy
 
 	struct read_level_state
 	{
+		float target_fps{ 0.f };
+		bool debug_enabled{ false };
+		bool ui_enabled{ true };
+		bool cursor_enabled{ true };
+
 		read_camera cam{};
+
 		light_read_write_state light{};
 		draw_config_state draw_config{};
-		bool debug_enabled{ false };
 		std::vector<debug_object> debug_objects{};
 		fragment_config_state fragment_config{};
 		graphic_objects_state graphic_objects{};
 		mob_read_state mob_read{};
-		float target_fps{ 0.f };
 		pick_debug_read_state pick_debugging{};
+		float game_camera_yaw{ 0 };
 	};
 
 	struct write_level_state
@@ -211,5 +216,6 @@ namespace rosy
 		fragment_config_state fragment_config{};
 		mob_edit_state mob_edit{};
 		float target_fps{ 0.f };
+		float game_camera_yaw{ 0 };
 	};
 }

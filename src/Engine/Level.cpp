@@ -142,8 +142,11 @@ namespace
 
 	struct level_state
 	{
+		enum class camera_choice : uint8_t { game, free };
 		rosy::log* l{ nullptr };
-		camera* cam{ nullptr };
+		camera* game_cam{ nullptr };
+		camera* free_cam{ nullptr };
+		camera_choice active_cam{ camera_choice::game };
 
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
@@ -177,24 +180,44 @@ namespace
 			}
 			level_game_node->name = "rosy_root";
 
-			// Camera initialization
+			// Free camera initialization
 			{
-				cam = new(std::nothrow) camera{};
-				if (cam == nullptr)
+				free_cam = new(std::nothrow) camera{};
+				if (free_cam == nullptr)
 				{
 					l->error("Error allocating camera");
 					return result::allocation_failure;
 				}
-				cam->starting_x = -5.88f;
-				cam->starting_y = 3.86f;
-				cam->starting_z = -1.13f;
-				cam->starting_pitch = 0.65f;
-				cam->starting_yaw = -1.58f;
-				if (auto const res = cam->init(l, new_cfg); res != result::ok)
+				free_cam->starting_x = -5.88f;
+				free_cam->starting_y = 3.86f;
+				free_cam->starting_z = -1.13f;
+				free_cam->starting_pitch = 0.65f;
+				free_cam->starting_yaw = -1.58f;
+				if (auto const res = free_cam->init(l, new_cfg); res != result::ok)
 				{
 					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
 					return res;
 				}
+			}
+
+			// Game camera initialization
+			{
+				game_cam = new(std::nothrow) camera{};
+				if (game_cam == nullptr)
+				{
+					l->error("Error allocating camera");
+					return result::allocation_failure;
+				}
+				game_cam->starting_x = 0.f;
+				game_cam->starting_y = 10.f;
+				game_cam->starting_z = -10.f;
+				game_cam->starting_pitch = glm::pi<float>() / 4.f;
+				game_cam->starting_yaw = 0.f;
+				if (auto const res = game_cam->init(l, new_cfg); res != result::ok)
+				{
+					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
+					return res;
+				};
 			}
 
 			world = ecs_init();
@@ -230,11 +253,17 @@ namespace
 			{
 				ecs_fini(world);
 			}
-			if (cam)
+			if (game_cam)
 			{
-				cam->deinit();
-				delete cam;
-				cam = nullptr;
+				game_cam->deinit();
+				delete game_cam;
+				game_cam = nullptr;
+			}
+			if (free_cam)
+			{
+				free_cam->deinit();
+				delete free_cam;
+				free_cam = nullptr;
 			}
 			if (level_game_node != nullptr) {
 				level_game_node->deinit();
@@ -389,6 +418,7 @@ namespace
 
 		[[nodiscard]] result update(const uint32_t viewport_width, const uint32_t viewport_height, const double dt) const
 		{
+			camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
 			if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok) {
 				return res;
 			}
@@ -396,73 +426,58 @@ namespace
 			return result::ok;
 		}
 
-		[[nodiscard]] result process_sdl_event(const SDL_Event& event, const bool cursor_enabled) const
+		[[nodiscard]] result process_sdl_event(const SDL_Event& event)
 		{
 			if (event.type == SDL_EVENT_KEY_DOWN) {
-				if (event.key.key == SDLK_W)
+				if (event.key.key == SDLK_F1)
 				{
-					cam->move(camera::direction::z_pos, 1.f);
+					rls->ui_enabled = !rls->ui_enabled;
 				}
-				if (event.key.key == SDLK_S)
+				if (event.key.key == SDLK_F2)
 				{
-					cam->move(camera::direction::z_neg, 1.f);
-				}
-				if (event.key.key == SDLK_A)
-				{
-					cam->move(camera::direction::x_neg, 1.f);
-				}
-				if (event.key.key == SDLK_D)
-				{
-					cam->move(camera::direction::x_pos, 1.f);
-				}
-				if (event.key.key == SDLK_SPACE)
-				{
-					cam->move(camera::direction::y_pos, 1.f);
-				}
-				if (event.key.key == SDLK_Z)
-				{
-					cam->move(camera::direction::y_neg, 1.f);
-				}
-				if (event.key.mod & SDL_KMOD_SHIFT)
-				{
-					cam->go_fast();
+					active_cam = active_cam == camera_choice::game ? camera_choice::free : camera_choice::game;
+					if (active_cam == camera_choice::game) rls->cursor_enabled = true;
 				}
 			}
 
-			if (event.type == SDL_EVENT_KEY_UP) {
-				if (event.key.key == SDLK_W)
-				{
-					cam->move(camera::direction::z_pos, 0.f);
+			if (active_cam == camera_choice::free) {
+				if (event.type == SDL_EVENT_KEY_DOWN) {
+					if (event.key.key == SDLK_C) rls->cursor_enabled = !rls->cursor_enabled;
+					if (event.key.key == SDLK_W) free_cam->move(camera::direction::z_pos, 1.f);
+					if (event.key.key == SDLK_S) free_cam->move(camera::direction::z_neg, 1.f);
+					if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_neg, 1.f);
+					if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_pos, 1.f);
+					if (event.key.key == SDLK_SPACE) free_cam->move(camera::direction::y_pos, 1.f);
+					if (event.key.key == SDLK_Z) free_cam->move(camera::direction::y_neg, 1.f);
+					if (event.key.mod & SDL_KMOD_SHIFT) free_cam->go_fast();
 				}
-				if (event.key.key == SDLK_S)
-				{
-					cam->move(camera::direction::z_neg, 0.f);
+				if (event.type == SDL_EVENT_KEY_UP) {
+					if (event.key.key == SDLK_W) free_cam->move(camera::direction::z_pos, 0.f);
+					if (event.key.key == SDLK_S) free_cam->move(camera::direction::z_neg, 0.f);
+					if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_neg, 0.f);
+					if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_pos, 0.f);
+					if (event.key.key == SDLK_SPACE) free_cam->move(camera::direction::y_pos, 0.f);
+					if (event.key.key == SDLK_Z) free_cam->move(camera::direction::y_neg, 0.f);
+					if (!(event.key.mod & SDL_KMOD_SHIFT)) free_cam->go_slow();
 				}
-				if (event.key.key == SDLK_A)
-				{
-					cam->move(camera::direction::x_neg, 0.f);
+				if (!rls->cursor_enabled && event.type == SDL_EVENT_MOUSE_MOTION) {
+					free_cam->yaw_in_dir(event.motion.xrel / 250.f);
+					free_cam->pitch_in_dir(event.motion.yrel / 250.f);
 				}
-				if (event.key.key == SDLK_D)
+			} else if (active_cam == camera_choice::game)
+			{
+				if (event.type == SDL_EVENT_MOUSE_WHEEL)
 				{
-					cam->move(camera::direction::x_pos, 0.f);
+					rls->game_camera_yaw = wls->game_camera_yaw;
+					const auto mbe = reinterpret_cast<const SDL_MouseWheelEvent&>(event);
+					float direction = mbe.direction == SDL_MOUSEWHEEL_NORMAL ? 1.f : -1.f;
+					float new_yaw = rls->game_camera_yaw + mbe.y / 25.f * direction;
+					if (new_yaw < 0.f) new_yaw += glm::pi<float>() * 2;
+					if (new_yaw >= glm::pi<float>() * 2) new_yaw -= glm::pi<float>() * 2;
+					const std::array<float, 4> pos =  rosy_reference.node->position;
+					game_cam->set_yaw_around_position(new_yaw, {pos[0], pos[1], pos[2]});
+					
 				}
-				if (event.key.key == SDLK_SPACE)
-				{
-					cam->move(camera::direction::y_pos, 0.f);
-				}
-				if (event.key.key == SDLK_Z)
-				{
-					cam->move(camera::direction::y_neg, 0.f);
-				}
-				if (!(event.key.mod & SDL_KMOD_SHIFT))
-				{
-					cam->go_slow();
-				}
-			}
-
-			if (cursor_enabled && event.type == SDL_EVENT_MOUSE_MOTION) {
-				cam->yaw_in_dir(event.motion.xrel / 250.f);
-				cam->pitch_in_dir(event.motion.yrel / 250.f);
 			}
 
 			constexpr Uint8 rosy_attention_btn{ 1 };
@@ -517,44 +532,61 @@ namespace
 	// ReSharper disable once CppParameterMayBeConstPtrOrRef
 	void move_rosy(ecs_iter_t* it)
 	{
+		// This function moves rosy to where the screen cursor is when the left mouse button is pushed.
 		const auto ctx = static_cast<level_state*>(it->param);
 		for (int i = 0; i < it->count; i++) {
 			if (!ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position))) continue;
 
+			// Start picking. Picking here works by converting the 2D screen space cursor position to Vulkan NDC coordinates and then converts them
+			// to clip space. From clip space their position is on the projection plane in view space. A ray is created from the click position on the projection plane from
+			// the view space camera position, which is just origin. The ray is transformed to world space, the floor's origin is the same as the world space origin.
+			// Plucker coordinates are used to calculate the ray's intersection in the floor plane, as derived from Foundations of Game Engine Development [Lengyel]
 			const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
-			const auto camera_pos = glm::vec3(ctx->cam->position[0], ctx->cam->position[1], ctx->cam->position[2]);
+			camera const* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
 
-			const float a = static_cast<float>(ctx->cam->s);
-			const float w = ctx->cam->viewport_width;
-			const float h = ctx->cam->viewport_height;
-			const float fov = static_cast<float>(ctx->cam->fov) / 100.f;
+			auto camera_pos = glm::vec3(glm::vec4(cam->position[0], cam->position[1], cam->position[2], 1.f));
+
+			// Get the values used to transform the screen coordinates to view space.
+			const float a = static_cast<float>(cam->s);
+			const float w = cam->viewport_width;
+			const float h = cam->viewport_height;
+			const float fov = static_cast<float>(cam->fov) / 100.f;
 			const float x_s = c_pos->screen_x / w;
 			const float y_s = c_pos->screen_y / h;
-			const float g = static_cast<float>(ctx->cam->g);
+			const float g = static_cast<float>(cam->g);
 
+			// This uses NDC + accounts for field of view and perspective to put x and y into view space.
 			const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
 			const float y_v = (2.f * y_s - 1.f) * fov;
 
+			// This is the click at actually twice the value of the projection plane distance.
 			const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
-			const auto world_ray =  glm::vec3(glm::inverse(array_to_mat4(ctx->cam->v)) * glm::vec4(view_click, 0.f));
+			// This transforms the view click into world space using the inverse the view matrix.
+			const auto world_ray =  glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(view_click, 0.f));
 
-
+			// Create the pucker coordinates v and m;
 			const glm::vec3 plucker_v = world_ray;
 			const glm::vec3 plucker_m = cross(camera_pos, world_ray);
 
+			// Create the parameterized plane values for the floor in world sace.
 			constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
 			constexpr float plane_distance = 0.f;
 
+			// Calculate the intersection using the homogenous plane intersection formula
 			const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
 			const glm::vec3 d_v = plucker_v * plane_distance;
-
 			const glm::vec3 intersection = m_x_n + d_v;
-			[[maybe_unused]] const float intersection_w = glm::dot(-normal, plucker_v);
+			const float intersection_w = glm::dot(-normal, plucker_v);
+
 			ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
+			// Set rosy to target that intersection.
 			auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+
+			// Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
 			const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
 			const node* floor_node = ctx->get_static()[floor_index->index];
+			// Transform world space rosy target to the actual floor meshes object space because that's the space the bounds are in.
 			auto rosy_floor_space_target = glm::inverse(array_to_mat4(floor_node->transform)) * glm::vec4(rosy_target, 1.f);
 			bool exceeds_bounds{ false };
 			for (int j{ 0 }; j < 3; j++)
@@ -572,38 +604,45 @@ namespace
 			}
 			if (exceeds_bounds)
 			{
+				// If we exceeded update rosy target.
 				rosy_target = glm::vec3(array_to_mat4(floor_node->transform) * rosy_floor_space_target);
 			}
 
 			c_target target{ .x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z };
 			ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target), sizeof(c_target), &target);
 
+			// Draw some debugging UI to display picking performance.
 			if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
 			{
 				const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
 				glm::mat4 m;
 				std::array<float, 4> color;
 				if (pick_debugging->space & debug_object_flag_screen_space) {
+					// Draw a green circle to designate we're in screen spaCe.
 					color = { 0.f, 1.f, 0.f, 1.f };
 					m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
 				}
 				else
 				{
+					// Else we're in view space and want to make sure our circle is in the correct location for view space to show we're tracking the mouse cursor in view space correctly.
 					color = { 1.f, 1.f, 0.f, 1.f };
 					m = glm::translate(glm::mat4(1.f), view_click);
 				}
 				m = glm::scale(m, glm::vec3(0.01f));
+				// This will draw a little green ir yellow circle depending on which space we are drawing the circle on the screen.
 				ctx->rls->pick_debugging.picking = {
 					.type = debug_object_type::circle,
 					.transform = mat4_to_array(m),
 					.color = color,
 					.flags = pick_debugging->space,
 				};
+				// Record the ray as a debug line to display:
 				if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_record)))
 				{
-					float distance{ 1000.f };
+					float distance{ 1000.f }; // It's a long ray.
 					glm::vec3 draw_location = world_ray * distance;
 					distance += 2.f;
+					// We use the transform matrix as the actual points to render the line to via a flag.
 					auto m2 = glm::mat4(
 						glm::vec4(camera_pos, 1.f),
 						glm::vec4(draw_location, 1.f),
@@ -621,6 +660,7 @@ namespace
 			}
 			else
 			{
+				// In this case, if we're in edit mode we will draw nice little cursor on the actual floor where rosy is targeting.
 				glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 				circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
 				circle_m = glm::scale(circle_m, glm::vec3(0.25f));
@@ -632,53 +672,59 @@ namespace
 					.flags = 0,
 				};
 			}
+			// If rosy is targeting orient rosy and move her toward the target.
 			if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target)))
 			{
 				const auto rosy_position = ctx->rosy_reference.node->position;
-
 				const auto rosy_pos = glm::vec3(rosy_position[0], rosy_position[1], rosy_position[2]);
 				const glm::mat4 rosy_translate = glm::translate(glm::mat4(1.f), rosy_pos);
-
 				constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
-				[[maybe_unused]] constexpr auto game_up =  glm::vec3{ 0.f, 1.f, 0.f };
-				[[maybe_unused]] const auto rosy_forward = static_cast<const c_forward*>(ecs_get_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward)));
-				[[maybe_unused]] const glm::mat4 rosy_transform = array_to_mat4(ctx->rosy_reference.node->transform);
-				{
-					const glm::mat4 to_rosy_space = glm::inverse(rosy_translate);
-					if (const auto rosy_space_target = glm::vec3(to_rosy_space * glm::vec4(rosy_target, 1.f)); rosy_space_target != glm::zero<glm::vec3>()) {
-						const float offset = rosy_space_target.x > 0 ? -1.f : 0.f;
-						const float target_game_cos_theta = glm::dot(glm::normalize(rosy_space_target), game_forward);
-						const float target_yaw = -std::acos(target_game_cos_theta);
-						const float new_yaw = target_yaw + offset;
-						ctx->l->debug(std::format("(target: ({:.3f}, {:.3f}), {:.3f})) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
-							rosy_space_target[0],
-							rosy_space_target[1],
-							rosy_space_target[2],
-							target_game_cos_theta,
-							target_yaw,
-							offset,
-							new_yaw
-						));
+				const glm::mat4 to_rosy_space = glm::inverse(rosy_translate);
 
-						c_forward nf{ .yaw = target_yaw };
-						ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
+				// convert rosy target to rosy's object space and verify that the rosy_space target isn't the null vector, if it is she's already there.
+				// This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
+				if (const auto rosy_space_target = glm::vec3(to_rosy_space * glm::vec4(rosy_target, 1.f)); rosy_space_target != glm::zero<glm::vec3>()) {
 
-						glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{ 0.f, 1.f, 0.f });
-						if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
-						const glm::mat4 r = toMat4(yaw_rotation);
-						const float t = 1.f * it->delta_time;
-						glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
-						const glm::mat4 tr = glm::translate(glm::mat4(1.f), glm::vec3(new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]));
+					// Calculate the difference between rosy's orientation and her target position
+					const float offset = rosy_space_target.x > 0 ? -1.f : 0.f; // This offset's rosy's orientation based on her orientation around the x-axis.
+					const float target_game_cos_theta = glm::dot(glm::normalize(rosy_space_target), game_forward); // This dot product is used to get the angle of the target with respect to rosy's position.
+					const float target_yaw = -std::acos(target_game_cos_theta); // This is negated because we of the handededness of the coordinate system.
+					const float new_yaw = target_yaw + offset;
 
-						if (const auto res = ctx->rosy_reference.node->update_transform(mat4_to_array(tr * r)); res != result::ok)
-						{
-							ctx->l->error("error transforming rosy");
-						}
-						else
-						{
-							ctx->updated = true;
-						}
+					ctx->l->debug(std::format("(target: ({:.3f}, {:.3f}), {:.3f})) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
+						rosy_space_target[0],
+						rosy_space_target[1],
+						rosy_space_target[2],
+						target_game_cos_theta,
+						target_yaw,
+						offset,
+						new_yaw
+					));
+
+					c_forward nf{ .yaw = target_yaw };
+					ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
+
+					// Set rosy's orientation to face target
+					glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{ 0.f, 1.f, 0.f });
+					if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
+					const glm::mat4 r = toMat4(yaw_rotation);
+
+					// Linearly interpolate rosy's position toward the target
+					const float t = 1.f * it->delta_time;
+					glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
+
+					// Update rosy's transform.
+					const glm::mat4 tr = glm::translate(glm::mat4(1.f), new_rosy_pos);
+					if (const auto res = ctx->rosy_reference.node->update_transform(mat4_to_array(tr * r)); res != result::ok)
+					{
+						ctx->l->error("error transforming rosy");
 					}
+					else
+					{
+						ctx->updated = true;
+					}
+
+					ctx->game_cam->set_game_cam_position({ new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
 				}
 			}
 		}
@@ -690,13 +736,19 @@ namespace
 		const auto ctx = static_cast<level_state*>(it->param);
 
 		{
-			// Configure initial camera
-			ctx->rls->cam.p = ctx->cam->p;
-			ctx->rls->cam.v = ctx->cam->v;
-			ctx->rls->cam.vp = ctx->cam->vp;
-			ctx->rls->cam.position = ctx->cam->position;
-			ctx->rls->cam.pitch = ctx->cam->pitch;
-			ctx->rls->cam.yaw = ctx->cam->yaw;
+			// Write active camera values
+			if (std::abs(ctx->game_cam->yaw - ctx->wls->game_camera_yaw) >= 0.2) {
+				const std::array<float, 4> pos =  ctx->rosy_reference.node->position;
+				ctx->game_cam->set_yaw_around_position(ctx->wls->game_camera_yaw, { pos[0], pos[1], pos[2] });
+			}
+			camera const* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
+			ctx->rls->cam.p = cam->p;
+			ctx->rls->cam.v = cam->v;
+			ctx->rls->cam.vp = cam->vp;
+			ctx->rls->cam.position = cam->position;
+			ctx->rls->cam.pitch = cam->pitch;
+			ctx->rls->cam.yaw = cam->yaw;
+			ctx->rls->game_camera_yaw = ctx->game_cam->yaw;
 		}
 		{
 			// Configure draw options based on writable level state
@@ -1209,6 +1261,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					ls->rosy_reference = ref;
 					ecs_add(ls->world, node_entity, t_rosy);
+					const std::array<float, 4> pos = ls->rosy_reference.node->position;
+					ls->game_cam->set_game_cam_position({ pos[0], pos[1], pos[2] });
 				}
 			}
 		}
@@ -1264,7 +1318,7 @@ result level::process()
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result level::process_sdl_event(const SDL_Event& event, bool cursor_enabled)
+result level::process_sdl_event(const SDL_Event& event)
 {
-	return ls->process_sdl_event(event, cursor_enabled);
+	return ls->process_sdl_event(event);
 }
