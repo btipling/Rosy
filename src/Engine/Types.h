@@ -204,6 +204,7 @@ namespace rosy
 		graphic_objects_state graphic_objects{};
 		mob_read_state mob_read{};
 		pick_debug_read_state pick_debugging{};
+		float game_camera_yaw{ 0 };
 	};
 
 	struct write_level_state

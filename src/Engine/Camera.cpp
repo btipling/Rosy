@@ -182,16 +182,20 @@ struct synthetic_camera
 	}
 
 	void set_position(const std::array<float, 3> new_position) {
+		float y = position[1];
 		position = glm::vec3(new_position[0], new_position[1], new_position[2]);
 		position += glm::vec3(get_rotation_matrix() * glm::vec4{ 0.f, 0.f, -10.f, 0.f });
+		position[1] = y;
 	}
 
 
 	void set_yaw_around_position(const float new_yaw, [[maybe_unused]] const std::array<float, 3> new_position)
 	{
+		float y = position[1];
 		position = { new_position[0], new_position[1], new_position[2] };
 		yaw = new_yaw;
 		position += glm::vec3(get_rotation_matrix() * glm::vec4{0.f, 0.f, -10.f, 0.f});
+		position[1] = y;
 	}
 };
 

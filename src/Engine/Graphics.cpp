@@ -5323,6 +5323,11 @@ namespace {
 		{
 			//ImGui::ShowDemoWindow();
 
+			{
+				// Set dual read/write states
+				wls->game_camera_yaw = rls->game_camera_yaw;
+			}
+
 			constexpr auto button_dims = ImVec2(150.f, 40.f);
 			ImGuiWindowFlags window_flags{ 0 };
 			window_flags |= ImGuiWindowFlags_NoCollapse;

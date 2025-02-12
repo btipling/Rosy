@@ -464,6 +464,20 @@ namespace
 					free_cam->yaw_in_dir(event.motion.xrel / 250.f);
 					free_cam->pitch_in_dir(event.motion.yrel / 250.f);
 				}
+			} else if (active_cam == camera_choice::game)
+			{
+				if (event.type == SDL_EVENT_MOUSE_WHEEL)
+				{
+					rls->game_camera_yaw = wls->game_camera_yaw;
+					const auto mbe = reinterpret_cast<const SDL_MouseWheelEvent&>(event);
+					float direction = mbe.direction == SDL_MOUSEWHEEL_NORMAL ? 1.f : -1.f;
+					float new_yaw = rls->game_camera_yaw + mbe.y / 25.f * direction;
+					if (new_yaw < 0.f) new_yaw += glm::pi<float>() * 2;
+					if (new_yaw >= glm::pi<float>() * 2) new_yaw -= glm::pi<float>() * 2;
+					const std::array<float, 4> pos =  rosy_reference.node->position;
+					game_cam->set_yaw_around_position(new_yaw, {pos[0], pos[1], pos[2]});
+					
+				}
 			}
 
 			constexpr Uint8 rosy_attention_btn{ 1 };
@@ -723,8 +737,10 @@ namespace
 
 		{
 			// Write active camera values
-			const std::array<float, 4> pos =  ctx->rosy_reference.node->position;
-			ctx->game_cam->set_yaw_around_position(ctx->wls->game_camera_yaw,{pos[0], pos[1], pos[2]});
+			if (std::abs(ctx->game_cam->yaw - ctx->wls->game_camera_yaw) >= 0.2) {
+				const std::array<float, 4> pos =  ctx->rosy_reference.node->position;
+				ctx->game_cam->set_yaw_around_position(ctx->wls->game_camera_yaw, { pos[0], pos[1], pos[2] });
+			}
 			camera const* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
 			ctx->rls->cam.p = cam->p;
 			ctx->rls->cam.v = cam->v;
@@ -732,6 +748,7 @@ namespace
 			ctx->rls->cam.position = cam->position;
 			ctx->rls->cam.pitch = cam->pitch;
 			ctx->rls->cam.yaw = cam->yaw;
+			ctx->rls->game_camera_yaw = ctx->game_cam->yaw;
 		}
 		{
 			// Configure draw options based on writable level state
