@@ -38,10 +38,11 @@ namespace rosy
 		result init(log const* new_log, config cfg);
 		void deinit();
 		result update(uint32_t new_viewport_width, uint32_t new_viewport_height, const double dt);
-		result move(direction dir, float speed);
-		result pitch_in_dir(float vel);
-		result yaw_in_dir(float vel);
-		void go_fast();
-		void go_slow();
+		void move(direction dir, float speed) const;
+		void pitch_in_dir(float vel) const;
+		void yaw_in_dir(float vel) const;
+		void set_position(std::array<float, 3> new_position) const;
+		void go_fast() const;
+		void go_slow() const;
 	};
 }

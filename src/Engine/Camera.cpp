@@ -178,6 +178,10 @@ struct synthetic_camera
 			break;
 		}
 	}
+
+	void set_position(const std::array<float, 3> new_position) {
+		position = glm::vec3(new_position[0], new_position[1], new_position[2]);
+	}
 };
 
 result camera::init(log const* new_log, const config cfg)
@@ -250,34 +254,36 @@ result camera::update(const uint32_t new_viewport_width, const uint32_t new_view
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::move(const direction dir, float speed)
+void camera::move(const direction dir, const float speed) const
 {
 	sc->move(dir, speed);
-	return result::ok;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::pitch_in_dir(const float vel)
+void camera::pitch_in_dir(const float vel) const
 {
 	sc->pitch += vel;
-	return result::ok;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result camera::yaw_in_dir(const float vel)
+void camera::yaw_in_dir(const float vel) const
 {
 	sc->yaw -= vel;
-	return result::ok;
+}
+
+void camera::set_position(const std::array<float, 3> new_position) const
+{
+	sc->set_position(new_position);
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-void camera::go_fast()
+void camera::go_fast() const
 {
 	sc->go_fast = true;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-void camera::go_slow()
+void camera::go_slow() const
 {
 	sc->go_fast = false;
 }

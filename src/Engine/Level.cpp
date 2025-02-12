@@ -142,7 +142,6 @@ namespace
 
 	struct level_state
 	{
-
 		enum class camera_choice : uint8_t { game, free };
 		rosy::log* l{ nullptr };
 		camera* game_cam{ nullptr };
@@ -548,7 +547,7 @@ namespace
 
 			// This is the click at actually twice the value of the projection plane distance.
 			const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
-			// This transforms the view click into world space using the inverse fthe view matrix.
+			// This transforms the view click into world space using the inverse the view matrix.
 			const auto world_ray =  glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(view_click, 0.f));
 
 			// Create the pucker coordinates v and m;
@@ -611,7 +610,7 @@ namespace
 				}
 				else
 				{
-					// Else we're in view space and want to make sure our cicle is in the correct location for view space to show we're tracking the mouse cursor in view space correctly.
+					// Else we're in view space and want to make sure our circle is in the correct location for view space to show we're tracking the mouse cursor in view space correctly.
 					color = { 1.f, 1.f, 0.f, 1.f };
 					m = glm::translate(glm::mat4(1.f), view_click);
 				}
@@ -701,7 +700,7 @@ namespace
 					glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
 
 					// Update rosy's transform.
-					const glm::mat4 tr = glm::translate(glm::mat4(1.f), glm::vec3(new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]));
+					const glm::mat4 tr = glm::translate(glm::mat4(1.f), new_rosy_pos);
 					if (const auto res = ctx->rosy_reference.node->update_transform(mat4_to_array(tr * r)); res != result::ok)
 					{
 						ctx->l->error("error transforming rosy");
@@ -710,6 +709,9 @@ namespace
 					{
 						ctx->updated = true;
 					}
+					const float max_y_view_space = 2.f * fov;
+					const auto max_view_in_world_space =  glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(0.f, max_y_view_space, 0.f, 0.f));
+					ctx->game_cam->set_position({ new_rosy_pos[0], ctx->game_cam->position[1], new_rosy_pos[2] - max_view_in_world_space.y * 10.f});
 				}
 			}
 		}
