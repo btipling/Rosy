@@ -587,25 +587,21 @@ namespace
 			const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
 			const node* floor_node = ctx->get_static()[floor_index->index];
 			// Transform world space rosy target to the actual floor meshes object space because that's the space the bounds are in.
-			auto rosy_floor_space_target = glm::inverse(array_to_mat4(floor_node->transform)) * glm::vec4(rosy_target, 1.f);
+			glm::vec3 min_bounds = glm::vec3(array_to_mat4(floor_node->transform) * glm::vec4(floor_node->bounds.min[0], floor_node->bounds.min[1], floor_node->bounds.min[2], 1.f));
+			glm::vec3 max_bounds = glm::vec3(array_to_mat4(floor_node->transform) * glm::vec4(floor_node->bounds.max[0], floor_node->bounds.max[1], floor_node->bounds.max[2], 1.f));
 			bool exceeds_bounds{ false };
 			for (int j{ 0 }; j < 3; j++)
 			{
-				if (rosy_floor_space_target[j] < floor_node->bounds.min[j])
+				if (rosy_target[j] < min_bounds[j])
 				{
-					rosy_floor_space_target[j] = floor_node->bounds.min[j];
+					rosy_target[j] = min_bounds[j];
 					exceeds_bounds = true;
 				}
-				if (rosy_floor_space_target[j] > floor_node->bounds.max[j])
+				if (rosy_target[j] > max_bounds[j])
 				{
-					rosy_floor_space_target[j] = floor_node->bounds.max[j];
+					rosy_target[j] = max_bounds[j];
 					exceeds_bounds = true;
 				}
-			}
-			if (exceeds_bounds)
-			{
-				// If we exceeded update rosy target.
-				rosy_target = glm::vec3(array_to_mat4(floor_node->transform) * rosy_floor_space_target);
 			}
 
 			c_target target{ .x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z };
@@ -661,7 +657,7 @@ namespace
 			else
 			{
 				// In this case, if we're in edit mode we will draw nice little cursor on the actual floor where rosy is targeting.
-				glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+				glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, (intersection[1] / intersection_w) + 0.1f, intersection[2] / intersection_w));
 				circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
 				circle_m = glm::scale(circle_m, glm::vec3(0.25f));
 
@@ -946,7 +942,7 @@ result level::init(log* new_log, const config new_cfg)
 		// Init level state
 		{
 			wls.light_debug.sun_distance = 23.776f;
-			wls.light_debug.sun_pitch = 5.684f;
+			wls.light_debug.sun_pitch = 5.431f;
 			wls.light_debug.sun_yaw = 5.349f;
 			wls.light_debug.orthographic_depth = 76.838f;
 			wls.light_debug.cascade_level = 36.f;
