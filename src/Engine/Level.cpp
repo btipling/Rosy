@@ -484,7 +484,7 @@ namespace
 			constexpr Uint8 pick_debug_toggle_btn{ 2 };
 			constexpr Uint8 pick_debug_record_btn{ 3 };
 			const ecs_entity_t rosy_entity = rosy_reference.entity;
-			if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || SDL_EVENT_MOUSE_BUTTON_UP)
+			if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP)
 			{
 				const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
 				if (std::isnan(mbe.x) || (std::isnan(mbe.y))) return result::ok;

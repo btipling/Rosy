@@ -4,7 +4,7 @@
 #include <stack>
 #include <algorithm>
 
-#include "volk/volk.h"
+#include "Volk/volk.h"
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vk_enum_string_helper.h"
 #include <ktxvulkan.h>
@@ -159,7 +159,6 @@ namespace {
 		VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
 #endif
 		VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
-		VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
 #ifndef RENDERDOC
 		VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
 		VK_KHR_MAINTENANCE_6_EXTENSION_NAME,
@@ -483,7 +482,7 @@ namespace {
 		allocated_image depth_image{};
 		allocated_image msaa_image{};
 		VkSampleCountFlagBits msaa_samples{ VK_SAMPLE_COUNT_1_BIT };
-		allocated_csm shadow_map_image;
+		allocated_csm shadow_map_image{};
 		uint32_t default_sampler_index{ 0 };
 		VkSampler default_sampler{ nullptr };
 		float render_scale = 1.f;
@@ -1262,16 +1261,6 @@ namespace {
 
 				if (!shader_object_features.shaderObject) continue;
 
-				VkPhysicalDeviceDepthClipEnableFeaturesEXT  depth_clip_features{};
-				depth_clip_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT;
-				depth_clip_features.pNext = nullptr;
-
-				device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-				device_features2.pNext = &depth_clip_features;
-				vkGetPhysicalDeviceFeatures2(p_device, &device_features2);
-
-				if (!depth_clip_features.depthClipEnable) continue;
-
 				// dynamic rendering required
 				VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features{};
 				buffer_device_address_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
@@ -1485,15 +1474,9 @@ namespace {
 				.shaderObject = VK_TRUE
 			};
 
-			VkPhysicalDeviceDepthClipEnableFeaturesEXT  enable_depth_clip_object = {
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
-				.pNext = &enable_shader_object,
-				.depthClipEnable = VK_TRUE
-			};
-
 			VkPhysicalDeviceFragmentShadingRateFeaturesKHR  shading_rate = {
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR,
-				.pNext = &enable_depth_clip_object,
+				.pNext = &enable_shader_object,
 				.pipelineFragmentShadingRate = VK_TRUE,
 				.primitiveFragmentShadingRate = VK_TRUE,
 				.attachmentFragmentShadingRate = VK_TRUE
@@ -4321,7 +4304,6 @@ namespace {
 						vkCmdSetDepthBoundsTestEnableEXT(cf.command_buffer, VK_FALSE);
 						vkCmdSetDepthBiasEnableEXT(cf.command_buffer, VK_FALSE);
 						vkCmdSetStencilTestEnableEXT(cf.command_buffer, VK_FALSE);
-						vkCmdSetDepthClipEnableEXT(cf.command_buffer, VK_FALSE);
 						vkCmdSetDepthClampEnableEXT(cf.command_buffer, VK_FALSE);
 						vkCmdSetLogicOpEnableEXT(cf.command_buffer, VK_FALSE);
 						vkCmdSetDepthBounds(cf.command_buffer, 0.0f, 1.0f);
@@ -4449,9 +4431,9 @@ namespace {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
 						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.dstAccessMask =  VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 						.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
@@ -4586,9 +4568,9 @@ namespace {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
 						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.dstAccessMask =  VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 						.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
@@ -4726,9 +4708,9 @@ namespace {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
 						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.dstAccessMask =  VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 						.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
@@ -4766,7 +4748,7 @@ namespace {
 						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
 						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.dstAccessMask =  VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
 						.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
@@ -4802,9 +4784,9 @@ namespace {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
 						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.dstAccessMask =  VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 						.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
@@ -5048,9 +5030,9 @@ namespace {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 						.pNext = nullptr,
 						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+						.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
@@ -5089,7 +5071,7 @@ namespace {
 						.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
 						.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
 						.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-						.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+						.dstAccessMask =  VK_ACCESS_2_TRANSFER_WRITE_BIT,
 						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						.srcQueueFamilyIndex = 0,
@@ -5176,9 +5158,9 @@ namespace {
 					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 					.pNext = nullptr,
 					.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-					.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+					.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
 					.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-					.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+					.dstAccessMask =  VkAccessFlags2{0},
 					.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 					.srcQueueFamilyIndex = 0,
