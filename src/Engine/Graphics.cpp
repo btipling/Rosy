@@ -91,52 +91,53 @@ namespace {
 
 	/// Graphics Device
 
-	constexpr  uint64_t graphics_created_bit_instance         = { 1ULL << 0 };
-	constexpr  uint64_t graphics_created_bit_device	          = { 1ULL << 1 };
-	constexpr  uint64_t graphics_created_bit_surface          = { 1ULL << 2 };
-	constexpr  uint64_t graphics_created_bit_vma              = { 1ULL << 3 };
-	constexpr  uint64_t graphics_created_bit_debug_messenger  = { 1ULL << 4 };
-	constexpr  uint64_t graphics_created_bit_fence            = { 1ULL << 5 };
-	constexpr  uint64_t graphics_created_bit_command_pool     = { 1ULL << 6 };
-	constexpr  uint64_t graphics_created_bit_draw_image       = { 1ULL << 7 };
-	constexpr  uint64_t graphics_created_bit_depth_image      = { 1ULL << 8 };
-	constexpr  uint64_t graphics_created_bit_ui_pool          = { 1ULL << 9 };
-	constexpr  uint64_t graphics_created_bit_swapchain        = { 1ULL << 10 };
-	constexpr  uint64_t graphics_created_bit_ktx_vdi_info     = { 1ULL << 11 };
-	constexpr  uint64_t graphics_created_bit_descriptor_set   = { 1ULL << 12 };
-	constexpr  uint64_t graphics_created_bit_descriptor_pool  = { 1ULL << 13 };
-	constexpr  uint64_t graphics_created_bit_draw_image_view  = { 1ULL << 14 };
-	constexpr  uint64_t graphics_created_bit_depth_image_view = { 1ULL << 15 };
-	constexpr  uint64_t graphics_created_bit_image_semaphore  = { 1ULL << 16 };
-	constexpr  uint64_t graphics_created_bit_pass_semaphore   = { 1ULL << 17 };
-	constexpr  uint64_t graphics_created_bit_imgui_sdl        = { 1ULL << 18 };
-	constexpr  uint64_t graphics_created_bit_imgui_vk         = { 1ULL << 19 };
-	constexpr  uint64_t graphics_created_bit_imgui_ctx        = { 1ULL << 20 };
-	constexpr  uint64_t graphics_created_bit_vertex_buffer    = { 1ULL << 21 };
-	constexpr  uint64_t graphics_created_bit_index_buffer     = { 1ULL << 22 };
-	constexpr  uint64_t graphics_created_bit_shaders          = { 1ULL << 23 };
-	constexpr  uint64_t graphics_created_bit_pipeline_layout  = { 1ULL << 24 };
-	constexpr  uint64_t graphics_created_bit_scene_buffer     = { 1ULL << 25 };
-	constexpr  uint64_t graphics_created_bit_materials_buffer = { 1ULL << 26 };
-	constexpr  uint64_t graphics_created_bit_graphics_buffer  = { 1ULL << 27 };
-	constexpr  uint64_t graphics_created_bit_ktx_image        = { 1ULL << 28 };
-	constexpr  uint64_t graphics_created_bit_ktx_texture      = { 1ULL << 29 };
-	constexpr  uint64_t graphics_created_bit_sampler          = { 1ULL << 30 };
-	constexpr  uint64_t graphics_created_bit_csm_image        = { 1ULL << 31 };
-	constexpr  uint64_t graphics_created_bit_csm_sampler      = { 1ULL << 32 };
-	constexpr  uint64_t graphics_created_bit_csm_view_sampler = { 1ULL << 33 };
-	constexpr  uint64_t graphics_created_bit_csm_view_near    = { 1ULL << 34 };
-	constexpr  uint64_t graphics_created_bit_csm_view_middle  = { 1ULL << 35 };
-	constexpr  uint64_t graphics_created_bit_csm_view_far     = { 1ULL << 36 };
-	constexpr  uint64_t graphics_created_bit_debug_buffer     = { 1ULL << 37 };
-	constexpr  uint64_t graphics_created_bit_debug_shaders    = { 1ULL << 38 };
-	constexpr  uint64_t graphics_created_bit_debug_pipeline   = { 1ULL << 39 };
-	constexpr  uint64_t graphics_created_bit_shadow_shaders   = { 1ULL << 40 };
-	constexpr  uint64_t graphics_created_bit_shadow_pipeline  = { 1ULL << 41 };
-	constexpr  uint64_t graphics_created_bit_msaa_image       = { 1ULL << 42 };
-	constexpr  uint64_t graphics_created_bit_msaa_image_view  = { 1ULL << 43 };
+	constexpr  uint64_t graphics_created_bit_instance			   = { 1ULL << 0 };
+	constexpr  uint64_t graphics_created_bit_device				   = { 1ULL << 1 };
+	constexpr  uint64_t graphics_created_bit_surface			   = { 1ULL << 2 };
+	constexpr  uint64_t graphics_created_bit_vma				   = { 1ULL << 3 };
+	constexpr  uint64_t graphics_created_bit_debug_messenger	   = { 1ULL << 4 };
+	constexpr  uint64_t graphics_created_bit_fence				   = { 1ULL << 5 };
+	constexpr  uint64_t graphics_created_bit_command_pool		   = { 1ULL << 6 };
+	constexpr  uint64_t graphics_created_bit_draw_image			   = { 1ULL << 7 };
+	constexpr  uint64_t graphics_created_bit_depth_image		   = { 1ULL << 8 };
+	constexpr  uint64_t graphics_created_bit_ui_pool			   = { 1ULL << 9 };
+	constexpr  uint64_t graphics_created_bit_swapchain			   = { 1ULL << 10 };
+	constexpr  uint64_t graphics_created_bit_ktx_vdi_info		   = { 1ULL << 11 };
+	constexpr  uint64_t graphics_created_bit_descriptor_set		   = { 1ULL << 12 };
+	constexpr  uint64_t graphics_created_bit_descriptor_pool	   = { 1ULL << 13 };
+	constexpr  uint64_t graphics_created_bit_draw_image_view	   = { 1ULL << 14 };
+	constexpr  uint64_t graphics_created_bit_depth_image_view	   = { 1ULL << 15 };
+	constexpr  uint64_t graphics_created_bit_image_semaphore	   = { 1ULL << 16 };
+	constexpr  uint64_t graphics_created_bit_pass_semaphore		   = { 1ULL << 17 };
+	constexpr  uint64_t graphics_created_bit_imgui_sdl			   = { 1ULL << 18 };
+	constexpr  uint64_t graphics_created_bit_imgui_vk			   = { 1ULL << 19 };
+	constexpr  uint64_t graphics_created_bit_imgui_ctx			   = { 1ULL << 20 };
+	constexpr  uint64_t graphics_created_bit_vertex_buffer		   = { 1ULL << 21 };
+	constexpr  uint64_t graphics_created_bit_index_buffer		   = { 1ULL << 22 };
+	constexpr  uint64_t graphics_created_bit_shaders			   = { 1ULL << 23 };
+	constexpr  uint64_t graphics_created_bit_pipeline_layout	   = { 1ULL << 24 };
+	constexpr  uint64_t graphics_created_bit_scene_buffer		   = { 1ULL << 25 };
+	constexpr  uint64_t graphics_created_bit_materials_buffer	   = { 1ULL << 26 };
+	constexpr  uint64_t graphics_created_bit_graphics_buffer	   = { 1ULL << 27 };
+	constexpr  uint64_t graphics_created_bit_ktx_image			   = { 1ULL << 28 };
+	constexpr  uint64_t graphics_created_bit_ktx_texture		   = { 1ULL << 29 };
+	constexpr  uint64_t graphics_created_bit_sampler			   = { 1ULL << 30 };
+	constexpr  uint64_t graphics_created_bit_csm_image			   = { 1ULL << 31 };
+	constexpr  uint64_t graphics_created_bit_csm_sampler		   = { 1ULL << 32 };
+	constexpr  uint64_t graphics_created_bit_csm_view_sampler	   = { 1ULL << 33 };
+	constexpr  uint64_t graphics_created_bit_csm_view_near		   = { 1ULL << 34 };
+	constexpr  uint64_t graphics_created_bit_csm_view_middle	   = { 1ULL << 35 };
+	constexpr  uint64_t graphics_created_bit_csm_view_far		   = { 1ULL << 36 };
+	constexpr  uint64_t graphics_created_bit_debug_buffer		   = { 1ULL << 37 };
+	constexpr  uint64_t graphics_created_bit_debug_shaders		   = { 1ULL << 38 };
+	constexpr  uint64_t graphics_created_bit_debug_pipeline		   = { 1ULL << 39 };
+	constexpr  uint64_t graphics_created_bit_shadow_shaders		   = { 1ULL << 40 };
+	constexpr  uint64_t graphics_created_bit_shadow_pipeline	   = { 1ULL << 41 };
+	constexpr  uint64_t graphics_created_bit_msaa_image			   = { 1ULL << 42 };
+	constexpr  uint64_t graphics_created_bit_msaa_image_view	   = { 1ULL << 43 };
 
 	constexpr VkSampleCountFlagBits max_msaa_sample_size = VK_SAMPLE_COUNT_4_BIT;
+	constexpr size_t min_buffer_size = 1'048'576;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -200,16 +201,6 @@ namespace {
 		VkSurfaceCapabilitiesKHR capabilities;
 		std::vector<VkSurfaceFormatKHR> formats;
 		std::vector<VkPresentModeKHR> present_modes;
-	};
-
-	struct frame_data
-	{
-		uint64_t frame_graphics_created_bitmask{ 0 };
-		VkCommandBuffer command_buffer{ nullptr };
-		VkSemaphore image_available_semaphore{ nullptr };
-		VkSemaphore render_finished_semaphore{};
-		VkFence in_flight_fence{ nullptr };
-		VkCommandPool command_pool{ nullptr };
 	};
 
 	VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats)
@@ -422,6 +413,19 @@ namespace {
 		float draw_time{ 0.f };
 	};
 
+	struct frame_data
+	{
+		uint64_t frame_graphics_created_bitmask{ 0 };
+		VkCommandBuffer command_buffer{ nullptr };
+		VkSemaphore image_available_semaphore{ nullptr };
+		VkSemaphore render_finished_semaphore{};
+		VkFence in_flight_fence{ nullptr };
+		VkCommandPool command_pool{ nullptr };
+
+		// Buffers
+		gpu_scene_buffers scene_buffer{};
+	};
+
 	struct graphics_device
 	{
 		rosy::log const* l{ nullptr };
@@ -493,6 +497,8 @@ namespace {
 		VkCommandBuffer immediate_command_buffer{ nullptr };
 		VkCommandPool immediate_command_pool{ nullptr };
 
+		VkSemaphore dynamic_gfx_semaphore{ nullptr };
+
 		SDL_Window* window{ nullptr };
 		ktxVulkanDeviceInfo ktx_vdi_info{};
 
@@ -517,12 +523,10 @@ namespace {
 		std::vector<VkShaderEXT> scene_shaders;
 		VkPipelineLayout scene_layout{};
 
-		// Buffers
-		gpu_scene_buffers scene_buffer{};
-
-		gpu_scene_data scene_data{};
 		write_level_state* wls{ nullptr };
 		read_level_state const* rls{ nullptr };
+
+		gpu_scene_data scene_data{};
 
 		result init(const config new_cfg)
 		{
@@ -790,10 +794,6 @@ namespace {
 				vmaDestroyBuffer(allocator, debug_draws_buffer.debug_draws_buffer.buffer, debug_draws_buffer.debug_draws_buffer.allocation);
 			}
 
-			if (graphics_created_bitmask & graphics_created_bit_scene_buffer)
-			{
-				vmaDestroyBuffer(allocator, scene_buffer.scene_buffer.buffer, scene_buffer.scene_buffer.allocation);
-			}
 
 			if (graphics_created_bitmask & graphics_created_bit_shadow_pipeline)
 			{
@@ -897,6 +897,7 @@ namespace {
 				if (fd.frame_graphics_created_bitmask & graphics_created_bit_image_semaphore)  vkDestroySemaphore(device, fd.image_available_semaphore, nullptr);
 				if (fd.frame_graphics_created_bitmask & graphics_created_bit_pass_semaphore) vkDestroySemaphore(device, fd.render_finished_semaphore, nullptr);
 				if (fd.frame_graphics_created_bitmask & graphics_created_bit_command_pool) vkDestroyCommandPool(device, fd.command_pool, nullptr);
+				if (fd.frame_graphics_created_bitmask & graphics_created_bit_scene_buffer) vmaDestroyBuffer(allocator, fd.scene_buffer.scene_buffer.buffer, fd.scene_buffer.scene_buffer.allocation);
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_msaa_image_view)
@@ -1146,8 +1147,8 @@ namespace {
 
 			const VkInstanceCreateInfo create_info{
 				.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-				//.pNext = &validation_info,
-				.pNext = &create_debug_callback_info_ext,
+				.pNext = &validation_info,
+				// .pNext = &create_debug_callback_info_ext,
 				.pApplicationInfo = &app_info,
 				.enabledLayerCount = static_cast<uint32_t>(instance_layer_properties.size()),
 				.ppEnabledLayerNames = instance_layer_properties.data(),
@@ -3014,49 +3015,56 @@ namespace {
 		VkResult init_data()
 		{
 			l->info("Initializing data");
+
+			for (size_t i = 0; i < swapchain_image_count; i++)
 			{
-				// *** SETTING SCENE BUFFER *** //
-				scene_buffer.buffer_size = sizeof(gpu_scene_data);
-				VkBufferCreateInfo buffer_info{};
-				buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-				buffer_info.pNext = nullptr;
-				buffer_info.size = scene_buffer.buffer_size;
-				buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-				VmaAllocationCreateInfo vma_alloc_info{};
-				vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
-				vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+				{
+					// *** SETTING SCENE BUFFER *** //
+					constexpr size_t scene_buffer_size = std::max(sizeof(gpu_scene_data), min_buffer_size);
+					frame_datas[i].scene_buffer.buffer_size = scene_buffer_size;
+					VkBufferCreateInfo buffer_info{};
+					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+					buffer_info.pNext = nullptr;
+					buffer_info.size = scene_buffer_size;
+					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-				if (
-					const VkResult res = vmaCreateBuffer(
-						allocator, &buffer_info, &vma_alloc_info, &scene_buffer.scene_buffer.buffer, &scene_buffer.scene_buffer.allocation,
-						&scene_buffer.scene_buffer.info
-					); res != VK_SUCCESS)
-				{
-					l->error(std::format("Error uploading scene buffer: {}", static_cast<uint8_t>(res)));
-					return res;
-				}
-				graphics_created_bitmask |= graphics_created_bit_scene_buffer;
-				{
-					VkDebugUtilsObjectNameInfoEXT debug_name{};
-					debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-					debug_name.pNext = nullptr;
-					debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-					debug_name.objectHandle = reinterpret_cast<uint64_t>(scene_buffer.scene_buffer.buffer);
-					debug_name.pObjectName = "rosy scene buffer";
-					if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+					VmaAllocationCreateInfo vma_alloc_info{};
+					vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+					vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+					if (
+						const VkResult res = vmaCreateBuffer(
+							allocator, &buffer_info, &vma_alloc_info, &frame_datas[i].scene_buffer.scene_buffer.buffer, &frame_datas[i].scene_buffer.scene_buffer.allocation,
+							&frame_datas[i].scene_buffer.scene_buffer.info
+						); res != VK_SUCCESS)
 					{
-						l->error(std::format("Error creating scene buffer name: {}", static_cast<uint8_t>(res)));
+						l->error(std::format("Error uploading scene buffer: {}", static_cast<uint8_t>(res)));
 						return res;
 					}
-				}
-				{
-					VkBufferDeviceAddressInfo device_address_info{};
-					device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-					device_address_info.buffer = scene_buffer.scene_buffer.buffer;
+					frame_datas[i].frame_graphics_created_bitmask |= graphics_created_bit_scene_buffer;
+					{
+						const std::string object_name = std::format("rosy scene buffer {}", i);
+						VkDebugUtilsObjectNameInfoEXT debug_name{};
+						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+						debug_name.pNext = nullptr;
+						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(frame_datas[i].scene_buffer.scene_buffer.buffer);
+						debug_name.pObjectName = object_name.c_str();
+						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+						{
+							l->error(std::format("Error creating scene buffer name: {}", static_cast<uint8_t>(res)));
+							return res;
+						}
+					}
+					{
+						VkBufferDeviceAddressInfo device_address_info{};
+						device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+						device_address_info.buffer = frame_datas[i].scene_buffer.scene_buffer.buffer;
 
-					// *** SETTING SCENE BUFFER ADDRESS *** //
-					scene_buffer.scene_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
+						// *** SETTING SCENE BUFFER ADDRESS *** //
+						frame_datas[i].scene_buffer.scene_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
+					}
 				}
 			}
 			{
@@ -4344,13 +4352,14 @@ namespace {
 							.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
 							.srcQueueFamilyIndex = 0,
 							.dstQueueFamilyIndex = 0,
-							.buffer = scene_buffer.scene_buffer.buffer,
+							.buffer = cf.scene_buffer.scene_buffer.buffer,
 							.offset = 0,
 							.size = sizeof(gpu_scene_data),
 						};
 						buffer_barriers.push_back(buffer_barrier);
 					}
-					if (!graphics_object_update_data.graphic_objects.empty())
+					uint64_t wait_val{ 0 };
+					if (!graphics_object_update_data.graphic_objects.empty() && vkGetSemaphoreCounterValue(device, dynamic_gfx_semaphore, &wait_val) == VK_SUCCESS)
 					{
 						VkBufferMemoryBarrier2 buffer_barrier{
 							.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -4384,7 +4393,7 @@ namespace {
 				}
 				{
 					// Update scene buffer
-					vkCmdUpdateBuffer(cf.command_buffer, scene_buffer.scene_buffer.buffer, 0, sizeof(gpu_scene_data), &scene_data);
+					vkCmdUpdateBuffer(cf.command_buffer, cf.scene_buffer.scene_buffer.buffer, 0, sizeof(gpu_scene_data), &scene_data);
 				}
 				if (!graphics_object_update_data.graphic_objects.empty())
 				{
@@ -4491,7 +4500,6 @@ namespace {
 				{
 					if (rls->light.depth_bias_enabled) {
 						vkCmdSetDepthBiasEnable(cf.command_buffer, VK_TRUE);
-						//vkCmdSetDepthClampEnableEXT(cf.command_buffer, VK_TRUE);
 						vkCmdSetDepthBias(cf.command_buffer, rls->light.depth_bias_constant, rls->light.depth_bias_clamp, rls->light.depth_bias_slope_factor);
 					}
 				}
@@ -4539,7 +4547,7 @@ namespace {
 								current_mesh_index = mesh_index;
 							}
 							gpu_shadow_push_constants pc{
-								.scene_buffer = scene_buffer.scene_buffer_address,
+								.scene_buffer = cf.scene_buffer.scene_buffer_address,
 								.vertex_buffer = gpu_mesh.vertex_buffer_address,
 								.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
 								.pass_number = 0,
@@ -4898,7 +4906,7 @@ namespace {
 										current_mesh_index = mesh_index;
 									}
 									gpu_draw_push_constants pc{
-										.scene_buffer = scene_buffer.scene_buffer_address,
+										.scene_buffer = cf.scene_buffer.scene_buffer_address,
 										.vertex_buffer = gpu_mesh.vertex_buffer_address,
 										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
 										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
@@ -4936,7 +4944,7 @@ namespace {
 										current_mesh_index = mesh_index;
 									}
 									gpu_draw_push_constants pc{
-										.scene_buffer = scene_buffer.scene_buffer_address,
+										.scene_buffer = cf.scene_buffer.scene_buffer_address,
 										.vertex_buffer = gpu_mesh.vertex_buffer_address,
 										.go_buffer = graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
 										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
@@ -4973,7 +4981,7 @@ namespace {
 									.transform = obj_transform,
 									.color = obj_color,
 									.flags = flags,
-									.scene_buffer = scene_buffer.scene_buffer_address,
+									.scene_buffer = cf.scene_buffer.scene_buffer_address,
 									.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
 								};
 								vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
