@@ -140,6 +140,8 @@ namespace
 		node* node{ nullptr };
 	};
 
+	constexpr float initial_fps_target{ 240.f };
+
 	struct level_state
 	{
 		enum class camera_choice : uint8_t { game, free };
@@ -229,7 +231,7 @@ namespace
 			level_entity = ecs_new(world);
 			assert(ecs_is_alive(world, level_entity));
 
-			ecs_set_target_fps(world, 120.f);
+			ecs_set_target_fps(world, initial_fps_target);
 
 			init_components();
 			init_tags();
@@ -956,7 +958,7 @@ result level::init(log* new_log, const config new_cfg)
 			wls.fragment_config.light_enabled = true;
 			wls.fragment_config.tangent_space_enabled = true;
 			wls.fragment_config.shadows_enabled = true;
-			wls.target_fps = 120.f;
+			wls.target_fps = initial_fps_target;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)

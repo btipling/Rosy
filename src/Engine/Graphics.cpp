@@ -21,6 +21,8 @@
 
 using namespace rosy;
 
+constexpr bool verbose_validation{ false };
+
 namespace tracy {
 	// ReSharper disable once CppInconsistentNaming
 	class VkCtx;
@@ -1141,8 +1143,7 @@ namespace {
 
 			const VkInstanceCreateInfo create_info{
 				.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-				//.pNext = &validation_info,
-				 .pNext = &create_debug_callback_info_ext,
+				.pNext = verbose_validation ? static_cast<void const *>(&validation_info) : static_cast<void const*>(&create_debug_callback_info_ext),
 				.pApplicationInfo = &app_info,
 				.enabledLayerCount = static_cast<uint32_t>(instance_layer_properties.size()),
 				.ppEnabledLayerNames = instance_layer_properties.data(),
@@ -4339,6 +4340,8 @@ namespace {
 					std::copy_n(debug_color.data(), 4, debug_label.color);
 					vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
 				}
+				size_t frame_to_update = current_frame + 1;
+				if (frame_to_update >= swapchain_image_count) frame_to_update = 0;
 				{
 					std::vector<VkBufferMemoryBarrier2> buffer_barriers;
 					{
@@ -4351,7 +4354,7 @@ namespace {
 							.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
 							.srcQueueFamilyIndex = 0,
 							.dstQueueFamilyIndex = 0,
-							.buffer = cf.scene_buffer.scene_buffer.buffer,
+							.buffer = frame_datas[frame_to_update].scene_buffer.scene_buffer.buffer,
 							.offset = 0,
 							.size = sizeof(gpu_scene_data),
 						};
@@ -4368,7 +4371,7 @@ namespace {
 							.dstAccessMask =  VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
 							.srcQueueFamilyIndex = 0,
 							.dstQueueFamilyIndex = 0,
-							.buffer = cf.graphic_objects_buffer.go_buffer.buffer,
+							.buffer = frame_datas[frame_to_update].graphic_objects_buffer.go_buffer.buffer,
 							.offset = graphics_object_update_data.offset,
 							.size = sizeof(graphic_object_data),
 						};
@@ -4391,7 +4394,7 @@ namespace {
 				}
 				{
 					// Update scene buffer
-					vkCmdUpdateBuffer(cf.command_buffer, cf.scene_buffer.scene_buffer.buffer, 0, sizeof(gpu_scene_data), &scene_data);
+					vkCmdUpdateBuffer(cf.command_buffer, frame_datas[frame_to_update].scene_buffer.scene_buffer.buffer, 0, sizeof(gpu_scene_data), &scene_data);
 				}
 				if (!graphics_object_update_data.graphic_objects.empty())
 				{
@@ -4405,7 +4408,7 @@ namespace {
 							.object_space_transform = gou.object_space_transform,
 							});
 					}
-					vkCmdUpdateBuffer(cf.command_buffer, cf.graphic_objects_buffer.go_buffer.buffer, sizeof(graphic_object_data) * graphics_object_update_data.offset, sizeof(graphic_object_data) * updated.size(), updated.data());
+					vkCmdUpdateBuffer(cf.command_buffer, frame_datas[frame_to_update].graphic_objects_buffer.go_buffer.buffer, sizeof(graphic_object_data) * graphics_object_update_data.offset, sizeof(graphic_object_data) * updated.size(), updated.data());
 					// Clear out state so that we avoid unnecessary updates.
 					graphics_object_update_data.offset = 0;
 					graphics_object_update_data.graphic_objects.clear();
@@ -5536,7 +5539,7 @@ namespace {
 							{
 								ImGui::TableNextRow();
 								ImGui::TableNextColumn();
-								ImGui::SliderFloat("Target fps", &wls->target_fps, 30.f, 480.f, "%.1f", 0);
+								ImGui::SliderFloat("Target fps", &wls->target_fps, 30.f, 960.f, "%.1f", 0);
 
 
 								ImGui::EndTable();
