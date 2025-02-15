@@ -140,6 +140,8 @@ namespace
 		node* node{ nullptr };
 	};
 
+	constexpr float initial_fps_target{ 240.f };
+
 	struct level_state
 	{
 		enum class camera_choice : uint8_t { game, free };
@@ -159,8 +161,6 @@ namespace
 		ecs_entity_t level_entity{ 0 };
 		game_node_reference rosy_reference{};
 		ecs_entity_t floor_entity{ 0 };
-
-		bool updated{ false };
 
 		result init(rosy::log* new_log, const config new_cfg)
 		{
@@ -229,7 +229,7 @@ namespace
 			level_entity = ecs_new(world);
 			assert(ecs_is_alive(world, level_entity));
 
-			ecs_set_target_fps(world, 120.f);
+			ecs_set_target_fps(world, initial_fps_target);
 
 			init_components();
 			init_tags();
@@ -568,7 +568,7 @@ namespace
 			const glm::vec3 plucker_v = world_ray;
 			const glm::vec3 plucker_m = cross(camera_pos, world_ray);
 
-			// Create the parameterized plane values for the floor in world sace.
+			// Create the parameterized plane values for the floor in world space.
 			constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
 			constexpr float plane_distance = 0.f;
 
@@ -587,20 +587,17 @@ namespace
 			const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
 			const node* floor_node = ctx->get_static()[floor_index->index];
 			// Transform world space rosy target to the actual floor meshes object space because that's the space the bounds are in.
-			glm::vec3 min_bounds = glm::vec3(array_to_mat4(floor_node->transform) * glm::vec4(floor_node->bounds.min[0], floor_node->bounds.min[1], floor_node->bounds.min[2], 1.f));
-			glm::vec3 max_bounds = glm::vec3(array_to_mat4(floor_node->transform) * glm::vec4(floor_node->bounds.max[0], floor_node->bounds.max[1], floor_node->bounds.max[2], 1.f));
-			bool exceeds_bounds{ false };
+			auto min_bounds = glm::vec3(array_to_mat4(floor_node->transform) * glm::vec4(floor_node->bounds.min[0], floor_node->bounds.min[1], floor_node->bounds.min[2], 1.f));
+			auto max_bounds = glm::vec3(array_to_mat4(floor_node->transform) * glm::vec4(floor_node->bounds.max[0], floor_node->bounds.max[1], floor_node->bounds.max[2], 1.f));
 			for (int j{ 0 }; j < 3; j++)
 			{
 				if (rosy_target[j] < min_bounds[j])
 				{
 					rosy_target[j] = min_bounds[j];
-					exceeds_bounds = true;
 				}
 				if (rosy_target[j] > max_bounds[j])
 				{
 					rosy_target[j] = max_bounds[j];
-					exceeds_bounds = true;
 				}
 			}
 
@@ -614,7 +611,7 @@ namespace
 				glm::mat4 m;
 				std::array<float, 4> color;
 				if (pick_debugging->space & debug_object_flag_screen_space) {
-					// Draw a green circle to designate we're in screen spaCe.
+					// Draw a green circle to indicate screen space coordinate system is being used.
 					color = { 0.f, 1.f, 0.f, 1.f };
 					m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
 				}
@@ -684,7 +681,7 @@ namespace
 					// Calculate the difference between rosy's orientation and her target position
 					const float offset = rosy_space_target.x > 0 ? -1.f : 0.f; // This offset's rosy's orientation based on her orientation around the x-axis.
 					const float target_game_cos_theta = glm::dot(glm::normalize(rosy_space_target), game_forward); // This dot product is used to get the angle of the target with respect to rosy's position.
-					const float target_yaw = -std::acos(target_game_cos_theta); // This is negated because we of the handededness of the coordinate system.
+					const float target_yaw = -std::acos(target_game_cos_theta); // This is negated because we of the handedness of the coordinate system.
 					const float new_yaw = target_yaw + offset;
 
 					ctx->l->debug(std::format("(target: ({:.3f}, {:.3f}), {:.3f})) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
@@ -714,10 +711,6 @@ namespace
 					if (const auto res = ctx->rosy_reference.node->update_transform(mat4_to_array(tr * r)); res != result::ok)
 					{
 						ctx->l->error("error transforming rosy");
-					}
-					else
-					{
-						ctx->updated = true;
 					}
 
 					ctx->game_cam->set_game_cam_position({ new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
@@ -768,7 +761,6 @@ namespace
 					{
 						ctx->l->error("Error updating mob position");
 					}
-					ctx->updated = true;
 				}
 			}
 			else
@@ -956,7 +948,7 @@ result level::init(log* new_log, const config new_cfg)
 			wls.fragment_config.light_enabled = true;
 			wls.fragment_config.tangent_space_enabled = true;
 			wls.fragment_config.shadows_enabled = true;
-			wls.target_fps = 120.f;
+			wls.target_fps = initial_fps_target;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)
@@ -1304,12 +1296,10 @@ result level::update(const uint32_t viewport_width, const uint32_t viewport_heig
 
 result level::process()
 {
-	if (!ls->updated) return result::ok;
 	graphics_object_update_data.offset = static_objects_offset;
 	graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
 	for (const std::vector<node*> mobs = ls->get_mobs(); const node * n : mobs) n->populate_graph(graphics_object_update_data.graphic_objects);
-	ls->updated = false;
 	return result::ok;
 }
 
