@@ -22,7 +22,6 @@ project "Engine"
    includedirs { "libs/tracy/" }
    includedirs { "libs/KTX-Software/include/" }
    includedirs { "libs/flecs/include/" }
-   includedirs { "libs/fastgltf/include/" }
 
    libdirs { "libs/SDL/build/Debug" }
    libdirs { "libs/KTX-Software/build/Debug" }
@@ -54,24 +53,15 @@ project "Packager"
    toolset("clang")
    debugdir "./Packager/"
 
-   links { "SDL3" }
-   links { "flecs" }
-   links { "ktx" }
+   links { "fastgltf" }
 
    includedirs { "libs/fastgltf/include/" }
 
-   libdirs { "libs/SDL/build/Debug" }
-   libdirs { "libs/KTX-Software/build/Debug" }
-   libdirs { vk_sdk .. "/Lib/" }
-   libdirs { "libs/flecs/out/Debug" }
-
+   libdirs { "libs/fastgltf/build/Debug" }
 
 
    files { "Packager/**.h", "Packager/**.cpp" }
    files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
-   files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
-   files { "libs/Volk.cpp" }
-   files { "libs/VMA.cpp" }
 
    filter "configurations:Debug"
       defines { "DEBUG" }
