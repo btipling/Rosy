@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{DBC7D3B0-C769-FE86-B024-12DB9C6585D7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Packager">
+      <UniqueIdentifier>{03BECC69-EF8A-2775-18A4-151D04D05C03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libs">
+      <UniqueIdentifier>{2F149A7C-1B4B-9B0D-C437-8110B04D170F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libs\imgui">
+      <UniqueIdentifier>{D948162C-C500-5879-2E08-31D51ADFF269}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libs\imgui\backends">
+      <UniqueIdentifier>{23C73178-8F28-0F86-1896-553884F64545}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Engine\Telemetry.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Types.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Packager\Asset.h">
+      <Filter>Packager</Filter>
+    </ClInclude>
+    <ClInclude Include="Packager\Gltf.h">
+      <Filter>Packager</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\imgui\backends\imgui_impl_sdl3.h">
+      <Filter>libs\imgui\backends</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\imgui\backends\imgui_impl_vulkan.h">
+      <Filter>libs\imgui\backends</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\imgui\imconfig.h">
+      <Filter>libs\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\imgui\imgui.h">
+      <Filter>libs\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\imgui\imgui_internal.h">
+      <Filter>libs\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\imgui\imstb_rectpack.h">
+      <Filter>libs\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\imgui\imstb_textedit.h">
+      <Filter>libs\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\imgui\imstb_truetype.h">
+      <Filter>libs\imgui</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Engine\Telemetry.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Packager\Asset.cpp">
+      <Filter>Packager</Filter>
+    </ClCompile>
+    <ClCompile Include="Packager\Gltf.cpp">
+      <Filter>Packager</Filter>
+    </ClCompile>
+    <ClCompile Include="Packager\Main.cpp">
+      <Filter>Packager</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\VMA.cpp">
+      <Filter>libs</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\Volk.cpp">
+      <Filter>libs</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\imgui\backends\imgui_impl_sdl3.cpp">
+      <Filter>libs\imgui\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\imgui\backends\imgui_impl_vulkan.cpp">
+      <Filter>libs\imgui\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\imgui\imgui.cpp">
+      <Filter>libs\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\imgui\imgui_demo.cpp">
+      <Filter>libs\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\imgui\imgui_draw.cpp">
+      <Filter>libs\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\imgui\imgui_tables.cpp">
+      <Filter>libs\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\imgui\imgui_widgets.cpp">
+      <Filter>libs\imgui</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

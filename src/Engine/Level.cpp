@@ -5,6 +5,7 @@
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <algorithm>
+#include <format>
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.inl>
@@ -1001,8 +1002,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	const size_t root_scene_index = static_cast<size_t>(new_asset.root_scene);
 	if (new_asset.scenes.size() <= root_scene_index) return result::invalid_argument;
 
-	const auto& [nodes] = new_asset.scenes[root_scene_index];
-	if (nodes.empty()) return result::invalid_argument;
+	const auto& scene = new_asset.scenes[root_scene_index];
+	if (scene.nodes.empty()) return result::invalid_argument;
 
 	{
 		// Clear existing game nodes
@@ -1016,7 +1017,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	}
 
 	// Prepopulate the node queue with the root scenes nodes
-	for (const auto& node_index : nodes) {
+	for (const auto& node_index : scene.nodes) {
 		const rosy_packager::node new_node = new_asset.nodes[node_index];
 
 		// Game nodes are a game play representation of a graphics object, and can be static or a mob.
@@ -1105,11 +1106,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					// Each mesh has any number of surfaces that are derived from gltf primitives for example. These are what are given to the renderer to draw.
 					go.surface_data.reserve(current_mesh.surfaces.size());
-					for (const auto& [sur_start_index, sur_count, sur_material, min_bounds, max_bounds] : current_mesh.surfaces)
+					for (const auto& surf : current_mesh.surfaces)
 					{
 						for (size_t i{ 0 }; i < 3; i++) {
-							bounds.min[i] = std::min(min_bounds[i], bounds.min[i]);
-							bounds.max[i] = std::max(max_bounds[i], bounds.max[i]);
+							bounds.min[i] = glm::min(surf.min_bounds[i], bounds.min[i]);
+							bounds.max[i] = glm::max(surf.max_bounds[i], bounds.max[i]);
 						}
 						surface_graphics_data sgd{};
 						sgd.mesh_index = current_mesh_index;
@@ -1118,10 +1119,10 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 						// mobs that is equal to the total number of static surface graphic objects as mobs are all at the end of the buffer.
 						// The go_mob_index is also used to identify individual mobs for game play purposes.
 						sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
-						sgd.material_index = sur_material;
-						sgd.index_count = sur_count;
-						sgd.start_index = sur_start_index;
-						if (new_asset.materials.size() > sur_material && new_asset.materials[sur_material].alpha_mode != 0) {
+						sgd.material_index = surf.material;
+						sgd.index_count = surf.count;
+						sgd.start_index = surf.start_index;
+						if (new_asset.materials.size() > surf.material && new_asset.materials[surf.material].alpha_mode != 0) {
 							sgd.blended = true;
 						}
 						go.surface_data.push_back(sgd);
