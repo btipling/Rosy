@@ -5,6 +5,7 @@
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <algorithm>
+#include <format>
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.inl>
@@ -491,7 +492,7 @@ namespace
 				const c_cursor_position c_pos{ .screen_x = mbe.x, .screen_y = mbe.y };
 				ecs_set_id(world, level_entity, ecs_id(c_cursor_position), sizeof(c_cursor_position), &c_pos);
 			}
-			if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+			if (rosy_reference.node != nullptr && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
 				switch (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button)
 				{
 				case rosy_attention_btn:
@@ -517,7 +518,7 @@ namespace
 					break;
 				}
 			}
-			if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+			if (rosy_reference.node != nullptr && event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
 				if (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button == rosy_attention_btn) ecs_remove(world, rosy_entity, t_rosy_action);
 			}
 			return result::ok;
@@ -723,7 +724,6 @@ namespace
 	void init_level_state(ecs_iter_t* it)
 	{
 		const auto ctx = static_cast<level_state*>(it->param);
-
 		{
 			// Write active camera values
 			if (std::abs(ctx->game_cam->yaw - ctx->wls->game_camera_yaw) >= 0.2) {
@@ -808,7 +808,7 @@ namespace
 			}
 			ctx->rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space ? pick_debug_read_state::picking_space::screen : pick_debug_read_state::picking_space::view;
 		}
-		else if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(t_rosy_action)))
+		else if (ctx->rosy_reference.node != nullptr && ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(t_rosy_action)))
 		{
 			if (ctx->rls->pick_debugging.picking.has_value())
 			{
@@ -949,6 +949,7 @@ result level::init(log* new_log, const config new_cfg)
 			wls.fragment_config.tangent_space_enabled = true;
 			wls.fragment_config.shadows_enabled = true;
 			wls.target_fps = initial_fps_target;
+			rls.ui_enabled = true;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)
@@ -1001,8 +1002,8 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	const size_t root_scene_index = static_cast<size_t>(new_asset.root_scene);
 	if (new_asset.scenes.size() <= root_scene_index) return result::invalid_argument;
 
-	const auto& [nodes] = new_asset.scenes[root_scene_index];
-	if (nodes.empty()) return result::invalid_argument;
+	const auto& scene = new_asset.scenes[root_scene_index];
+	if (scene.nodes.empty()) return result::invalid_argument;
 
 	{
 		// Clear existing game nodes
@@ -1016,7 +1017,7 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 	}
 
 	// Prepopulate the node queue with the root scenes nodes
-	for (const auto& node_index : nodes) {
+	for (const auto& node_index : scene.nodes) {
 		const rosy_packager::node new_node = new_asset.nodes[node_index];
 
 		// Game nodes are a game play representation of a graphics object, and can be static or a mob.
@@ -1105,11 +1106,11 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 				{
 					// Each mesh has any number of surfaces that are derived from gltf primitives for example. These are what are given to the renderer to draw.
 					go.surface_data.reserve(current_mesh.surfaces.size());
-					for (const auto& [sur_start_index, sur_count, sur_material, min_bounds, max_bounds] : current_mesh.surfaces)
+					for (const auto& surf : current_mesh.surfaces)
 					{
 						for (size_t i{ 0 }; i < 3; i++) {
-							bounds.min[i] = std::min(min_bounds[i], bounds.min[i]);
-							bounds.max[i] = std::max(max_bounds[i], bounds.max[i]);
+							bounds.min[i] = glm::min(surf.min_bounds[i], bounds.min[i]);
+							bounds.max[i] = glm::max(surf.max_bounds[i], bounds.max[i]);
 						}
 						surface_graphics_data sgd{};
 						sgd.mesh_index = current_mesh_index;
@@ -1118,10 +1119,10 @@ result level::set_asset(const rosy_packager::asset& new_asset)
 						// mobs that is equal to the total number of static surface graphic objects as mobs are all at the end of the buffer.
 						// The go_mob_index is also used to identify individual mobs for game play purposes.
 						sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
-						sgd.material_index = sur_material;
-						sgd.index_count = sur_count;
-						sgd.start_index = sur_start_index;
-						if (new_asset.materials.size() > sur_material && new_asset.materials[sur_material].alpha_mode != 0) {
+						sgd.material_index = surf.material;
+						sgd.index_count = surf.count;
+						sgd.start_index = surf.start_index;
+						if (new_asset.materials.size() > surf.material && new_asset.materials[surf.material].alpha_mode != 0) {
 							sgd.blended = true;
 						}
 						go.surface_data.push_back(sgd);

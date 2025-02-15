@@ -2793,9 +2793,9 @@ namespace {
 					return VK_ERROR_INITIALIZATION_FAILED;
 				}
 				std::vector<VkShaderCreateInfoEXT> shader_create_info;
-				const auto& [path, source] = dba.shaders[0];
+				const auto& shader = dba.shaders[0];
 
-				if (source.empty())
+				if (shader.source.empty())
 				{
 					l->error("No source in debug shader");
 					return VK_ERROR_INITIALIZATION_FAILED;
@@ -2817,8 +2817,8 @@ namespace {
 					.stage = VK_SHADER_STAGE_VERTEX_BIT,
 					.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT,
 					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-					.codeSize = source.size(),
-					.pCode = source.data(),
+					.codeSize = shader.source.size(),
+					.pCode = shader.source.data(),
 					.pName = "main",
 					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
 					.pSetLayouts = layouts.data(),
@@ -2833,8 +2833,8 @@ namespace {
 					.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
 					.nextStage = 0,
 					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-					.codeSize = source.size(),
-					.pCode = source.data(),
+					.codeSize = shader.source.size(),
+					.pCode = shader.source.data(),
 					.pName = "main",
 					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
 					.pSetLayouts = layouts.data(),
@@ -2922,9 +2922,9 @@ namespace {
 					return VK_ERROR_INITIALIZATION_FAILED;
 				}
 				std::vector<VkShaderCreateInfoEXT> shader_create_info;
-				const auto& [path, source] = sba.shaders[0];
+				const auto& shader = sba.shaders[0];
 
-				if (source.empty())
+				if (shader.source.empty())
 				{
 					l->error("No source in shadow shader");
 					return VK_ERROR_INITIALIZATION_FAILED;
@@ -2946,8 +2946,8 @@ namespace {
 					.stage = VK_SHADER_STAGE_VERTEX_BIT,
 					.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT,
 					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-					.codeSize = source.size(),
-					.pCode = source.data(),
+					.codeSize = shader.source.size(),
+					.pCode = shader.source.data(),
 					.pName = "main",
 					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
 					.pSetLayouts = layouts.data(),
@@ -3349,12 +3349,12 @@ namespace {
 
 			// *** SETTING IMAGES *** //
 			std::vector<uint32_t> color_image_sampler_desc_index;
-			for (const auto& [asset_img_name] : a.images)
+			for (const auto& img: a.images)
 			{
 				const char* ktx_path{};
 				allocated_ktx_image new_ktx_img{};
 
-				std::string img_name{ asset_img_name.begin(), asset_img_name.end() };
+				std::string img_name{ img.name.begin(), img.name.end() };
 				std::filesystem::path img_path{ a.asset_path };
 				img_path.replace_filename(std::format("{}.ktx2", img_name));
 				l->debug(std::format("source: {} path: {} name: {}", a.asset_path, img_path.string(), img_name));
@@ -3453,7 +3453,7 @@ namespace {
 			std::vector<uint32_t> sampler_desc_index;
 			{
 				size_t sampler_index{ 0 };
-				for (const auto& [sampler_min_filter, sampler_mag_filter, sampler_wrap_s, sampler_wrap_t] : a.samplers)
+				for (const auto& sampler : a.samplers)
 				{
 					VkSamplerCreateInfo sampler_create_info = {};
 					sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -3462,12 +3462,12 @@ namespace {
 					sampler_create_info.minLod = 0;
 					sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-					sampler_create_info.addressModeU = wrap_to_val(sampler_wrap_s);
-					sampler_create_info.addressModeV = wrap_to_val(sampler_wrap_t);
+					sampler_create_info.addressModeU = wrap_to_val(sampler.wrap_s);
+					sampler_create_info.addressModeV = wrap_to_val(sampler.wrap_t);
 					sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-					sampler_create_info.magFilter = filter_to_val(sampler_mag_filter);
-					sampler_create_info.minFilter = filter_to_val(sampler_min_filter);
+					sampler_create_info.magFilter = filter_to_val(sampler.mag_filter);
+					sampler_create_info.minFilter = filter_to_val(sampler.min_filter);
 					VkSampler created_sampler{};
 					if (const VkResult res = vkCreateSampler(device, &sampler_create_info, nullptr, &created_sampler); res != VK_SUCCESS)
 					{
@@ -3718,18 +3718,18 @@ namespace {
 				size_t total_index_buffer_size{ 0 };
 
 				uint32_t total_indexes{ 0 };
-				for (const auto& [asset_positions, asset_indices, asset_surfaces, child_meshes] : a.meshes) {
+				for (const auto& mesh: a.meshes) {
 					gpu_mesh_buffers gpu_mesh{};
 
-					const size_t vertex_buffer_size = asset_positions.size() * sizeof(rosy_packager::position);
+					const size_t vertex_buffer_size = mesh.positions.size() * sizeof(rosy_packager::position);
 					gpu_mesh.vertex_buffer_offset = total_vertex_buffer_size;
 
 					total_vertex_buffer_size += vertex_buffer_size;
 
-					const size_t index_buffer_size = asset_indices.size() * sizeof(uint32_t);
+					const size_t index_buffer_size = mesh.indices.size() * sizeof(uint32_t);
 					gpu_mesh.index_offset = total_indexes;
-					total_indexes += static_cast<uint32_t>(asset_indices.size());
-					gpu_mesh.num_indices = static_cast<uint32_t>(asset_indices.size());
+					total_indexes += static_cast<uint32_t>(mesh.indices.size());
+					gpu_mesh.num_indices = static_cast<uint32_t>(mesh.indices.size());
 
 					total_index_buffer_size += index_buffer_size;
 
@@ -3855,21 +3855,21 @@ namespace {
 
 				{
 					size_t current_vertex_offset{ 0 };
-					for (const auto& [asset_positions, asset_indices, asset_surfaces, child_meshes] : a.meshes) {
+					for (const auto& mesh : a.meshes) {
 
-						const size_t vertex_buffer_size = asset_positions.size() * sizeof(rosy_packager::position);
+						const size_t vertex_buffer_size = mesh.positions.size() * sizeof(rosy_packager::position);
 
-						if (staging.info.pMappedData != nullptr) memcpy(static_cast<char*>(staging.info.pMappedData) + current_vertex_offset, asset_positions.data(), vertex_buffer_size);
+						if (staging.info.pMappedData != nullptr) memcpy(static_cast<char*>(staging.info.pMappedData) + current_vertex_offset, mesh.positions.data(), vertex_buffer_size);
 						current_vertex_offset += vertex_buffer_size;
 					}
 				}
 
 				{
 					size_t current_index_offset{ 0 };
-					for (const auto& [asset_positions, asset_indices, asset_surfaces, child_meshes] : a.meshes) {
-						const size_t index_buffer_size = asset_indices.size() * sizeof(uint32_t);
+					for (const auto& mesh : a.meshes) {
+						const size_t index_buffer_size = mesh.indices.size() * sizeof(uint32_t);
 
-						if (staging.info.pMappedData != nullptr) memcpy(static_cast<char*>(staging.info.pMappedData) + total_vertex_buffer_size + current_index_offset, asset_indices.data(), index_buffer_size);
+						if (staging.info.pMappedData != nullptr) memcpy(static_cast<char*>(staging.info.pMappedData) + total_vertex_buffer_size + current_index_offset, mesh.indices.data(), index_buffer_size);
 						current_index_offset += index_buffer_size;
 					}
 				}
@@ -3955,9 +3955,9 @@ namespace {
 					return result::error;
 				}
 				std::vector<VkShaderCreateInfoEXT> shader_create_info;
-				const auto& [path, source] = a.shaders[0];
+				const auto& shader = a.shaders[0];
 
-				if (source.empty())
+				if (shader.source.empty())
 				{
 					l->error("No source in shader");
 					return result::error;
@@ -3979,8 +3979,8 @@ namespace {
 					.stage = VK_SHADER_STAGE_VERTEX_BIT,
 					.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT,
 					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-					.codeSize = source.size(),
-					.pCode = source.data(),
+					.codeSize = shader.source.size(),
+					.pCode = shader.source.data(),
 					.pName = "main",
 					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
 					.pSetLayouts = layouts.data(),
@@ -3995,8 +3995,8 @@ namespace {
 					.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
 					.nextStage = 0,
 					.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT,
-					.codeSize = source.size(),
-					.pCode = source.data(),
+					.codeSize = shader.source.size(),
+					.pCode = shader.source.data(),
 					.pName = "main",
 					.setLayoutCount = static_cast<uint32_t>(layouts.size()),
 					.pSetLayouts = layouts.data(),
@@ -4079,14 +4079,14 @@ namespace {
 			blended_graphics.clear();
 			std::vector<graphic_object_data> go_data{};
 			go_data.reserve(graphics_objects.size());
-			for (const auto& [go_index, surface_data, transform, normal_transform, object_space_transform] : graphics_objects)
+			for (const auto& go : graphics_objects)
 			{
 				go_data.push_back({
-				.transform = transform,
-				.normal_transform = normal_transform,
-				.object_space_transform = object_space_transform,
+				.transform = go.transform,
+				.normal_transform = go.normal_transform,
+				.object_space_transform = go.object_space_transform,
 					});
-				for (const auto& s : surface_data)
+				for (const auto& s : go.surface_data)
 				{
 					shadow_casting_graphics.push_back(s);
 					if (s.blended)
@@ -4375,7 +4375,7 @@ namespace {
 					std::copy_n(debug_color.data(), 4, debug_label.color);
 					vkCmdBeginDebugUtilsLabelEXT(cf.command_buffer, &debug_label);
 				}
-				size_t frame_to_update = current_frame + 1;
+				size_t frame_to_update = static_cast<size_t>(current_frame + 1);
 				if (frame_to_update >= swapchain_image_count) frame_to_update = 0;
 				{
 					std::vector<VkBufferMemoryBarrier2> buffer_barriers;
@@ -5007,18 +5007,18 @@ namespace {
 							};
 							vkCmdBindShadersEXT(cf.command_buffer, 3, unused_stages, nullptr);
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, debug_layout, 0, 1, &descriptor_set, 0, nullptr);
-							for (const auto& [obj_type, obj_transform, obj_color, flags] : rls->debug_objects) {
+							for (const auto& obj : rls->debug_objects) {
 								gpu_debug_push_constants dpc{
-									.transform = obj_transform,
-									.color = obj_color,
-									.flags = flags,
+									.transform = obj.transform,
+									.color = obj.color,
+									.flags = obj.flags,
 									.scene_buffer = cf.scene_buffer.scene_buffer_address,
 									.debug_draw_buffer = debug_draws_buffer.debug_draws_buffer_address,
 								};
 								vkCmdPushConstants(cf.command_buffer, debug_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_debug_push_constants), &dpc);
 								int vertex_count{ 2 };
 								int first_vertex{ 0 };
-								switch (obj_type)
+								switch (obj.type)
 								{
 								case debug_object_type::circle:
 									vertex_count = 100;
@@ -5510,31 +5510,31 @@ namespace {
 						{
 							if (ImGui::BeginTable("##Mob states", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
 							{
-								for (const auto& [name, position, yaw, target] : rls->mob_read.mob_states) {
+								for (const auto& mob_states : rls->mob_read.mob_states) {
 
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
 									ImGui::Text("name");
 									ImGui::TableNextColumn();
-									ImGui::Text(name.c_str());
+									ImGui::Text(mob_states.name.c_str());
 
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
 									ImGui::Text("position");
 									ImGui::TableNextColumn();
-									ImGui::Text("(%.2f,  %.2f,  %.2f)", position[0], position[1], position[2]);
+									ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.position[0], mob_states.position[1], mob_states.position[2]);
 
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
 									ImGui::Text("yaw");
 									ImGui::TableNextColumn();
-									ImGui::Text("(%.2f)", yaw);
+									ImGui::Text("(%.2f)", mob_states.yaw);
 
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
 									ImGui::Text("target");
 									ImGui::TableNextColumn();
-									ImGui::Text("(%.2f,  %.2f,  %.2f)", target[0], target[1], target[2]);
+									ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.target[0], mob_states.target[1], mob_states.target[2]);
 
 									ImGui::TableNextRow();
 									ImGui::TableNextColumn();
@@ -5548,9 +5548,9 @@ namespace {
 							if (ImGui::BeginCombo("Select mob", rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
 							{
 								for (int i = 0; i < rls->mob_read.mob_states.size(); ++i) {
-									const auto& [name, position, forward, target] = rls->mob_read.mob_states[i];
+									const auto& mob_state = rls->mob_read.mob_states[i];
 									const bool is_selected = (wls->mob_edit.edit_index == i);
-									if (ImGui::Selectable(name.c_str(), is_selected)) {
+									if (ImGui::Selectable(mob_state.name.c_str(), is_selected)) {
 										wls->mob_edit.edit_index = i;
 									}
 									if (is_selected) {

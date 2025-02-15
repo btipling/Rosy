@@ -379,3 +379,7 @@ imgui.ini
 *.gltf
 *.rsy
 *.bin
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
