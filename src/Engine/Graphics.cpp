@@ -356,9 +356,8 @@ namespace {
 	struct gpu_mesh_buffers
 	{
 		uint64_t graphics_created_bitmask{ 0 };
-		allocated_buffer index_buffer;
-		allocated_buffer vertex_buffer;
-		VkDeviceAddress vertex_buffer_address;
+		uint64_t vertex_buffer_offset{ 0 };
+		uint32_t index_offset{ 0 };
 		uint32_t num_indices{ 0 };
 	};
 
@@ -510,6 +509,9 @@ namespace {
 		VkPipelineLayout shadow_layout{};
 
 		// Level dependent data
+		allocated_buffer index_buffer;
+		allocated_buffer vertex_buffer;
+		VkDeviceAddress vertex_buffer_address;
 		std::vector< VkSampler> samplers;
 		std::vector<VkImageView> image_views;
 		std::vector<allocated_ktx_image> ktx_textures;
@@ -834,16 +836,14 @@ namespace {
 				}
 			}
 
-			for (const auto& gpu_mesh : gpu_meshes) {
-				if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_index_buffer)
-				{
-					vmaDestroyBuffer(allocator, gpu_mesh.index_buffer.buffer, gpu_mesh.index_buffer.allocation);
-				}
+			if (graphics_created_bitmask & graphics_created_bit_index_buffer)
+			{
+				vmaDestroyBuffer(allocator, index_buffer.buffer, index_buffer.allocation);
+			}
 
-				if (gpu_mesh.graphics_created_bitmask & graphics_created_bit_vertex_buffer)
-				{
-					vmaDestroyBuffer(allocator, gpu_mesh.vertex_buffer.buffer, gpu_mesh.vertex_buffer.allocation);
-				}
+			if (graphics_created_bitmask & graphics_created_bit_vertex_buffer)
+			{
+				vmaDestroyBuffer(allocator, vertex_buffer.buffer, vertex_buffer.allocation);
 			}
 
 			if (graphics_created_bitmask & graphics_created_bit_materials_buffer)
@@ -1143,7 +1143,7 @@ namespace {
 
 			const VkInstanceCreateInfo create_info{
 				.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-				.pNext = verbose_validation ? static_cast<void const *>(&validation_info) : static_cast<void const*>(&create_debug_callback_info_ext),
+				.pNext = verbose_validation ? static_cast<void const*>(&validation_info) : static_cast<void const*>(&create_debug_callback_info_ext),
 				.pApplicationInfo = &app_info,
 				.enabledLayerCount = static_cast<uint32_t>(instance_layer_properties.size()),
 				.ppEnabledLayerNames = instance_layer_properties.data(),
@@ -3562,8 +3562,7 @@ namespace {
 					materials.push_back(new_mat);
 				}
 
-				const size_t material_buffer_size = materials.size() * sizeof(gpu_material);
-				if (material_buffer_size >= sizeof(gpu_material))
+				if (const size_t material_buffer_size = materials.size() * sizeof(gpu_material); material_buffer_size >= sizeof(gpu_material))
 				{
 					{
 						VkBufferCreateInfo buffer_info{};
@@ -3709,17 +3708,36 @@ namespace {
 			}
 
 			gpu_meshes.reserve(a.meshes.size());
-			size_t mesh_index{ 0 };
-			for (const auto& [asset_positions, asset_indices, asset_surfaces, child_meshes] : a.meshes) {
-				gpu_mesh_buffers gpu_mesh{};
-
+			{
 				// *** SETTING VERTEX BUFFER *** //
-				const size_t vertex_buffer_size = asset_positions.size() * sizeof(rosy_packager::position);
+
+				size_t total_vertex_buffer_size{ 0 };
+				size_t total_index_buffer_size{ 0 };
+
+				uint32_t total_indexes{ 0 };
+				for (const auto& [asset_positions, asset_indices, asset_surfaces, child_meshes] : a.meshes) {
+					gpu_mesh_buffers gpu_mesh{};
+
+					const size_t vertex_buffer_size = asset_positions.size() * sizeof(rosy_packager::position);
+					gpu_mesh.vertex_buffer_offset = total_vertex_buffer_size;
+
+					total_vertex_buffer_size += vertex_buffer_size;
+
+					const size_t index_buffer_size = asset_indices.size() * sizeof(uint32_t);
+					gpu_mesh.index_offset = total_indexes;
+					total_indexes += static_cast<uint32_t>(asset_indices.size());
+					gpu_mesh.num_indices = static_cast<uint32_t>(asset_indices.size());
+
+					total_index_buffer_size += index_buffer_size;
+
+					gpu_meshes.push_back(gpu_mesh);
+				}
+
 				{
 					VkBufferCreateInfo buffer_info{};
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 					buffer_info.pNext = nullptr;
-					buffer_info.size = vertex_buffer_size;
+					buffer_info.size = total_vertex_buffer_size;
 					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 					VmaAllocationCreateInfo vma_alloc_info{};
@@ -3728,21 +3746,21 @@ namespace {
 
 					if (
 						const VkResult res = vmaCreateBuffer(
-							allocator, &buffer_info, &vma_alloc_info, &gpu_mesh.vertex_buffer.buffer, &gpu_mesh.vertex_buffer.allocation,
-							&gpu_mesh.vertex_buffer.info
+							allocator, &buffer_info, &vma_alloc_info, &vertex_buffer.buffer, &vertex_buffer.allocation,
+							&vertex_buffer.info
 						); res != VK_SUCCESS)
 					{
 						l->error(std::format("Error uploading vertex buffer: {}", static_cast<uint8_t>(res)));
 						return result::error;
 					}
-					gpu_mesh.graphics_created_bitmask |= graphics_created_bit_vertex_buffer;
+					graphics_created_bitmask |= graphics_created_bit_vertex_buffer;
 					{
-						const auto object_name = std::format("rosy vertex buffer {}", mesh_index);
+						const auto object_name = std::format("rosy vertex buffer {}", 0);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
 						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-						debug_name.objectHandle = reinterpret_cast<uint64_t>(gpu_mesh.vertex_buffer.buffer);
+						debug_name.objectHandle = reinterpret_cast<uint64_t>(vertex_buffer.buffer);
 						debug_name.pObjectName = object_name.c_str();
 						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
 						{
@@ -3753,21 +3771,19 @@ namespace {
 					{
 						VkBufferDeviceAddressInfo device_address_info{};
 						device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-						device_address_info.buffer = gpu_mesh.vertex_buffer.buffer;
+						device_address_info.buffer = vertex_buffer.buffer;
 
 						// *** SETTING VERTEX BUFFER ADDRESS *** //
-						gpu_mesh.vertex_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
+						vertex_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
 					}
 				}
 
 				// *** SETTING INDEX BUFFER *** //
-				const size_t index_buffer_size = asset_indices.size() * sizeof(uint32_t);
-				gpu_mesh.num_indices = static_cast<uint32_t>(asset_indices.size());
 				{
 					VkBufferCreateInfo buffer_info{};
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 					buffer_info.pNext = nullptr;
-					buffer_info.size = index_buffer_size;
+					buffer_info.size = total_index_buffer_size;
 					buffer_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 					VmaAllocationCreateInfo vma_alloc_info{};
@@ -3776,27 +3792,27 @@ namespace {
 
 					if (
 						const VkResult res = vmaCreateBuffer(
-							allocator, &buffer_info, &vma_alloc_info, &gpu_mesh.index_buffer.buffer, &gpu_mesh.index_buffer.allocation,
-							&gpu_mesh.index_buffer.info
+							allocator, &buffer_info, &vma_alloc_info, &index_buffer.buffer, &index_buffer.allocation,
+							&index_buffer.info
 						); res != VK_SUCCESS)
 					{
 						l->error(std::format("Error creating index buffer: {}", static_cast<uint8_t>(res)));
 						return result::error;
 					}
 					{
-						const auto object_name = std::format("rosy index buffer {}", mesh_index);
+						const auto object_name = std::format("rosy index buffer {}", 0);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
 						debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-						debug_name.objectHandle =  reinterpret_cast<uint64_t>(gpu_mesh.index_buffer.buffer);
+						debug_name.objectHandle =  reinterpret_cast<uint64_t>(index_buffer.buffer);
 						debug_name.pObjectName = object_name.c_str();
 						if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
 						{
 							l->error(std::format("Error creating index buffer name: {}", static_cast<uint8_t>(res)));
 							return result::error;
 						}
-						gpu_mesh.graphics_created_bitmask |= graphics_created_bit_index_buffer;
+						graphics_created_bitmask |= graphics_created_bit_index_buffer;
 					}
 				}
 
@@ -3806,7 +3822,7 @@ namespace {
 					VkBufferCreateInfo buffer_info{};
 					buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 					buffer_info.pNext = nullptr;
-					buffer_info.size = vertex_buffer_size + index_buffer_size;
+					buffer_info.size = total_vertex_buffer_size + total_index_buffer_size;
 					buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
 					VmaAllocationCreateInfo vma_alloc_info{};
@@ -3819,7 +3835,7 @@ namespace {
 						return result::error;
 					}
 					{
-						const auto object_name =  std::format("rosy vertex buffer staging {}", mesh_index);
+						const auto object_name =  std::format("rosy vertex buffer staging {}", 0);
 						VkDebugUtilsObjectNameInfoEXT debug_name{};
 						debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 						debug_name.pNext = nullptr;
@@ -3834,8 +3850,26 @@ namespace {
 					}
 				}
 
-				if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, asset_positions.data(), vertex_buffer_size);
-				if (staging.info.pMappedData != nullptr) memcpy(static_cast<char*>(staging.info.pMappedData) + vertex_buffer_size, asset_indices.data(), index_buffer_size);
+				{
+					size_t current_vertex_offset{ 0 };
+					for (const auto& [asset_positions, asset_indices, asset_surfaces, child_meshes] : a.meshes) {
+
+						const size_t vertex_buffer_size = asset_positions.size() * sizeof(rosy_packager::position);
+
+						if (staging.info.pMappedData != nullptr) memcpy(static_cast<char*>(staging.info.pMappedData) + current_vertex_offset, asset_positions.data(), vertex_buffer_size);
+						current_vertex_offset += vertex_buffer_size;
+					}
+				}
+
+				{
+					size_t current_index_offset{ 0 };
+					for (const auto& [asset_positions, asset_indices, asset_surfaces, child_meshes] : a.meshes) {
+						const size_t index_buffer_size = asset_indices.size() * sizeof(uint32_t);
+
+						if (staging.info.pMappedData != nullptr) memcpy(static_cast<char*>(staging.info.pMappedData) + total_vertex_buffer_size + current_index_offset, asset_indices.data(), index_buffer_size);
+						current_index_offset += index_buffer_size;
+					}
+				}
 
 				if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
 				{
@@ -3863,16 +3897,16 @@ namespace {
 					VkBufferCopy vertex_copy{};
 					vertex_copy.dstOffset = 0;
 					vertex_copy.srcOffset = 0;
-					vertex_copy.size = vertex_buffer_size;
+					vertex_copy.size = total_vertex_buffer_size;
 
-					vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, gpu_mesh.vertex_buffer.buffer, 1, &vertex_copy);
+					vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, vertex_buffer.buffer, 1, &vertex_copy);
 
 					VkBufferCopy index_copy{};
 					index_copy.dstOffset = 0;
-					index_copy.srcOffset = vertex_buffer_size;
-					index_copy.size = index_buffer_size;
+					index_copy.srcOffset = total_vertex_buffer_size;
+					index_copy.size = total_index_buffer_size;
 
-					vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, gpu_mesh.index_buffer.buffer, 1, &index_copy);
+					vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, index_buffer.buffer, 1, &index_copy);
 				}
 
 				if (VkResult res = vkEndCommandBuffer(immediate_command_buffer); res != VK_SUCCESS)
@@ -3909,8 +3943,6 @@ namespace {
 					return result::error;
 				}
 				vmaDestroyBuffer(allocator, staging.buffer, staging.allocation);
-				gpu_meshes.push_back(gpu_mesh);
-				mesh_index += 1;
 			}
 
 			{
@@ -4538,23 +4570,18 @@ namespace {
 					vkCmdBindShadersEXT(cf.command_buffer, 4, unused_stages, nullptr);
 					vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadow_layout, 0, 1, &descriptor_set, 0, nullptr);
 					{
-						size_t current_mesh_index = UINT64_MAX;
+						vkCmdBindIndexBuffer(cf.command_buffer, index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 						for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : shadow_casting_graphics)
 						{
 							auto& gpu_mesh = gpu_meshes[mesh_index];
-							if (mesh_index != current_mesh_index)
-							{
-								vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-								current_mesh_index = mesh_index;
-							}
 							gpu_shadow_push_constants pc{
 								.scene_buffer = cf.scene_buffer.scene_buffer_address,
-								.vertex_buffer = gpu_mesh.vertex_buffer_address,
+								.vertex_buffer = vertex_buffer_address + gpu_mesh.vertex_buffer_offset,
 								.go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
 								.pass_number = 0,
 							};
 							vkCmdPushConstants(cf.command_buffer, shadow_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_shadow_push_constants), &pc);
-							vkCmdDrawIndexed(cf.command_buffer, index_count, 1, start_index, 0, 0);
+							vkCmdDrawIndexed(cf.command_buffer, index_count, 1, gpu_mesh.index_offset + start_index, 0, 0);
 							new_stats.draw_call_count += 1;
 							new_stats.triangle_count += index_count / 3;
 						}
@@ -4897,23 +4924,23 @@ namespace {
 							vkCmdBindDescriptorSets(cf.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, scene_layout, 0, 1, &descriptor_set, 0, nullptr);
 							{
 								vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
+								vkCmdBindIndexBuffer(cf.command_buffer, index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 								size_t current_mesh_index = UINT64_MAX;
 								for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : opaque_graphics)
 								{
 									auto& gpu_mesh = gpu_meshes[mesh_index];
 									if (mesh_index != current_mesh_index)
 									{
-										vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 										current_mesh_index = mesh_index;
 									}
 									gpu_draw_push_constants pc{
 										.scene_buffer = cf.scene_buffer.scene_buffer_address,
-										.vertex_buffer = gpu_mesh.vertex_buffer_address,
+										.vertex_buffer = vertex_buffer_address + gpu_mesh.vertex_buffer_offset,
 										.go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
 										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
 									};
 									vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
-									vkCmdDrawIndexed(cf.command_buffer, index_count, 1, start_index, 0, 0);
+									vkCmdDrawIndexed(cf.command_buffer, index_count, 1, gpu_mesh.index_offset + start_index, 0, 0);
 									new_stats.draw_call_count += 1;
 									new_stats.triangle_count += index_count / 3;
 								}
@@ -4936,22 +4963,22 @@ namespace {
 									vkCmdSetDepthWriteEnableEXT(cf.command_buffer, VK_FALSE);
 								}
 								current_mesh_index = UINT64_MAX;
+								vkCmdBindIndexBuffer(cf.command_buffer, index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 								for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : blended_graphics)
 								{
 									auto& gpu_mesh = gpu_meshes[mesh_index];
 									if (mesh_index != current_mesh_index)
 									{
-										vkCmdBindIndexBuffer(cf.command_buffer, gpu_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 										current_mesh_index = mesh_index;
 									}
 									gpu_draw_push_constants pc{
 										.scene_buffer = cf.scene_buffer.scene_buffer_address,
-										.vertex_buffer = gpu_mesh.vertex_buffer_address,
+										.vertex_buffer =vertex_buffer_address + gpu_mesh.vertex_buffer_offset,
 										.go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
 										.material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
 									};
 									vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
-									vkCmdDrawIndexed(cf.command_buffer, index_count, 1, start_index, 0, 0);
+									vkCmdDrawIndexed(cf.command_buffer, index_count, 1, gpu_mesh.index_offset + start_index, 0, 0);
 									new_stats.draw_call_count += 1;
 									new_stats.triangle_count += index_count / 3;
 								}
