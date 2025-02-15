@@ -21,7 +21,6 @@
 
 using namespace rosy;
 
-constexpr bool verbose_validation{ false };
 
 namespace tracy {
 	// ReSharper disable once CppInconsistentNaming
@@ -139,7 +138,6 @@ namespace {
 	constexpr  uint64_t graphics_created_bit_msaa_image_view	   = { 1ULL << 43 };
 
 	constexpr VkSampleCountFlagBits max_msaa_sample_size = VK_SAMPLE_COUNT_4_BIT;
-	constexpr size_t min_buffer_size = 1'048'576;
 
 	const char* default_instance_layers[] = {
 		//"VK_LAYER_LUNARG_api_dump",
@@ -150,6 +148,12 @@ namespace {
 
 	constexpr double pi{ 3.1415926535897932384626433832795028841971693993751058209749445923078164062 };  // NOLINT(modernize-use-std-numbers)
 	constexpr size_t debug_draw_circle_num_segments{ 100 };
+
+
+	bool verbose_validation{ false };
+#ifdef VVL_DEBUG
+	bool verbose_validation{ true };
+#endif
 
 	const char* default_instance_extensions[] = {
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
@@ -355,7 +359,6 @@ namespace {
 
 	struct gpu_mesh_buffers
 	{
-		uint64_t graphics_created_bitmask{ 0 };
 		uint64_t vertex_buffer_offset{ 0 };
 		uint32_t index_offset{ 0 };
 		uint32_t num_indices{ 0 };

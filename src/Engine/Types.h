@@ -192,7 +192,7 @@ namespace rosy
 	{
 		float target_fps{ 0.f };
 		bool debug_enabled{ false };
-		bool ui_enabled{ true };
+		bool ui_enabled{ false };
 		bool cursor_enabled{ true };
 
 		read_camera cam{};
