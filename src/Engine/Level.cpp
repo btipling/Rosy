@@ -611,7 +611,7 @@ namespace
 				glm::mat4 m;
 				std::array<float, 4> color;
 				if (pick_debugging->space & debug_object_flag_screen_space) {
-					// Draw a green circle to designate we're in screen spaCe.
+					// Draw a green circle to indicate screen space coordinate system is being used.
 					color = { 0.f, 1.f, 0.f, 1.f };
 					m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
 				}
