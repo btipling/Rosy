@@ -492,7 +492,7 @@ namespace
 				const c_cursor_position c_pos{ .screen_x = mbe.x, .screen_y = mbe.y };
 				ecs_set_id(world, level_entity, ecs_id(c_cursor_position), sizeof(c_cursor_position), &c_pos);
 			}
-			if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+			if (rosy_reference.node != nullptr && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
 				switch (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button)
 				{
 				case rosy_attention_btn:
@@ -518,7 +518,7 @@ namespace
 					break;
 				}
 			}
-			if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+			if (rosy_reference.node != nullptr && event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
 				if (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button == rosy_attention_btn) ecs_remove(world, rosy_entity, t_rosy_action);
 			}
 			return result::ok;
@@ -724,7 +724,6 @@ namespace
 	void init_level_state(ecs_iter_t* it)
 	{
 		const auto ctx = static_cast<level_state*>(it->param);
-
 		{
 			// Write active camera values
 			if (std::abs(ctx->game_cam->yaw - ctx->wls->game_camera_yaw) >= 0.2) {
@@ -809,7 +808,7 @@ namespace
 			}
 			ctx->rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space ? pick_debug_read_state::picking_space::screen : pick_debug_read_state::picking_space::view;
 		}
-		else if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(t_rosy_action)))
+		else if (ctx->rosy_reference.node != nullptr && ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(t_rosy_action)))
 		{
 			if (ctx->rls->pick_debugging.picking.has_value())
 			{
@@ -950,6 +949,7 @@ result level::init(log* new_log, const config new_cfg)
 			wls.fragment_config.tangent_space_enabled = true;
 			wls.fragment_config.shadows_enabled = true;
 			wls.target_fps = initial_fps_target;
+			rls.ui_enabled = true;
 		}
 		ls = new(std::nothrow) level_state;
 		if (ls == nullptr)
