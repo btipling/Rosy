@@ -70,7 +70,9 @@ result engine::init()
 				return result::error;
 			}
 		}
-		a.shaders.push_back({ .path = "../shaders/out/basic.spv" });
+		rosy_packager::shader new_shader{};
+		new_shader.path = "../shaders/out/basic.spv";
+		a.shaders.push_back(new_shader);
 		{
 			if (const auto res = a.read_shaders(l); res != result::ok)
 			{

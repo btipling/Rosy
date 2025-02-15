@@ -1,5 +1,7 @@
 workspace "Rosy"
    configurations { "Debug", "Release" }
+   warnings "Extra"
+   fatalwarnings "All"
 
 vk_sdk = os.getenv("VULKAN_SDK")
 
@@ -9,7 +11,7 @@ project "Engine"
    cppdialect "C++20"
    targetdir "bin/%{cfg.buildcfg}"
    architecture("x86_64")
-   toolset("clang")
+   -- toolset("clang")
    debugdir "./Engine/"
 
    links { "SDL3" }
@@ -50,7 +52,7 @@ project "Packager"
    cppdialect "C++20"
    targetdir "bin/%{cfg.buildcfg}"
    architecture("x86_64")
-   toolset("clang")
+   -- toolset("clang")
    debugdir "./Packager/"
 
    links { "fastgltf" }

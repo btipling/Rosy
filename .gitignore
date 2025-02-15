@@ -383,3 +383,4 @@ imgui.ini
 *.vcxproj.filters
 *.vcxproj.user
 *.sln
+.vscode
