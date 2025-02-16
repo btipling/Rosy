@@ -1,6 +1,7 @@
 #include "DebugUI.h"
 
 #include <numbers>
+#include <format>
 
 #include "imgui.h"
 
@@ -346,6 +347,20 @@ void debug_ui::assets_debug_ui([[maybe_unused]] read_level_state const* rls)
 {
     if (ImGui::BeginTabItem("Assets"))
     {
+        if (ImGui::BeginListBox("listbox"))
+        {
+            size_t index{ 0 };
+            for (const asset_description& a : rls->editor_state.assets)
+            {
+                if (ImGui::Selectable(std::format("##{}", a.id).c_str(), selected_asset == index))
+                {
+                    selected_asset = index;
+                }
+                ImGui::Text("%s", a.name.c_str());
+                index += 1;
+            }
+            ImGui::EndListBox();
+        }
         ImGui::EndTabItem();
     }
 }

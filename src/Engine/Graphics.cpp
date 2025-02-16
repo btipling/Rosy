@@ -5742,7 +5742,7 @@ namespace
                     du->graphics_debug_ui(eng_stats, stats, gd, rls);
                     du->assets_debug_ui(rls);
                 }
-                ImGui::EndTabBar();
+                ImGui::EndTabBar(); 
             }
             ImGui::End();
             {
