@@ -527,9 +527,9 @@ namespace
         VkPipelineLayout shadow_layout{};
 
         // Level dependent data
-        allocated_buffer index_buffer;
-        allocated_buffer vertex_buffer;
-        VkDeviceAddress vertex_buffer_address;
+        allocated_buffer index_buffer{};
+        allocated_buffer vertex_buffer{};
+        VkDeviceAddress vertex_buffer_address{};
         std::vector<VkSampler> samplers;
         std::vector<VkImageView> image_views;
         std::vector<allocated_ktx_image> ktx_textures;
