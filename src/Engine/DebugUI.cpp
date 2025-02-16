@@ -356,6 +356,7 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                 if (ImGui::Selectable(std::format("##{}", a.id).c_str(), selected_asset == index))
                 {
                     selected_asset = index;
+                    selected_model = 0;
                 }
                 ImGui::SameLine();
                 ImGui::Text("%s", a.name.c_str());
@@ -388,6 +389,22 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                 ImGui::Text("%zu", description.models.size());
 
                 ImGui::EndTable();
+
+                if (ImGui::BeginListBox("##ModelsList"))
+                {
+                    size_t index{ 0 };
+                    for (const model_description& m : description.models)
+                    {
+                        if (ImGui::Selectable(std::format("##{}", m.id).c_str(), selected_model == index))
+                        {
+                            selected_model = index;
+                        }
+                        ImGui::SameLine();
+                        ImGui::Text("%s", m.name.c_str());
+                        index += 1;
+                    }
+                    ImGui::EndListBox();
+                }
             }
         }
         ImGui::EndTabItem();
