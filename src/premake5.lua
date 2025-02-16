@@ -13,6 +13,7 @@ project "Engine"
    architecture("x86_64")
    -- toolset("clang")
    debugdir "./Engine/"
+   flags { "MultiProcessorCompile" }
 
    links { "SDL3" }
    links { "flecs" }
@@ -55,6 +56,7 @@ project "Packager"
    architecture("x86_64")
    -- toolset("clang")
    debugdir "./Packager/"
+   flags { "MultiProcessorCompile" }
 
    links { "fastgltf" }
 
