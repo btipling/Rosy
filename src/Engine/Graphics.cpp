@@ -5709,8 +5709,12 @@ namespace
 
         result ui(const engine_stats& eng_stats)
         {
+            if (!rls->ui_enabled)
+            {
+                wls->enable_edit = false;
+                return result::ok;
+            }
             //ImGui::ShowDemoWindow();
-
             {
                 // Set dual read/write states
                 wls->game_camera_yaw = rls->game_camera_yaw;
@@ -5724,52 +5728,106 @@ namespace
                 if (constexpr ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None; ImGui::BeginTabBar(
                     "ViewEdit", tab_bar_flags))
                 {
-                    if (ImGui::BeginTabItem("View"))
-                    {
-                        wls->enable_edit = false;
-                        if (ImGui::BeginTable("Scene Data", 2,
-                                              ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                        {
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();
-                            ImGui::Text("Camera position");
-                            ImGui::TableNextColumn();
-                            ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0],
-                                        scene_data.camera_position[1], scene_data.camera_position[2]);
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();
-                            ImGui::Text("Camera Orientation");
-                            ImGui::TableNextColumn();
-                            ImGui::Text("Pitch: %.2f Yaw: %.2f)", rls->cam.pitch, rls->cam.yaw);
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();
-                            ImGui::Text("Light direction");
-                            ImGui::TableNextColumn();
-                            ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1],
-                                        scene_data.sunlight[2]);
-                            ImGui::EndTable();
-                        }
-                        ImGui::EndTabItem();
-                    }
-                    if (ImGui::BeginTabItem("Edit"))
+                    if (ImGui::BeginTabItem("Graphics"))
                     {
                         wls->enable_edit = true;
-                        if (ImGui::BeginTable("Scene Data", 2,
-                                              ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+
+                        if (ImGui::CollapsingHeader("Scene Data"))
                         {
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();
-                            ImGui::Text("Camera position");
-                            ImGui::TableNextColumn();
-                            ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0],
-                                        scene_data.camera_position[1], scene_data.camera_position[2]);
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();
-                            ImGui::Text("Light direction");
-                            ImGui::TableNextColumn();
-                            ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1],
-                                        scene_data.sunlight[2]);
-                            ImGui::EndTable();
+                            if (ImGui::BeginTable("##SceneDataTable", 2,
+                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                            {
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("Camera position");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0],
+                                            scene_data.camera_position[1], scene_data.camera_position[2]);
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("Camera Orientation");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("Pitch: %.2f Yaw: %.2f)", rls->cam.pitch, rls->cam.yaw);
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("Light direction");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1],
+                                            scene_data.sunlight[2]);
+                                ImGui::EndTable();
+                            }
+                        }
+                        if (ImGui::CollapsingHeader("Performance"))
+                        {
+                            if (ImGui::BeginTable("##PerformanceOptions", 1,
+                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                            {
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::SliderFloat("Target fps", &wls->target_fps, 30.f, 960.f, "%.1f", 0);
+
+
+                                ImGui::EndTable();
+                            }
+                            if (ImGui::BeginTable("##PerformanceData", 2,
+                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                            {
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("a_fps");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%.0f rad/s", eng_stats.a_fps);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("d_fps");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%.0f °/s", eng_stats.d_fps);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("r_fps");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%.0f", eng_stats.r_fps);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("frame time");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%.3fms", eng_stats.frame_time);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("update time");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%.3f ms", eng_stats.level_update_time);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("draw time");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%.3f ms", stats.draw_time);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("triangles");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%i", stats.triangle_count);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("lines");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%i", stats.line_count);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("draws ");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%i", stats.draw_call_count);
+
+                                ImGui::EndTable();
+                            }
                         }
                         if (ImGui::CollapsingHeader("Lighting"))
                         {
@@ -5962,19 +6020,6 @@ namespace
                                     true;
                             if (ImGui::Button("Update", button_dims)) wls->mob_edit.submitted = true;
                         }
-                        if (ImGui::CollapsingHeader("Performance"))
-                        {
-                            if (ImGui::BeginTable("##PerformanceOptions", 1,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::SliderFloat("Target fps", &wls->target_fps, 30.f, 960.f, "%.1f", 0);
-
-
-                                ImGui::EndTable();
-                            }
-                        }
                         if (ImGui::CollapsingHeader("Picking"))
                         {
                             ImVec4 color;
@@ -6008,67 +6053,11 @@ namespace
                         }
                         ImGui::EndTabItem();
                     }
+                    if (ImGui::BeginTabItem("Assets"))
+                    {
+                        ImGui::EndTabItem();
+                    }
                     ImGui::EndTabBar();
-                }
-
-                ImGui::NewLine();
-                if (ImGui::BeginTable("Performance", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                {
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("a_fps");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%.0f rad/s", eng_stats.a_fps);
-
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("d_fps");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%.0f °/s", eng_stats.d_fps);
-
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("r_fps");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%.0f", eng_stats.r_fps);
-
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("frame time");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%.3fms", eng_stats.frame_time);
-
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("update time");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%.3f ms", eng_stats.level_update_time);
-
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("draw time");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%.3f ms", stats.draw_time);
-
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("triangles");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", stats.triangle_count);
-
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("lines");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", stats.line_count);
-
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("draws ");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%i", stats.draw_call_count);
-
-                    ImGui::EndTable();
                 }
             }
             ImGui::End();

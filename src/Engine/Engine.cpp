@@ -219,7 +219,7 @@ result engine::run()
         if (!should_run) break;
         SDL_SetWindowRelativeMouseMode(window, !lvl->rls.cursor_enabled);
         if (!lvl->rls.cursor_enabled) ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-        if (const auto res = run_frame(); res != result::ok)
+        if (const auto res = this->run_frame(); res != result::ok)
         {
             l->error(std::format("frame failed: {}", static_cast<uint8_t>(res)));
             return res;
