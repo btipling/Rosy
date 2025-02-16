@@ -348,7 +348,7 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
 {
     if (ImGui::BeginTabItem("Assets"))
     {
-        if (ImGui::BeginListBox("listbox"))
+        if (ImGui::BeginListBox("##AssetsList"))
         {
             size_t index{0};
             for (const asset_description& a : rls->editor_state.assets)
@@ -362,6 +362,32 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                 index += 1;
             }
             ImGui::EndListBox();
+        }
+        if (rls->editor_state.assets.size() > selected_asset) {
+            if (ImGui::BeginTable("##AssetDetails", 2,
+                ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+            {
+                const asset_description& description = rls->editor_state.assets[selected_asset];
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("id");
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", description.id.c_str());
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("name");
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", description.name.c_str());
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("model count");
+                ImGui::TableNextColumn();
+                ImGui::Text("%zu", description.models.size());
+
+                ImGui::EndTable();
+            }
         }
         ImGui::EndTabItem();
     }
