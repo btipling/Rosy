@@ -1,4 +1,5 @@
 #include "Graphics.h"
+#include "DebugUI.h"
 #include <format>
 #include <numbers>
 #include <vector>
@@ -424,14 +425,6 @@ namespace
         [[maybe_unused]] std::array<float, 16> object_space_transform;
     };
 
-    struct graphics_stats
-    {
-        int triangle_count{0};
-        int line_count{0};
-        int draw_call_count{0};
-        float draw_time{0.f};
-    };
-
     struct frame_data
     {
         uint64_t frame_graphics_created_bitmask{0};
@@ -449,6 +442,7 @@ namespace
     struct graphics_device
     {
         const rosy::log* l{nullptr};
+        debug_ui* du{nullptr};
         config cfg{};
         uint64_t graphics_created_bitmask{0};
         bool enable_validation_layers{true};
@@ -543,7 +537,6 @@ namespace
         std::vector<VkShaderEXT> scene_shaders;
         VkPipelineLayout scene_layout{};
 
-        write_level_state* wls{nullptr};
         const read_level_state* rls{nullptr};
 
         gpu_scene_data scene_data{};
@@ -551,6 +544,12 @@ namespace
         result init(const config new_cfg)
         {
             cfg = new_cfg;
+            if (du = new(std::nothrow) debug_ui; du == nullptr)
+            {
+                l->error("error allocating debug ui");
+                return result::allocation_failure;
+            }
+
             VkResult vk_res = volkInitialize();
             if (vk_res != VK_SUCCESS)
             {
@@ -1051,6 +1050,11 @@ namespace
             if (graphics_created_bitmask & graphics_created_bit_instance)
             {
                 vkDestroyInstance(instance, nullptr);
+            }
+            if (du != nullptr)
+            {
+                delete du;
+                du = nullptr;
             }
         }
 
@@ -4577,6 +4581,11 @@ namespace
             return result::ok;
         }
 
+        void set_wls(write_level_state* wls)
+        {
+            du->wls = wls;
+        }
+
         result render()
         {
             const auto start = std::chrono::system_clock::now();
@@ -5711,16 +5720,14 @@ namespace
         {
             if (!rls->ui_enabled)
             {
-                wls->enable_edit = false;
+                du->wls->enable_edit = false;
                 return result::ok;
             }
             //ImGui::ShowDemoWindow();
             {
                 // Set dual read/write states
-                wls->game_camera_yaw = rls->game_camera_yaw;
+                du->wls->game_camera_yaw = rls->game_camera_yaw;
             }
-
-            constexpr auto button_dims = ImVec2(150.f, 40.f);
             ImGuiWindowFlags window_flags{0};
             window_flags |= ImGuiWindowFlags_NoCollapse;
             if (ImGui::Begin("Game State", nullptr, window_flags))
@@ -5728,345 +5735,22 @@ namespace
                 if (constexpr ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None; ImGui::BeginTabBar(
                     "ViewEdit", tab_bar_flags))
                 {
-                    if (ImGui::BeginTabItem("Graphics"))
-                    {
-                        wls->enable_edit = true;
-
-                        if (ImGui::CollapsingHeader("Scene Data"))
-                        {
-                            if (ImGui::BeginTable("##SceneDataTable", 2,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("Camera position");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.camera_position[0],
-                                            scene_data.camera_position[1], scene_data.camera_position[2]);
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("Camera Orientation");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("Pitch: %.2f Yaw: %.2f)", rls->cam.pitch, rls->cam.yaw);
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("Light direction");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("(%.2f,  %.2f,  %.2f)", scene_data.sunlight[0], scene_data.sunlight[1],
-                                            scene_data.sunlight[2]);
-                                ImGui::EndTable();
-                            }
-                        }
-                        if (ImGui::CollapsingHeader("Performance"))
-                        {
-                            if (ImGui::BeginTable("##PerformanceOptions", 1,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::SliderFloat("Target fps", &wls->target_fps, 30.f, 960.f, "%.1f", 0);
-
-
-                                ImGui::EndTable();
-                            }
-                            if (ImGui::BeginTable("##PerformanceData", 2,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("a_fps");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%.0f rad/s", eng_stats.a_fps);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("d_fps");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%.0f °/s", eng_stats.d_fps);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("r_fps");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%.0f", eng_stats.r_fps);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("frame time");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%.3fms", eng_stats.frame_time);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("update time");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%.3f ms", eng_stats.level_update_time);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("draw time");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%.3f ms", stats.draw_time);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("triangles");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%i", stats.triangle_count);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("lines");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%i", stats.line_count);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Text("draws ");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%i", stats.draw_call_count);
-
-                                ImGui::EndTable();
-                            }
-                        }
-                        if (ImGui::CollapsingHeader("Lighting"))
-                        {
-                            if (ImGui::BeginTable("Edit Scene Data", 1,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::SliderFloat("Spherical distance", &wls->light_debug.sun_distance, 0.f, 25.f);
-                                ImGui::SliderFloat("Spherical pitch", &wls->light_debug.sun_pitch, 0.f,
-                                                   4 * static_cast<float>(pi));
-                                ImGui::SliderFloat("Spherical yaw", &wls->light_debug.sun_yaw, 0.f,
-                                                   4 * static_cast<float>(pi));
-                                ImGui::SliderFloat("Light depth", &wls->light_debug.orthographic_depth, 0.f, 500.f);
-                                ImGui::SliderFloat("Light cascade level", &wls->light_debug.cascade_level, 0.f, 50.f);
-                                ImGui::SliderFloat("Depth bias constant", &wls->light.depth_bias_constant, -500.f,
-                                                   500.f);
-                                ImGui::SliderFloat("Depth bias clamp", &wls->light.depth_bias_clamp, -500.f, 500.f);
-                                ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor,
-                                                   -50.f, 50.f);
-                                ImGui::EndTable();
-                            }
-                            if (ImGui::BeginTable("##ToggleOptions", 2,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Enable light camera", &wls->light_debug.enable_light_cam);
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Enable light perspective", &wls->light_debug.enable_light_perspective);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Enable sun debug", &wls->light_debug.enable_sun_debug);
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Enable depth bias", &wls->light.depth_bias_enabled);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Flip light x", &wls->light.flip_light_x);
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Flip light y", &wls->light.flip_light_y);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Flip light z", &wls->light.flip_light_z);
-                                ImGui::TableNextColumn();
-                                ImGui::Text("");
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Flip tangent x", &wls->light.flip_tangent_x);
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Flip tangent y", &wls->light.flip_tangent_y);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Flip tangent z", &wls->light.flip_light_z);
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
-
-                                ImGui::EndTable();
-                            }
-                        }
-                        if (ImGui::CollapsingHeader("Shadow map"))
-                        {
-                            const ImVec4 border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
-                            constexpr auto uv_min = ImVec2(0.0f, 0.0f);
-                            constexpr auto uv_max = ImVec2(1.0f, 1.0f);
-                            constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-                            const ImVec2 content_area = ImGui::GetContentRegionAvail();
-                            ImGui::Image(reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near), content_area,
-                                         uv_min, uv_max, tint_col, border_col);
-                        }
-                        if (ImGui::CollapsingHeader("Draw config"))
-                        {
-                            if (ImGui::BeginTable("##ToggleOptions", 2,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Enable wireframe", &wls->draw_config.wire_enabled);
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Thick lines", &wls->draw_config.thick_wire_lines);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Toggle winding order",
-                                                &wls->draw_config.reverse_winding_order_enabled);
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Enable cull", &wls->draw_config.cull_enabled);
-
-                                ImGui::EndTable();
-                            }
-                        }
-                        if (ImGui::CollapsingHeader("Fragment Config"))
-                        {
-                            ImGui::RadioButton("color", &wls->fragment_config.output, 0);
-                            ImGui::SameLine();
-                            ImGui::RadioButton("normal", &wls->fragment_config.output, 1);
-                            ImGui::SameLine();
-                            ImGui::RadioButton("tangent", &wls->fragment_config.output, 2);
-                            ImGui::SameLine();
-                            ImGui::RadioButton("light", &wls->fragment_config.output, 3);
-                            ImGui::SameLine();
-                            ImGui::RadioButton("view", &wls->fragment_config.output, 4);
-                            if (ImGui::BeginTable("##ToggleFragmentOptions", 2,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Enable light", &wls->fragment_config.light_enabled);
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Enable tangent space", &wls->fragment_config.tangent_space_enabled);
-
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::Checkbox("Enable Shadows", &wls->fragment_config.shadows_enabled);
-                                ImGui::TableNextColumn();
-                                ImGui::Text("");
-
-                                ImGui::EndTable();
-                            }
-                        }
-                        if (ImGui::CollapsingHeader("Mobs"))
-                        {
-                            if (ImGui::BeginTable("##Mob states", 2,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                for (const auto& mob_states : rls->mob_read.mob_states)
-                                {
-                                    ImGui::TableNextRow();
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text("name");
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text(mob_states.name.c_str());
-
-                                    ImGui::TableNextRow();
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text("position");
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.position[0], mob_states.position[1],
-                                                mob_states.position[2]);
-
-                                    ImGui::TableNextRow();
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text("yaw");
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text("(%.2f)", mob_states.yaw);
-
-                                    ImGui::TableNextRow();
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text("target");
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.target[0], mob_states.target[1],
-                                                mob_states.target[2]);
-
-                                    ImGui::TableNextRow();
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text("");
-                                    ImGui::TableNextColumn();
-                                    ImGui::Text("");
-                                }
-                                ImGui::EndTable();
-                            }
-
-                            if (ImGui::BeginCombo("Select mob",
-                                                  rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
-                            {
-                                for (int i = 0; i < rls->mob_read.mob_states.size(); ++i)
-                                {
-                                    const auto& mob_state = rls->mob_read.mob_states[i];
-                                    const bool is_selected = (wls->mob_edit.edit_index == i);
-                                    if (ImGui::Selectable(mob_state.name.c_str(), is_selected))
-                                    {
-                                        wls->mob_edit.edit_index = i;
-                                    }
-                                    if (is_selected)
-                                    {
-                                        ImGui::SetItemDefaultFocus();
-                                    }
-                                }
-                                ImGui::EndCombo();
-                            }
-                            if (!wls->mob_edit.updated)
-                                wls->mob_edit.position = rls->mob_read.mob_states[wls->mob_edit.
-                                    edit_index].position;
-                            if (ImGui::InputFloat3("position", wls->mob_edit.position.data()))
-                                wls->mob_edit.updated =
-                                    true;
-                            if (ImGui::Button("Update", button_dims)) wls->mob_edit.submitted = true;
-                        }
-                        if (ImGui::CollapsingHeader("Picking"))
-                        {
-                            ImVec4 color;
-                            switch (rls->pick_debugging.space)
-                            {
-                            case pick_debug_read_state::picking_space::screen:
-                                color = ImVec4(0.f, 1.f, 0.f, 1.f);
-                                ImGui::TextColored(color, "Pick debugging in screen space");
-                                break;
-                            case pick_debug_read_state::picking_space::view:
-                                color = ImVec4(1.f, 1.f, 0.f, 1.f);
-                                ImGui::TextColored(color, "Pick debugging in view space");
-                                break;
-                            default:
-                                ImGui::Text("Pick debugging disabled");
-                                break;
-                            }
-                        }
-                        if (ImGui::CollapsingHeader("Game Camera"))
-                        {
-                            if (ImGui::BeginTable("##GameCameraOptions", 1,
-                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
-                            {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::SliderFloat("Yaw", &wls->game_camera_yaw, 0, static_cast<float>(pi) * 2.f,
-                                                   "%.3f", 0);
-
-                                ImGui::EndTable();
-                            }
-                        }
-                        ImGui::EndTabItem();
-                    }
-                    if (ImGui::BeginTabItem("Assets"))
-                    {
-                        ImGui::EndTabItem();
-                    }
-                    ImGui::EndTabBar();
+                    graphics_data gd{};
+                    gd.camera_position = scene_data.camera_position;
+                    gd.sunlight = scene_data.sunlight;
+                    gd.shadow_mage_img_id = reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near);
+                    du->graphics_debug_ui(eng_stats, stats, gd, rls);
+                    du->assets_debug_ui(rls);
                 }
+                ImGui::EndTabBar();
             }
             ImGui::End();
             {
                 // Update necessary states
                 if (rls->mob_read.clear_edits)
                 {
-                    wls->mob_edit.submitted = false;
-                    wls->mob_edit.updated = false;
+                    du->wls->mob_edit.submitted = false;
+                    du->wls->mob_edit.updated = false;
                 }
             }
 
@@ -6139,7 +5823,7 @@ result graphics::update(const read_level_state& rls, write_level_state* wls) con
     {
         const auto a = static_cast<const rosy_packager::asset*>(rls.editor_state.new_asset);
         l->debug(std::format("Setting asset with {} graphic objects.", rls.go_update.graphic_objects.size()));
-        gd->wls = wls; // Set writable state, this is a pointer to level data that the UI can write to.
+        gd->set_wls(wls); // Set writable state, this is a pointer to level data that the UI can write to.
         if (const auto res = gd->set_asset(*a); res != result::ok)
         {
             return res;
