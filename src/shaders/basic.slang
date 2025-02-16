@@ -178,7 +178,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
         }
 
-        outFragColor = outFragColor * float4(ambientLight + shadowFactor * sunLight, 1.0);
+        outFragColor = max(outFragColor * float4(ambientLight, 1.f), outFragColor * float4(sunLight * shadowFactor, 1.0));
     }
 
     Fragment output;

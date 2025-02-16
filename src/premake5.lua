@@ -37,6 +37,7 @@ project "Engine"
    files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
    files { "libs/Volk.cpp" }
    files { "libs/VMA.cpp" }
+   files { "shaders/*.slang", "shaders/*.ps1" }
 
    filter "configurations:Debug"
       defines { "DEBUG" }

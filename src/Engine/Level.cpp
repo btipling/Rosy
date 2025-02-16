@@ -934,8 +934,8 @@ result level::init(log* new_log, const config new_cfg)
 		// Init level state
 		{
 			wls.light_debug.sun_distance = 23.776f;
-			wls.light_debug.sun_pitch = 5.431f;
-			wls.light_debug.sun_yaw = 5.349f;
+			wls.light_debug.sun_pitch = 5.538f;
+			wls.light_debug.sun_yaw = 6.414f;
 			wls.light_debug.orthographic_depth = 76.838f;
 			wls.light_debug.cascade_level = 36.f;
 			wls.light.depth_bias_constant = -21.882f;
