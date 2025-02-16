@@ -458,7 +458,7 @@ namespace
             return {};
         }
 
-        [[nodiscard]] result setup_frame()
+        [[nodiscard]] result setup_frame() const
         {
             rls->go_update.graphic_objects.clear();
             if (rls->target_fps != wls->target_fps)

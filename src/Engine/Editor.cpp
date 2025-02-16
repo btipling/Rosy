@@ -8,7 +8,7 @@ namespace
     struct editor_manager
     {
         rosy::log* l{nullptr};
-        std::vector<rosy_packager::asset> assets;
+        std::vector<asset_description> assets;
 
         result init(rosy::log* new_log)
         {
@@ -19,6 +19,12 @@ namespace
         void deinit()
         {
             l = nullptr;
+            for (asset_description& desc : assets)
+            {
+                const auto a = static_cast<const rosy_packager::asset*>(desc.asset);
+                delete a;
+                desc.asset = nullptr;
+            }
         }
 
         result process([[maybe_unused]] level_editor_commands commands, level_editor_state* state)
@@ -30,13 +36,18 @@ namespace
 
         result load_asset([[maybe_unused]] level_editor_state* state)
         {
-            rosy_packager::asset a{};
+            rosy_packager::asset* a;
+            if (a = new(std::nothrow) rosy_packager::asset; a == nullptr)
+            {
+                l->error("asset allocation failed");
+                return result::allocation_failure;
+            }
             {
                 //a.asset_path = "..\\assets\\sponza\\sponza.rsy";
-                a.asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
+                a->asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
                 //a.asset_path = "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.rsy";
                 {
-                    if (const auto res = a.read(l); res != result::ok)
+                    if (const auto res = a->read(l); res != result::ok)
                     {
                         l->error("Failed to read the assets!");
                         return result::error;
@@ -44,17 +55,19 @@ namespace
                 }
                 rosy_packager::shader new_shader{};
                 new_shader.path = "../shaders/out/basic.spv";
-                a.shaders.push_back(new_shader);
+                a->shaders.push_back(new_shader);
                 {
-                    if (const auto res = a.read_shaders(l); res != result::ok)
+                    if (const auto res = a->read_shaders(l); res != result::ok)
                     {
                         l->error("Failed to read shaders!");
                         return result::error;
                     }
                 }
             }
-            assets.push_back(a);
-            state->new_asset = static_cast<const void*>(&assets[assets.size() - 1]);
+            asset_description desc{};
+            desc.asset = static_cast<const void*>(a);
+            assets.push_back(desc);
+            state->new_asset = desc.asset;
             return result::ok;
         }
     };

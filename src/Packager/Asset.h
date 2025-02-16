@@ -1,4 +1,5 @@
 #pragma once
+#include "../Engine/Types.h"
 #include "../Engine/Telemetry.h"
 #include <array>
 #include <string>

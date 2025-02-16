@@ -26,15 +26,6 @@ namespace rosy
         overflow,
     };
 
-    enum class log_level : uint8_t
-    {
-        debug,
-        info,
-        warn,
-        error,
-        disabled,
-    };
-
     struct config
     {
         int max_window_width = 0;
@@ -196,9 +187,26 @@ namespace rosy
     {
     };
 
+    struct model_description
+    {
+        std::string id{};
+        std::string name{};
+        std::array<float, 3> location{};
+        float yaw{0.f};
+    };
+
+    struct asset_description
+    {
+        std::string id{};
+        std::string name{};
+        std::vector<model_description> models;
+        const void* asset{ nullptr };
+    };
+
     struct level_editor_state
     {
-        void const* new_asset{ nullptr };
+        std::vector<asset_description> assets;
+        const void* new_asset{nullptr};
     };
 
     struct read_level_state
@@ -219,7 +227,7 @@ namespace rosy
         pick_debug_read_state pick_debugging{};
         level_editor_state editor_state{};
         graphics_object_update go_update{};
-        
+
         float game_camera_yaw{0};
     };
 
