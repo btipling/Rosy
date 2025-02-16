@@ -45,43 +45,47 @@ namespace
 
         result load_asset(level_editor_state* state)
         {
-            rosy_packager::asset* a;
-            if (a = new(std::nothrow) rosy_packager::asset; a == nullptr)
-            {
-                l->error("asset allocation failed");
-                return result::allocation_failure;
-            }
-            {
-                //a.asset_path = "..\\assets\\sponza\\sponza.rsy";
-                a->asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
-                //a.asset_path = "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.rsy";
+            std::array<std::string, 3> asset_paths{
+                 R"(..\assets\houdini\exports\Box_002\Box_002.rsy)",
+                 R"(..\assets\sponza\sponza.rsy)",
+                 R"(..\assets\deccer_cubes\SM_Deccer_Cubes_Textured_Complex.rsy)",
+            };
+            for (std::string& path : asset_paths) {
+                rosy_packager::asset* a;
+                if (a = new(std::nothrow) rosy_packager::asset; a == nullptr)
                 {
-                    if (const auto res = a->read(l); res != result::ok)
+                    l->error("asset allocation failed");
+                    return result::allocation_failure;
+                }
+                {
+                    a->asset_path = path;
                     {
-                        l->error("Failed to read the assets!");
-                        return result::error;
+                        if (const auto res = a->read(l); res != result::ok)
+                        {
+                            l->error(std::format("Failed to read the assets for {}!", path));
+                            return result::error;
+                        }
+                    }
+                    rosy_packager::shader new_shader{};
+                    new_shader.path = "../shaders/out/basic.spv";
+                    a->shaders.push_back(new_shader);
+                    {
+                        if (const auto res = a->read_shaders(l); res != result::ok)
+                        {
+                            l->error("Failed to read shaders!");
+                            return result::error;
+                        }
                     }
                 }
-                rosy_packager::shader new_shader{};
-                new_shader.path = "../shaders/out/basic.spv";
-                a->shaders.push_back(new_shader);
-                {
-                    if (const auto res = a->read_shaders(l); res != result::ok)
-                    {
-                        l->error("Failed to read shaders!");
-                        return result::error;
-                    }
-                }
+                const std::filesystem::path asset_path{ a->asset_path };
+
+                asset_description desc{};
+                desc.id = asset_path.string();
+                desc.name = asset_path.filename().string();
+                desc.asset = static_cast<const void*>(a);
+                assets.push_back(desc);
             }
-            const std::filesystem::path asset_path{a->asset_path};
-
-            asset_description desc{};
-            desc.id = asset_path.string();
-            desc.name = asset_path.filename().string();
-            desc.asset = static_cast<const void*>(a);
-
-            assets.push_back(desc);
-            state->new_asset = desc.asset;
+            state->new_asset = assets[0].asset;
             return result::ok;
         }
     };
