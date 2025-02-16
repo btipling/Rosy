@@ -1,4 +1,7 @@
 #include "Editor.h"
+
+#include <filesystem>
+
 #include "../Packager/Asset.h"
 
 using namespace rosy;
@@ -64,8 +67,13 @@ namespace
                     }
                 }
             }
+            const std::filesystem::path asset_path{ a->asset_path };
+
             asset_description desc{};
+            desc.id = asset_path.string();
+            desc.name = asset_path.filename().string();
             desc.asset = static_cast<const void*>(a);
+
             assets.push_back(desc);
             state->new_asset = desc.asset;
             return result::ok;

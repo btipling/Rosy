@@ -200,7 +200,7 @@ namespace rosy
         std::string id{};
         std::string name{};
         std::vector<model_description> models;
-        const void* asset{ nullptr };
+        const void* asset{nullptr};
     };
 
     struct level_editor_state
