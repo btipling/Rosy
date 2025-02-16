@@ -1,6 +1,8 @@
 #include "Editor.h"
 
+#include <cassert>
 #include <filesystem>
+#include <queue>
 
 #include "../Packager/Asset.h"
 
@@ -8,6 +10,12 @@ using namespace rosy;
 
 namespace
 {
+    struct stack_item
+    {
+        std::string id{};
+        rosy_packager::node stack_node;
+    };
+
     struct editor_manager
     {
         rosy::log* l{nullptr};
@@ -92,8 +100,49 @@ namespace
         }
 
         static result load_models([[maybe_unused]] asset_description& desc,
-                                  [[maybe_unused]] const rosy_packager::asset* a)
+                                  [[maybe_unused]] const rosy_packager::asset* new_asset)
         {
+            // Traverse the assets to construct model descriptions.
+            std::vector<model_description> models;
+            const size_t root_scene_index = static_cast<size_t>(new_asset->root_scene);
+            if (new_asset->scenes.size() <= root_scene_index) return result::invalid_argument;
+
+            const auto& scene = new_asset->scenes[root_scene_index];
+            if (scene.nodes.empty()) return result::invalid_argument;
+
+            std::queue<stack_item> queue;
+
+            for (const auto& node_index : scene.nodes)
+            {
+                const rosy_packager::node new_node = new_asset->nodes[node_index];
+
+                queue.push({
+                    .id = desc.id,
+                    .stack_node = new_node,
+                });
+            }
+
+            while (!queue.empty())
+            {
+                stack_item queue_item = queue.front();
+                queue.pop();
+
+                model_description model_desc;
+                model_desc.name = std::string(queue_item.stack_node.name.begin(), queue_item.stack_node.name.end());
+                model_desc.id = std::format("{}:{}", queue_item.id, model_desc.name);
+                desc.models.push_back(model_desc);
+
+                for (const size_t child_index : queue_item.stack_node.child_nodes)
+                {
+                    const rosy_packager::node new_node = new_asset->nodes[child_index];
+
+                    queue.push({
+                        .id = model_desc.id,
+                        .stack_node = new_node,
+                    });
+                }
+            }
+
             return result::ok;
         }
     };
