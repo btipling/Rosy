@@ -13,6 +13,7 @@ project "Engine"
    architecture("x86_64")
    -- toolset("clang")
    debugdir "./Engine/"
+   flags { "MultiProcessorCompile" }
 
    links { "SDL3" }
    links { "flecs" }
@@ -47,6 +48,11 @@ project "Engine"
       defines { "NDEBUG" }
       optimize "On"
 
+    buildmessage "Compiling shaders?"
+    prebuildcommands {
+        "/shaders/script_compile.ps1 ./shaders/"
+    }
+
 project "Packager"
    kind "ConsoleApp"
    language "C++"
@@ -55,6 +61,7 @@ project "Packager"
    architecture("x86_64")
    -- toolset("clang")
    debugdir "./Packager/"
+   flags { "MultiProcessorCompile" }
 
    links { "fastgltf" }
 

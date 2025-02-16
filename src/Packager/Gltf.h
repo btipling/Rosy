@@ -5,11 +5,11 @@
 
 namespace rosy_packager
 {
-	struct gltf
-	{
-		std::string source_path{};
-		asset gltf_asset{};
+    struct gltf
+    {
+        std::string source_path{};
+        asset gltf_asset{};
 
-		rosy::result import(rosy::log* l);
-	};
+        rosy::result import(rosy::log* l);
+    };
 }
