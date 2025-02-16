@@ -34,10 +34,16 @@ namespace
         {
             state->new_asset = nullptr;
             if (!assets.empty()) return result::ok;
-            return load_asset(state);
+            if (const result res = load_asset(state); res != result::ok)
+            {
+                l->error("Failed to load asset");
+                return res;
+            }
+            state->assets = assets;
+            return result::ok;
         }
 
-        result load_asset([[maybe_unused]] level_editor_state* state)
+        result load_asset(level_editor_state* state)
         {
             rosy_packager::asset* a;
             if (a = new(std::nothrow) rosy_packager::asset; a == nullptr)
@@ -67,7 +73,7 @@ namespace
                     }
                 }
             }
-            const std::filesystem::path asset_path{ a->asset_path };
+            const std::filesystem::path asset_path{a->asset_path};
 
             asset_description desc{};
             desc.id = asset_path.string();
