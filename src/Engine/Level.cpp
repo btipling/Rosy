@@ -1,6 +1,7 @@
 #include "Level.h"
 #include "Node.h"
 #include "Camera.h"
+#include "Editor.h"
 #include <print>
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -153,6 +154,9 @@ namespace
 
 		read_level_state* rls{ nullptr };
 		write_level_state const* wls{ nullptr };
+
+		editor* level_editor{ nullptr };
+
 		node* level_game_node{ nullptr };
 		// Important game nodes that can be referenced via their graphics object index
 		std::vector<game_node_reference> game_nodes;
@@ -196,7 +200,7 @@ namespace
 				free_cam->starting_yaw = -1.58f;
 				if (auto const res = free_cam->init(l, new_cfg); res != result::ok)
 				{
-					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
+					l->error(std::format("Free camera initialization failed: {}", static_cast<uint8_t>(res)));
 					return res;
 				}
 			}
@@ -216,7 +220,22 @@ namespace
 				game_cam->starting_yaw = 0.f;
 				if (auto const res = game_cam->init(l, new_cfg); res != result::ok)
 				{
-					l->error(std::format("Camera creation failed: {}", static_cast<uint8_t>(res)));
+					l->error(std::format("Game camera initialization failed: {}", static_cast<uint8_t>(res)));
+					return res;
+				};
+			}
+
+			// Level editor initialization
+			{
+				level_editor = new(std::nothrow) editor{};
+				if (level_editor == nullptr)
+				{
+					l->error("Error allocating level editor");
+					return result::allocation_failure;
+				}
+				if (auto const res = level_editor->init(l, new_cfg); res != result::ok)
+				{
+					l->error(std::format("Level editor initialization failed: {}", static_cast<uint8_t>(res)));
 					return res;
 				};
 			}
@@ -253,6 +272,12 @@ namespace
 			if (world != nullptr)
 			{
 				ecs_fini(world);
+			}
+			if (level_editor)
+			{
+				level_editor->deinit();
+				delete level_editor;
+				level_editor = nullptr;
 			}
 			if (game_cam)
 			{
