@@ -188,6 +188,16 @@ namespace rosy
 		std::vector<debug_object> circles;
 	};
 
+	struct level_editor_commands
+	{
+		
+	};
+
+	struct level_editor_state
+	{
+		
+	};
+
 	struct read_level_state
 	{
 		float target_fps{ 0.f };

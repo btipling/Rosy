@@ -124,7 +124,7 @@ namespace {
 	constexpr  uint64_t graphics_created_bit_ktx_texture		   = { 1ULL << 29 };
 	constexpr  uint64_t graphics_created_bit_sampler			   = { 1ULL << 30 };
 	constexpr  uint64_t graphics_created_bit_csm_image			   = { 1ULL << 31 };
-	constexpr  uint64_t graphics_created_bit_csm_sampler		   = { 1ULL << 32 };
+	constexpr  uint64_t graphics_created_bit_csm_sampler           = { 1ULL << 32 };
 	constexpr  uint64_t graphics_created_bit_csm_view_sampler	   = { 1ULL << 33 };
 	constexpr  uint64_t graphics_created_bit_csm_view_near		   = { 1ULL << 34 };
 	constexpr  uint64_t graphics_created_bit_csm_view_middle	   = { 1ULL << 35 };
