@@ -84,8 +84,7 @@ result node::init(rosy::log* new_log, const std::array<float, 16>& new_transform
                   const std::array<float, 16>& new_parent_transform)
 {
     l = new_log;
-    ns = new(std::nothrow) node_state;
-    if (ns == nullptr)
+    if (ns = new(std::nothrow) node_state; ns == nullptr)
     {
         l->error("Error allocating node state");
         return result::allocation_failure;
@@ -166,7 +165,7 @@ void node::populate_graph(std::vector<graphics_object>& graph) const
         go.object_space_transform = object_space_transform;
         graph[go.index] = go;
     }
-    for (node* n : children)
+    for (const node* n : children)
     {
         n->populate_graph(graph);
     }

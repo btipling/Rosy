@@ -23,11 +23,11 @@ namespace rosy
         std::vector<graphics_object> graphics_objects;
         std::string name{};
         std::vector<node*> children;
-        std::array<float, 16> parent_transform;
-        std::array<float, 16> transform;
-        std::array<float, 16> normal_transform;
-        std::array<float, 16> object_space_transform;
-        std::array<float, 4> position;
+        std::array<float, 16> parent_transform{};
+        std::array<float, 16> transform{};
+        std::array<float, 16> normal_transform{};
+        std::array<float, 16> object_space_transform{};
+        std::array<float, 4> position{};
         node_bounds bounds{};
 
         [[nodiscard]] result init(log* new_log, const std::array<float, 16>& new_transform,

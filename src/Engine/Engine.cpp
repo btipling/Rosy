@@ -1,5 +1,4 @@
 #include "Engine.h"
-#include "../Packager/Asset.h"
 
 #include <chrono>
 #include <format>
@@ -46,8 +45,7 @@ static bool event_handler(void* userdata, SDL_Event* event)
 
 result engine::init()
 {
-    l = new(std::nothrow) log{log_level::info};
-    if (l == nullptr)
+    if (l = new(std::nothrow) log{ log_level::info }; l == nullptr)
     {
         return result::allocation_failure;
     }
@@ -64,30 +62,6 @@ result engine::init()
         return result::error;
     }
     start_time = tick;
-
-    rosy_packager::asset a{};
-    {
-        //a.asset_path = "..\\assets\\sponza\\sponza.rsy";
-        a.asset_path = "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy";
-        //a.asset_path = "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.rsy";
-        {
-            if (const auto res = a.read(l); res != result::ok)
-            {
-                l->error("Failed to read the assets!");
-                return result::error;
-            }
-        }
-        rosy_packager::shader new_shader{};
-        new_shader.path = "../shaders/out/basic.spv";
-        a.shaders.push_back(new_shader);
-        {
-            if (const auto res = a.read_shaders(l); res != result::ok)
-            {
-                l->error("Failed to read shaders!");
-                return result::error;
-            }
-        }
-    }
 
     config cfg;
     // SDL Window initialization.
@@ -140,8 +114,7 @@ result engine::init()
 
     // Level initialization
     {
-        lvl = new(std::nothrow) level{};
-        if (lvl == nullptr)
+        if (lvl = new(std::nothrow) level{}; lvl == nullptr)
         {
             l->error("Error allocating level");
             return result::allocation_failure;
@@ -151,17 +124,11 @@ result engine::init()
             l->error(std::format("Level creation failed: {}", static_cast<uint8_t>(res)));
             return res;
         }
-        if (const auto res = lvl->set_asset(a); res != result::ok)
-        {
-            l->error(std::format("Asset setting on level failed: {}", static_cast<uint8_t>(res)));
-            return res;
-        }
     }
 
     // Graphics engine initialization
     {
-        gfx = new(std::nothrow) graphics{};
-        if (gfx == nullptr)
+        if (gfx = new(std::nothrow) graphics{}; gfx == nullptr)
         {
             l->error("Error allocating graphics engine");
             return result::allocation_failure;
@@ -169,11 +136,6 @@ result engine::init()
         if (const auto res = gfx->init(window, l, cfg); res != result::ok)
         {
             l->error(std::format("Graphics creation failed: {}", static_cast<uint8_t>(res)));
-            return res;
-        }
-        if (const auto res = gfx->set_asset(a, lvl->graphics_objects, &lvl->wls); res != result::ok)
-        {
-            l->error(std::format("Asset setting on graphics failed: {}", static_cast<uint8_t>(res)));
             return res;
         }
     }
@@ -306,7 +268,7 @@ result engine::run_frame()
         {
             return res;
         }
-        if (const auto res = gfx->update(lvl->rls, lvl->graphics_object_update_data); res != result::ok)
+        if (const auto res = gfx->update(lvl->rls, &lvl->wls); res != result::ok)
         {
             return res;
         }

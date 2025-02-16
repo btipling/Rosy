@@ -11,6 +11,7 @@ namespace rosy
     enum class result : uint8_t
     {
         ok,
+        state_changed,
         error,
         invalid_argument,
         allocation_failure,
@@ -64,6 +65,7 @@ namespace rosy
     {
         size_t offset{0};
         std::vector<graphics_object> graphic_objects{};
+        std::vector<graphics_object> full_scene{};
     };
 
     struct engine_stats
@@ -196,6 +198,7 @@ namespace rosy
 
     struct level_editor_state
     {
+        void const* new_asset{ nullptr };
     };
 
     struct read_level_state
@@ -215,6 +218,8 @@ namespace rosy
         mob_read_state mob_read{};
         pick_debug_read_state pick_debugging{};
         level_editor_state editor_state{};
+        graphics_object_update go_update{};
+        
         float game_camera_yaw{0};
     };
 

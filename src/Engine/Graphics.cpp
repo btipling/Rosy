@@ -2075,24 +2075,21 @@ namespace
 
             // Descriptor set managers
             {
-                desc_storage_images = new(std::nothrow) descriptor_set_manager;
-                if (desc_storage_images == nullptr)
+                if (desc_storage_images = new(std::nothrow) descriptor_set_manager; desc_storage_images == nullptr)
                 {
                     return VK_ERROR_OUT_OF_HOST_MEMORY;
                 }
                 desc_storage_images->init(descriptor_max_storage_image_descriptors, descriptor_storage_image_binding);
             }
             {
-                desc_sampled_images = new(std::nothrow) descriptor_set_manager;
-                if (desc_sampled_images == nullptr)
+                if (desc_sampled_images = new(std::nothrow) descriptor_set_manager; desc_sampled_images == nullptr)
                 {
                     return VK_ERROR_OUT_OF_HOST_MEMORY;
                 }
                 desc_sampled_images->init(descriptor_max_sampled_image_descriptors, descriptor_sampled_image_binding);
             }
             {
-                desc_samples = new(std::nothrow) descriptor_set_manager;
-                if (desc_samples == nullptr)
+                if (desc_samples = new(std::nothrow) descriptor_set_manager; desc_samples == nullptr)
                 {
                     return VK_ERROR_OUT_OF_HOST_MEMORY;
                 }
@@ -4356,9 +4353,15 @@ namespace
 
         result set_graphic_objects(std::vector<graphics_object> graphics_objects)
         {
+            if (graphics_objects.empty())
+            {
+                l->error("Attempted to set graphics objects with an empty scene");
+                return result::invalid_argument;
+            }
             shadow_casting_graphics.clear();
             opaque_graphics.clear();
             blended_graphics.clear();
+
             std::vector<graphic_object_data> go_data{};
             go_data.reserve(graphics_objects.size());
             for (const auto& go : graphics_objects)
@@ -6104,8 +6107,7 @@ result graphics::init(SDL_Window* new_window, const log* new_log, config cfg)
     }
     {
         // Init graphics device
-        gd = new(std::nothrow) graphics_device;
-        if (gd == nullptr)
+        if (gd = new(std::nothrow) graphics_device; gd == nullptr)
         {
             l->error("graphics_device allocation failed");
             return result::allocation_failure;
@@ -6141,30 +6143,28 @@ void graphics::deinit()
     l = nullptr;
 }
 
-result graphics::set_asset(const rosy_packager::asset& a, const std::vector<graphics_object>& graphics_objects,
-                           write_level_state* wls) const
-{
-    l->debug(std::format("Setting asset with {} graphic objects.", graphics_objects.size()));
-    gd->wls = wls; // Set writable state, this is a pointer to level data that the UI can write to.
-    if (const auto res = gd->set_asset(a); res != result::ok)
-    {
-        return res;
-    }
-    if (const auto res = gd->set_graphic_objects(graphics_objects); res != result::ok)
-    {
-        return res;
-    }
-    return result::ok;
-}
-
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result graphics::update(const read_level_state& rls, const graphics_object_update& new_graphics_objects_update)
+result graphics::update(const read_level_state& rls, write_level_state* wls) const
 {
+    if (rls.editor_state.new_asset != nullptr)
+    {
+        const auto a = static_cast<const rosy_packager::asset*>(rls.editor_state.new_asset);
+        l->debug(std::format("Setting asset with {} graphic objects.", rls.go_update.graphic_objects.size()));
+        gd->wls = wls; // Set writable state, this is a pointer to level data that the UI can write to.
+        if (const auto res = gd->set_asset(*a); res != result::ok)
+        {
+            return res;
+        }
+        if (const auto res = gd->set_graphic_objects(rls.go_update.full_scene); res != result::ok)
+        {
+            return res;
+        }
+    }
     if (const auto res = gd->update(rls); res != result::ok)
     {
         return res;
     }
-    if (const auto res = gd->update_graphic_objects(new_graphics_objects_update); res != result::ok)
+    if (const auto res = gd->update_graphic_objects(rls.go_update); res != result::ok)
     {
         return res;
     }
