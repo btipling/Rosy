@@ -363,9 +363,10 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
             }
             ImGui::EndListBox();
         }
-        if (rls->editor_state.assets.size() > selected_asset) {
+        if (rls->editor_state.assets.size() > selected_asset)
+        {
             if (ImGui::BeginTable("##AssetDetails", 2,
-                ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
             {
                 const asset_description& description = rls->editor_state.assets[selected_asset];
                 ImGui::TableNextRow();

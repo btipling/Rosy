@@ -46,11 +46,12 @@ namespace
         result load_asset(level_editor_state* state)
         {
             std::array<std::string, 3> asset_paths{
-                 R"(..\assets\houdini\exports\Box_002\Box_002.rsy)",
-                 R"(..\assets\sponza\sponza.rsy)",
-                 R"(..\assets\deccer_cubes\SM_Deccer_Cubes_Textured_Complex.rsy)",
+                R"(..\assets\houdini\exports\Box_002\Box_002.rsy)",
+                R"(..\assets\sponza\sponza.rsy)",
+                R"(..\assets\deccer_cubes\SM_Deccer_Cubes_Textured_Complex.rsy)",
             };
-            for (std::string& path : asset_paths) {
+            for (std::string& path : asset_paths)
+            {
                 rosy_packager::asset* a;
                 if (a = new(std::nothrow) rosy_packager::asset; a == nullptr)
                 {
@@ -77,15 +78,22 @@ namespace
                         }
                     }
                 }
-                const std::filesystem::path asset_path{ a->asset_path };
+                const std::filesystem::path asset_path{a->asset_path};
 
                 asset_description desc{};
                 desc.id = asset_path.string();
                 desc.name = asset_path.filename().string();
                 desc.asset = static_cast<const void*>(a);
+                load_models(desc, a);
                 assets.push_back(desc);
             }
             state->new_asset = assets[0].asset;
+            return result::ok;
+        }
+
+        static result load_models([[maybe_unused]] asset_description& desc,
+                                  [[maybe_unused]] const rosy_packager::asset* a)
+        {
             return result::ok;
         }
     };
