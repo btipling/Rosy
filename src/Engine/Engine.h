@@ -7,28 +7,28 @@
 
 
 // ReSharper disable once CppInconsistentNaming
-typedef struct SDL_Window SDL_Window;
+using SDL_Window = struct SDL_Window;
 
 namespace rosy
 {
-	struct engine
-	{
-		// Owned resources
-		log* l{ nullptr };
-		SDL_Window* window{ nullptr };
-		level* lvl{ nullptr };
-		graphics* gfx{ nullptr };
+    struct engine
+    {
+        // Owned resources
+        log* l{nullptr};
+        SDL_Window* window{nullptr};
+        level* lvl{nullptr};
+        graphics* gfx{nullptr};
 
-		// Timing
-		uint64_t start_time{ 0 };
-		uint64_t last_frame_time{ 0 };
+        // Timing
+        uint64_t start_time{0};
+        uint64_t last_frame_time{0};
 
-		// Profiling
-		engine_stats stats{};
+        // Profiling
+        engine_stats stats{};
 
-		[[nodiscard]] result init();
-		[[nodiscard]] result run();
-		[[nodiscard]] result run_frame();
-		void deinit();
-	};
+        [[nodiscard]] result init();
+        [[nodiscard]] result run();
+        [[nodiscard]] result run_frame();
+        void deinit();
+    };
 }
