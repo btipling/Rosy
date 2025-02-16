@@ -1,5 +1,6 @@
 #include "Graphics.h"
 #include <format>
+#include <numbers>
 #include <vector>
 #include <stack>
 #include <algorithm>
@@ -148,8 +149,7 @@ namespace
         "VK_LAYER_KHRONOS_synchronization2",
     };
 
-    constexpr double pi{3.1415926535897932384626433832795028841971693993751058209749445923078164062};
-    // NOLINT(modernize-use-std-numbers)
+    constexpr double pi{std::numbers::pi};
     constexpr size_t debug_draw_circle_num_segments{100};
 
 
