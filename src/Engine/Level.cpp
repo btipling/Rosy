@@ -1420,8 +1420,9 @@ result level::process()
     graphics_object_update_data.offset = static_objects_offset;
     graphics_object_update_data.graphic_objects.resize(num_dynamic_objects);
 
-    for (const std::vector<node*> mobs = ls->get_mobs(); const node* n : mobs) n->populate_graph(
-        graphics_object_update_data.graphic_objects);
+    for (const std::vector<node*> mobs = ls->get_mobs(); const node* n : mobs)
+        n->populate_graph(
+            graphics_object_update_data.graphic_objects);
     return result::ok;
 }
 
