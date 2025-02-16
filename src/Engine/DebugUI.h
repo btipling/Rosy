@@ -24,6 +24,8 @@ namespace rosy
         write_level_state* wls{};
         size_t selected_asset{0};
         size_t selected_model{0};
+        bool asset_details{true};
+        bool model_details{true};
 
         void graphics_debug_ui(const engine_stats& eng_stats, const graphics_stats& stats, const graphics_data& data,
                                const read_level_state* rls) const;

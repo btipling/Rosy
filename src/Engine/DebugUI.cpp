@@ -366,44 +366,83 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
         }
         if (rls->editor_state.assets.size() > selected_asset)
         {
-            if (ImGui::BeginTable("##AssetDetails", 2,
-                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+            if (ImGui::CollapsingHeader("Asset Details", &asset_details))
             {
-                const asset_description& description = rls->editor_state.assets[selected_asset];
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Text("id");
-                ImGui::TableNextColumn();
-                ImGui::Text("%s", description.id.c_str());
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Text("name");
-                ImGui::TableNextColumn();
-                ImGui::Text("%s", description.name.c_str());
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Text("model count");
-                ImGui::TableNextColumn();
-                ImGui::Text("%zu", description.models.size());
-
-                ImGui::EndTable();
-
-                if (ImGui::BeginListBox("##ModelsList"))
+                if (ImGui::BeginTable("##AssetDetails", 2,
+                                      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
                 {
-                    size_t index{ 0 };
-                    for (const model_description& m : description.models)
+                    const asset_description& description = rls->editor_state.assets[selected_asset];
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::Text("id");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", description.id.c_str());
+
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::Text("name");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", description.name.c_str());
+
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::Text("model count");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%zu", description.models.size());
+
+                    ImGui::EndTable();
+
+                    if (ImGui::BeginListBox("##ModelsList"))
                     {
-                        if (ImGui::Selectable(std::format("##{}", m.id).c_str(), selected_model == index))
+                        size_t index{0};
+                        for (const model_description& m : description.models)
                         {
-                            selected_model = index;
+                            if (ImGui::Selectable(std::format("##{}", m.id).c_str(), selected_model == index))
+                            {
+                                selected_model = index;
+                            }
+                            ImGui::SameLine();
+                            ImGui::Text("%s", m.name.c_str());
+                            index += 1;
                         }
-                        ImGui::SameLine();
-                        ImGui::Text("%s", m.name.c_str());
-                        index += 1;
+                        ImGui::EndListBox();
                     }
-                    ImGui::EndListBox();
+                    if (description.models.size() > selected_model)
+                    {
+                        if (ImGui::CollapsingHeader("Model Details", &model_details))
+                        {
+                            if (ImGui::BeginTable("##ModelDetails", 2,
+                                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                            {
+                                const model_description& m = description.models[selected_model];
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("id");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%s", m.id.c_str());
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("name");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%s", m.name.c_str());
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("location");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("(%.3f, %.3f, %.3f)", m.location[0], m.location[1], m.location[2]);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::Text("yaw");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%.3f", m.yaw);
+
+                                ImGui::EndTable();
+                            }
+                        }
+                    }
                 }
             }
         }
