@@ -60,7 +60,7 @@ int main(const int argc, char* argv[])
         return EXIT_FAILURE;
     }
     int i{0};
-    for (const auto p : g.gltf_asset.meshes[0].positions)
+    for (const auto& p : g.gltf_asset.meshes[0].positions)
     {
         l.info(std::format("{}: ({}, {}, {}) |  ({}, {}, {}) |  ({}, {}, {}) |  ({}, {}, {}, {}) |  ({}, {})", i,
                            p.vertex[0], p.vertex[1], p.vertex[2],

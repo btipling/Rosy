@@ -214,6 +214,7 @@ namespace rosy
         graphic_objects_state graphic_objects{};
         mob_read_state mob_read{};
         pick_debug_read_state pick_debugging{};
+        level_editor_state editor_state{};
         float game_camera_yaw{0};
     };
 
@@ -225,6 +226,7 @@ namespace rosy
         draw_config_state draw_config{};
         fragment_config_state fragment_config{};
         mob_edit_state mob_edit{};
+        level_editor_commands editor_commands{};
         float target_fps{0.f};
         float game_camera_yaw{0};
     };
