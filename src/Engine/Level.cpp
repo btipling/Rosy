@@ -1346,11 +1346,6 @@ namespace
                 ctx->rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
             }
         }
-        if (const result res = ctx->level_editor->process(ctx->wls->editor_commands, &ctx->rls->editor_state); res !=
-            result::ok)
-        {
-            ctx->l->error(std::format("Error processing editor state {}", static_cast<uint8_t>(res)));
-        }
     }
 
     // ReSharper disable once CppParameterMayBeConstPtrOrRef

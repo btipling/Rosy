@@ -412,7 +412,7 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                     {
                         const editor_command cmd_desc{
                             .command_type = editor_command::editor_command_type::load_asset,
-                            .load_asset = {.id = description.id},
+                            .id = description.id,
                         };
                         wls->editor_commands.commands.push_back(cmd_desc);
                     }
@@ -465,6 +465,26 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                                 ImGui::Text("yaw");
                                 ImGui::TableNextColumn();
                                 ImGui::Text("%.3f", m.yaw);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                if (ImGui::Button("Add", button_dims))
+                                {
+                                    const editor_command cmd_desc{
+                                        .command_type = editor_command::editor_command_type::add_to_level,
+                                        .id = m.id,
+                                    };
+                                    wls->editor_commands.commands.push_back(cmd_desc);
+                                }
+                                ImGui::TableNextColumn();
+                                if (ImGui::Button("Remove", button_dims))
+                                {
+                                    const editor_command cmd_desc{
+                                        .command_type = editor_command::editor_command_type::remove_from_level,
+                                        .id = m.id,
+                                    };
+                                    wls->editor_commands.commands.push_back(cmd_desc);
+                                }
 
                                 ImGui::EndTable();
                             }

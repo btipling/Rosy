@@ -58,6 +58,7 @@ namespace
     {
         rosy::log* l{nullptr};
         std::vector<asset_description> assets;
+        level_data ld;
 
         result init(rosy::log* new_log)
         {
@@ -76,24 +77,64 @@ namespace
             }
         }
 
+        result add_model(std::string id)
+        {
+            for (const auto& a : assets)
+            {
+                if (a.id.size() >= id.size()) continue;
+                if (std::equal(a.id.begin(), a.id.end(), id.begin(), id.begin() + static_cast<uint64_t>(a.id.size())))
+                {
+                    l->info(std::format("add_model: asset id {} is a prefix of id: {}", a.id, id));
+                    for (const auto& asset_model : a.models)
+                    {
+                        if (asset_model.id == id)
+                        {
+                            level_data_model md;
+                            md.id = asset_model.id;
+                            md.name = asset_model.name;
+                            md.location = asset_model.location;
+                            md.yaw = asset_model.yaw;
+                            ld.models.push_back(md);
+                            return result::ok;
+                        }
+                        l->info(std::format("add_model: model id {} does not match {}", asset_model.id, id));
+                    }
+                } else
+                {
+                    l->info(std::format("add_model: asset id {} is not a prefix of id: {}", a.id, id));
+                }
+            }
+            l->info(std::format("add_model: id: {} not found", id));
+            return result::ok;
+        }
+
+        result remove_model(const std::string& id)
+        {
+            bool found{ false };
+            size_t index{ 0 };
+            for (const auto& md : ld.models)
+            {
+                if (md.id == id)
+                {
+                    found = true;
+                    break;
+                }
+                index += 1;
+            }
+            if (!found) return result::ok;
+            ld.models.erase(ld.models.begin() + index);
+            return result::ok;
+        }
+
         result write()
         {
-            level_data_model m1;
-            m1.id = "some_file/path.rsy:foo:bar";
-            m1.name = "some_model";
-            m1.location = {0.f, 0.f, 0.f};
-            m1.yaw = 180.f;
 
-
-            level_data_model m2;
+ /*           level_data_model m2;
             m2.id = "some_file/path.rsy:bar:foo";
             m2.name = "some_other_model";
             m2.location = {1.f, 0.f, 1.f};
-            m2.yaw = 32;
+            m2.yaw = 32;*/
 
-            level_data ld;
-            ld.models.push_back(m1);
-            ld.models.push_back(m2);
 
             std::ofstream o("level1.json");
             json j;
@@ -108,7 +149,7 @@ namespace
             json j;
             i >> j;
 
-            level_data ld;
+            ld = {};
             from_json(j, ld);
 
             for (const auto& m : ld.models)
@@ -131,16 +172,16 @@ namespace
                         l->info("editor-command: no_command command detected.");
                         break;
                     case editor_command::editor_command_type::load_asset:
-                        l->info(std::format("editor-command: load_asset command detected for id: {}", cmd.load_asset.id));
+                        l->info(std::format("editor-command: load_asset command detected for id: {}", cmd.id));
                         for (const auto& a : assets)
                         {
-                            if (a.id == cmd.load_asset.id)
+                            if (a.id == cmd.id)
                             {
                                 state->new_asset = a.asset;
                                 return result::ok;
                             }
                         }
-                        l->warn(std::format("editor-command: attempted to load an unknown asset {}", cmd.load_asset.id));
+                        l->warn(std::format("editor-command: attempted to load an unknown asset {}", cmd.id));
                         break;
                     case editor_command::editor_command_type::write_level:
                         l->info("editor-command: saving level.");
@@ -149,6 +190,14 @@ namespace
                     case editor_command::editor_command_type::read_level:
                         l->info("editor-command: loading level.");
                         read();
+                        break;
+                    case editor_command::editor_command_type::add_to_level:
+                        l->info("editor-command: adding to level.");
+                        add_model(cmd.id);
+                        break;
+                    case editor_command::editor_command_type::remove_from_level:
+                        l->info("editor-command: removing from level.");
+                        remove_model(cmd.id);
                         break;
                     }
                 }
