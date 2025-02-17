@@ -4440,12 +4440,12 @@ namespace
                 // Clear any previously uploaded graphic object buffers
 
 
-                for (const frame_data fd : frame_datas)
+                for (frame_data& fd : frame_datas)
                 {
-                    ;
                     if (fd.frame_graphics_created_bitmask & graphics_created_bit_graphics_buffer)
                     {
                         vmaDestroyBuffer(allocator, fd.graphic_objects_buffer.go_buffer.buffer, fd.graphic_objects_buffer.go_buffer.allocation);
+                        fd.frame_graphics_created_bitmask &= ~graphics_created_bit_graphics_buffer;
                     }
                 }
             }
@@ -5821,7 +5821,7 @@ namespace
                     graphics_data gd;
                     gd.camera_position = scene_data.camera_position;
                     gd.sunlight = scene_data.sunlight;
-                    gd.shadow_mage_img_id = reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near);
+                    gd.shadow_map_img_id = reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near);
                     du->graphics_debug_ui(eng_stats, stats, gd, rls);
                     du->assets_debug_ui(rls);
                 }

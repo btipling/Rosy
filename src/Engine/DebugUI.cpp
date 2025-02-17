@@ -188,7 +188,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
             constexpr auto uv_max = ImVec2(1.0f, 1.0f);
             constexpr auto tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
             const ImVec2 content_area = ImGui::GetContentRegionAvail();
-            ImGui::Image(data.shadow_mage_img_id, content_area,
+            ImGui::Image(data.shadow_map_img_id, content_area,
                          uv_min, uv_max, tint_col, border_col);
         }
         if (ImGui::CollapsingHeader("Draw config"))

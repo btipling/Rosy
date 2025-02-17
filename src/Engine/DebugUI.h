@@ -16,7 +16,7 @@ namespace rosy
     {
         std::array<float, 4> sunlight{};
         std::array<float, 4> camera_position{};
-        ImTextureID shadow_mage_img_id{};
+        ImTextureID shadow_map_img_id{};
     };
 
     struct debug_ui
