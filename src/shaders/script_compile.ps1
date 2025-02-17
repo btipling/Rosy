@@ -27,6 +27,6 @@ $shaders | ForEach-Object {
             exit 1
     }
     Write-Host "Compiled $shader.slang successfully"
-        
+
 }
 Write-Host "Compiled all shaders successfully"

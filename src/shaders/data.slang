@@ -119,3 +119,7 @@ public struct DebugConstant {
     public SceneData *sd;
     public DebugInputVertex *v;
 }
+
+public bool validDescriptorIndex(uint32_t index) {
+    return index < 4294967295;
+}

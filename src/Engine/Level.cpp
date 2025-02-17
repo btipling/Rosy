@@ -574,7 +574,7 @@ namespace
                     free_cam->pitch_in_dir(event.motion.yrel / 250.f);
                 }
             }
-            else if (active_cam == camera_choice::game)
+            else if (rosy_reference.node != nullptr && active_cam == camera_choice::game)
             {
                 if (event.type == SDL_EVENT_MOUSE_WHEEL)
                 {

@@ -44,8 +44,9 @@ project "Engine"
     files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
     files { "libs/Volk.cpp" }
     files { "libs/VMA.cpp" }
+    files { "libs/nlohmann/json.hpp" }
     files { "shaders/*.slang", "shaders/*.ps1" }
-    
+
     filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
         defines { "DEBUG" }
         symbols "On"
