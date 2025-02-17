@@ -10,6 +10,12 @@ This is a hobby project to build a game engine and eventually a game in my spare
 
 This project will likely not build for anyone else at this time. See assets and hardware section below.
 
+### Premake
+
+This project uses [Premake](https://premake.github.io/) to build. Premake is required to build the project. 
+
+I initialize the project by running `premake5 vs2022` on the command line in the `src` directory and then I open up the generated sln file in VIsual Studio.
+
 ### Vulkan SDK
 
 The most recent version of the Vulkan SDK should be on the system.
@@ -79,61 +85,4 @@ I have only tested this on Nvidia 3070 and 3060 gpus. I don't know if this appli
  ```
  Then have to open them up in Nvidia Texture Tools and save them to get the VkFormat correct
 
- ## Open Source Code Dependencies
 
-### Vulkan Tools and the Vulkan SDK
-https://github.com/LunarG/VulkanTools<br/>
-Apache License  2.0, January 2004<br/>
-
- ### KTX tools
- https://github.com/KhronosGroup/KTX-Software   <br/>
- Apache 2.0 license <br/>
- Copyright (c) Mark Callow, the KTX-Software author; The Khronos Group Inc. <br/>
- and additional licenses<br/>
- https://github.com/KhronosGroup/KTX-Software/tree/main/LICENSES
-
- ### fastgltf 
- https://github.com/spnda/fastgltf  <br/>
- MIT license <br/>
- Copyright (c) 2022 - 2024 spnda.  <br/>
-
- ### Vulkan memory allocator
- https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator  <br/>
- MIT License  <br/>
- Copyright  (c) 2017-2024 Advanced Micro Devices, Inc. <br/>
-
- ### Dear Imgui 
- https://github.com/ocornut/imgui  <br/>
- MIT license  <br/>
- Copyright (c) 2014-2024 Omar Cornut <br/>
-
- ### Volk
- https://github.com/zeux/volk  <br/>
- MIT license  <br/>
- Copyright (c) 2018-2024 Arseny Kapoulkine <br/>
-
-
- ### DirectXTex 
- https://github.com/microsoft/DirectXTex  <br/>
- MIT license  <br/>
- Copyright (c) Microsoft Corporation.
-  <br/>
-
- ### stb
- https://github.com/nothings/stb/tree/master?tab=License-1-ov-file#readme   <br/>
- MIT License  <br/>
- Copyright (c) 2017 Sean Barrett <br/>
-
- ### VkGuide
- https://github.com/vblanco20-1/vulkan-guide <br/>
- MIT License<br/>
- Copyright (c) 2022-2024 2016 VkGuide Author<br/>
- I initially relied a lot on this for developing my scene graph.<br/>
-
- ### Nameless engine
- https://github.com/Flone-dnb/nameless-engine <br/>
- MIT License<br/>
- Copyright (c) 2022-2024 Alexander Tretyakov<br/>
- For some of the ktx vma allocation logic.<br/>
-
-[skybox attribution](https://sketchfab.com/3d-models/free-skybox-blue-desert-fd952e60be9746e0872840e89fbf7370)
