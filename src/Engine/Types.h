@@ -11,6 +11,7 @@ namespace rosy
     enum class result : uint8_t
     {
         ok,
+        state_changed,
         error,
         invalid_argument,
         allocation_failure,
@@ -23,15 +24,6 @@ namespace rosy
         create_failed,
         update_failed,
         overflow,
-    };
-
-    enum class log_level : uint8_t
-    {
-        debug,
-        info,
-        warn,
-        error,
-        disabled,
     };
 
     struct config
@@ -64,6 +56,7 @@ namespace rosy
     {
         size_t offset{0};
         std::vector<graphics_object> graphic_objects{};
+        std::vector<graphics_object> full_scene{};
     };
 
     struct engine_stats
@@ -194,8 +187,26 @@ namespace rosy
     {
     };
 
+    struct model_description
+    {
+        std::string id{};
+        std::string name{};
+        std::array<float, 3> location{};
+        float yaw{0.f};
+    };
+
+    struct asset_description
+    {
+        std::string id{};
+        std::string name{};
+        std::vector<model_description> models;
+        const void* asset{nullptr};
+    };
+
     struct level_editor_state
     {
+        std::vector<asset_description> assets;
+        const void* new_asset{nullptr};
     };
 
     struct read_level_state
@@ -215,6 +226,8 @@ namespace rosy
         mob_read_state mob_read{};
         pick_debug_read_state pick_debugging{};
         level_editor_state editor_state{};
+        graphics_object_update go_update{};
+
         float game_camera_yaw{0};
     };
 

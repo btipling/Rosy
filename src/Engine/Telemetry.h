@@ -1,9 +1,18 @@
 #pragma once
-#include "Types.h"
 #include <string_view>
 
 namespace rosy
 {
+
+    enum class log_level : uint8_t
+    {
+        debug,
+        info,
+        warn,
+        error,
+        disabled,
+    };
+
     struct log
     {
         log_level level{log_level::info};

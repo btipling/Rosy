@@ -1,5 +1,4 @@
 #include "Gltf.h"
-#include <iostream>
 #include <filesystem>
 
 using namespace rosy_packager;
@@ -74,6 +73,6 @@ int main(const int argc, char* argv[])
 
     const auto end = std::chrono::system_clock::now();
     const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    l.info(std::format("Finished packaging. Took {}ms", elapsed.count() / 1000.0l));
+    l.info(std::format("Finished packaging. Took {}ms", static_cast<double>(elapsed.count()) / 1000.0l));
     return 0;
 }
