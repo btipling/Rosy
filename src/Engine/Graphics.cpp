@@ -3569,6 +3569,60 @@ namespace
 
         result set_asset(const rosy_packager::asset& a)
         {
+            {
+                // Clear any existing asset resources
+
+                if (graphics_created_bitmask & graphics_created_bit_device)
+                {
+                    if (const VkResult res = vkDeviceWaitIdle(device); res != VK_SUCCESS)
+                    {
+                        l->error(std::format("Failed to wait device to be idle to reset asset: {}", static_cast<uint8_t>(res)));
+                        return result::error;
+                    }
+                }
+
+                for (const VkSampler& sampler : samplers)
+                {
+                    vkDestroySampler(device, sampler, nullptr);
+                }
+                samplers.clear();
+                for (const VkImageView& image_view : image_views)
+                {
+                    vkDestroyImageView(device, image_view, nullptr);
+                }
+                image_views.clear();
+                for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
+                {
+                    if (gfx_created_bitmask & graphics_created_bit_ktx_image)
+                    {
+                        ktxTexture_Destroy(ktx_texture);
+                    }
+                    if (gfx_created_bitmask & graphics_created_bit_ktx_texture)
+                    {
+                        ktxVulkanTexture_Destruct(&ktx_vk_texture, device, nullptr);
+                    }
+                }
+                ktx_textures.clear();
+
+                if (graphics_created_bitmask & graphics_created_bit_index_buffer)
+                {
+                    vmaDestroyBuffer(allocator, index_buffer.buffer, index_buffer.allocation);
+                    graphics_created_bitmask &= ~graphics_created_bit_index_buffer;
+                }
+
+                if (graphics_created_bitmask & graphics_created_bit_vertex_buffer)
+                {
+                    vmaDestroyBuffer(allocator, vertex_buffer.buffer, vertex_buffer.allocation);
+                    graphics_created_bitmask &= ~graphics_created_bit_vertex_buffer;
+                }
+
+                if (graphics_created_bitmask & graphics_created_bit_materials_buffer)
+                {
+                    vmaDestroyBuffer(allocator, material_buffer.material_buffer.buffer,
+                        material_buffer.material_buffer.allocation);
+                    graphics_created_bitmask &= ~graphics_created_bit_materials_buffer;
+                }
+            }
             // *** SETTING IMAGES *** //
             std::vector<uint32_t> color_image_sampler_desc_index;
             for (const auto& img : a.images)
