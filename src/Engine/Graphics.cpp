@@ -1724,7 +1724,7 @@ namespace
 
                 swapchain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.minImageCount);
                 if (swapchain_details.capabilities.maxImageCount > 0 && swapchain_image_count < swapchain_details.
-                    capabilities.maxImageCount)
+                                                                                                capabilities.maxImageCount)
                 {
                     swapchain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.maxImageCount);
                 }
@@ -3236,7 +3236,7 @@ namespace
                         debug_name.pNext = nullptr;
                         debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
                         debug_name.objectHandle = reinterpret_cast<uint64_t>(frame_datas[i].scene_buffer.scene_buffer.
-                            buffer);
+                                                                                            buffer);
                         debug_name.pObjectName = object_name.c_str();
                         if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                         {
@@ -3313,7 +3313,7 @@ namespace
                         debug_name.pNext = nullptr;
                         debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
                         debug_name.objectHandle = reinterpret_cast<uint64_t>(debug_draws_buffer.debug_draws_buffer.
-                            buffer);
+                                                                                                buffer);
                         debug_name.pObjectName = "rosy debug draws buffer";
                         if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                         {
@@ -3576,7 +3576,8 @@ namespace
                 {
                     if (const VkResult res = vkDeviceWaitIdle(device); res != VK_SUCCESS)
                     {
-                        l->error(std::format("Failed to wait device to be idle to reset asset: {}", static_cast<uint8_t>(res)));
+                        l->error(std::format("Failed to wait device to be idle to reset asset: {}",
+                                             static_cast<uint8_t>(res)));
                         return result::error;
                     }
                 }
@@ -3619,7 +3620,7 @@ namespace
                 if (graphics_created_bitmask & graphics_created_bit_materials_buffer)
                 {
                     vmaDestroyBuffer(allocator, material_buffer.material_buffer.buffer,
-                        material_buffer.material_buffer.allocation);
+                                     material_buffer.material_buffer.allocation);
                     graphics_created_bitmask &= ~graphics_created_bit_materials_buffer;
                 }
             }
@@ -3885,7 +3886,7 @@ namespace
                             debug_name.pNext = nullptr;
                             debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
                             debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.
-                                buffer);
+                                                                                                 buffer);
                             debug_name.pObjectName = "rosy material buffer";
                             if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res !=
                                 VK_SUCCESS)
@@ -4420,6 +4421,20 @@ namespace
             opaque_graphics.clear();
             blended_graphics.clear();
 
+            {
+                // Clear any previously uploaded graphic object buffers
+
+
+                for (const frame_data fd : frame_datas)
+                {
+                    ;
+                    if (fd.frame_graphics_created_bitmask & graphics_created_bit_graphics_buffer)
+                    {
+                        vmaDestroyBuffer(allocator, fd.graphic_objects_buffer.go_buffer.buffer, fd.graphic_objects_buffer.go_buffer.allocation);
+                    }
+                }
+            }
+
             std::vector<graphic_object_data> go_data{};
             go_data.reserve(graphics_objects.size());
             for (const auto& go : graphics_objects)
@@ -4463,9 +4478,9 @@ namespace
 
                         if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info,
                                                                  &frame_datas[i].graphic_objects_buffer.go_buffer.
-                                                                 buffer,
+                                                                                 buffer,
                                                                  &frame_datas[i].graphic_objects_buffer.go_buffer.
-                                                                 allocation,
+                                                                                 allocation,
                                                                  &frame_datas[i].graphic_objects_buffer.go_buffer.info);
                             res != VK_SUCCESS)
                         {
@@ -4479,8 +4494,7 @@ namespace
                             debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
                             debug_name.pNext = nullptr;
                             debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-                            debug_name.objectHandle = reinterpret_cast<uint64_t>(frame_datas[i].graphic_objects_buffer.
-                                go_buffer.buffer);
+                            debug_name.objectHandle = reinterpret_cast<uint64_t>(frame_datas[i].graphic_objects_buffer.go_buffer.buffer);
                             debug_name.pObjectName = object_name.c_str();
                             if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res !=
                                 VK_SUCCESS)
@@ -4515,8 +4529,7 @@ namespace
                         vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
                             VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
-                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info,
-                                                                 &staging.buffer, &staging.allocation,
+                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &staging.buffer, &staging.allocation,
                                                                  &staging.info); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error creating graphics objects staging buffer: {}",
@@ -4635,7 +4648,7 @@ namespace
             return result::ok;
         }
 
-        void set_wls(write_level_state* wls)
+        void set_wls(write_level_state* wls) const
         {
             du->wls = wls;
         }
@@ -5789,14 +5802,14 @@ namespace
                 if (constexpr ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None; ImGui::BeginTabBar(
                     "ViewEdit", tab_bar_flags))
                 {
-                    graphics_data gd{};
+                    graphics_data gd;
                     gd.camera_position = scene_data.camera_position;
                     gd.sunlight = scene_data.sunlight;
                     gd.shadow_mage_img_id = reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near);
                     du->graphics_debug_ui(eng_stats, stats, gd, rls);
                     du->assets_debug_ui(rls);
                 }
-                ImGui::EndTabBar(); 
+                ImGui::EndTabBar();
             }
             ImGui::End();
             {
