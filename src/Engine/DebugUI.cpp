@@ -368,8 +368,7 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
         {
             if (ImGui::CollapsingHeader("Asset Details", &asset_details))
             {
-                if (ImGui::BeginTable("##AssetDetails", 2,
-                                      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                if (ImGui::BeginTable("##AssetDetails", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
                 {
                     const asset_description& description = rls->editor_state.assets[selected_asset];
                     ImGui::TableNextRow();
@@ -389,6 +388,19 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                     ImGui::Text("model count");
                     ImGui::TableNextColumn();
                     ImGui::Text("%zu", description.models.size());
+
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::Text("Load asset");
+                    ImGui::TableNextColumn();
+                    if (ImGui::Button("Update", button_dims))
+                    {
+                        const editor_command cmd_desc{
+                            .command_type = editor_command::editor_command_type::load_asset,
+                            .load_asset = {.id = description.id},
+                        };
+                        wls->editor_commands.commands.push_back(cmd_desc);
+                    }
 
                     ImGui::EndTable();
 

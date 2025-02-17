@@ -5794,6 +5794,7 @@ namespace
             {
                 // Set dual read/write states
                 du->wls->game_camera_yaw = rls->game_camera_yaw;
+                du->wls->editor_commands.commands.clear();
             }
             ImGuiWindowFlags window_flags{0};
             window_flags |= ImGuiWindowFlags_NoCollapse;

@@ -183,8 +183,27 @@ namespace rosy
         std::vector<debug_object> circles;
     };
 
+    struct editor_command_load_asset
+    {
+        std::string id;
+    };
+
+    struct editor_command
+    {
+        enum class editor_command_type : uint8_t
+        {
+            no_command,
+            load_asset,
+        };
+
+        editor_command_type command_type{editor_command_type::no_command};
+        uint8_t no_command{ 0 };
+        editor_command_load_asset load_asset;
+    };
+
     struct level_editor_commands
     {
+        std::vector<editor_command> commands;
     };
 
     struct model_description
