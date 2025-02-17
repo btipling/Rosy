@@ -150,6 +150,7 @@ namespace
     editor_manager* em{nullptr};
 }
 
+// ReSharper disable once CppMemberFunctionMayBeStatic
 result editor::init(log* new_log, [[maybe_unused]] config new_cfg)
 {
     if (em)
