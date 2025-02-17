@@ -38,10 +38,34 @@ namespace
             }
         }
 
-        result process([[maybe_unused]] level_editor_commands commands, level_editor_state* state)
+        result process(const level_editor_commands& commands, level_editor_state* state)
         {
             state->new_asset = nullptr;
-            if (!assets.empty()) return result::ok;
+            if (!assets.empty())
+            {
+                for (const auto& cmd : commands.commands)
+                {
+                    switch (cmd.command_type)
+                    {
+                    case editor_command::editor_command_type::no_command:
+                        l->info("editor-command: no_command command detected.");
+                        break;
+                    case editor_command::editor_command_type::load_asset:
+                        l->info(std::format("editor-command: load_asset command detected for id: {}", cmd.load_asset.id));
+                        for (const auto& a : assets)
+                        {
+                            if (a.id == cmd.load_asset.id)
+                            {
+                                state->new_asset = a.asset;
+                                return result::ok;
+                            }
+                        }
+                        l->warn(std::format("editor-command: attempted to load an unknown asset {}", cmd.load_asset.id));
+                        break;
+                    }
+                }
+                return result::ok;
+            }
             if (const result res = load_asset(state); res != result::ok)
             {
                 l->error("Failed to load asset");

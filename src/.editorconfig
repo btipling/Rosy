@@ -8,6 +8,7 @@ indent_style = space
 insert_final_newline = true
 trim_trailing_whitespace = true
 charset = utf-8
+max_line_length = 180
 
 # Ignore paths
 [/libs/**]
@@ -17,3 +18,4 @@ insert_final_newline = unset
 trim_trailing_whitespace = unset
 indent_style = unset
 indent_size = unset
+max_line_length = unset

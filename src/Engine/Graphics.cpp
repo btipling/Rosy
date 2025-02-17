@@ -1724,7 +1724,7 @@ namespace
 
                 swapchain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.minImageCount);
                 if (swapchain_details.capabilities.maxImageCount > 0 && swapchain_image_count < swapchain_details.
-                    capabilities.maxImageCount)
+                                                                                                capabilities.maxImageCount)
                 {
                     swapchain_image_count = static_cast<uint8_t>(swapchain_details.capabilities.maxImageCount);
                 }
@@ -3236,7 +3236,7 @@ namespace
                         debug_name.pNext = nullptr;
                         debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
                         debug_name.objectHandle = reinterpret_cast<uint64_t>(frame_datas[i].scene_buffer.scene_buffer.
-                            buffer);
+                                                                                            buffer);
                         debug_name.pObjectName = object_name.c_str();
                         if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                         {
@@ -3313,7 +3313,7 @@ namespace
                         debug_name.pNext = nullptr;
                         debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
                         debug_name.objectHandle = reinterpret_cast<uint64_t>(debug_draws_buffer.debug_draws_buffer.
-                            buffer);
+                                                                                                buffer);
                         debug_name.pObjectName = "rosy debug draws buffer";
                         if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                         {
@@ -3569,6 +3569,76 @@ namespace
 
         result set_asset(const rosy_packager::asset& a)
         {
+            {
+                // Clear any existing asset resources
+
+                if (graphics_created_bitmask & graphics_created_bit_device)
+                {
+                    if (const VkResult res = vkDeviceWaitIdle(device); res != VK_SUCCESS)
+                    {
+                        l->error(std::format("Failed to wait device to be idle to reset asset: {}",
+                                             static_cast<uint8_t>(res)));
+                        return result::error;
+                    }
+                }
+
+                for (const VkSampler& sampler : samplers)
+                {
+                    vkDestroySampler(device, sampler, nullptr);
+                }
+                samplers.clear();
+                for (const VkImageView& image_view : image_views)
+                {
+                    vkDestroyImageView(device, image_view, nullptr);
+                }
+                image_views.clear();
+                for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
+                {
+                    if (gfx_created_bitmask & graphics_created_bit_ktx_image)
+                    {
+                        ktxTexture_Destroy(ktx_texture);
+                    }
+                    if (gfx_created_bitmask & graphics_created_bit_ktx_texture)
+                    {
+                        ktxVulkanTexture_Destruct(&ktx_vk_texture, device, nullptr);
+                    }
+                }
+                ktx_textures.clear();
+
+                if (graphics_created_bitmask & graphics_created_bit_index_buffer)
+                {
+                    vmaDestroyBuffer(allocator, index_buffer.buffer, index_buffer.allocation);
+                    graphics_created_bitmask &= ~graphics_created_bit_index_buffer;
+                }
+
+                if (graphics_created_bitmask & graphics_created_bit_vertex_buffer)
+                {
+                    vmaDestroyBuffer(allocator, vertex_buffer.buffer, vertex_buffer.allocation);
+                    graphics_created_bitmask &= ~graphics_created_bit_vertex_buffer;
+                }
+
+                if (graphics_created_bitmask & graphics_created_bit_materials_buffer)
+                {
+                    vmaDestroyBuffer(allocator, material_buffer.material_buffer.buffer,
+                                     material_buffer.material_buffer.allocation);
+                    graphics_created_bitmask &= ~graphics_created_bit_materials_buffer;
+                }
+
+                if (graphics_created_bitmask & graphics_created_bit_pipeline_layout)
+                {
+                    vkDestroyPipelineLayout(device, scene_layout, nullptr);
+                    graphics_created_bitmask &= ~graphics_created_bit_pipeline_layout;
+                }
+
+                if (graphics_created_bitmask & graphics_created_bit_shaders)
+                {
+                    for (const VkShaderEXT shader : scene_shaders)
+                    {
+                        vkDestroyShaderEXT(device, shader, nullptr);
+                    }
+                    graphics_created_bitmask &= ~graphics_created_bit_shaders;
+                }
+            }
             // *** SETTING IMAGES *** //
             std::vector<uint32_t> color_image_sampler_desc_index;
             for (const auto& img : a.images)
@@ -3831,7 +3901,7 @@ namespace
                             debug_name.pNext = nullptr;
                             debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
                             debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.
-                                buffer);
+                                                                                                 buffer);
                             debug_name.pObjectName = "rosy material buffer";
                             if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res !=
                                 VK_SUCCESS)
@@ -4366,6 +4436,20 @@ namespace
             opaque_graphics.clear();
             blended_graphics.clear();
 
+            {
+                // Clear any previously uploaded graphic object buffers
+
+
+                for (const frame_data fd : frame_datas)
+                {
+                    ;
+                    if (fd.frame_graphics_created_bitmask & graphics_created_bit_graphics_buffer)
+                    {
+                        vmaDestroyBuffer(allocator, fd.graphic_objects_buffer.go_buffer.buffer, fd.graphic_objects_buffer.go_buffer.allocation);
+                    }
+                }
+            }
+
             std::vector<graphic_object_data> go_data{};
             go_data.reserve(graphics_objects.size());
             for (const auto& go : graphics_objects)
@@ -4409,9 +4493,9 @@ namespace
 
                         if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info,
                                                                  &frame_datas[i].graphic_objects_buffer.go_buffer.
-                                                                 buffer,
+                                                                                 buffer,
                                                                  &frame_datas[i].graphic_objects_buffer.go_buffer.
-                                                                 allocation,
+                                                                                 allocation,
                                                                  &frame_datas[i].graphic_objects_buffer.go_buffer.info);
                             res != VK_SUCCESS)
                         {
@@ -4425,8 +4509,7 @@ namespace
                             debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
                             debug_name.pNext = nullptr;
                             debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-                            debug_name.objectHandle = reinterpret_cast<uint64_t>(frame_datas[i].graphic_objects_buffer.
-                                go_buffer.buffer);
+                            debug_name.objectHandle = reinterpret_cast<uint64_t>(frame_datas[i].graphic_objects_buffer.go_buffer.buffer);
                             debug_name.pObjectName = object_name.c_str();
                             if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res !=
                                 VK_SUCCESS)
@@ -4461,8 +4544,7 @@ namespace
                         vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
                             VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
-                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info,
-                                                                 &staging.buffer, &staging.allocation,
+                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &staging.buffer, &staging.allocation,
                                                                  &staging.info); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error creating graphics objects staging buffer: {}",
@@ -4581,7 +4663,7 @@ namespace
             return result::ok;
         }
 
-        void set_wls(write_level_state* wls)
+        void set_wls(write_level_state* wls) const
         {
             du->wls = wls;
         }
@@ -5727,6 +5809,7 @@ namespace
             {
                 // Set dual read/write states
                 du->wls->game_camera_yaw = rls->game_camera_yaw;
+                du->wls->editor_commands.commands.clear();
             }
             ImGuiWindowFlags window_flags{0};
             window_flags |= ImGuiWindowFlags_NoCollapse;
@@ -5735,14 +5818,14 @@ namespace
                 if (constexpr ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None; ImGui::BeginTabBar(
                     "ViewEdit", tab_bar_flags))
                 {
-                    graphics_data gd{};
+                    graphics_data gd;
                     gd.camera_position = scene_data.camera_position;
                     gd.sunlight = scene_data.sunlight;
                     gd.shadow_mage_img_id = reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near);
                     du->graphics_debug_ui(eng_stats, stats, gd, rls);
                     du->assets_debug_ui(rls);
                 }
-                ImGui::EndTabBar(); 
+                ImGui::EndTabBar();
             }
             ImGui::End();
             {
