@@ -174,7 +174,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip tangent z", &wls->light.flip_light_z);
+                ImGui::Checkbox("Flip tangent z", &wls->light.flip_tangent_z);
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
 

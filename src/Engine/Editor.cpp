@@ -174,6 +174,7 @@ result editor::init(log* new_log, [[maybe_unused]] config new_cfg)
 void editor::deinit()
 {
     em->deinit();
+    delete em;
     em = nullptr;
 }
 
