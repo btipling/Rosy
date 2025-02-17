@@ -27,6 +27,7 @@ project "Engine"
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/imgui/" }
     includedirs { "libs/tracy/" }
+    includedirs { "libs/" }
     includedirs { "libs/KTX-Software/include/" }
     includedirs { "libs/flecs/include/" }
 

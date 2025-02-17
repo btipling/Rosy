@@ -3,10 +3,48 @@
 #include <cassert>
 #include <filesystem>
 #include <queue>
-
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include "../Packager/Asset.h"
 
+using json = nlohmann::json;
 using namespace rosy;
+
+struct level_data_model
+{
+    std::string id;
+    std::string name;
+    std::array<float, 3> location;
+    float yaw;
+};
+
+void to_json(json& j, const level_data_model& model)
+{
+    j = json{{"id", model.id}, {"name", model.name}, {"location", model.location}, {"yaw", model.yaw}};
+}
+
+void from_json(const json& j, level_data_model& p)
+{
+    j.at("id").get_to(p.id);
+    j.at("name").get_to(p.name);
+    j.at("location").get_to(p.location);
+    j.at("yaw").get_to(p.yaw);
+}
+
+struct level_data
+{
+    std::vector<level_data_model> models;
+};
+
+void to_json(json& j, const level_data& l)
+{
+    j = json{{"models", l.models}};
+}
+
+void from_json(const json& j, level_data& l)
+{
+    j.at("models").get_to(l.models);
+}
 
 namespace
 {
@@ -38,6 +76,48 @@ namespace
             }
         }
 
+        result write()
+        {
+            level_data_model m1;
+            m1.id = "some_file/path.rsy:foo:bar";
+            m1.name = "some_model";
+            m1.location = {0.f, 0.f, 0.f};
+            m1.yaw = 180.f;
+
+
+            level_data_model m2;
+            m2.id = "some_file/path.rsy:bar:foo";
+            m2.name = "some_other_model";
+            m2.location = {1.f, 0.f, 1.f};
+            m2.yaw = 32;
+
+            level_data ld;
+            ld.models.push_back(m1);
+            ld.models.push_back(m2);
+
+            std::ofstream o("level1.json");
+            json j;
+            to_json(j, ld);
+            o << std::setw(4) << j << '\n';
+            return result::ok;
+        }
+
+        result read()
+        {
+            std::ifstream i("level1.json");
+            json j;
+            i >> j;
+
+            level_data ld;
+            from_json(j, ld);
+
+            for (const auto& m : ld.models)
+            {
+                l->info(std::format("id: {} name: {} location: ({:.3f}, {:.3f}, {:.3f}) yaw: {:.3f}", m.id, m.name, m.location[0], m.location[1], m.location[2], m.yaw));
+            }
+            return result::ok;
+        }
+
         result process(const level_editor_commands& commands, level_editor_state* state)
         {
             state->new_asset = nullptr;
@@ -61,6 +141,14 @@ namespace
                             }
                         }
                         l->warn(std::format("editor-command: attempted to load an unknown asset {}", cmd.load_asset.id));
+                        break;
+                    case editor_command::editor_command_type::write_level:
+                        l->info("editor-command: saving level.");
+                        write();
+                        break;
+                    case editor_command::editor_command_type::read_level:
+                        l->info("editor-command: loading level.");
+                        read();
                         break;
                     }
                 }
@@ -173,6 +261,7 @@ namespace
 
     editor_manager* em{nullptr};
 }
+
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
 result editor::init(log* new_log, [[maybe_unused]] config new_cfg)

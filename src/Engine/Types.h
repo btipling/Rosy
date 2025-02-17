@@ -194,6 +194,8 @@ namespace rosy
         {
             no_command,
             load_asset,
+            write_level,
+            read_level,
         };
 
         editor_command_type command_type{editor_command_type::no_command};

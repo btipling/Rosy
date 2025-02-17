@@ -348,6 +348,21 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
 {
     if (ImGui::BeginTabItem("Assets"))
     {
+        if (ImGui::Button("Save Level", button_dims))
+        {
+            const editor_command cmd_desc{
+                .command_type = editor_command::editor_command_type::write_level,
+            };
+            wls->editor_commands.commands.push_back(cmd_desc);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Load Level", button_dims))
+        {
+            const editor_command cmd_desc{
+                .command_type = editor_command::editor_command_type::read_level,
+            };
+            wls->editor_commands.commands.push_back(cmd_desc);
+        }
         if (ImGui::BeginListBox("##AssetsList"))
         {
             size_t index{0};
