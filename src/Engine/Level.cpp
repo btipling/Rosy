@@ -288,6 +288,12 @@ namespace
             {
                 ecs_delete(world, gnr.entity);
             }
+            if (level_game_node != nullptr)
+            {
+                level_game_node->deinit();
+                delete level_game_node;
+                level_game_node = nullptr;
+            }
             if (ecs_is_alive(world, level_entity))
             {
                 ecs_delete(world, level_entity);
@@ -315,12 +321,45 @@ namespace
                 delete free_cam;
                 free_cam = nullptr;
             }
-            if (level_game_node != nullptr)
+        }
+
+        [[nodiscard]] result reset_world()
+        {
+            rosy_reference = {};
+            for (const game_node_reference& gnr : game_nodes)
             {
-                level_game_node->deinit();
-                delete level_game_node;
-                level_game_node = nullptr;
+                ecs_delete(world, gnr.entity);
             }
+            {
+                // Clear existing game nodes
+                for (node* n : level_game_node->children) n->deinit();
+                level_game_node->children.clear();
+            }
+            if (ecs_is_alive(world, level_entity))
+            {
+                ecs_delete(world, level_entity);
+                assert(!ecs_is_alive(world, level_entity));
+            }
+            if (world != nullptr)
+            {
+                ecs_fini(world);
+            }
+            world = ecs_init();
+            if (world == nullptr)
+            {
+                l->error("flecs world init failed");
+                return result::error;
+            }
+            level_entity = ecs_new(world);
+            assert(ecs_is_alive(world, level_entity));
+
+            ecs_set_target_fps(world, initial_fps_target);
+
+            init_components();
+            init_tags();
+            init_systems();
+
+            return result::ok;
         }
 
         void init_components() const
@@ -541,7 +580,7 @@ namespace
                 {
                     rls->game_camera_yaw = wls->game_camera_yaw;
                     const auto mbe = reinterpret_cast<const SDL_MouseWheelEvent&>(event);
-                    float direction = mbe.direction == SDL_MOUSEWHEEL_NORMAL ? 1.f : -1.f;
+                    const float direction = mbe.direction == SDL_MOUSEWHEEL_NORMAL ? 1.f : -1.f;
                     float new_yaw = rls->game_camera_yaw + mbe.y / 25.f * direction;
                     if (new_yaw < 0.f) new_yaw += glm::pi<float>() * 2;
                     if (new_yaw >= glm::pi<float>() * 2) new_yaw -= glm::pi<float>() * 2;
@@ -604,6 +643,11 @@ namespace
 
         result set_asset(const rosy_packager::asset& new_asset)
         {
+            if (const result res = reset_world(); res != result::ok)
+            {
+                l->error("error resetting world in set_asset");
+                return res;
+            }
             // Traverse the assets to construct the scene graph and track important game play entities.
             rls->go_update.full_scene.clear();
             const size_t root_scene_index = static_cast<size_t>(new_asset.root_scene);
@@ -612,11 +656,6 @@ namespace
             const auto& scene = new_asset.scenes[root_scene_index];
             if (scene.nodes.empty()) return result::invalid_argument;
 
-            {
-                // Clear existing game nodes
-                for (node* n : level_game_node->children) n->deinit();
-                level_game_node->children.clear();
-            }
             {
                 // Reset state
                 while (!queue.empty()) queue.pop();

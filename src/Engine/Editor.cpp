@@ -51,7 +51,16 @@ namespace
                         l->info("editor-command: no_command command detected.");
                         break;
                     case editor_command::editor_command_type::load_asset:
-                        l->info("editor-command: load_asset command detected.");
+                        l->info(std::format("editor-command: load_asset command detected for id: {}", cmd.load_asset.id));
+                        for (const auto& a : assets)
+                        {
+                            if (a.id == cmd.load_asset.id)
+                            {
+                                state->new_asset = a.asset;
+                                return result::ok;
+                            }
+                        }
+                        l->warn(std::format("editor-command: attempted to load an unknown asset {}", cmd.load_asset.id));
                         break;
                     }
                 }

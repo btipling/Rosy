@@ -3623,6 +3623,21 @@ namespace
                                      material_buffer.material_buffer.allocation);
                     graphics_created_bitmask &= ~graphics_created_bit_materials_buffer;
                 }
+
+                if (graphics_created_bitmask & graphics_created_bit_pipeline_layout)
+                {
+                    vkDestroyPipelineLayout(device, scene_layout, nullptr);
+                    graphics_created_bitmask &= ~graphics_created_bit_pipeline_layout;
+                }
+
+                if (graphics_created_bitmask & graphics_created_bit_shaders)
+                {
+                    for (const VkShaderEXT shader : scene_shaders)
+                    {
+                        vkDestroyShaderEXT(device, shader, nullptr);
+                    }
+                    graphics_created_bitmask &= ~graphics_created_bit_shaders;
+                }
             }
             // *** SETTING IMAGES *** //
             std::vector<uint32_t> color_image_sampler_desc_index;
