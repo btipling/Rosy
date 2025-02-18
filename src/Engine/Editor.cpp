@@ -337,7 +337,7 @@ namespace
         result load_level_asset()
         {
             // This constructs a new asset from the pieces of other assets as defined in the level json file.
-            // Meshes, samplers, images, nodes, materials all have to be reindexed so all indexes are pointing to the correct items
+            // Meshes, samplers, images, nodes, materials all have to be re-indexed so all indexes are pointing to the correct items
             // they were in the original asset.
             level_asset_builder lab{};
             level_asset = {};
@@ -357,7 +357,7 @@ namespace
 
                 // This code starts by creating an asset helper to track all the reindexing.
                 const std::string asset_id = md.id.substr(0, md.id.find(':'));
-                bool found_asset{ false };
+                bool found_asset{false};
                 for (const auto& asset_helper : lab.assets)
                 {
                     // Determine if we have previously added an asset helper for this models origin asset.
@@ -375,7 +375,7 @@ namespace
                     level_asset_builder_source_asset_helper asset_helper{};
                     asset_helper.asset_id = asset_id;
                     // Find the origin assets index in the list of assets
-                    bool found_asset_index{ false };
+                    bool found_asset_index{false};
                     for (const rosy_packager::asset* a : origin_assets)
                     {
                         if (a->asset_path == asset_id)
@@ -386,7 +386,11 @@ namespace
                         asset_helper.rosy_package_asset_index += 1;
                     }
                     lab.assets.push_back(asset_helper);
-                    assert(found_asset_index); // The asset must be found in the origin assets.
+                    if (!found_asset_index)
+                    {
+                        l->error(std::format("The asset must be found in the origin assets for a model. {}", md.id));
+                        return result::error;
+                    }
                     l->info(std::format("added asset helper with id {} and index {}", asset_id, asset_helper.rosy_package_asset_index));
                 }
                 {
@@ -402,22 +406,22 @@ namespace
                         const std::string model_name = id_parts.substr(0, id_parts.find(':'));
                         if (model_name.empty())
                         {
-                            l->info("model_name empty");
-                            break;
+                            l->error(std::format("model_name empty this means an empty node name or invalid path is detected. Examine the asset. {}", md.id));
+                            return result::error;
                         }
                         l->info(std::format("found model name: `{}`", model_name));
                         id_parts = id_parts.substr(model_name.size() + 1);
                         if (id_parts.empty())
                         {
-                            l->info("id parts empty");
-                            break;
+                            l->error(std::format("id parts empty this means an empty node name or invalid path is detected. Examine the asset. {}", md.id));
+                            return result::error;
                         }
                     }
                     {
                         // The parts left should be the model's node name in its origin asset, now find the models node index in its origin asset.
                         l->info(std::format("id parts left: {}", id_parts));
                         model_node_name = id_parts;
-                        size_t node_index{ 0 };
+                        size_t node_index{0};
                         for (const rosy_packager::node& n : a->nodes)
                         {
                             if (auto node_name = std::string(n.name.begin(), n.name.end()); model_node_name == node_name)
@@ -427,9 +431,10 @@ namespace
                             }
                             node_index += 1;
                         }
+                        // The node's index and the index of all child nodes all the way down the graph need to be added to the new level asset and re-indexed.
+                        // TODO: ^^^ this
                     }
                 }
-                
             }
 
             return result::ok;
