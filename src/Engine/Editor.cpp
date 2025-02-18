@@ -10,48 +10,51 @@
 using json = nlohmann::json;
 using namespace rosy;
 
-struct level_data_model
+namespace rosy_editor
 {
-    std::string id{};
-    std::string name{};
-    std::array<float, 3> location{};
-    float yaw{0.f};
-    uint32_t model_type{0};
-};
-
-void to_json(json& j, const level_data_model& model)
-{
-    j = json{
-        {"id", model.id},
-        {"name", model.name},
-        {"location", model.location},
-        {"yaw", model.yaw},
-        { "model_type", model.model_type },
+    struct level_data_model
+    {
+        std::string id{};
+        std::string name{};
+        std::array<float, 3> location{};
+        float yaw{0.f};
+        uint32_t model_type{0};
     };
-}
 
-void from_json(const json& j, level_data_model& p)
-{
-    j.at("id").get_to(p.id);
-    j.at("name").get_to(p.name);
-    j.at("location").get_to(p.location);
-    j.at("yaw").get_to(p.yaw);
-    j.at("model_type").get_to(p.model_type);
-}
+    struct level_data
+    {
+        std::vector<level_data_model> models;
+    };
 
-struct level_data
-{
-    std::vector<level_data_model> models;
-};
+    void to_json(json& j, const level_data_model& model)
+    {
+        j = json{
+            {"id", model.id},
+            {"name", model.name},
+            {"location", model.location},
+            {"yaw", model.yaw},
+            {"model_type", model.model_type},
+        };
+    }
 
-void to_json(json& j, const level_data& l)
-{
-    j = json{{"models", l.models}};
-}
+    void from_json(const json& j, level_data_model& p)
+    {
+        j.at("id").get_to(p.id);
+        j.at("name").get_to(p.name);
+        j.at("location").get_to(p.location);
+        j.at("yaw").get_to(p.yaw);
+        j.at("model_type").get_to(p.model_type);
+    }
 
-void from_json(const json& j, level_data& l)
-{
-    j.at("models").get_to(l.models);
+    void to_json(json& j, const level_data& l)
+    {
+        j = json{{"models", l.models}};
+    }
+
+    void from_json(const json& j, level_data& l)
+    {
+        j.at("models").get_to(l.models);
+    }
 }
 
 namespace
@@ -66,7 +69,7 @@ namespace
     {
         rosy::log* l{nullptr};
         std::vector<asset_description> assets;
-        level_data ld;
+        rosy_editor::level_data ld;
 
         result init(rosy::log* new_log)
         {
@@ -85,7 +88,7 @@ namespace
             }
         }
 
-        result add_model(std::string id, editor_command::model_type type)
+        [[nodiscard]] result add_model(std::string id, editor_command::model_type type)
         {
             for (const auto& a : assets)
             {
@@ -97,7 +100,7 @@ namespace
                     {
                         if (asset_model.id == id)
                         {
-                            level_data_model md;
+                            rosy_editor::level_data_model md;
                             md.id = asset_model.id;
                             md.name = asset_model.name;
                             md.location = asset_model.location;
@@ -108,7 +111,8 @@ namespace
                         }
                         l->info(std::format("add_model: model id {} does not match {}", asset_model.id, id));
                     }
-                } else
+                }
+                else
                 {
                     l->info(std::format("add_model: asset id {} is not a prefix of id: {}", a.id, id));
                 }
@@ -117,10 +121,10 @@ namespace
             return result::ok;
         }
 
-        result remove_model(const std::string& id)
+        [[nodiscard]] result remove_model(const std::string& id)
         {
-            bool found{ false };
-            size_t index{ 0 };
+            bool found{false};
+            size_t index{0};
             for (const auto& md : ld.models)
             {
                 if (md.id == id)
@@ -131,35 +135,53 @@ namespace
                 index += 1;
             }
             if (!found) return result::ok;
-            ld.models.erase(ld.models.begin() + index);
+            ld.models.erase(ld.models.begin() + static_cast<uint64_t>(index));
             return result::ok;
         }
 
-        result write()
+        [[nodiscard]] result write() const
         {
-
- /*           level_data_model m2;
-            m2.id = "some_file/path.rsy:bar:foo";
-            m2.name = "some_other_model";
-            m2.location = {1.f, 0.f, 1.f};
-            m2.yaw = 32;*/
-
-
-            std::ofstream o("level1.json");
-            json j;
-            to_json(j, ld);
-            o << std::setw(4) << j << '\n';
+            try
+            {
+                std::ofstream o("level1.json");
+                json j;
+                to_json(j, ld);
+                o << std::setw(4) << j << '\n';
+            }
+            catch (std::exception& e)
+            {
+                l->error(std::format("error writing level {}", e.what()));
+                return result::error;
+            }
+            catch (...)
+            {
+                l->error("error unknown exception writing level");
+                return result::error;
+            }
             return result::ok;
         }
 
-        result read()
+        [[nodiscard]] result read()
         {
-            std::ifstream i("level1.json");
-            json j;
-            i >> j;
+            try
+            {
+                std::ifstream i("level1.json");
+                json j;
+                i >> j;
 
-            ld = {};
-            from_json(j, ld);
+                ld = {};
+                from_json(j, ld);
+            }
+            catch (std::exception& e)
+            {
+                l->error(std::format("error reading level {}", e.what()));
+                return result::error;
+            }
+            catch (...)
+            {
+                l->error("error unknown exception reading level");
+                return result::error;
+            }
 
             for (const auto& m : ld.models)
             {
@@ -168,7 +190,7 @@ namespace
             return result::ok;
         }
 
-        result process(const level_editor_commands& commands, level_editor_state* state)
+        [[nodiscard]] result process(const level_editor_commands& commands, level_editor_state* state)
         {
             state->new_asset = nullptr;
             if (!assets.empty())
@@ -194,20 +216,54 @@ namespace
                         break;
                     case editor_command::editor_command_type::write_level:
                         l->info("editor-command: saving level.");
-                        write();
+                        if (const auto res = write(); res != result::ok)
+                        {
+                            l->error(std::format("error writing level file {}", static_cast<uint8_t>(res)));
+                            return res;
+                        }
                         break;
                     case editor_command::editor_command_type::read_level:
                         l->info("editor-command: loading level.");
-                        read();
+                        if (const auto res = read(); res != result::ok)
+                        {
+                            l->error(std::format("error writing level file {}", static_cast<uint8_t>(res)));
+                            return res;
+                        }
                         break;
                     case editor_command::editor_command_type::add_to_level:
                         l->info("editor-command: adding to level.");
-                        add_model(cmd.id, cmd.mode_type_option);
+                        if (const auto res = add_model(cmd.id, cmd.mode_type_option); res != result::ok)
+                        {
+                            l->error(std::format("error adding model to level {}", static_cast<uint8_t>(res)));
+                            return res;
+                        }
                         break;
                     case editor_command::editor_command_type::remove_from_level:
                         l->info("editor-command: removing from level.");
-                        remove_model(cmd.id);
+                        if (const auto res = remove_model(cmd.id); res != result::ok)
+                        {
+                            l->error(std::format("error removing model from level {}", static_cast<uint8_t>(res)));
+                            return res;
+                        }
                         break;
+                    }
+                }
+                if (!commands.commands.empty()) {
+                    // Update update state
+                    state->current_level_data.static_models.clear();
+                    state->current_level_data.mob_models.clear();
+                    for (const auto& md : ld.models)
+                    {
+                        const auto model_type = static_cast<editor_command::model_type>(md.model_type);
+                        level_data_model new_md = {.id = md.id, .name = md.name, .location = md.location, .yaw = md.yaw, .model_type = model_type};
+                        if (model_type == editor_command::model_type::mob_model)
+                        {
+                            state->current_level_data.mob_models.push_back(new_md);
+                        }
+                        if (model_type == editor_command::model_type::static_model)
+                        {
+                            state->current_level_data.static_models.push_back(new_md);
+                        }
                     }
                 }
                 return result::ok;
@@ -217,7 +273,25 @@ namespace
                 l->error("Failed to load asset");
                 return res;
             }
-            state->assets = assets;
+            {
+                // Update post init state
+                state->assets = assets;
+                state->current_level_data.static_models.clear();
+                state->current_level_data.mob_models.clear();
+                for (const auto& md : ld.models)
+                {
+                    const auto model_type = static_cast<editor_command::model_type>(md.model_type);
+                    level_data_model new_md = {.id = md.id, .name = md.name, .location = md.location, .yaw = md.yaw, .model_type = model_type};
+                    if (model_type == editor_command::model_type::static_model)
+                    {
+                        state->current_level_data.mob_models.push_back(new_md);
+                    }
+                    if (model_type == editor_command::model_type::static_model)
+                    {
+                        state->current_level_data.static_models.push_back(new_md);
+                    }
+                }
+            }
             return result::ok;
         }
 

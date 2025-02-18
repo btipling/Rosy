@@ -381,6 +381,87 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
         }
         if (rls->editor_state.assets.size() > selected_asset)
         {
+            if (ImGui::CollapsingHeader("Level Details", &asset_details))
+            {
+                if (ImGui::CollapsingHeader("Mobs", &asset_details))
+                {
+                    if (ImGui::BeginTable("##Mobs", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                    {
+                        for (const auto& md : rls->editor_state.current_level_data.mob_models)
+                        {
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("id");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%s", md.id.c_str());
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("name");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%s", md.name.c_str());
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("location");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("(%.3f, %.3f, %.3f)", md.location[0], md.location[1], md.location[2]);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("yaw");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%.3f", md.yaw);
+                        }
+                        ImGui::EndTable();
+                    }
+                }
+                if (ImGui::CollapsingHeader("Static", &asset_details))
+                {
+                    if (ImGui::BeginTable("##Static", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                    {
+                        for (const auto& md : rls->editor_state.current_level_data.static_models)
+                        {
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("id");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%s", md.id.c_str());
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("name");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%s", md.name.c_str());
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("location");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("(%.3f, %.3f, %.3f)", md.location[0], md.location[1], md.location[2]);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("yaw");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%.3f", md.yaw);
+                        }
+                        ImGui::EndTable();
+                    }
+                }
+            }
             if (ImGui::CollapsingHeader("Asset Details", &asset_details))
             {
                 if (ImGui::BeginTable("##AssetDetails", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))

@@ -206,6 +206,21 @@ namespace rosy
         std::string id{};
     };
 
+    struct level_data_model
+    {
+        std::string id{};
+        std::string name{};
+        std::array<float, 3> location{};
+        float yaw{ 0.f };
+        editor_command::model_type model_type{ editor_command::model_type::no_model };
+    };
+
+    struct level_data
+    {
+        std::vector<level_data_model> mob_models;
+        std::vector<level_data_model> static_models;
+    };
+
     struct level_editor_commands
     {
         std::vector<editor_command> commands;
@@ -231,6 +246,7 @@ namespace rosy
     {
         std::vector<asset_description> assets;
         const void* new_asset{nullptr};
+        level_data current_level_data{};
     };
 
     struct read_level_state
