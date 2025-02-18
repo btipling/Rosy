@@ -74,6 +74,7 @@ namespace
     struct level_asset_builder_source_asset_helper
     {
         std::string asset_id{};
+        size_t rosy_package_asset_index{0};
         std::vector<std::string> model_ids;
         std::vector<std::string> mob_model_ids;
         std::vector<std::string> static_model_ids;
@@ -93,7 +94,8 @@ namespace
     {
         rosy::log* l{nullptr};
         rosy_packager::asset level_asset;
-        std::vector<asset_description> assets;
+        std::vector<rosy_packager::asset*> origin_assets;
+        std::vector<asset_description> asset_descriptions;
         rosy_editor::level_data ld;
 
         result init(rosy::log* new_log)
@@ -105,7 +107,7 @@ namespace
         void deinit()
         {
             l = nullptr;
-            for (asset_description& desc : assets)
+            for (asset_description& desc : asset_descriptions)
             {
                 const auto a = static_cast<const rosy_packager::asset*>(desc.asset);
                 delete a;
@@ -115,7 +117,7 @@ namespace
 
         [[nodiscard]] result add_model(std::string id, editor_command::model_type type)
         {
-            for (const auto& a : assets)
+            for (const auto& a : asset_descriptions)
             {
                 if (a.id.size() >= id.size()) continue;
                 if (std::equal(a.id.begin(), a.id.end(), id.begin(), id.begin() + static_cast<uint64_t>(a.id.size())))
@@ -218,7 +220,7 @@ namespace
         [[nodiscard]] result process(const level_editor_commands& commands, level_editor_state* state)
         {
             state->new_asset = nullptr;
-            if (!assets.empty())
+            if (!asset_descriptions.empty())
             {
                 for (const auto& cmd : commands.commands)
                 {
@@ -229,7 +231,7 @@ namespace
                         break;
                     case editor_command::editor_command_type::load_asset:
                         l->info(std::format("editor-command: load_asset command detected for id: {}", cmd.id));
-                        for (const auto& a : assets)
+                        for (const auto& a : asset_descriptions)
                         {
                             if (a.id == cmd.id)
                             {
@@ -311,8 +313,8 @@ namespace
             }
             {
                 // Update post init state
-                state->new_asset = assets[0].asset;
-                state->assets = assets;
+                state->new_asset = asset_descriptions[0].asset;
+                state->assets = asset_descriptions;
                 state->current_level_data.static_models.clear();
                 state->current_level_data.mob_models.clear();
                 for (const auto& md : ld.models)
@@ -334,6 +336,9 @@ namespace
 
         result load_level_asset()
         {
+            // This constructs a new asset from the pieces of other assets as defined in the level json file.
+            // Meshes, samplers, images, nodes, materials all have to be reindexed so all indexes are pointing to the correct items
+            // they were in the original asset.
             level_asset_builder lab{};
             level_asset = {};
             rosy_packager::node root_node;
@@ -341,14 +346,21 @@ namespace
             std::ranges::copy(root_name, std::back_inserter(root_node.name));
             level_asset.nodes.push_back(root_node);
 
+            // All the level models are iterated through.
             for (const auto& md : ld.models)
             {
-                size_t asset_helper_index{ 0 };
+                size_t asset_helper_index{0};
                 l->info(std::format("recording level data model with id {}", md.id));
+                // Identify the asset id for the model. model Ids are concatenated with ':' the first part is the asset id, which is its file path.
+                // the subsequent parts are the node hierarchy in the mesh, the only thing needed is the last bit, which is the node name.
+                // Node names must all be unique or this will fail and potentially get the wrong node.
+
+                // This code starts by creating an asset helper to track all the reindexing.
                 const std::string asset_id = md.id.substr(0, md.id.find(':'));
-                bool found_asset{ false };
+                bool found_asset{false};
                 for (const auto& asset_helper : lab.assets)
                 {
+                    // Determine if we have previously added an asset helper for this models origin asset.
                     if (asset_helper.asset_id == asset_id)
                     {
                         l->info(std::format("found asset helper with id {}", asset_id));
@@ -358,11 +370,25 @@ namespace
                 }
                 if (!found_asset)
                 {
+                    // We did not find an asset helper for the origin asset so adding it here.
                     level_asset_builder_source_asset_helper asset_helper{};
                     asset_helper.asset_id = asset_id;
+                    // Find the origin assets index in the list of assets
+                    bool found_asset_index{ false };
+                    for (const rosy_packager::asset* a : origin_assets)
+                    {
+                        if (a->asset_path == asset_id)
+                        {
+                            found_asset_index = true;
+                            break;
+                        }
+                        asset_helper.rosy_package_asset_index += 1;
+                    }
                     lab.assets.push_back(asset_helper);
-                    l->info(std::format("added asset helper with id {}", asset_id));
+                    assert(found_asset_index); // The asset must be found in the origin assets.
+                    l->info(std::format("added asset helper with id {} and index {}", asset_id, asset_helper.rosy_package_asset_index));
                 }
+                // Having an asset helper to work with find this models node name in its origin asset by splitting up the model id until at the end.
                 std::string id_parts = md.id.substr(asset_id.size() + 1);
                 while (id_parts.find(':') != std::string::npos)
                 {
@@ -380,11 +406,32 @@ namespace
                         break;
                     }
                 }
+                // The parts left should be the model's node name in its origin asset, now find the models node index in its origin asset.
                 l->info(std::format("id parts left: {}", id_parts));
             }
 
             return result::ok;
         }
+
+        /*      struct level_asset_builder_index_map
+              {
+                  uint32_t source_index{ 0 };
+                  uint32_t destination_index{ 0 };
+              };
+      
+              struct level_asset_builder_source_asset_helper
+              {
+                  std::string asset_id{};
+                  std::vector<std::string> model_ids;
+                  std::vector<std::string> mob_model_ids;
+                  std::vector<std::string> static_model_ids;
+                  std::vector<level_asset_builder_index_map> sampler_mappings;
+                  std::vector<level_asset_builder_index_map> image_mappings;
+                  std::vector<level_asset_builder_index_map> material_mappings;
+                  std::vector<level_asset_builder_index_map> node_mappings;
+                  std::vector<level_asset_builder_index_map> mesh_mappings;
+              };*/
+
 
         result load_asset([[maybe_unused]] level_editor_state* state)
         {
@@ -427,8 +474,10 @@ namespace
                 desc.id = asset_path.string();
                 desc.name = asset_path.filename().string();
                 desc.asset = static_cast<const void*>(a);
+                origin_assets.push_back(a);
+
                 load_models(desc, a);
-                assets.push_back(desc);
+                asset_descriptions.push_back(desc);
             }
             return result::ok;
         }
