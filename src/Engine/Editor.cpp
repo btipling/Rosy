@@ -65,6 +65,30 @@ namespace
         rosy_packager::node stack_node;
     };
 
+    struct level_asset_builder_index_map
+    {
+        uint32_t source_index{0};
+        uint32_t destination_index{0};
+    };
+
+    struct level_asset_builder_source_asset_helper
+    {
+        std::string asset_id{};
+        std::vector<std::string> model_ids;
+        std::vector<std::string> mob_model_ids;
+        std::vector<std::string> static_model_ids;
+        std::vector<level_asset_builder_index_map> sampler_mappings;
+        std::vector<level_asset_builder_index_map> image_mappings;
+        std::vector<level_asset_builder_index_map> material_mappings;
+        std::vector<level_asset_builder_index_map> node_mappings;
+        std::vector<level_asset_builder_index_map> mesh_mappings;
+    };
+
+    struct level_asset_builder
+    {
+        std::vector<level_asset_builder_source_asset_helper> assets;
+    };
+
     struct editor_manager
     {
         rosy::log* l{nullptr};
@@ -249,7 +273,8 @@ namespace
                         break;
                     }
                 }
-                if (!commands.commands.empty()) {
+                if (!commands.commands.empty())
+                {
                     // Update update state
                     state->current_level_data.static_models.clear();
                     state->current_level_data.mob_models.clear();
@@ -309,11 +334,35 @@ namespace
 
         result load_level_asset()
         {
+            level_asset_builder lab{};
             level_asset = {};
             rosy_packager::node root_node;
             std::string root_name = "Root";
             std::ranges::copy(root_name, std::back_inserter(root_node.name));
             level_asset.nodes.push_back(root_node);
+
+            for (const auto& md : ld.models)
+            {
+                l->info(std::format("recording level data model with id {}", md.id));
+                const std::string asset_id = md.id.substr(0, md.id.find(':'));
+                bool found_asset{ false };
+                for (const auto& asset_helper : lab.assets)
+                {
+                    if (asset_helper.asset_id == asset_id)
+                    {
+                        l->info(std::format("found asset helper with id {}", asset_id));
+                        found_asset = true;
+                    }
+                }
+                if (!found_asset)
+                {
+                    level_asset_builder_source_asset_helper asset_helper{};
+                    asset_helper.asset_id = asset_id;
+                    lab.assets.push_back(asset_helper);
+                    l->info(std::format("added asset helper with id {}", asset_id));
+                }
+            }
+
             return result::ok;
         }
 
