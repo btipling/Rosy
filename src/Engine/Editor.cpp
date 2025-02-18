@@ -68,6 +68,7 @@ namespace
     struct editor_manager
     {
         rosy::log* l{nullptr};
+        rosy_packager::asset level_asset;
         std::vector<asset_description> assets;
         rosy_editor::level_data ld;
 
@@ -278,8 +279,14 @@ namespace
                 l->error("Failed to load asset");
                 return res;
             }
+            if (const result res = load_level_asset(); res != result::ok)
+            {
+                l->error("Failed to load level asset");
+                return res;
+            }
             {
                 // Update post init state
+                state->new_asset = assets[0].asset;
                 state->assets = assets;
                 state->current_level_data.static_models.clear();
                 state->current_level_data.mob_models.clear();
@@ -300,7 +307,17 @@ namespace
             return result::ok;
         }
 
-        result load_asset(level_editor_state* state)
+        result load_level_asset()
+        {
+            level_asset = {};
+            rosy_packager::node root_node;
+            std::string root_name = "Root";
+            std::ranges::copy(root_name, std::back_inserter(root_node.name));
+            level_asset.nodes.push_back(root_node);
+            return result::ok;
+        }
+
+        result load_asset([[maybe_unused]] level_editor_state* state)
         {
             std::array<std::string, 3> asset_paths{
                 R"(..\assets\houdini\exports\Box_002\Box_002.rsy)",
@@ -344,7 +361,6 @@ namespace
                 load_models(desc, a);
                 assets.push_back(desc);
             }
-            state->new_asset = assets[0].asset;
             return result::ok;
         }
 
