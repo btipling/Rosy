@@ -268,6 +268,11 @@ namespace
                 }
                 return result::ok;
             }
+            if (const result res = read(); res != result::ok)
+            {
+                l->error("Failed to read level");
+                return res;
+            }
             if (const result res = load_asset(state); res != result::ok)
             {
                 l->error("Failed to load asset");
