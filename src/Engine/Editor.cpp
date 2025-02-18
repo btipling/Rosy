@@ -349,7 +349,7 @@ namespace
             // All the level models are iterated through.
             for (const auto& md : ld.models)
             {
-                size_t asset_helper_index{0};
+                size_t asset_helper_index{0}; // The index of the asset helper in lab.
                 l->info(std::format("recording level data model with id {}", md.id));
                 // Identify the asset id for the model. model Ids are concatenated with ':' the first part is the asset id, which is its file path.
                 // the subsequent parts are the node hierarchy in the mesh, the only thing needed is the last bit, which is the node name.
@@ -357,7 +357,7 @@ namespace
 
                 // This code starts by creating an asset helper to track all the reindexing.
                 const std::string asset_id = md.id.substr(0, md.id.find(':'));
-                bool found_asset{false};
+                bool found_asset{ false };
                 for (const auto& asset_helper : lab.assets)
                 {
                     // Determine if we have previously added an asset helper for this models origin asset.
@@ -365,6 +365,7 @@ namespace
                     {
                         l->info(std::format("found asset helper with id {}", asset_id));
                         found_asset = true;
+                        break; // break here is important to not increment the asset_helper_index which is needed.
                     }
                     asset_helper_index += 1;
                 }
@@ -388,26 +389,47 @@ namespace
                     assert(found_asset_index); // The asset must be found in the origin assets.
                     l->info(std::format("added asset helper with id {} and index {}", asset_id, asset_helper.rosy_package_asset_index));
                 }
-                // Having an asset helper to work with find this models node name in its origin asset by splitting up the model id until at the end.
-                std::string id_parts = md.id.substr(asset_id.size() + 1);
-                while (id_parts.find(':') != std::string::npos)
                 {
-                    const std::string model_name = id_parts.substr(0, id_parts.find(':'));
-                    if (model_name.empty())
+                    // Keep a ref to the asset helper around and a pointer to the source asset, node name is found below
+                    const level_asset_builder_source_asset_helper& asset_helper = lab.assets[asset_helper_index];
+                    const rosy_packager::asset* a = origin_assets[asset_helper.rosy_package_asset_index];
+                    std::string model_node_name{};
+
+                    // Having an asset helper to work with find this models node name in its origin asset by splitting up the model id until at the end.
+                    std::string id_parts = md.id.substr(asset_id.size() + 1);
+                    while (id_parts.find(':') != std::string::npos)
                     {
-                        l->info("model_name empty");
-                        break;
+                        const std::string model_name = id_parts.substr(0, id_parts.find(':'));
+                        if (model_name.empty())
+                        {
+                            l->info("model_name empty");
+                            break;
+                        }
+                        l->info(std::format("found model name: `{}`", model_name));
+                        id_parts = id_parts.substr(model_name.size() + 1);
+                        if (id_parts.empty())
+                        {
+                            l->info("id parts empty");
+                            break;
+                        }
                     }
-                    l->info(std::format("found model name: `{}`", model_name));
-                    id_parts = id_parts.substr(model_name.size() + 1);
-                    if (id_parts.empty())
                     {
-                        l->info("id parts empty");
-                        break;
+                        // The parts left should be the model's node name in its origin asset, now find the models node index in its origin asset.
+                        l->info(std::format("id parts left: {}", id_parts));
+                        model_node_name = id_parts;
+                        size_t node_index{ 0 };
+                        for (const rosy_packager::node& n : a->nodes)
+                        {
+                            if (auto node_name = std::string(n.name.begin(), n.name.end()); model_node_name == node_name)
+                            {
+                                l->info(std::format("node index for {} in origin asset is: {}", md.id, node_index));
+                                break;
+                            }
+                            node_index += 1;
+                        }
                     }
                 }
-                // The parts left should be the model's node name in its origin asset, now find the models node index in its origin asset.
-                l->info(std::format("id parts left: {}", id_parts));
+                
             }
 
             return result::ok;
