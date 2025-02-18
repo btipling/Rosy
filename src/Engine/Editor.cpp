@@ -296,6 +296,7 @@ namespace
                 }
                 return result::ok;
             }
+            // No assets initial load.
             if (const result res = read(); res != result::ok)
             {
                 l->error("Failed to read level");
@@ -346,6 +347,8 @@ namespace
             std::ranges::copy(root_name, std::back_inserter(root_node.name));
             level_asset.nodes.push_back(root_node);
 
+            // Used to traverse node children
+            std::queue<uint32_t>node_descendants;
             // All the level models are iterated through.
             for (const auto& md : ld.models)
             {
@@ -399,7 +402,7 @@ namespace
                     const rosy_packager::asset* a = origin_assets[asset_helper.rosy_package_asset_index];
                     std::string model_node_name{};
 
-                    // Having an asset helper to work with find this models node name in its origin asset by splitting up the model id until at the end.
+                    // Having an asset helper to work with, find this models node name in its origin asset by splitting up the model id until at the end.
                     std::string id_parts = md.id.substr(asset_id.size() + 1);
                     while (id_parts.find(':') != std::string::npos)
                     {
@@ -433,6 +436,21 @@ namespace
                         }
                         // The node's index and the index of all child nodes all the way down the graph need to be added to the new level asset and re-indexed.
                         // TODO: ^^^ this
+                        {
+                            if (!node_descendants.empty())
+                            {
+                                l->error(std::format("Unexpected descendants left in queue, load level asset is bugged. {}", md.id));
+                                return result::error;
+                            }
+                            node_descendants.push(static_cast<uint32_t>(node_index));
+                        }
+                        while (!node_descendants.empty())
+                        {
+                            uint32_t current_node_index = node_descendants.front();
+                            node_descendants.pop();
+                            l->info(std::format("traversing node {} for {}", current_node_index, md.id));
+                            for (const uint32_t child : a->nodes[current_node_index].child_nodes) node_descendants.push(child);
+                        }
                     }
                 }
             }
