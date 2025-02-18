@@ -348,7 +348,7 @@ namespace
             level_asset.nodes.push_back(root_node);
 
             // Used to traverse node children
-            std::queue<uint32_t>node_descendants;
+            std::queue<uint32_t> node_descendants;
             // All the level models are iterated through.
             for (const auto& md : ld.models)
             {
@@ -398,7 +398,7 @@ namespace
                 }
                 {
                     // Keep a ref to the asset helper around and a pointer to the source asset, node name is found below
-                    const level_asset_builder_source_asset_helper& asset_helper = lab.assets[asset_helper_index];
+                    level_asset_builder_source_asset_helper& asset_helper = lab.assets[asset_helper_index];
                     const rosy_packager::asset* a = origin_assets[asset_helper.rosy_package_asset_index];
                     std::string model_node_name{};
 
@@ -449,6 +449,80 @@ namespace
                             uint32_t current_node_index = node_descendants.front();
                             node_descendants.pop();
                             l->info(std::format("traversing node {} for {}", current_node_index, md.id));
+
+                            uint32_t destination_node_index{0};
+                            {
+                                // See if the node is already in the helper:
+                                bool node_mapped{false};
+                                for (const auto& nm : asset_helper.node_mappings)
+                                {
+                                    if (nm.source_index == current_node_index)
+                                    {
+                                        node_mapped = true;
+                                        break;
+                                    }
+                                }
+                                if (node_mapped)
+                                {
+                                    // This node has been previously mapped.
+                                    continue;
+                                }
+
+                                // It's not, so map it.
+                                destination_node_index = static_cast<uint32_t>(level_asset.nodes.size());
+                                level_asset_builder_index_map nm{
+                                    .source_index = current_node_index,
+                                    .destination_index = destination_node_index,
+                                };
+                                asset_helper.node_mappings.push_back(nm);
+                                rosy_packager::node source_node = a->nodes[current_node_index];
+                                rosy_packager::node new_destination_node{};
+                                new_destination_node.name = source_node.name;
+                                new_destination_node.transform = source_node.transform; // TODO: actually use the translation and yaw from the configured level data.
+                                level_asset.nodes.push_back(new_destination_node);
+                            }
+                            // Get a reference to the destination node to change mesh index. Children have to be fully re-indexed in this queue before they can be remapped.
+                            rosy_packager::node& destination_node = level_asset.nodes[destination_node_index];
+                            {
+                                // All these nodes have to have a mesh. I need to track that still in the asset viewer UI so nodes without meshes don't show up and can't be added to level data.
+                                const uint32_t current_mesh_index = a->nodes[current_node_index].mesh_id;
+                                uint32_t destination_mesh_index{0};
+                                // See if the node's mesh is already in the helper:
+                                bool mesh_mapped{false};
+                                for (const auto& mm : asset_helper.mesh_mappings)
+                                {
+                                    if (mm.source_index == current_mesh_index)
+                                    {
+                                        mesh_mapped = true;
+                                        // This mesh has been previously mapped, so update the destination's node's mesh id to track that.
+                                        destination_mesh_index = mm.destination_index;
+                                        destination_node.mesh_id = destination_mesh_index;
+                                        break;
+                                    }
+                                }
+                                if (!mesh_mapped)
+                                {
+                                    destination_mesh_index = static_cast<uint32_t>(level_asset.meshes.size());
+                                    level_asset_builder_index_map mm{
+                                        .source_index = current_mesh_index,
+                                        .destination_index = destination_mesh_index,
+                                    };
+                                    asset_helper.mesh_mappings.push_back(mm);
+                                    // Add the new destination mesh
+                                    rosy_packager::mesh source_mesh = a->meshes[current_mesh_index];
+                                    rosy_packager::mesh new_destination_mesh{};
+                                    new_destination_mesh.positions = source_mesh.positions;
+                                    new_destination_mesh.indices = source_mesh.indices;
+                                    new_destination_mesh.surfaces = source_mesh.surfaces;
+                                    new_destination_mesh.child_meshes = source_mesh.child_meshes;
+                                    // TODO: remove child meshes, they are not a thing GLTF and I don't want to support the idea
+                                    level_asset.meshes.push_back(new_destination_mesh);
+
+                                    // Traverse child meshes? No.
+                                    // TODO Map all the surfaces, materials images sand samplers
+                                }
+                            }
+
                             for (const uint32_t child : a->nodes[current_node_index].child_nodes) node_descendants.push(child);
                         }
                     }
