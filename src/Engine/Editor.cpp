@@ -422,7 +422,7 @@ namespace
                     }
                     {
                         // The parts left should be the model's node name in its origin asset, now find the models node index in its origin asset.
-                        l->info(std::format("id parts left: {}", id_parts));
+                        l->info(std::format("node name is: {}", id_parts));
                         model_node_name = id_parts;
                         size_t node_index{0};
                         for (const rosy_packager::node& n : a->nodes)
