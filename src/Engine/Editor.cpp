@@ -12,15 +12,22 @@ using namespace rosy;
 
 struct level_data_model
 {
-    std::string id;
-    std::string name;
-    std::array<float, 3> location;
-    float yaw;
+    std::string id{};
+    std::string name{};
+    std::array<float, 3> location{};
+    float yaw{0.f};
+    uint32_t model_type{0};
 };
 
 void to_json(json& j, const level_data_model& model)
 {
-    j = json{{"id", model.id}, {"name", model.name}, {"location", model.location}, {"yaw", model.yaw}};
+    j = json{
+        {"id", model.id},
+        {"name", model.name},
+        {"location", model.location},
+        {"yaw", model.yaw},
+        { "model_type", model.model_type },
+    };
 }
 
 void from_json(const json& j, level_data_model& p)
@@ -29,6 +36,7 @@ void from_json(const json& j, level_data_model& p)
     j.at("name").get_to(p.name);
     j.at("location").get_to(p.location);
     j.at("yaw").get_to(p.yaw);
+    j.at("model_type").get_to(p.model_type);
 }
 
 struct level_data
@@ -77,7 +85,7 @@ namespace
             }
         }
 
-        result add_model(std::string id)
+        result add_model(std::string id, editor_command::model_type type)
         {
             for (const auto& a : assets)
             {
@@ -94,6 +102,7 @@ namespace
                             md.name = asset_model.name;
                             md.location = asset_model.location;
                             md.yaw = asset_model.yaw;
+                            md.model_type = static_cast<uint8_t>(type);
                             ld.models.push_back(md);
                             return result::ok;
                         }
@@ -193,7 +202,7 @@ namespace
                         break;
                     case editor_command::editor_command_type::add_to_level:
                         l->info("editor-command: adding to level.");
-                        add_model(cmd.id);
+                        add_model(cmd.id, cmd.mode_type_option);
                         break;
                     case editor_command::editor_command_type::remove_from_level:
                         l->info("editor-command: removing from level.");

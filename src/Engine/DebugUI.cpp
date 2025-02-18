@@ -468,14 +468,28 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
 
                                 ImGui::TableNextRow();
                                 ImGui::TableNextColumn();
-                                if (ImGui::Button("Add", button_dims))
+                                if (ImGui::Button("Add Mob", button_dims))
                                 {
                                     const editor_command cmd_desc{
                                         .command_type = editor_command::editor_command_type::add_to_level,
+                                        .mode_type_option = editor_command::model_type::mob_model,
                                         .id = m.id,
                                     };
                                     wls->editor_commands.commands.push_back(cmd_desc);
                                 }
+                                ImGui::TableNextColumn();
+                                if (ImGui::Button("Add Static", button_dims))
+                                {
+                                    const editor_command cmd_desc{
+                                        .command_type = editor_command::editor_command_type::add_to_level,
+                                        .mode_type_option = editor_command::model_type::static_model,
+                                        .id = m.id,
+                                    };
+                                    wls->editor_commands.commands.push_back(cmd_desc);
+                                }
+                                ImGui::TableNextColumn();
+
+                                ImGui::TableNextRow();
                                 ImGui::TableNextColumn();
                                 if (ImGui::Button("Remove", button_dims))
                                 {
@@ -485,6 +499,8 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                                     };
                                     wls->editor_commands.commands.push_back(cmd_desc);
                                 }
+                                ImGui::TableNextColumn();
+                                ImGui::Text("");
 
                                 ImGui::EndTable();
                             }

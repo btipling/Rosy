@@ -195,7 +195,14 @@ namespace rosy
             remove_from_level,
         };
 
+        enum class model_type : uint8_t
+        {
+            no_model,
+            mob_model,
+            static_model,
+        };
         editor_command_type command_type{editor_command_type::no_command};
+        model_type mode_type_option{ model_type::no_model };
         std::string id{};
     };
 
