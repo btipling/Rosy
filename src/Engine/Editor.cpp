@@ -343,6 +343,7 @@ namespace
 
             for (const auto& md : ld.models)
             {
+                size_t asset_helper_index{ 0 };
                 l->info(std::format("recording level data model with id {}", md.id));
                 const std::string asset_id = md.id.substr(0, md.id.find(':'));
                 bool found_asset{ false };
@@ -353,6 +354,7 @@ namespace
                         l->info(std::format("found asset helper with id {}", asset_id));
                         found_asset = true;
                     }
+                    asset_helper_index += 1;
                 }
                 if (!found_asset)
                 {
@@ -361,6 +363,24 @@ namespace
                     lab.assets.push_back(asset_helper);
                     l->info(std::format("added asset helper with id {}", asset_id));
                 }
+                std::string id_parts = md.id.substr(asset_id.size() + 1);
+                while (id_parts.find(':') != std::string::npos)
+                {
+                    const std::string model_name = id_parts.substr(0, id_parts.find(':'));
+                    if (model_name.empty())
+                    {
+                        l->info("model_name empty");
+                        break;
+                    }
+                    l->info(std::format("found model name: `{}`", model_name));
+                    id_parts = id_parts.substr(model_name.size() + 1);
+                    if (id_parts.empty())
+                    {
+                        l->info("id parts empty");
+                        break;
+                    }
+                }
+                l->info(std::format("id parts left: {}", id_parts));
             }
 
             return result::ok;
