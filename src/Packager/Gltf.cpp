@@ -76,7 +76,14 @@ rosy::result gltf::import(rosy::log* l)
     {
         l->debug(std::format("Adding image: {}", gltf_image_name));
         image img{};
-        std::ranges::copy(gltf_image_name, std::back_inserter(img.name));
+
+        std::filesystem::path img_path{gltf_asset.asset_path};
+        img_path.replace_filename(std::format("{}.ktx2", gltf_image_name));
+        l->info(std::format("source: {} path: {} name: {}", gltf_asset.asset_path, img_path.string(), gltf_image_name));
+        std::wstring image_path_wide{img_path.c_str()};
+        std::string img_path_staging{img_path.string()};
+
+        std::ranges::copy(img_path_staging, std::back_inserter(img.name));
         gltf_asset.images.push_back(img);
     }
 
@@ -91,7 +98,7 @@ rosy::result gltf::import(rosy::log* l)
                 if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.has_value())
                 {
                     m.color_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().
-                        textureIndex].imageIndex.value());
+                                                                                  textureIndex].imageIndex.value());
                 }
                 else
                 {
@@ -100,7 +107,7 @@ rosy::result gltf::import(rosy::log* l)
                 if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.has_value())
                 {
                     m.color_sampler_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().
-                        textureIndex].samplerIndex.value());
+                                                                                    textureIndex].samplerIndex.value());
                 }
                 else
                 {
