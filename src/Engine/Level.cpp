@@ -523,6 +523,7 @@ namespace
             camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
             if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok)
             {
+                l->error("Error updating camera");
                 return res;
             }
             ecs_progress(world, static_cast<float>(dt));

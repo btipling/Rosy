@@ -314,7 +314,7 @@ namespace
             }
             {
                 // Update post init state
-                state->new_asset = asset_descriptions[0].asset;
+                state->new_asset = true || ld.models.empty() ? asset_descriptions[0].asset : &level_asset;
                 state->assets = asset_descriptions;
                 state->current_level_data.static_models.clear();
                 state->current_level_data.mob_models.clear();
@@ -337,6 +337,7 @@ namespace
 
         result load_level_asset()
         {
+            if (ld.models.empty()) return result::ok;
             // This constructs a new asset from the pieces of other assets as defined in the level json file.
             // Meshes, samplers, images, nodes, materials all have to be re-indexed so all indexes are pointing to the correct items
             // they were in the original asset.
@@ -475,6 +476,7 @@ namespace
                                         .source_index = current_node_index,
                                         .destination_index = destination_node_index,
                                     };
+                                    l->info(std::format("current_node_index mapped to {} destination_index {} in {}", current_node_index, destination_node_index, md.id));
                                     asset_helper.node_mappings.push_back(nm);
                                     rosy_packager::node source_node = a->nodes[current_node_index];
                                     rosy_packager::node new_destination_node{};
@@ -513,6 +515,7 @@ namespace
                                             .source_index = current_mesh_index,
                                             .destination_index = destination_mesh_index,
                                         };
+                                        l->info(std::format("current_mesh_index mapped to {} destination_mesh_index {} in {}", current_mesh_index, destination_mesh_index, md.id));
                                         asset_helper.mesh_mappings.push_back(mm);
                                         // Add the new destination mesh
                                         rosy_packager::mesh source_mesh = a->meshes[current_mesh_index];
@@ -551,6 +554,7 @@ namespace
                                                 .source_index = current_mat_index,
                                                 .destination_index = destination_mat_index,
                                             };
+                                            l->info(std::format("current_mat_index mapped to {} destination_mat_index {} in {}", current_mat_index, destination_mat_index, md.id));
                                             asset_helper.material_mappings.push_back(mat_m);
                                             // Add the new destination mat
                                             rosy_packager::material source_mat = a->materials[current_mat_index];
@@ -591,6 +595,7 @@ namespace
                                                     .source_index = current_image_index,
                                                     .destination_index = destination_image_index,
                                                 };
+                                                l->info(std::format("color_image_index mapped to {} destination_image_index {} in {}", current_image_index, destination_image_index, md.id));
                                                 asset_helper.image_mappings.push_back(img_m);
                                                 rosy_packager::image source_image = a->images[current_image_index];
                                                 rosy_packager::image destination_image{};
@@ -621,6 +626,7 @@ namespace
                                                     .source_index = current_sampler_index,
                                                     .destination_index = destination_sampler_index,
                                                 };
+                                                l->info(std::format("color_sampler_index mapped to {} destination_sampler_index {} in {}", current_sampler_index, destination_sampler_index, md.id));
                                                 asset_helper.sampler_mappings.push_back(img_m);
                                                 rosy_packager::sampler source_sampler = a->samplers[current_sampler_index];
                                                 rosy_packager::sampler destination_sampler{};
@@ -654,6 +660,7 @@ namespace
                                                     .source_index = current_image_index,
                                                     .destination_index = destination_image_index,
                                                 };
+                                                l->info(std::format("normal_image_index mapped to {} destination_image_index {} in {}", current_image_index, destination_image_index, md.id));
                                                 asset_helper.image_mappings.push_back(img_m);
                                                 rosy_packager::image source_image = a->images[current_image_index];
                                                 rosy_packager::image destination_image{};
@@ -683,6 +690,7 @@ namespace
                                                     .source_index = current_sampler_index,
                                                     .destination_index = destination_sampler_index,
                                                 };
+                                                l->info(std::format("normal_sampler_index mapped to {} destination_sampler_index {} in {}", current_sampler_index, destination_sampler_index, md.id));
                                                 asset_helper.sampler_mappings.push_back(img_m);
                                                 rosy_packager::sampler source_sampler = a->samplers[current_sampler_index];
                                                 rosy_packager::sampler destination_sampler{};
@@ -696,36 +704,13 @@ namespace
                                     }
                                 }
                             }
-
                             for (const uint32_t child : a->nodes[current_node_index].child_nodes) node_descendants.push(child);
                         }
                     }
                 }
             }
-
             return result::ok;
         }
-
-        /*      struct level_asset_builder_index_map
-              {
-                  uint32_t source_index{ 0 };
-                  uint32_t destination_index{ 0 };
-              };
-      
-              struct level_asset_builder_source_asset_helper
-              {
-                  std::string asset_id{};
-                  std::vector<std::string> model_ids;
-                  std::vector<std::string> mob_model_ids;
-                  std::vector<std::string> static_model_ids;
-                  std::vector<level_asset_builder_index_map> sampler_mappings;
-                  std::vector<level_asset_builder_index_map> image_mappings;
-                  std::vector<level_asset_builder_index_map> material_mappings;
-
-                  std::vector<level_asset_builder_index_map> node_mappings;
-                  std::vector<level_asset_builder_index_map> mesh_mappings;
-              };*/
-
 
         result load_asset([[maybe_unused]] level_editor_state* state)
         {
@@ -858,7 +843,7 @@ void editor::deinit()
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result editor::process([[maybe_unused]] const level_editor_commands commands,
+result editor::process([[maybe_unused]] const level_editor_commands& commands,
                        [[maybe_unused]] level_editor_state* state)
 {
     return em->process(commands, state);
