@@ -656,13 +656,15 @@ namespace
             // Traverse the assets to construct the scene graph and track important game play entities.
             rls->go_update.full_scene.clear();
             const size_t root_scene_index = static_cast<size_t>(new_asset.root_scene);
-            if (new_asset.scenes.size() <= root_scene_index) {
+            if (new_asset.scenes.size() <= root_scene_index)
+            {
                 l->error(std::format("error new_asset.scenes.size() <= root_scene_index: {} <= {}", new_asset.scenes.size(), root_scene_index));
                 return result::invalid_argument;
             }
 
             const auto& scene = new_asset.scenes[root_scene_index];
-            if (scene.nodes.empty()) {
+            if (scene.nodes.empty())
+            {
                 l->error("error scene.nodes.empty()");
                 return result::invalid_argument;
             }
