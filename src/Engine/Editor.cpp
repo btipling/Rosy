@@ -314,7 +314,7 @@ namespace
             }
             {
                 // Update post init state
-                state->new_asset = true || ld.models.empty() ? asset_descriptions[0].asset : &level_asset;
+                state->new_asset = ld.models.empty() ? asset_descriptions[0].asset : &level_asset;
                 state->assets = asset_descriptions;
                 state->current_level_data.static_models.clear();
                 state->current_level_data.mob_models.clear();
@@ -338,15 +338,53 @@ namespace
         result load_level_asset()
         {
             if (ld.models.empty()) return result::ok;
+            if (origin_assets.empty())
+            {
+                l->error("No origin assets when loading level asset");
+                return result::error;
+            }
             // This constructs a new asset from the pieces of other assets as defined in the level json file.
             // Meshes, samplers, images, nodes, materials all have to be re-indexed so all indexes are pointing to the correct items
             // they were in the original asset.
             level_asset_builder lab{};
             level_asset = {};
-            rosy_packager::node root_node;
+
+            level_asset.shaders = origin_assets[0]->shaders; // Just use the first assets shaders, they're all the same right now.
+            rosy_packager::scene new_scene{};
+            new_scene.nodes.push_back(0); // Root node created below.
+            level_asset.scenes.push_back(new_scene);
+
+            rosy_packager::node root_node{};
+            root_node.transform = {
+                1.f, 0.f, 0.f, 0.f,
+                0.f, 1.f, 0.f, 0.f,
+                0.f, 0.f, 1.f, 0.f,
+                0.f, 0.f, 0.f, 1.f };
             std::string root_name = "Root";
             std::ranges::copy(root_name, std::back_inserter(root_node.name));
             level_asset.nodes.push_back(root_node);
+
+            rosy_packager::node mob_node{};
+            mob_node.transform = {
+                1.f, 0.f, 0.f, 0.f,
+                0.f, 1.f, 0.f, 0.f,
+                0.f, 0.f, 1.f, 0.f,
+                0.f, 0.f, 0.f, 1.f };
+            std::string mob_name = "mobs";
+            std::ranges::copy(mob_name, std::back_inserter(mob_node.name));
+            level_asset.nodes[0].child_nodes.push_back(static_cast<uint32_t>(level_asset.nodes.size()));
+            level_asset.nodes.push_back(mob_node);
+
+            rosy_packager::node static_node{};
+            static_node.transform = {
+                1.f, 0.f, 0.f, 0.f,
+                0.f, 1.f, 0.f, 0.f,
+                0.f, 0.f, 1.f, 0.f,
+                0.f, 0.f, 0.f, 1.f };
+            std::string static_name = "static";
+            std::ranges::copy(static_name, std::back_inserter(static_node.name));
+            level_asset.nodes[0].child_nodes.push_back(static_cast<uint32_t>(level_asset.nodes.size()));
+            level_asset.nodes.push_back(static_node);
 
             // Used to traverse node children
             std::queue<uint32_t> node_descendants;
@@ -436,7 +474,6 @@ namespace
                             node_index += 1;
                         }
                         // The node's index and the index of all child nodes all the way down the graph need to be added to the new level asset and re-indexed.
-                        // TODO: ^^^ this
                         {
                             if (!node_descendants.empty())
                             {
@@ -445,6 +482,7 @@ namespace
                             }
                             node_descendants.push(static_cast<uint32_t>(node_index));
                         }
+                        bool first_node{ true };
                         while (!node_descendants.empty())
                         {
                             uint32_t current_node_index = node_descendants.front();
@@ -460,6 +498,24 @@ namespace
                                     if (nm.source_index == current_node_index)
                                     {
                                         node_mapped = true;
+                                        if (first_node)
+                                        {
+                                            // Even in this case we have seen the node before, add the top level model node to static or mob
+                                            // the same model can be added multiple times.
+                                            switch (static_cast<editor_command::model_type>(md.model_type))
+                                            {
+                                            case editor_command::model_type::no_model:
+                                                l->error(std::format("invalid model type for {}", md.id));
+                                                return result::error;
+                                            case editor_command::model_type::mob_model:
+                                                level_asset.nodes[1].child_nodes.push_back(nm.destination_index);
+                                                break;
+                                            case editor_command::model_type::static_model:
+                                                level_asset.nodes[2].child_nodes.push_back(nm.destination_index);
+                                                break;
+                                            }
+                                            first_node = false;
+                                        }
                                         break;
                                     }
                                 }
@@ -486,6 +542,23 @@ namespace
                                     new_destination_node.mesh_id = UINT32_MAX; // This is remapped below.
                                     level_asset.nodes.push_back(new_destination_node);
                                 }
+                            }
+                            if (first_node)
+                            {
+                                // Add the top level model node to static or mob.
+                                switch (static_cast<editor_command::model_type>(md.model_type))
+                                {
+                                case editor_command::model_type::no_model:
+                                    l->error(std::format("invalid model type for {}", md.id));
+                                    return result::error;
+                                case editor_command::model_type::mob_model:
+                                    level_asset.nodes[1].child_nodes.push_back(destination_node_index);
+                                    break;
+                                case editor_command::model_type::static_model:
+                                    level_asset.nodes[2].child_nodes.push_back(destination_node_index);
+                                    break;
+                                }
+                                first_node = false;
                             }
                             // Get a reference to the destination node to change mesh index. Children have to be fully re-indexed in this queue before they can be remapped.
                             rosy_packager::node& destination_node = level_asset.nodes[destination_node_index];
@@ -518,6 +591,7 @@ namespace
                                             .destination_index = destination_mesh_index,
                                         };
                                         l->info(std::format("current_mesh_index mapped to {} destination_mesh_index {} in {}", current_mesh_index, destination_mesh_index, md.id));
+                                        destination_node.mesh_id = destination_mesh_index;
                                         asset_helper.mesh_mappings.push_back(mm);
                                         // Add the new destination mesh
                                         rosy_packager::mesh source_mesh = a->meshes[current_mesh_index];
