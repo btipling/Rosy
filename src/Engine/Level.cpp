@@ -183,7 +183,6 @@ namespace
 
         // asset to graphics objects
         std::queue<stack_item> queue{};
-        std::queue<uint32_t> mesh_queue{};
 
         node* level_game_node{nullptr};
         // Important game nodes that can be referenced via their graphics object index
@@ -659,7 +658,6 @@ namespace
             {
                 // Reset state
                 while (!queue.empty()) queue.pop();
-                while (!mesh_queue.empty()) mesh_queue.pop();
             }
 
             // Prepopulate the node queue with the root scenes nodes
@@ -722,90 +720,74 @@ namespace
                 // Advance the next item in the node queue
                 if (queue_item.stack_node.mesh_id < new_asset.meshes.size())
                 {
-                    // Each node has a mesh id. Add to mesh queue.
-                    mesh_queue.push(queue_item.stack_node.mesh_id);
+                    // Each node has a mesh id. 
+                    const auto current_mesh_index = queue_item.stack_node.mesh_id;
 
-                    //Advance the next item in the mesh queue. 
-                    while (mesh_queue.size() > 0)
+                    // Get the mesh from the asset using the mesh index
+                    const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
+
+                    // Declare a new graphics object.
+                    graphics_object go{};
+
                     {
-                        // Get mesh index for current mesh in queue and remove from queue.
-                        const auto current_mesh_index = mesh_queue.front();
-                        mesh_queue.pop();
+                        // There are two separate sets of indices to track, one for static graphics objects and one for dynamic "mobs"
+                        go.index = queue_item.is_mob ? go_mob_index : go_static_index;
+                    }
 
-                        // Get the mesh from the asset using the mesh index
-                        const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
+                    {
+                        // Record the assets transforms from the asset
+                        const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
+                        const glm::mat4 normal_transform = glm::transpose(object_space_transform);
+                        go.transform = mat4_to_array(transform);
+                        go.normal_transform = mat4_to_array(normal_transform);
+                        go.object_space_transform = mat4_to_array(object_space_transform);
+                    }
 
-                        // Declare a new graphics object.
-                        graphics_object go{};
-
+                    {
+                        // Each mesh has any number of surfaces that are derived from gltf primitives for example. These are what are given to the renderer to draw.
+                        go.surface_data.reserve(current_mesh.surfaces.size());
+                        for (const auto& surf : current_mesh.surfaces)
                         {
-                            // There are two separate sets of indices to track, one for static graphics objects and one for dynamic "mobs"
-                            go.index = queue_item.is_mob ? go_mob_index : go_static_index;
-                        }
-
-                        {
-                            // Record the assets transforms from the asset
-                            const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
-                            const glm::mat4 normal_transform = glm::transpose(object_space_transform);
-                            go.transform = mat4_to_array(transform);
-                            go.normal_transform = mat4_to_array(normal_transform);
-                            go.object_space_transform = mat4_to_array(object_space_transform);
-                        }
-
-                        {
-                            // Each mesh has any number of surfaces that are derived from gltf primitives for example. These are what are given to the renderer to draw.
-                            go.surface_data.reserve(current_mesh.surfaces.size());
-                            for (const auto& surf : current_mesh.surfaces)
+                            for (size_t i{0}; i < 3; i++)
                             {
-                                for (size_t i{0}; i < 3; i++)
-                                {
-                                    bounds.min[i] = glm::min(surf.min_bounds[i], bounds.min[i]);
-                                    bounds.max[i] = glm::max(surf.max_bounds[i], bounds.max[i]);
-                                }
-                                surface_graphics_data sgd{};
-                                sgd.mesh_index = current_mesh_index;
-                                // The index written to the surface graphic object is critical for pulling its transforms out of the buffer for rendering.
-                                // The two separate indices indicate where renderer's buffer on the GPU its data will live. An offset is used for
-                                // mobs that is equal to the total number of static surface graphic objects as mobs are all at the end of the buffer.
-                                // The go_mob_index is also used to identify individual mobs for game play purposes.
-                                sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
-                                sgd.material_index = surf.material;
-                                sgd.index_count = surf.count;
-                                sgd.start_index = surf.start_index;
-                                if (new_asset.materials.size() > surf.material && new_asset.materials[surf.material].
-                                    alpha_mode
-                                    != 0)
-                                {
-                                    sgd.blended = true;
-                                }
-                                go.surface_data.push_back(sgd);
+                                bounds.min[i] = glm::min(surf.min_bounds[i], bounds.min[i]);
+                                bounds.max[i] = glm::max(surf.max_bounds[i], bounds.max[i]);
                             }
+                            surface_graphics_data sgd{};
+                            sgd.mesh_index = current_mesh_index;
+                            // The index written to the surface graphic object is critical for pulling its transforms out of the buffer for rendering.
+                            // The two separate indices indicate where renderer's buffer on the GPU its data will live. An offset is used for
+                            // mobs that is equal to the total number of static surface graphic objects as mobs are all at the end of the buffer.
+                            // The go_mob_index is also used to identify individual mobs for game play purposes.
+                            sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
+                            sgd.material_index = surf.material;
+                            sgd.index_count = surf.count;
+                            sgd.start_index = surf.start_index;
+                            if (new_asset.materials.size() > surf.material && new_asset.materials[surf.material].
+                                alpha_mode
+                                != 0)
+                            {
+                                sgd.blended = true;
+                            }
+                            go.surface_data.push_back(sgd);
                         }
-
+                    }
+                    {
+                        // Dynamic "mobs" are put at the end of the buffer in the renderer so they can be updated dynamically without having to update
+                        // the entire graphics object buffer. Here is where they are put into one of the two buckets, either static which go in the front of the buffer
+                        // or mob which go at the end.
+                        if (queue_item.is_mob)
                         {
-                            // Each mesh may have an arbitrary number of child meshes. Add them to the mesh queue.
-                            for (const uint32_t child_mesh_index : current_mesh.child_meshes)
-                            {
-                                mesh_queue.push(child_mesh_index);
-                            }
+                            mob_graphics_objects.push_back(go);
+                            go_mob_index += 1;
                         }
+                        else
                         {
-                            // Dynamic "mobs" are put at the end of the buffer in the renderer so they can be updated dynamically without having to update
-                            // the entire graphics object buffer. Here is where they are put into one of the two buckets, either static which go in the front of the buffer
-                            // or mob which go at the end.
-                            if (queue_item.is_mob)
-                            {
-                                mob_graphics_objects.push_back(go);
-                                go_mob_index += 1;
-                            }
-                            else
-                            {
-                                rls->go_update.full_scene.push_back(go);
-                                go_static_index += 1;
-                            }
-                            // Also track all the graphic objects in a combined bucket.
-                            queue_item.game_node->graphics_objects.push_back(go);
+                            rls->go_update.full_scene.push_back(go);
+                            go_static_index += 1;
                         }
+                        // Also track all the graphic objects in a combined bucket.
+                        queue_item.game_node->graphics_objects.push_back(go);
                     }
                 }
                 queue_item.game_node->bounds = bounds;

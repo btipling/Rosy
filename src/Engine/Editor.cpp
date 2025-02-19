@@ -514,8 +514,6 @@ namespace
                                     new_destination_mesh.positions = source_mesh.positions;
                                     new_destination_mesh.indices = source_mesh.indices;
                                     new_destination_mesh.surfaces = source_mesh.surfaces;
-                                    new_destination_mesh.child_meshes = source_mesh.child_meshes;
-                                    // TODO: remove child meshes, they are not a thing GLTF and I don't want to support the idea
                                     level_asset.meshes.push_back(new_destination_mesh);
 
                                     // Traverse child meshes? No.
