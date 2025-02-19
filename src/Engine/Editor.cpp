@@ -482,6 +482,8 @@ namespace
                                     rosy_packager::node new_destination_node{};
                                     new_destination_node.name = source_node.name;
                                     new_destination_node.transform = source_node.transform; // TODO: actually use the translation and yaw from the configured level data.
+                                    new_destination_node.child_nodes = source_node.child_nodes; // These are remapped below.
+                                    new_destination_node.mesh_id = UINT32_MAX; // This is remapped below.
                                     level_asset.nodes.push_back(new_destination_node);
                                 }
                             }
@@ -709,6 +711,44 @@ namespace
                     }
                 }
             }
+
+
+            // Now need to fix all the child nodes. For each node mapping added fix the child nodes.
+            for (const auto& asset_helper : lab.assets) {
+                for (const level_asset_builder_index_map& parent_node_mapping : asset_helper.node_mappings) {
+                    const rosy_packager::asset* a = origin_assets[asset_helper.rosy_package_asset_index];
+                    rosy_packager::node& destination_node = level_asset.nodes[parent_node_mapping.destination_index];
+                    const size_t num_child_nodes_expected = destination_node.child_nodes.size();
+                    if (a->nodes[parent_node_mapping.source_index].child_nodes.size() != num_child_nodes_expected)
+                    {
+                        l->error(std::format("failed to map node children, was {} but expected {}", destination_node.child_nodes.size(), a->nodes[parent_node_mapping.source_index].child_nodes.size()));
+                        return result::error;
+                    }
+                    l->info(std::format("Have {} child nodes to remap for {}", num_child_nodes_expected, asset_helper.asset_id));
+                    if (num_child_nodes_expected == 0) continue;
+                    const std::vector<uint32_t>source_child_nodes = destination_node.child_nodes;
+                    destination_node.child_nodes.clear();
+                    for (const uint32_t source_child_node_index : source_child_nodes)
+                    {
+                        for (const level_asset_builder_index_map& child_node_mapping : asset_helper.node_mappings)
+                        {
+                            if (child_node_mapping.source_index == source_child_node_index)
+                            {
+                                destination_node.child_nodes.push_back(child_node_mapping.destination_index);
+                                l->info(std::format("remapped child node from {} to {} in {}", source_child_node_index, child_node_mapping.destination_index, asset_helper.asset_id));
+                                break;
+                            }
+                        }
+                    }
+                    if (destination_node.child_nodes.size() != num_child_nodes_expected)
+                    {
+                        l->error(std::format("failed to reindex node children, was {} but expected {}", destination_node.child_nodes.size(), num_child_nodes_expected));
+                        return result::error;
+                    }
+                    l->info(std::format("finished remapping node {} in {}", parent_node_mapping.source_index, asset_helper.asset_id));
+                }
+            }
+            l->info("finished remapping level data models");
             return result::ok;
         }
 
