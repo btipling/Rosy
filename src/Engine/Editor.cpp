@@ -469,17 +469,19 @@ namespace
                                 }
 
                                 // It's not, so map it.
-                                destination_node_index = static_cast<uint32_t>(level_asset.nodes.size());
-                                level_asset_builder_index_map nm{
-                                    .source_index = current_node_index,
-                                    .destination_index = destination_node_index,
-                                };
-                                asset_helper.node_mappings.push_back(nm);
-                                rosy_packager::node source_node = a->nodes[current_node_index];
-                                rosy_packager::node new_destination_node{};
-                                new_destination_node.name = source_node.name;
-                                new_destination_node.transform = source_node.transform; // TODO: actually use the translation and yaw from the configured level data.
-                                level_asset.nodes.push_back(new_destination_node);
+                                {
+                                    destination_node_index = static_cast<uint32_t>(level_asset.nodes.size());
+                                    level_asset_builder_index_map nm{
+                                        .source_index = current_node_index,
+                                        .destination_index = destination_node_index,
+                                    };
+                                    asset_helper.node_mappings.push_back(nm);
+                                    rosy_packager::node source_node = a->nodes[current_node_index];
+                                    rosy_packager::node new_destination_node{};
+                                    new_destination_node.name = source_node.name;
+                                    new_destination_node.transform = source_node.transform; // TODO: actually use the translation and yaw from the configured level data.
+                                    level_asset.nodes.push_back(new_destination_node);
+                                }
                             }
                             // Get a reference to the destination node to change mesh index. Children have to be fully re-indexed in this queue before they can be remapped.
                             rosy_packager::node& destination_node = level_asset.nodes[destination_node_index];
@@ -500,24 +502,74 @@ namespace
                                         break;
                                     }
                                 }
-                                if (!mesh_mapped)
+                                if (mesh_mapped) {
+                                    // Mesh was previously mapped and does not need to be mapped again.
+                                    continue;
+                                }
                                 {
-                                    destination_mesh_index = static_cast<uint32_t>(level_asset.meshes.size());
-                                    level_asset_builder_index_map mm{
-                                        .source_index = current_mesh_index,
-                                        .destination_index = destination_mesh_index,
-                                    };
-                                    asset_helper.mesh_mappings.push_back(mm);
-                                    // Add the new destination mesh
-                                    rosy_packager::mesh source_mesh = a->meshes[current_mesh_index];
                                     rosy_packager::mesh new_destination_mesh{};
-                                    new_destination_mesh.positions = source_mesh.positions;
-                                    new_destination_mesh.indices = source_mesh.indices;
-                                    new_destination_mesh.surfaces = source_mesh.surfaces;
-                                    level_asset.meshes.push_back(new_destination_mesh);
+                                    {
+                                        destination_mesh_index = static_cast<uint32_t>(level_asset.meshes.size());
+                                        level_asset_builder_index_map mm{
+                                            .source_index = current_mesh_index,
+                                            .destination_index = destination_mesh_index,
+                                        };
+                                        asset_helper.mesh_mappings.push_back(mm);
+                                        // Add the new destination mesh
+                                        rosy_packager::mesh source_mesh = a->meshes[current_mesh_index];
+                                        new_destination_mesh.positions = source_mesh.positions;
+                                        new_destination_mesh.indices = source_mesh.indices;
+                                        new_destination_mesh.surfaces = source_mesh.surfaces;
+                                        level_asset.meshes.push_back(new_destination_mesh);
+                                    }
 
-                                    // Traverse child meshes? No.
-                                    // TODO Map all the surfaces, materials images sand samplers
+                                    // Map all the materials images sand samplers
+                                    for (rosy_packager::surface& surface : new_destination_mesh.surfaces)
+                                    {
+                                        const uint32_t current_mat_index = surface.material;
+                                        uint32_t destination_mat_index{ 0 };
+                                        
+                                        bool material_mapped{ false };
+                                        for (const auto& mat_m : asset_helper.material_mappings)
+                                        {
+                                            if (mat_m.source_index == current_mat_index)
+                                            {
+                                                material_mapped = true;
+                                                // This mesh has been previously mapped, so update the destination's node's mesh id to track that.
+                                                destination_mat_index = mat_m.destination_index;
+                                                surface.material = destination_mat_index;
+                                                break;
+                                            }
+                                        }
+                                        if (material_mapped) {
+                                            // Material was previously mapped, no need to remap.
+                                            continue;
+                                        }
+                                        rosy_packager::material destination_mat{};
+                                        {
+                                            destination_mat_index = static_cast<uint32_t>(level_asset.materials.size());
+                                            level_asset_builder_index_map mat_m{
+                                                .source_index = current_mat_index,
+                                                .destination_index = destination_mat_index,
+                                            };
+                                            asset_helper.material_mappings.push_back(mat_m);
+                                            // Add the new destination mat
+                                            rosy_packager::material source_mat = a->materials[current_mat_index];
+                                            destination_mat.double_sided = source_mat.double_sided;
+                                            destination_mat.base_color_factor = source_mat.base_color_factor;
+                                            destination_mat.metallic_factor = source_mat.metallic_factor;
+                                            destination_mat.roughness_factor = source_mat.roughness_factor;
+                                            destination_mat.color_image_index = source_mat.color_image_index;
+                                            destination_mat.color_sampler_index = source_mat.color_sampler_index;
+                                            destination_mat.alpha_mode = source_mat.alpha_mode;
+                                            destination_mat.alpha_cutoff = source_mat.alpha_cutoff;
+                                            destination_mat.normal_image_index = source_mat.normal_image_index;
+                                            destination_mat.normal_sampler_index = source_mat.normal_sampler_index;
+                                            level_asset.materials.push_back(destination_mat);
+                                        }
+                                        // map the samplers
+                                        // map the images
+                                    }
                                 }
                             }
 
@@ -545,6 +597,7 @@ namespace
                   std::vector<level_asset_builder_index_map> sampler_mappings;
                   std::vector<level_asset_builder_index_map> image_mappings;
                   std::vector<level_asset_builder_index_map> material_mappings;
+
                   std::vector<level_asset_builder_index_map> node_mappings;
                   std::vector<level_asset_builder_index_map> mesh_mappings;
               };*/
