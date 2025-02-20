@@ -598,7 +598,7 @@ rosy::result asset::read(rosy::log* l)
 
         {
             size_t res = fread(&n.custom_uniform_scale, sizeof(float), num_custom_uniform_scale, stream);
-            if (res != num_transforms)
+            if (res != num_custom_uniform_scale)
             {
                 l->error(std::format("failed to read {}/{} node custom_uniform_scale", res, num_custom_uniform_scale));
                 return rosy::result::read_failed;
@@ -610,7 +610,7 @@ rosy::result asset::read(rosy::log* l)
 
         {
             size_t res = fread(&n.custom_yaw, sizeof(float), num_custom_yaw, stream);
-            if (res != num_transforms)
+            if (res != num_custom_yaw)
             {
                 l->error(std::format("failed to read {}/{} node custom_yaw", res, num_custom_yaw));
                 return rosy::result::read_failed;
