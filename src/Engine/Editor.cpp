@@ -26,7 +26,7 @@ namespace rosy_editor
         std::vector<level_data_model> models;
     };
 
-    void to_json(json& j, const level_data_model& model)
+    void to_json(json& j, const level_data_model& model) // NOLINT(misc-use-internal-linkage)
     {
         j = json{
             {"id", model.id},
@@ -37,7 +37,7 @@ namespace rosy_editor
         };
     }
 
-    void from_json(const json& j, level_data_model& p)
+    void from_json(const json& j, level_data_model& p) // NOLINT(misc-use-internal-linkage)
     {
         j.at("id").get_to(p.id);
         j.at("name").get_to(p.name);
@@ -46,12 +46,12 @@ namespace rosy_editor
         j.at("model_type").get_to(p.model_type);
     }
 
-    void to_json(json& j, const level_data& l)
+    void to_json(json& j, const level_data& l) // NOLINT(misc-use-internal-linkage)
     {
         j = json{{"models", l.models}};
     }
 
-    void from_json(const json& j, level_data& l)
+    void from_json(const json& j, level_data& l) // NOLINT(misc-use-internal-linkage)
     {
         j.at("models").get_to(l.models);
     }
@@ -75,9 +75,6 @@ namespace
     {
         std::string asset_id{};
         size_t rosy_package_asset_index{0};
-        std::vector<std::string> model_ids;
-        std::vector<std::string> mob_model_ids;
-        std::vector<std::string> static_model_ids;
         std::vector<level_asset_builder_index_map> sampler_mappings;
         std::vector<level_asset_builder_index_map> image_mappings;
         std::vector<level_asset_builder_index_map> material_mappings;
@@ -322,7 +319,7 @@ namespace
                 {
                     const auto model_type = static_cast<editor_command::model_type>(md.model_type);
                     level_data_model new_md = {.id = md.id, .name = md.name, .location = md.location, .yaw = md.yaw, .model_type = model_type};
-                    if (model_type == editor_command::model_type::static_model)
+                    if (model_type == editor_command::model_type::mob_model)
                     {
                         state->current_level_data.mob_models.push_back(new_md);
                     }

@@ -201,8 +201,9 @@ namespace rosy
             mob_model,
             static_model,
         };
+
         editor_command_type command_type{editor_command_type::no_command};
-        model_type mode_type_option{ model_type::no_model };
+        model_type mode_type_option{model_type::no_model};
         std::string id{};
     };
 
@@ -211,8 +212,9 @@ namespace rosy
         std::string id{};
         std::string name{};
         std::array<float, 3> location{};
-        float yaw{ 0.f };
-        editor_command::model_type model_type{ editor_command::model_type::no_model };
+        float custom_uniform{0.f};
+        float yaw{0.f};
+        editor_command::model_type model_type{editor_command::model_type::no_model};
     };
 
     struct level_data

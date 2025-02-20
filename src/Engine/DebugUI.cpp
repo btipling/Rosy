@@ -10,7 +10,7 @@ using namespace rosy;
 namespace
 {
     constexpr double pi{std::numbers::pi};
-    constexpr auto button_dims = ImVec2(150.f, 40.f);
+    constexpr auto button_dims = ImVec2(200.f, 35.f);
 }
 
 
@@ -363,22 +363,6 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
             };
             wls->editor_commands.commands.push_back(cmd_desc);
         }
-        if (ImGui::BeginListBox("##AssetsList"))
-        {
-            size_t index{0};
-            for (const asset_description& a : rls->editor_state.assets)
-            {
-                if (ImGui::Selectable(std::format("##{}", a.id).c_str(), selected_asset == index))
-                {
-                    selected_asset = index;
-                    selected_model = 0;
-                }
-                ImGui::SameLine();
-                ImGui::Text("%s", a.name.c_str());
-                index += 1;
-            }
-            ImGui::EndListBox();
-        }
         if (rls->editor_state.assets.size() > selected_asset)
         {
             if (ImGui::CollapsingHeader("Level Details", &asset_details))
@@ -387,6 +371,7 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                 {
                     if (ImGui::BeginTable("##Mobs", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
                     {
+                        size_t index{1};
                         for (const auto& md : rls->editor_state.current_level_data.mob_models)
                         {
                             ImGui::TableNextRow();
@@ -415,9 +400,29 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
 
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
+                            ImGui::Text("uniform scale");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%.3f", md.yaw);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
                             ImGui::Text("yaw");
                             ImGui::TableNextColumn();
                             ImGui::Text("%.3f", md.yaw);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            if (ImGui::Button(std::format("#{} Edit {}", index, md.name).c_str(), button_dims))
+                                ImGui::OpenPopup(std::format("{}:{}", md.name, index).c_str());
+                            if (ImGui::BeginPopup(std::format("{}:{}", md.name, index).c_str()))
+                            {
+                                ImGui::Text("Hello Node editor!");
+                                ImGui::EndPopup();
+                            }
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+
+                            index += 1;
                         }
                         ImGui::EndTable();
                     }
@@ -426,6 +431,7 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                 {
                     if (ImGui::BeginTable("##Static", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
                     {
+                        size_t index{1};
                         for (const auto& md : rls->editor_state.current_level_data.static_models)
                         {
                             ImGui::TableNextRow();
@@ -457,10 +463,40 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                             ImGui::Text("yaw");
                             ImGui::TableNextColumn();
                             ImGui::Text("%.3f", md.yaw);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            if (ImGui::Button(std::format("#{} Edit {}", index, md.name).c_str(), button_dims))
+                                ImGui::OpenPopup(std::format("{}:{}", md.name, index).c_str());
+                            if (ImGui::BeginPopup(std::format("{}:{}", md.name, index).c_str()))
+                            {
+                                ImGui::Text("Hello Node editor!");
+                                ImGui::EndPopup();
+                            }
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+
+                            index += 1;
                         }
                         ImGui::EndTable();
                     }
                 }
+            }
+            if (ImGui::BeginListBox("##AssetsList"))
+            {
+                size_t index{0};
+                for (const asset_description& a : rls->editor_state.assets)
+                {
+                    if (ImGui::Selectable(std::format("##{}", a.id).c_str(), selected_asset == index))
+                    {
+                        selected_asset = index;
+                        selected_model = 0;
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text("%s", a.name.c_str());
+                    index += 1;
+                }
+                ImGui::EndListBox();
             }
             if (ImGui::CollapsingHeader("Asset Details", &asset_details))
             {
