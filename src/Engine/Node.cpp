@@ -12,7 +12,12 @@ namespace
 {
     std::array<float, 16> mat4_to_array(glm::mat4 m)
     {
-        std::array<float, 16> a{};
+        std::array<float, 16> a{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         const auto pos_r = glm::value_ptr(m);
         for (uint64_t i{0}; i < 16; i++) a[i] = pos_r[i];
         return a;

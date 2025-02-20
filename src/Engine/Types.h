@@ -89,10 +89,30 @@ namespace rosy
 
     struct read_camera
     {
-        std::array<float, 16> v{};
-        std::array<float, 16> p{};
-        std::array<float, 16> vp{};
-        std::array<float, 16> shadow_projection_near{};
+        std::array<float, 16> v{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        std::array<float, 16> p{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        std::array<float, 16> vp{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        std::array<float, 16> shadow_projection_near{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         std::array<float, 4> position{};
         float pitch{0.f};
         float yaw{0.f};

@@ -23,10 +23,30 @@ namespace rosy
         std::vector<graphics_object> graphics_objects;
         std::string name{};
         std::vector<node*> children;
-        std::array<float, 16> parent_transform{};
-        std::array<float, 16> transform{};
-        std::array<float, 16> normal_transform{};
-        std::array<float, 16> object_space_transform{};
+        std::array<float, 16> parent_transform{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        std::array<float, 16> transform{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        std::array<float, 16> normal_transform{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        std::array<float, 16> object_space_transform{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         std::array<float, 4> position{};
         std::array<float, 3> custom_translate{};
         float custom_scale{1.f};

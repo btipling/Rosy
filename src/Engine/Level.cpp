@@ -124,7 +124,12 @@ namespace
 
     std::array<float, 16> mat4_to_array(glm::mat4 m)
     {
-        std::array<float, 16> a{};
+        std::array<float, 16> a{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         const auto pos_r = glm::value_ptr(m);
         for (uint64_t i{0}; i < 16; i++) a[i] = pos_r[i];
         return a;
@@ -132,7 +137,7 @@ namespace
 
     glm::mat4 array_to_mat4(const std::array<float, 16>& a)
     {
-        glm::mat4 m{};
+        glm::mat4 m{1.f};
         const auto pos_r = glm::value_ptr(m);
         for (uint64_t i{0}; i < 16; i++) pos_r[i] = a[i];
         return m;
@@ -736,7 +741,6 @@ namespace
                 queue.pop();
                 assert(queue_item.game_node != nullptr);
 
-                glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
 
                 constexpr glm::mat4 m{1.f};
                 const glm::mat4 t = glm::translate(m, array_to_vec3(queue_item.game_node->custom_translate));
@@ -744,7 +748,9 @@ namespace
                 float custom_scale = queue_item.game_node->custom_scale;
                 const glm::mat4 s = glm::scale(m, glm::vec3(custom_scale, custom_scale, custom_scale));
 
-                const glm::mat4 transform = queue_item.parent_transform * t * r * s * node_transform;
+                glm::mat4 node_transform = t * r * s * array_to_mat4(queue_item.stack_node.transform);
+
+                const glm::mat4 transform = queue_item.parent_transform * node_transform;
                 // Set node bounds for bound testing.
                 node_bounds bounds{};
                 // Advance the next item in the node queue
