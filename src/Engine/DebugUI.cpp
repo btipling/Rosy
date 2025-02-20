@@ -400,9 +400,9 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
 
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
-                            ImGui::Text("uniform scale");
+                            ImGui::Text("scale");
                             ImGui::TableNextColumn();
-                            ImGui::Text("%.3f", md.yaw);
+                            ImGui::Text("%.3f", md.scale);
 
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
@@ -443,9 +443,9 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                                         .mode_type_option = level_edit_model_type,
                                         .id = md.id,
                                         .node_data = {
-                                            .level_edit_translate = level_edit_translate,
-                                            .level_edit_scale = level_edit_scale,
-                                            .level_edit_yaw = level_edit_yaw,
+                                            .location = level_edit_translate,
+                                            .scale = level_edit_scale,
+                                            .yaw = level_edit_yaw,
                                         },
                                     };
                                     wls->editor_commands.commands.push_back(cmd_desc);
@@ -493,6 +493,12 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
 
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
+                            ImGui::Text("scale");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%.3f", md.scale);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
                             ImGui::Text("yaw");
                             ImGui::TableNextColumn();
                             ImGui::Text("%.3f", md.yaw);
@@ -528,9 +534,9 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                                         .mode_type_option = level_edit_model_type,
                                         .id = md.id,
                                         .node_data = {
-                                            .level_edit_translate = level_edit_translate,
-                                            .level_edit_scale = level_edit_scale,
-                                            .level_edit_yaw = level_edit_yaw,
+                                            .location = level_edit_translate,
+                                            .scale = level_edit_scale,
+                                            .yaw = level_edit_yaw,
                                         },
                                     };
                                     wls->editor_commands.commands.push_back(cmd_desc);

@@ -17,6 +17,7 @@ namespace rosy_editor
         std::string id{};
         std::string name{};
         std::array<float, 3> location{};
+        float scale{0.f};
         float yaw{0.f};
         uint32_t model_type{0};
     };
@@ -32,6 +33,7 @@ namespace rosy_editor
             {"id", model.id},
             {"name", model.name},
             {"location", model.location},
+            {"scale", model.scale},
             {"yaw", model.yaw},
             {"model_type", model.model_type},
         };
@@ -42,6 +44,10 @@ namespace rosy_editor
         j.at("id").get_to(p.id);
         j.at("name").get_to(p.name);
         j.at("location").get_to(p.location);
+        if (j.contains("scale"))
+        {
+            j.at("scale").get_to(p.scale);
+        }
         j.at("yaw").get_to(p.yaw);
         j.at("model_type").get_to(p.model_type);
     }
@@ -128,6 +134,7 @@ namespace
                             md.id = asset_model.id;
                             md.name = asset_model.name;
                             md.location = asset_model.location;
+                            md.scale = asset_model.scale;
                             md.yaw = asset_model.yaw;
                             md.model_type = static_cast<uint8_t>(type);
                             ld.models.push_back(md);
@@ -142,6 +149,37 @@ namespace
                 }
             }
             l->info(std::format("add_model: id: {} not found", id));
+            return result::ok;
+        }
+
+        [[nodiscard]] result edit_node(const std::string& id, const editor_command::model_type model_type, const editor_command_node_data& node_data)
+        {
+            switch (model_type)
+            {
+            case editor_command::model_type::no_model:
+                return result::error; // This can't happen.
+            case editor_command::model_type::mob_model:
+            case editor_command::model_type::static_model:
+                size_t index{0};
+                bool found{false};
+                for (const auto& md : ld.models)
+                {
+                    if (static_cast<editor_command::model_type>(md.model_type) == model_type && md.id == id)
+                    {
+                        found = {true};
+                        break;
+                    }
+                    index += 1;
+                }
+                if (!found)
+                {
+                    l->warn(std::format("Attempted to a model that wasn't found: {}", id));
+                    return result::ok;
+                }
+                ld.models[index].location = node_data.location;
+                ld.models[index].scale = node_data.scale;
+                ld.models[index].yaw = node_data.yaw;
+            }
             return result::ok;
         }
 
@@ -209,7 +247,8 @@ namespace
 
             for (const auto& m : ld.models)
             {
-                l->info(std::format("id: {} name: {} location: ({:.3f}, {:.3f}, {:.3f}) yaw: {:.3f}", m.id, m.name, m.location[0], m.location[1], m.location[2], m.yaw));
+                l->info(std::format("id: {} name: {} location: ({:.3f}, {:.3f}, {:.3f}) scale: {:.3f} yaw: {:.3f}", m.id, m.name, m.location[0], m.location[1], m.location[2],
+                                    m.scale, m.yaw));
             }
             return result::ok;
         }
@@ -273,12 +312,17 @@ namespace
                     case editor_command::editor_command_type::edit_level_node:
                         l->info(std::format("editor-command: editing level node {}. Translate: ({:.3f}, {:.3f}, {:.3f}) Scale: {:.3f} Yaw: {:.3f}",
                                             cmd.id,
-                                            cmd.node_data.level_edit_translate[0],
-                                            cmd.node_data.level_edit_translate[1],
-                                            cmd.node_data.level_edit_translate[2],
-                                            cmd.node_data.level_edit_scale,
-                                            cmd.node_data.level_edit_yaw
+                                            cmd.node_data.location[0],
+                                            cmd.node_data.location[1],
+                                            cmd.node_data.location[2],
+                                            cmd.node_data.scale,
+                                            cmd.node_data.yaw
                         ));
+                        if (const auto res = edit_node(cmd.id, cmd.mode_type_option, cmd.node_data); res != result::ok)
+                        {
+                            l->error(std::format("error removing model from level {}", static_cast<uint8_t>(res)));
+                            return res;
+                        }
                         break;
                     }
                 }
@@ -290,7 +334,7 @@ namespace
                     for (const auto& md : ld.models)
                     {
                         const auto model_type = static_cast<editor_command::model_type>(md.model_type);
-                        level_data_model new_md = {.id = md.id, .name = md.name, .location = md.location, .yaw = md.yaw, .model_type = model_type};
+                        level_data_model new_md = {.id = md.id, .name = md.name, .location = md.location, .scale = md.scale, .yaw = md.yaw, .model_type = model_type};
                         if (model_type == editor_command::model_type::mob_model)
                         {
                             state->current_level_data.mob_models.push_back(new_md);
@@ -328,7 +372,7 @@ namespace
                 for (const auto& md : ld.models)
                 {
                     const auto model_type = static_cast<editor_command::model_type>(md.model_type);
-                    level_data_model new_md = {.id = md.id, .name = md.name, .location = md.location, .yaw = md.yaw, .model_type = model_type};
+                    level_data_model new_md = {.id = md.id, .name = md.name, .location = md.location, .scale = md.scale, .yaw = md.yaw, .model_type = model_type};
                     if (model_type == editor_command::model_type::mob_model)
                     {
                         state->current_level_data.mob_models.push_back(new_md);

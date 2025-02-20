@@ -185,9 +185,9 @@ namespace rosy
 
     struct editor_command_node_data
     {
-        std::array<float, 3> level_edit_translate{};
-        float level_edit_scale{ 0.f };
-        float level_edit_yaw{ 0.f };
+        std::array<float, 3> location{};
+        float scale{0.f};
+        float yaw{0.f};
     };
 
     struct editor_command
@@ -242,6 +242,7 @@ namespace rosy
         std::string id{};
         std::string name{};
         std::array<float, 3> location{};
+        float scale{0.f};
         float yaw{0.f};
     };
 
