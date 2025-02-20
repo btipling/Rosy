@@ -232,7 +232,7 @@ rosy::result asset::write(const rosy::log* l)
                 l->error(std::format("failed to write {}/{} node custom_yaw", res, num_custom_yaw));
                 return rosy::result::write_failed;
             }
-            l->info(std::format("wrote {} node transforms", res));
+            l->info(std::format("wrote {} node custom_yaw", res));
         }
 
         // WRITE ONE NODE TRANSFORM
