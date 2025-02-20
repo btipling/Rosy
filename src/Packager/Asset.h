@@ -52,7 +52,7 @@ namespace rosy_packager
     struct node
     {
         std::array<float, 3> custom_translate{0.f, 0.f, 0.f};
-        float custom_uniform_scale{0.f};
+        float custom_uniform_scale{1.f};
         float custom_yaw{0.f};
         std::array<float, 16> transform{};
         std::uint32_t mesh_id{UINT32_MAX}; // UINT32_MAX == not present

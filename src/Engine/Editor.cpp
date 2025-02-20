@@ -17,7 +17,7 @@ namespace rosy_editor
         std::string id{};
         std::string name{};
         std::array<float, 3> location{};
-        float scale{0.f};
+        float scale{1.f};
         float yaw{0.f};
         uint32_t model_type{0};
     };
