@@ -565,8 +565,8 @@ namespace
                                 first_node = false;
                             }
                             // Get a reference to the destination node to change mesh index. Children have to be fully re-indexed in this queue before they can be remapped.
-                            rosy_packager::node& destination_node = level_asset.nodes[destination_node_index];
                             {
+                                rosy_packager::node& destination_node = level_asset.nodes[destination_node_index];
                                 // All these nodes have to have a mesh. I need to track that still in the asset viewer UI so nodes without meshes don't show up and can't be added to level data.
                                 const uint32_t current_mesh_index = a->nodes[current_node_index].mesh_id;
                                 uint32_t destination_mesh_index{0};
@@ -637,6 +637,7 @@ namespace
                                                 .source_index = current_mat_index,
                                                 .destination_index = destination_mat_index,
                                             };
+                                            surface.material = destination_mat_index;
                                             l->info(std::format("current_mat_index mapped to {} destination_mat_index {} in {}", current_mat_index, destination_mat_index, md.id));
                                             asset_helper.material_mappings.push_back(mat_m);
                                             // Add the new destination mat
