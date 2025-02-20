@@ -586,7 +586,7 @@ rosy::result asset::read(rosy::log* l)
 
         {
             size_t res = fread(&n.custom_translate, sizeof(std::array<float, 3>), num_custom_translate, stream);
-            if (res != num_transforms)
+            if (res != num_custom_translate)
             {
                 l->error(std::format("failed to read {}/{} node custom_translate", res, num_custom_translate));
                 return rosy::result::read_failed;
