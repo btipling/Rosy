@@ -412,7 +412,8 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
 
                             ImGui::TableNextRow();
                             ImGui::TableNextColumn();
-                            if (ImGui::Button(std::format("#{} Edit {}", index, md.name).c_str(), button_dims)) {
+                            if (ImGui::Button(std::format("#{} Edit {}", index, md.name).c_str(), button_dims))
+                            {
                                 ImGui::OpenPopup(std::format("{}:{}", md.name, index).c_str());
                             }
                             if (ImGui::BeginPopup(std::format("{}:{}", md.name, index).c_str()))
@@ -435,7 +436,8 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                                 ImGui::Text("yaw");
                                 ImGui::SameLine();
                                 ImGui::InputFloat(std::format("##edit_yaw{}:{}", md.name, index).c_str(), &level_edit_yaw, 0.1f, 0.2f, "%.3f");
-                                if (ImGui::Button(std::format("#{} Save {}", index, md.name).c_str(), button_dims)) {
+                                if (ImGui::Button(std::format("#{} Save {}", index, md.name).c_str(), button_dims))
+                                {
                                     const editor_command cmd_desc{
                                         .command_type = editor_command::editor_command_type::edit_level_node,
                                         .mode_type_option = level_edit_model_type,
@@ -501,7 +503,38 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                                 ImGui::OpenPopup(std::format("{}:{}", md.name, index).c_str());
                             if (ImGui::BeginPopup(std::format("{}:{}", md.name, index).c_str()))
                             {
-                                ImGui::Text("Hello Node editor!");
+                                if (level_edit_model_id != md.id)
+                                {
+                                    level_edit_translate = md.location;
+                                    level_edit_scale = md.scale;
+                                    level_edit_yaw = md.yaw;
+                                    level_edit_model_id = md.id;
+                                    level_edit_model_type = md.model_type;
+                                }
+                                ImGui::Text("%s", std::format("Edit {} @ {}", md.name, index).c_str());
+                                ImGui::Text("location");
+                                ImGui::SameLine();
+                                ImGui::InputFloat3(std::format("##edit_translate{}:{}", md.name, index).c_str(), level_edit_translate.data(), "%.3f");
+                                ImGui::Text("scale");
+                                ImGui::SameLine();
+                                ImGui::InputFloat(std::format("##edit_scale{}:{}", md.name, index).c_str(), &level_edit_scale, 0.1f, 0.2f, "%.3f");
+                                ImGui::Text("yaw");
+                                ImGui::SameLine();
+                                ImGui::InputFloat(std::format("##edit_yaw{}:{}", md.name, index).c_str(), &level_edit_yaw, 0.1f, 0.2f, "%.3f");
+                                if (ImGui::Button(std::format("#{} Save {}", index, md.name).c_str(), button_dims))
+                                {
+                                    const editor_command cmd_desc{
+                                        .command_type = editor_command::editor_command_type::edit_level_node,
+                                        .mode_type_option = level_edit_model_type,
+                                        .id = md.id,
+                                        .node_data = {
+                                            .level_edit_translate = level_edit_translate,
+                                            .level_edit_scale = level_edit_scale,
+                                            .level_edit_yaw = level_edit_yaw,
+                                        },
+                                    };
+                                    wls->editor_commands.commands.push_back(cmd_desc);
+                                }
                                 ImGui::EndPopup();
                             }
                             ImGui::TableNextColumn();

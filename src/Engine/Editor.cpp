@@ -279,11 +279,6 @@ namespace
                                             cmd.node_data.level_edit_scale,
                                             cmd.node_data.level_edit_yaw
                         ));
-                        if (const auto res = remove_model(cmd.id); res != result::ok)
-                        {
-                            l->error(std::format("error removing model from level {}", static_cast<uint8_t>(res)));
-                            return res;
-                        }
                         break;
                     }
                 }
