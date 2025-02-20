@@ -2,7 +2,7 @@
 
 ## Notable mentions
 
-I am grateful to the advice and help received from [deccer](https://github.com/deccer), [Jake Ryan](https://github.com/JuanDiegoMontoya), [Demon_god](https://www.youtube.com/watch?v=Cx1UjaRyYvs), [Jake Del Mastro](https://github.com/pgrAm) and many others.
+I am grateful for the advice and help received from [deccer](https://github.com/deccer), [Jake Ryan](https://github.com/JuanDiegoMontoya), [Demon_god](https://www.youtube.com/watch?v=Cx1UjaRyYvs), [Jake Del Mastro](https://github.com/pgrAm) and many others.
 
 ## Open Source Code Dependencies
 
