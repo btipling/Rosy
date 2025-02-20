@@ -27,8 +27,14 @@ namespace rosy
         bool asset_details{true};
         bool model_details{true};
 
+        std::array<float, 3> level_edit_translate{};
+        float level_edit_scale{1.f};
+        float level_edit_yaw{0.f};
+        editor_command::model_type level_edit_model_type{editor_command::model_type::no_model};
+        std::string level_edit_model_id{};
+
         void graphics_debug_ui(const engine_stats& eng_stats, const graphics_stats& stats, const graphics_data& data,
-                               const read_level_state* rls) const;
+                                const read_level_state* rls) const;
         void assets_debug_ui(const read_level_state* rls);
     };
 }

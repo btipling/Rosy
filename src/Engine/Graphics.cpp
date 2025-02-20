@@ -3647,12 +3647,7 @@ namespace
                 allocated_ktx_image new_ktx_img{};
 
                 std::string img_name{img.name.begin(), img.name.end()};
-                std::filesystem::path img_path{a.asset_path};
-                img_path.replace_filename(std::format("{}.ktx2", img_name));
-                l->debug(std::format("source: {} path: {} name: {}", a.asset_path, img_path.string(), img_name));
-                std::wstring image_path_wide{img_path.c_str()};
-                std::string img_path_staging{img_path.string()};
-                ktx_path = img_path_staging.c_str();
+                ktx_path = img_name.c_str();
 
                 {
                     if (ktx_error_code_e ktx_res = ktxTexture_CreateFromNamedFile(

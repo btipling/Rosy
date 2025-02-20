@@ -51,7 +51,15 @@ namespace rosy_packager
 
     struct node
     {
-        std::array<float, 16> transform;
+        std::array<float, 3> custom_translate{0.f, 0.f, 0.f};
+        float custom_uniform_scale{1.f};
+        float custom_yaw{0.f};
+        std::array<float, 16> transform{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         std::uint32_t mesh_id{UINT32_MAX}; // UINT32_MAX == not present
         std::vector<uint32_t> child_nodes;
         std::vector<char> name;
@@ -76,7 +84,6 @@ namespace rosy_packager
         std::vector<position> positions;
         std::vector<uint32_t> indices;
         std::vector<surface> surfaces;
-        std::vector<uint32_t> child_meshes;
     };
 
     struct image

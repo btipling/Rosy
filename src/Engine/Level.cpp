@@ -124,7 +124,12 @@ namespace
 
     std::array<float, 16> mat4_to_array(glm::mat4 m)
     {
-        std::array<float, 16> a{};
+        std::array<float, 16> a{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         const auto pos_r = glm::value_ptr(m);
         for (uint64_t i{0}; i < 16; i++) a[i] = pos_r[i];
         return a;
@@ -132,7 +137,7 @@ namespace
 
     glm::mat4 array_to_mat4(const std::array<float, 16>& a)
     {
-        glm::mat4 m{};
+        glm::mat4 m{1.f};
         const auto pos_r = glm::value_ptr(m);
         for (uint64_t i{0}; i < 16; i++) pos_r[i] = a[i];
         return m;
@@ -143,6 +148,14 @@ namespace
         glm::vec4 v{};
         const auto pos_r = glm::value_ptr(v);
         for (uint64_t i{0}; i < 4; i++) pos_r[i] = a[i];
+        return v;
+    }
+
+    glm::vec3 array_to_vec3(std::array<float, 3> a)
+    {
+        glm::vec3 v{};
+        const auto pos_r = glm::value_ptr(v);
+        for (uint64_t i{0}; i < 3; i++) pos_r[i] = a[i];
         return v;
     }
 
@@ -183,7 +196,6 @@ namespace
 
         // asset to graphics objects
         std::queue<stack_item> queue{};
-        std::queue<uint32_t> mesh_queue{};
 
         node* level_game_node{nullptr};
         // Important game nodes that can be referenced via their graphics object index
@@ -203,7 +215,7 @@ namespace
                 l->error("root scene_objects allocation failed");
                 return result::allocation_failure;
             };
-            if (const auto res = level_game_node->init(l, {}, {}); res != result::ok)
+            if (const auto res = level_game_node->init(l, {}, {}, {}, 1.f, 0.f); res != result::ok)
             {
                 l->error("root scene_objects initialization failed");
                 delete level_game_node;
@@ -519,11 +531,17 @@ namespace
             if (rls->editor_state.new_asset != nullptr)
             {
                 const auto a = static_cast<const rosy_packager::asset*>(rls->editor_state.new_asset);
-                return set_asset(*a);
+                const result res = set_asset(*a);
+                if (res != result::ok)
+                {
+                    l->error(std::format("Error setting new asset {}", static_cast<uint8_t>(res)));
+                }
+                return res;
             }
             camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
             if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok)
             {
+                l->error("Error updating camera");
                 return res;
             }
             ecs_progress(world, static_cast<float>(dt));
@@ -574,7 +592,7 @@ namespace
                     free_cam->pitch_in_dir(event.motion.yrel / 250.f);
                 }
             }
-            else if (active_cam == camera_choice::game)
+            else if (rosy_reference.node != nullptr && active_cam == camera_choice::game)
             {
                 if (event.type == SDL_EVENT_MOUSE_WHEEL)
                 {
@@ -651,15 +669,22 @@ namespace
             // Traverse the assets to construct the scene graph and track important game play entities.
             rls->go_update.full_scene.clear();
             const size_t root_scene_index = static_cast<size_t>(new_asset.root_scene);
-            if (new_asset.scenes.size() <= root_scene_index) return result::invalid_argument;
+            if (new_asset.scenes.size() <= root_scene_index)
+            {
+                l->error(std::format("error new_asset.scenes.size() <= root_scene_index: {} <= {}", new_asset.scenes.size(), root_scene_index));
+                return result::invalid_argument;
+            }
 
             const auto& scene = new_asset.scenes[root_scene_index];
-            if (scene.nodes.empty()) return result::invalid_argument;
+            if (scene.nodes.empty())
+            {
+                l->error("error scene.nodes.empty()");
+                return result::invalid_argument;
+            }
 
             {
                 // Reset state
                 while (!queue.empty()) queue.pop();
-                while (!mesh_queue.empty()) mesh_queue.pop();
             }
 
             // Prepopulate the node queue with the root scenes nodes
@@ -679,7 +704,8 @@ namespace
                 const std::array<float, 16> identity_m = mat4_to_array(glm::mat4(1.f));
 
                 // All nodes must be initialized here and below.
-                if (const auto res = new_game_node->init(l, new_node.transform, identity_m); res != result::ok)
+                if (const auto res = new_game_node->init(l, new_node.transform, identity_m, new_node.custom_translate, new_node.custom_uniform_scale, new_node.custom_yaw); res !=
+                    result::ok)
                 {
                     l->error("initial scene_objects initialization failed");
                     new_game_node->deinit();
@@ -715,97 +741,90 @@ namespace
                 queue.pop();
                 assert(queue_item.game_node != nullptr);
 
-                glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
+
+                constexpr glm::mat4 m{1.f};
+                const glm::mat4 t = glm::translate(m, array_to_vec3(queue_item.game_node->custom_translate));
+                const glm::mat4 r = toMat4(angleAxis(queue_item.game_node->custom_yaw, glm::vec3{0.f, 1.f, 0.f}));
+                float custom_scale = queue_item.game_node->custom_scale;
+                const glm::mat4 s = glm::scale(m, glm::vec3(custom_scale, custom_scale, custom_scale));
+
+                glm::mat4 node_transform = t * r * s * array_to_mat4(queue_item.stack_node.transform);
+
                 const glm::mat4 transform = queue_item.parent_transform * node_transform;
                 // Set node bounds for bound testing.
                 node_bounds bounds{};
                 // Advance the next item in the node queue
                 if (queue_item.stack_node.mesh_id < new_asset.meshes.size())
                 {
-                    // Each node has a mesh id. Add to mesh queue.
-                    mesh_queue.push(queue_item.stack_node.mesh_id);
+                    // Each node has a mesh id. 
+                    const auto current_mesh_index = queue_item.stack_node.mesh_id;
 
-                    //Advance the next item in the mesh queue. 
-                    while (mesh_queue.size() > 0)
+                    // Get the mesh from the asset using the mesh index
+                    const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
+
+                    // Declare a new graphics object.
+                    graphics_object go{};
+
                     {
-                        // Get mesh index for current mesh in queue and remove from queue.
-                        const auto current_mesh_index = mesh_queue.front();
-                        mesh_queue.pop();
+                        // There are two separate sets of indices to track, one for static graphics objects and one for dynamic "mobs"
+                        go.index = queue_item.is_mob ? go_mob_index : go_static_index;
+                    }
 
-                        // Get the mesh from the asset using the mesh index
-                        const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
+                    {
+                        // Record the assets transforms from the asset
+                        const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
+                        const glm::mat4 normal_transform = glm::transpose(object_space_transform);
 
-                        // Declare a new graphics object.
-                        graphics_object go{};
+                        go.transform = mat4_to_array(transform);
+                        go.normal_transform = mat4_to_array(normal_transform);
+                        go.object_space_transform = mat4_to_array(object_space_transform);
+                    }
 
+                    {
+                        // Each mesh has any number of surfaces that are derived from gltf primitives for example. These are what are given to the renderer to draw.
+                        go.surface_data.reserve(current_mesh.surfaces.size());
+                        for (const auto& surf : current_mesh.surfaces)
                         {
-                            // There are two separate sets of indices to track, one for static graphics objects and one for dynamic "mobs"
-                            go.index = queue_item.is_mob ? go_mob_index : go_static_index;
-                        }
-
-                        {
-                            // Record the assets transforms from the asset
-                            const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
-                            const glm::mat4 normal_transform = glm::transpose(object_space_transform);
-                            go.transform = mat4_to_array(transform);
-                            go.normal_transform = mat4_to_array(normal_transform);
-                            go.object_space_transform = mat4_to_array(object_space_transform);
-                        }
-
-                        {
-                            // Each mesh has any number of surfaces that are derived from gltf primitives for example. These are what are given to the renderer to draw.
-                            go.surface_data.reserve(current_mesh.surfaces.size());
-                            for (const auto& surf : current_mesh.surfaces)
+                            for (size_t i{0}; i < 3; i++)
                             {
-                                for (size_t i{0}; i < 3; i++)
-                                {
-                                    bounds.min[i] = glm::min(surf.min_bounds[i], bounds.min[i]);
-                                    bounds.max[i] = glm::max(surf.max_bounds[i], bounds.max[i]);
-                                }
-                                surface_graphics_data sgd{};
-                                sgd.mesh_index = current_mesh_index;
-                                // The index written to the surface graphic object is critical for pulling its transforms out of the buffer for rendering.
-                                // The two separate indices indicate where renderer's buffer on the GPU its data will live. An offset is used for
-                                // mobs that is equal to the total number of static surface graphic objects as mobs are all at the end of the buffer.
-                                // The go_mob_index is also used to identify individual mobs for game play purposes.
-                                sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
-                                sgd.material_index = surf.material;
-                                sgd.index_count = surf.count;
-                                sgd.start_index = surf.start_index;
-                                if (new_asset.materials.size() > surf.material && new_asset.materials[surf.material].
-                                    alpha_mode
-                                    != 0)
-                                {
-                                    sgd.blended = true;
-                                }
-                                go.surface_data.push_back(sgd);
+                                bounds.min[i] = glm::min(surf.min_bounds[i], bounds.min[i]);
+                                bounds.max[i] = glm::max(surf.max_bounds[i], bounds.max[i]);
                             }
+                            surface_graphics_data sgd{};
+                            sgd.mesh_index = current_mesh_index;
+                            // The index written to the surface graphic object is critical for pulling its transforms out of the buffer for rendering.
+                            // The two separate indices indicate where renderer's buffer on the GPU its data will live. An offset is used for
+                            // mobs that is equal to the total number of static surface graphic objects as mobs are all at the end of the buffer.
+                            // The go_mob_index is also used to identify individual mobs for game play purposes.
+                            sgd.graphics_object_index = queue_item.is_mob ? go_mob_index : go_static_index;
+                            sgd.material_index = surf.material;
+                            sgd.index_count = surf.count;
+                            sgd.start_index = surf.start_index;
+                            if (new_asset.materials.size() > surf.material && new_asset.materials[surf.material].
+                                alpha_mode
+                                != 0)
+                            {
+                                sgd.blended = true;
+                            }
+                            go.surface_data.push_back(sgd);
                         }
-
+                    }
+                    {
+                        // Dynamic "mobs" are put at the end of the buffer in the renderer so they can be updated dynamically without having to update
+                        // the entire graphics object buffer. Here is where they are put into one of the two buckets, either static which go in the front of the buffer
+                        // or mob which go at the end.
+                        if (queue_item.is_mob)
                         {
-                            // Each mesh may have an arbitrary number of child meshes. Add them to the mesh queue.
-                            for (const uint32_t child_mesh_index : current_mesh.child_meshes)
-                            {
-                                mesh_queue.push(child_mesh_index);
-                            }
+                            mob_graphics_objects.push_back(go);
+                            go_mob_index += 1;
                         }
+                        else
                         {
-                            // Dynamic "mobs" are put at the end of the buffer in the renderer so they can be updated dynamically without having to update
-                            // the entire graphics object buffer. Here is where they are put into one of the two buckets, either static which go in the front of the buffer
-                            // or mob which go at the end.
-                            if (queue_item.is_mob)
-                            {
-                                mob_graphics_objects.push_back(go);
-                                go_mob_index += 1;
-                            }
-                            else
-                            {
-                                rls->go_update.full_scene.push_back(go);
-                                go_static_index += 1;
-                            }
-                            // Also track all the graphic objects in a combined bucket.
-                            queue_item.game_node->graphics_objects.push_back(go);
+                            rls->go_update.full_scene.push_back(go);
+                            go_static_index += 1;
                         }
+                        // Also track all the graphic objects in a combined bucket.
+                        queue_item.game_node->graphics_objects.push_back(go);
                     }
                 }
                 queue_item.game_node->bounds = bounds;
@@ -825,8 +844,8 @@ namespace
                     }
 
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l, mat4_to_array(transform), mat4_to_array(node_transform))
-                        ;
+                    if (const auto res = new_game_node->init(l, mat4_to_array(transform), mat4_to_array(node_transform), new_node.custom_translate, new_node.custom_uniform_scale,
+                                                             new_node.custom_yaw);
                         res != result::ok)
                     {
                         l->error("Error initializing new game node in set asset");
@@ -1345,11 +1364,6 @@ namespace
                 ctx->rls->cam.v = mat4_to_array(cam_lv);
                 ctx->rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
             }
-        }
-        if (const result res = ctx->level_editor->process(ctx->wls->editor_commands, &ctx->rls->editor_state); res !=
-            result::ok)
-        {
-            ctx->l->error(std::format("Error processing editor state {}", static_cast<uint8_t>(res)));
         }
     }
 

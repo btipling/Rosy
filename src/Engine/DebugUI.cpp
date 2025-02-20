@@ -10,7 +10,7 @@ using namespace rosy;
 namespace
 {
     constexpr double pi{std::numbers::pi};
-    constexpr auto button_dims = ImVec2(150.f, 40.f);
+    constexpr auto button_dims = ImVec2(200.f, 35.f);
 }
 
 
@@ -348,24 +348,226 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
 {
     if (ImGui::BeginTabItem("Assets"))
     {
-        if (ImGui::BeginListBox("##AssetsList"))
+        if (ImGui::Button("Save Level", button_dims))
         {
-            size_t index{0};
-            for (const asset_description& a : rls->editor_state.assets)
-            {
-                if (ImGui::Selectable(std::format("##{}", a.id).c_str(), selected_asset == index))
-                {
-                    selected_asset = index;
-                    selected_model = 0;
-                }
-                ImGui::SameLine();
-                ImGui::Text("%s", a.name.c_str());
-                index += 1;
-            }
-            ImGui::EndListBox();
+            const editor_command cmd_desc{
+                .command_type = editor_command::editor_command_type::write_level,
+            };
+            wls->editor_commands.commands.push_back(cmd_desc);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Load Level", button_dims))
+        {
+            const editor_command cmd_desc{
+                .command_type = editor_command::editor_command_type::read_level,
+            };
+            wls->editor_commands.commands.push_back(cmd_desc);
         }
         if (rls->editor_state.assets.size() > selected_asset)
         {
+            if (ImGui::CollapsingHeader("Level Details", &asset_details))
+            {
+                if (ImGui::CollapsingHeader("Mobs", &asset_details))
+                {
+                    if (ImGui::BeginTable("##Mobs", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                    {
+                        size_t index{1};
+                        for (const auto& md : rls->editor_state.current_level_data.mob_models)
+                        {
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("id");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%s", md.id.c_str());
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("name");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%s", md.name.c_str());
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("location");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("(%.3f, %.3f, %.3f)", md.location[0], md.location[1], md.location[2]);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("scale");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%.3f", md.scale);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("yaw");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%.3f", md.yaw);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            if (ImGui::Button(std::format("#{} Edit {}", index, md.name).c_str(), button_dims))
+                            {
+                                ImGui::OpenPopup(std::format("{}:{}", md.name, index).c_str());
+                            }
+                            if (ImGui::BeginPopup(std::format("{}:{}", md.name, index).c_str()))
+                            {
+                                if (level_edit_model_id != md.id)
+                                {
+                                    level_edit_translate = md.location;
+                                    level_edit_scale = md.scale;
+                                    level_edit_yaw = md.yaw;
+                                    level_edit_model_id = md.id;
+                                    level_edit_model_type = md.model_type;
+                                }
+                                ImGui::Text("%s", std::format("Edit {} @ {}", md.name, index).c_str());
+                                ImGui::Text("location");
+                                ImGui::SameLine();
+                                ImGui::InputFloat3(std::format("##edit_translate{}:{}", md.name, index).c_str(), level_edit_translate.data(), "%.3f");
+                                ImGui::Text("scale");
+                                ImGui::SameLine();
+                                ImGui::InputFloat(std::format("##edit_scale{}:{}", md.name, index).c_str(), &level_edit_scale, 0.1f, 0.2f, "%.3f");
+                                ImGui::Text("yaw");
+                                ImGui::SameLine();
+                                ImGui::InputFloat(std::format("##edit_yaw{}:{}", md.name, index).c_str(), &level_edit_yaw, 0.1f, 0.2f, "%.3f");
+                                if (ImGui::Button(std::format("#{} Save {}", index, md.name).c_str(), button_dims))
+                                {
+                                    const editor_command cmd_desc{
+                                        .command_type = editor_command::editor_command_type::edit_level_node,
+                                        .mode_type_option = level_edit_model_type,
+                                        .id = md.id,
+                                        .node_data = {
+                                            .location = level_edit_translate,
+                                            .scale = level_edit_scale,
+                                            .yaw = level_edit_yaw,
+                                        },
+                                    };
+                                    wls->editor_commands.commands.push_back(cmd_desc);
+                                }
+                                ImGui::EndPopup();
+                            }
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+
+                            index += 1;
+                        }
+                        ImGui::EndTable();
+                    }
+                }
+                if (ImGui::CollapsingHeader("Static", &asset_details))
+                {
+                    if (ImGui::BeginTable("##Static", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                    {
+                        size_t index{1};
+                        for (const auto& md : rls->editor_state.current_level_data.static_models)
+                        {
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("id");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%s", md.id.c_str());
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("name");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%s", md.name.c_str());
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("location");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("(%.3f, %.3f, %.3f)", md.location[0], md.location[1], md.location[2]);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("scale");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%.3f", md.scale);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::Text("yaw");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%.3f", md.yaw);
+
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            if (ImGui::Button(std::format("#{} Edit {}", index, md.name).c_str(), button_dims))
+                                ImGui::OpenPopup(std::format("{}:{}", md.name, index).c_str());
+                            if (ImGui::BeginPopup(std::format("{}:{}", md.name, index).c_str()))
+                            {
+                                if (level_edit_model_id != md.id)
+                                {
+                                    level_edit_translate = md.location;
+                                    level_edit_scale = md.scale;
+                                    level_edit_yaw = md.yaw;
+                                    level_edit_model_id = md.id;
+                                    level_edit_model_type = md.model_type;
+                                }
+                                ImGui::Text("%s", std::format("Edit {} @ {}", md.name, index).c_str());
+                                ImGui::Text("location");
+                                ImGui::SameLine();
+                                ImGui::InputFloat3(std::format("##edit_translate{}:{}", md.name, index).c_str(), level_edit_translate.data(), "%.3f");
+                                ImGui::Text("scale");
+                                ImGui::SameLine();
+                                ImGui::InputFloat(std::format("##edit_scale{}:{}", md.name, index).c_str(), &level_edit_scale, 0.1f, 0.2f, "%.3f");
+                                ImGui::Text("yaw");
+                                ImGui::SameLine();
+                                ImGui::InputFloat(std::format("##edit_yaw{}:{}", md.name, index).c_str(), &level_edit_yaw, 0.1f, 0.2f, "%.3f");
+                                if (ImGui::Button(std::format("#{} Save {}", index, md.name).c_str(), button_dims))
+                                {
+                                    const editor_command cmd_desc{
+                                        .command_type = editor_command::editor_command_type::edit_level_node,
+                                        .mode_type_option = level_edit_model_type,
+                                        .id = md.id,
+                                        .node_data = {
+                                            .location = level_edit_translate,
+                                            .scale = level_edit_scale,
+                                            .yaw = level_edit_yaw,
+                                        },
+                                    };
+                                    wls->editor_commands.commands.push_back(cmd_desc);
+                                }
+                                ImGui::EndPopup();
+                            }
+                            ImGui::TableNextColumn();
+                            ImGui::Text("");
+
+                            index += 1;
+                        }
+                        ImGui::EndTable();
+                    }
+                }
+            }
+            if (ImGui::BeginListBox("##AssetsList"))
+            {
+                size_t index{0};
+                for (const asset_description& a : rls->editor_state.assets)
+                {
+                    if (ImGui::Selectable(std::format("##{}", a.id).c_str(), selected_asset == index))
+                    {
+                        selected_asset = index;
+                        selected_model = 0;
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text("%s", a.name.c_str());
+                    index += 1;
+                }
+                ImGui::EndListBox();
+            }
             if (ImGui::CollapsingHeader("Asset Details", &asset_details))
             {
                 if (ImGui::BeginTable("##AssetDetails", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
@@ -397,7 +599,7 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                     {
                         const editor_command cmd_desc{
                             .command_type = editor_command::editor_command_type::load_asset,
-                            .load_asset = {.id = description.id},
+                            .id = description.id,
                         };
                         wls->editor_commands.commands.push_back(cmd_desc);
                     }
@@ -450,6 +652,42 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                                 ImGui::Text("yaw");
                                 ImGui::TableNextColumn();
                                 ImGui::Text("%.3f", m.yaw);
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                if (ImGui::Button("Add Mob", button_dims))
+                                {
+                                    const editor_command cmd_desc{
+                                        .command_type = editor_command::editor_command_type::add_to_level,
+                                        .mode_type_option = editor_command::model_type::mob_model,
+                                        .id = m.id,
+                                    };
+                                    wls->editor_commands.commands.push_back(cmd_desc);
+                                }
+                                ImGui::TableNextColumn();
+                                if (ImGui::Button("Add Static", button_dims))
+                                {
+                                    const editor_command cmd_desc{
+                                        .command_type = editor_command::editor_command_type::add_to_level,
+                                        .mode_type_option = editor_command::model_type::static_model,
+                                        .id = m.id,
+                                    };
+                                    wls->editor_commands.commands.push_back(cmd_desc);
+                                }
+                                ImGui::TableNextColumn();
+
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                if (ImGui::Button("Remove", button_dims))
+                                {
+                                    const editor_command cmd_desc{
+                                        .command_type = editor_command::editor_command_type::remove_from_level,
+                                        .id = m.id,
+                                    };
+                                    wls->editor_commands.commands.push_back(cmd_desc);
+                                }
+                                ImGui::TableNextColumn();
+                                ImGui::Text("");
 
                                 ImGui::EndTable();
                             }

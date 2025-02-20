@@ -89,10 +89,30 @@ namespace rosy
 
     struct read_camera
     {
-        std::array<float, 16> v{};
-        std::array<float, 16> p{};
-        std::array<float, 16> vp{};
-        std::array<float, 16> shadow_projection_near{};
+        std::array<float, 16> v{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        std::array<float, 16> p{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        std::array<float, 16> vp{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        std::array<float, 16> shadow_projection_near{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         std::array<float, 4> position{};
         float pitch{0.f};
         float yaw{0.f};
@@ -183,9 +203,11 @@ namespace rosy
         std::vector<debug_object> circles;
     };
 
-    struct editor_command_load_asset
+    struct editor_command_node_data
     {
-        std::string id;
+        std::array<float, 3> location{};
+        float scale{1.f};
+        float yaw{0.f};
     };
 
     struct editor_command
@@ -194,11 +216,40 @@ namespace rosy
         {
             no_command,
             load_asset,
+            write_level,
+            read_level,
+            add_to_level,
+            remove_from_level,
+            edit_level_node,
+        };
+
+        enum class model_type : uint8_t
+        {
+            no_model,
+            mob_model,
+            static_model,
         };
 
         editor_command_type command_type{editor_command_type::no_command};
-        uint8_t no_command{ 0 };
-        editor_command_load_asset load_asset;
+        model_type mode_type_option{model_type::no_model};
+        std::string id{};
+        editor_command_node_data node_data{};
+    };
+
+    struct level_data_model
+    {
+        std::string id{};
+        std::string name{};
+        std::array<float, 3> location{};
+        float scale{1.f};
+        float yaw{0.f};
+        editor_command::model_type model_type{editor_command::model_type::no_model};
+    };
+
+    struct level_data
+    {
+        std::vector<level_data_model> mob_models;
+        std::vector<level_data_model> static_models;
     };
 
     struct level_editor_commands
@@ -211,6 +262,7 @@ namespace rosy
         std::string id{};
         std::string name{};
         std::array<float, 3> location{};
+        float scale{1.f};
         float yaw{0.f};
     };
 
@@ -226,6 +278,7 @@ namespace rosy
     {
         std::vector<asset_description> assets;
         const void* new_asset{nullptr};
+        level_data current_level_data{};
     };
 
     struct read_level_state

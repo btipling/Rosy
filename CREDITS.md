@@ -1,58 +1,75 @@
 # Credits
 
- ## Open Source Code Dependencies
+## Notable mentions
+
+I am grateful for the advice and help received from [deccer](https://github.com/deccer), [Jake Ryan](https://github.com/JuanDiegoMontoya), [Demon_god](https://www.youtube.com/watch?v=Cx1UjaRyYvs), [Jake Del Mastro](https://github.com/pgrAm) and many others.
+
+## Open Source Code Dependencies
 
 ### Vulkan Tools and the Vulkan SDK
-https://github.com/LunarG/VulkanTools<br/>
-Apache License  2.0, January 2004<br/>
 
- ### KTX tools
- https://github.com/KhronosGroup/KTX-Software   <br/>
- Apache 2.0 license <br/>
- Copyright (c) Mark Callow, the KTX-Software author; The Khronos Group Inc. <br/>
- and additional licenses<br/>
- https://github.com/KhronosGroup/KTX-Software/tree/main/LICENSES
+<https://github.com/LunarG/VulkanTools>\
+Apache License  2.0, January 2004
 
- ### fastgltf 
- https://github.com/spnda/fastgltf  <br/>
- MIT license <br/>
- Copyright (c) 2022 - 2024 spnda.  <br/>
+### KTX tools
 
- ### Vulkan memory allocator
- https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator  <br/>
- MIT License  <br/>
- Copyright  (c) 2017-2024 Advanced Micro Devices, Inc. <br/>
+ <https://github.com/KhronosGroup/KTX-Software>\
+ Apache 2.0 license\
+ Copyright (c) Mark Callow, the KTX-Software author; The Khronos Group Inc.\
+ and additional licenses\
+ <https://github.com/KhronosGroup/KTX-Software/tree/main/LICENSES>
 
- ### Dear Imgui 
- https://github.com/ocornut/imgui  <br/>
- MIT license  <br/>
- Copyright (c) 2014-2024 Omar Cornut <br/>
+### fastgltf
 
- ### Volk
- https://github.com/zeux/volk  <br/>
- MIT license  <br/>
- Copyright (c) 2018-2024 Arseny Kapoulkine <br/>
+ <https://github.com/spnda/fastgltf> \
+ MIT license\
+ Copyright (c) 2022 - 2024 spnda. \
 
+### Vulkan memory allocator
 
- ### DirectXTex 
- https://github.com/microsoft/DirectXTex  <br/>
- MIT license  <br/>
+ <https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator> \
+ MIT License \
+ Copyright  (c) 2017-2024 Advanced Micro Devices, Inc.
+
+### Dear Imgui
+
+ <https://github.com/ocornut/imgui> \
+ MIT license \
+ Copyright (c) 2014-2024 Omar Cornut
+
+### Volk
+
+ <https://github.com/zeux/volk> \
+ MIT license \
+ Copyright (c) 2018-2024 Arseny Kapoulkine
+
+### DirectXTex
+
+ <https://github.com/microsoft/DirectXTex> \
+ MIT license \
  Copyright (c) Microsoft Corporation.
-  <br/>
 
- ### stb
- https://github.com/nothings/stb/tree/master?tab=License-1-ov-file#readme   <br/>
- MIT License  <br/>
- Copyright (c) 2017 Sean Barrett <br/>
+### stb
 
- ### VkGuide
- https://github.com/vblanco20-1/vulkan-guide <br/>
- MIT License<br/>
- Copyright (c) 2022-2024 2016 VkGuide Author<br/>
- I initially relied a lot on this for developing my scene graph.<br/>
+ <https://github.com/nothings/stb/tree/master?tab=License-1-ov-file#readme>\
+ MIT License \
+ Copyright (c) 2017 Sean Barrett
 
- ### Nameless engine
- https://github.com/Flone-dnb/nameless-engine <br/>
- MIT License<br/>
- Copyright (c) 2022-2024 Alexander Tretyakov<br/>
- For some of the ktx vma allocation logic.<br/>
+### VkGuide
+
+ <https://github.com/vblanco20-1/vulkan-guide>\
+ MIT License\
+ Copyright (c) 2022-2024 2016 VkGuide Author\
+
+### Nameless engine
+
+ <https://github.com/Flone-dnb/nameless-engine>\
+ MIT License\
+ Copyright (c) 2022-2024 Alexander Tretyakov\
+ For some of the ktx vma allocation logic.
+
+### Nlohmann's json
+
+<https://github.com/nlohmann/json>\
+MIT License\
+Copyright (c) 2013-2025 Niels Lohmann

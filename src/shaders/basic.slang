@@ -67,13 +67,19 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float3 bitangent = cross(normal, tangent) * new_tangent.w;
 
     float3 view = object_space_camera.xyz - v.position.xyz;
-    if (sd.tangentSpaceEnabled == 1)
-    {
-        view = float3(dot(tangent, view), dot(bitangent, view), dot(normal, view));
+
+    bool tangentSpaceEnabled = sd.tangentSpaceEnabled == 1;
+    if (BasicPushConstants.md != nullptr) {
+        BasicMaterialData md = *BasicPushConstants.md;
+        uint nti = md.normal_texture_index;
+        if (!validDescriptorIndex(nti)) {
+            tangentSpaceEnabled = false;
+        }
     }
 
-    if (sd.tangentSpaceEnabled == 1)
+    if (tangentSpaceEnabled)
     {
+        view = float3(dot(tangent, view), dot(bitangent, view), dot(normal, view));
         light = float3(dot(tangent, light), dot(bitangent, light), dot(normal, light));
     }
 
@@ -115,7 +121,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         float4 outFragColor = basicVertex.color * float4(ambientLight * sunLight, 1.0);
 
         Fragment output;
-        output.color = outFragColor;
+        output.color = float4(0.f, 0.f, 1.f, 1.f);
         return output;
     }
 
@@ -124,10 +130,14 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     uint nti = md.normal_texture_index;
     uint nsi = md.normal_sampler_index;
 
-    texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
-    SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
+    float3 lightNormal = basicVertex.normal;
 
-    float3 lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
+    if (validDescriptorIndex(nti)) {
+        texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
+        SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
+
+        lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
+    } 
 
     float4 outFragColor;
     switch (sd.fragmentOutput)
