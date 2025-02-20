@@ -292,7 +292,13 @@ namespace
                             l->error(std::format("error writing level file {}", static_cast<uint8_t>(res)));
                             return res;
                         }
-                        break;
+                        if (const result res = load_level_asset(); res != result::ok)
+                        {
+                            l->error("Failed to load level asset during processing command");
+                            return res;
+                        }
+                        state->new_asset = ld.models.empty() ? asset_descriptions[0].asset : &level_asset;
+                        return result::ok;
                     case editor_command::editor_command_type::add_to_level:
                         l->info("editor-command: adding to level.");
                         if (const auto res = add_model(cmd.id, cmd.mode_type_option); res != result::ok)
