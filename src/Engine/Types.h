@@ -212,7 +212,7 @@ namespace rosy
         std::string id{};
         std::string name{};
         std::array<float, 3> location{};
-        float custom_uniform{0.f};
+        float scale{0.f};
         float yaw{0.f};
         editor_command::model_type model_type{editor_command::model_type::no_model};
     };
