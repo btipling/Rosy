@@ -146,6 +146,14 @@ namespace
         return v;
     }
 
+    glm::vec3 array_to_vec3(std::array<float, 3> a)
+    {
+        glm::vec3 v{};
+        const auto pos_r = glm::value_ptr(v);
+        for (uint64_t i{0}; i < 3; i++) pos_r[i] = a[i];
+        return v;
+    }
+
     struct stack_item
     {
         node* game_node{nullptr};
@@ -729,7 +737,14 @@ namespace
                 assert(queue_item.game_node != nullptr);
 
                 glm::mat4 node_transform = array_to_mat4(queue_item.stack_node.transform);
-                const glm::mat4 transform = queue_item.parent_transform * node_transform;
+
+                constexpr glm::mat4 m{1.f};
+                const glm::mat4 t = glm::translate(m, array_to_vec3(queue_item.game_node->custom_translate));
+                const glm::mat4 r = toMat4(angleAxis(queue_item.game_node->custom_yaw, glm::vec3{0.f, 1.f, 0.f}));
+                float custom_scale = queue_item.game_node->custom_scale;
+                const glm::mat4 s = glm::scale(m, glm::vec3(custom_scale, custom_scale, custom_scale));
+
+                const glm::mat4 transform = queue_item.parent_transform * t * r * s * node_transform;
                 // Set node bounds for bound testing.
                 node_bounds bounds{};
                 // Advance the next item in the node queue
@@ -753,6 +768,7 @@ namespace
                         // Record the assets transforms from the asset
                         const glm::mat4 object_space_transform = glm::inverse(static_cast<glm::mat3>(transform));
                         const glm::mat4 normal_transform = glm::transpose(object_space_transform);
+
                         go.transform = mat4_to_array(transform);
                         go.normal_transform = mat4_to_array(normal_transform);
                         go.object_space_transform = mat4_to_array(object_space_transform);
@@ -823,8 +839,7 @@ namespace
 
                     // Initialize its state
                     if (const auto res = new_game_node->init(l, mat4_to_array(transform), mat4_to_array(node_transform), new_node.custom_translate, new_node.custom_uniform_scale,
-                                                             new_node.custom_yaw)
-                        ;
+                                                             new_node.custom_yaw);
                         res != result::ok)
                     {
                         l->error("Error initializing new game node in set asset");

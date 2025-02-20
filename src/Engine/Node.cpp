@@ -60,7 +60,7 @@ struct node_state
         constexpr glm::mat4 m{1.f};
         const glm::mat4 t = glm::translate(m, array_to_vec3(custom_translate));
         const glm::mat4 r = toMat4(angleAxis(custom_yaw, glm::vec3{0.f, 1.f, 0.f}));
-        const glm::mat4 s = glm::scale(m, glm::vec3(custom_scale));
+        const glm::mat4 s = glm::scale(m, glm::vec3(custom_scale, custom_scale, custom_scale));
 
         transform = t * r * s * transform;
         const glm::mat4 final_transform = parent_transform * transform;
@@ -115,6 +115,9 @@ result node::init(rosy::log* new_log, const std::array<float, 16>& new_transform
     object_space_transform = mat4_to_array(ns->object_space_transform);
     normal_transform = mat4_to_array(ns->normal_transform);
     position = vec4_to_array(ns->position);
+    custom_translate = new_custom_translate;
+    custom_scale = new_custom_scale;
+    custom_yaw = new_custom_yaw;
     return result::ok;
 }
 
