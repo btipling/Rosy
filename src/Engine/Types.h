@@ -183,6 +183,13 @@ namespace rosy
         std::vector<debug_object> circles;
     };
 
+    struct editor_command_node_data
+    {
+        std::array<float, 3> level_edit_translate{};
+        float level_edit_scale{ 0.f };
+        float level_edit_yaw{ 0.f };
+    };
+
     struct editor_command
     {
         enum class editor_command_type : uint8_t
@@ -193,6 +200,7 @@ namespace rosy
             read_level,
             add_to_level,
             remove_from_level,
+            edit_level_node,
         };
 
         enum class model_type : uint8_t
@@ -205,6 +213,7 @@ namespace rosy
         editor_command_type command_type{editor_command_type::no_command};
         model_type mode_type_option{model_type::no_model};
         std::string id{};
+        editor_command_node_data node_data{};
     };
 
     struct level_data_model

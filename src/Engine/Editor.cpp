@@ -270,6 +270,21 @@ namespace
                             return res;
                         }
                         break;
+                    case editor_command::editor_command_type::edit_level_node:
+                        l->info(std::format("editor-command: editing level node {}. Translate: ({:.3f}, {:.3f}, {:.3f}) Scale: {:.3f} Yaw: {:.3f}",
+                                            cmd.id,
+                                            cmd.node_data.level_edit_translate[0],
+                                            cmd.node_data.level_edit_translate[1],
+                                            cmd.node_data.level_edit_translate[2],
+                                            cmd.node_data.level_edit_scale,
+                                            cmd.node_data.level_edit_yaw
+                        ));
+                        if (const auto res = remove_model(cmd.id); res != result::ok)
+                        {
+                            l->error(std::format("error removing model from level {}", static_cast<uint8_t>(res)));
+                            return res;
+                        }
+                        break;
                     }
                 }
                 if (!commands.commands.empty())
