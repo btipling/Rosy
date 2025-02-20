@@ -202,7 +202,7 @@ namespace
                 l->error("root scene_objects allocation failed");
                 return result::allocation_failure;
             };
-            if (const auto res = level_game_node->init(l, {}, {}); res != result::ok)
+            if (const auto res = level_game_node->init(l, {}, {}, {}, 1.f, 0.f); res != result::ok)
             {
                 l->error("root scene_objects initialization failed");
                 delete level_game_node;
@@ -691,7 +691,8 @@ namespace
                 const std::array<float, 16> identity_m = mat4_to_array(glm::mat4(1.f));
 
                 // All nodes must be initialized here and below.
-                if (const auto res = new_game_node->init(l, new_node.transform, identity_m); res != result::ok)
+                if (const auto res = new_game_node->init(l, new_node.transform, identity_m, new_node.custom_translate, new_node.custom_uniform_scale, new_node.custom_yaw); res !=
+                    result::ok)
                 {
                     l->error("initial scene_objects initialization failed");
                     new_game_node->deinit();
@@ -821,7 +822,8 @@ namespace
                     }
 
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l, mat4_to_array(transform), mat4_to_array(node_transform))
+                    if (const auto res = new_game_node->init(l, mat4_to_array(transform), mat4_to_array(node_transform), new_node.custom_translate, new_node.custom_uniform_scale,
+                                                             new_node.custom_yaw)
                         ;
                         res != result::ok)
                     {
