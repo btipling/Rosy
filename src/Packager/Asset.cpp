@@ -21,10 +21,13 @@ using namespace rosy_packager;
 //       // index 0 - num nodes -> a std::vector<uint32_t> of node indices
 // 6. Per Node
 // 6a. Node size layout: std::array<size_t, 3>
-//       // index 0 - num transforms -> always 1 to represent a single std::array<float, 16>
-//       // index 1 -> num mesh ids -> always 1 to represent a single uint32_t
-//       // index 2 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
-//       // index 3 - num characters -> a std::vector<char> to represent a node name
+//       // index 0 - num custom_translate -> always 1 to represent a single std::array<float, 3>
+//       // index 1 - num custom_uniform_scale -> always 1 to represent a single float
+//       // index 2 - num custom_yaw -> always 1 to represent a single float
+//       // index 3 - num transforms -> always 1 to represent a single std::array<float, 16>
+//       // index 4 -> num mesh ids -> always 1 to represent a single uint32_t
+//       // index 5 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
+//       // index 6 - num characters -> a std::vector<char> to represent a node name
 // 7. Per Image
 // 7a.Image size layout: std::array<size_t, 1>
 //       // index 0 - num characters -> a std::vector<char> to represent an image name
@@ -163,26 +166,73 @@ rosy::result asset::write(const rosy::log* l)
 
     // WRITE ALL NODES ONE AT A TIME
 
-    for (const auto& [transform, mesh_id, child_nodes, node_name_chars] : nodes)
+    for (const auto& [
+             custom_translate,
+             custom_uniform_scale,
+             custom_yaw,
+             transform,
+             mesh_id,
+             child_nodes,
+             node_name_chars] : nodes)
     {
         // WRITE ONE NODE SIZE
 
+        constexpr size_t num_custom_translate{1};
+        constexpr size_t num_custom_uniform_scale{1};
+        constexpr size_t num_custom_yaw{1};
         constexpr size_t num_transforms{1};
         constexpr size_t num_mesh_ids{1};
+
         {
             const size_t num_child_nodes{child_nodes.size()};
             const size_t num_name_chars{node_name_chars.size()};
             constexpr size_t lookup_sizes = 1;
-            const std::array<size_t, 4> node_sizes{num_transforms, num_mesh_ids, num_child_nodes, num_name_chars};
+            const std::array<size_t, 7> node_sizes{num_custom_translate, num_custom_uniform_scale, num_custom_yaw, num_transforms, num_mesh_ids, num_child_nodes, num_name_chars};
             size_t res = fwrite(&node_sizes, sizeof(node_sizes), lookup_sizes, stream);
             if (res != lookup_sizes)
             {
                 l->error(std::format("failed to write {}/{} node_sizes", res, lookup_sizes));
                 return rosy::result::write_failed;
             }
-            l->debug(std::format(
-                "wrote {} sizes, num_transforms: {} num_mesh_ids: {}, num_child_nodes: {},  num_name_chars: {}",
-                res, num_mesh_ids, num_child_nodes, num_transforms, num_name_chars));
+            l->info(std::format(
+                "wrote {} sizes, num_custom_translate: {}, num_custom_uniform_scale: {}, num_custom_yaw: {}, num_transforms: {} num_mesh_ids: {}, num_child_nodes: {},  num_name_chars: {}",
+                res, num_custom_translate, num_custom_uniform_scale, num_custom_yaw, num_transforms, num_mesh_ids, num_child_nodes, num_name_chars));
+        }
+
+        // WRITE ONE NODE CUSTOM_TRANSLATE
+
+        {
+            size_t res = fwrite(&custom_translate, sizeof(custom_translate), num_custom_translate, stream);
+            if (res != num_custom_translate)
+            {
+                l->error(std::format("failed to write {}/{} node custom_translate", res, num_custom_translate));
+                return rosy::result::write_failed;
+            }
+            l->info(std::format("wrote {} node custom_translate", res));
+        }
+
+        // WRITE ONE NODE CUSTOM_UNIFORM_SCALE
+
+        {
+            size_t res = fwrite(&custom_uniform_scale, sizeof(custom_uniform_scale), num_custom_uniform_scale, stream);
+            if (res != num_custom_uniform_scale)
+            {
+                l->error(std::format("failed to write {}/{} node custom_uniform_scale", res, num_custom_uniform_scale));
+                return rosy::result::write_failed;
+            }
+            l->info(std::format("wrote {} node custom_uniform_scale", res));
+        }
+
+        // WRITE ONE NODE CUSTOM_CUSTOM_YAW
+
+        {
+            size_t res = fwrite(&custom_yaw, sizeof(custom_yaw), num_custom_yaw, stream);
+            if (res != num_custom_yaw)
+            {
+                l->error(std::format("failed to write {}/{} node custom_yaw", res, num_custom_yaw));
+                return rosy::result::write_failed;
+            }
+            l->info(std::format("wrote {} node transforms", res));
         }
 
         // WRITE ONE NODE TRANSFORM
@@ -326,7 +376,6 @@ rosy::result asset::write(const rosy::log* l)
             }
             l->debug(std::format("wrote {} surfaces", res));
         }
-
     }
 
     int num_closed = fclose(stream);
@@ -460,7 +509,7 @@ rosy::result asset::read(rosy::log* l)
         size_t num_scene_nodes{0};
         {
             constexpr size_t lookup_sizes = 1;
-            std::array<size_t, 1> scene_sizes{0};
+            std::array<size_t, 1> scene_sizes{};
             size_t res = fread(&scene_sizes, sizeof(scene_sizes), lookup_sizes, stream);
             if (res != lookup_sizes)
             {
@@ -497,32 +546,77 @@ rosy::result asset::read(rosy::log* l)
 
         // READ ONE NODE SIZE
 
+        size_t num_custom_translate{0};
+        size_t num_custom_uniform_scale{0};
+        size_t num_custom_yaw{0};
         size_t num_transforms{0};
         size_t num_mesh_ids{0};
         size_t num_child_nodes{0};
         size_t num_node_name_chars{0};
         {
             constexpr size_t lookup_sizes = 1;
-            std::array<size_t, 4> node_sizes{0, 0, 0, 0};
+            std::array<size_t, 7> node_sizes{ 0, 0, 0, 0, 0, 0, 0};
             size_t res = fread(&node_sizes, sizeof(node_sizes), lookup_sizes, stream);
             if (res != lookup_sizes)
             {
                 l->error(std::format("failed to read {}/{} node_sizes", res, lookup_sizes));
                 return rosy::result::read_failed;
             }
-            num_transforms = node_sizes[0];
-            num_mesh_ids = node_sizes[1];
-            num_child_nodes = node_sizes[2];
-            num_node_name_chars = node_sizes[3];
+            num_custom_translate = node_sizes[0];
+            num_custom_uniform_scale = node_sizes[1];
+            num_custom_yaw = node_sizes[2];
+            num_transforms = node_sizes[3];
+            num_mesh_ids = node_sizes[4];
+            num_child_nodes = node_sizes[5];
+            num_node_name_chars = node_sizes[6];
             l->debug(std::format(
                 "read {} sizes, num_transforms: {} num_mesh_ids: {} num_child_nodes: {} num_node_name_chars: {}",
                 res, num_transforms, num_mesh_ids, num_child_nodes, num_node_name_chars));
+            assert(num_custom_translate == 1);
+            assert(num_custom_uniform_scale == 1);
+            assert(num_custom_yaw == 1);
             assert(num_transforms == 1);
             assert(num_mesh_ids == 1);
         }
 
         n.child_nodes.resize(num_child_nodes);
         n.name.resize(num_node_name_chars);
+
+        // READ ONE NODE CUSTOM_TRANSLATE
+
+        {
+            size_t res = fread(&n.custom_translate, sizeof(std::array<float, 3>), num_custom_translate, stream);
+            if (res != num_transforms)
+            {
+                l->error(std::format("failed to read {}/{} node custom_translate", res, num_custom_translate));
+                return rosy::result::read_failed;
+            }
+            l->debug(std::format("read {} node custom_translate", res));
+        }
+
+        // READ ONE NODE CUSTOM_UNIFORM_SCALE
+
+        {
+            size_t res = fread(&n.custom_uniform_scale, sizeof(float), num_custom_uniform_scale, stream);
+            if (res != num_transforms)
+            {
+                l->error(std::format("failed to read {}/{} node custom_uniform_scale", res, num_custom_uniform_scale));
+                return rosy::result::read_failed;
+            }
+            l->debug(std::format("read {} node custom_uniform_scale", res));
+        }
+
+        // READ ONE NODE CUSTOM_YAW
+
+        {
+            size_t res = fread(&n.custom_yaw, sizeof(float), num_custom_yaw, stream);
+            if (res != num_transforms)
+            {
+                l->error(std::format("failed to read {}/{} node custom_yaw", res, num_custom_yaw));
+                return rosy::result::read_failed;
+            }
+            l->debug(std::format("read {} node custom_yaw", res));
+        }
 
         // READ ONE NODE TRANSFORM
 
