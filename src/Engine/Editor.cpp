@@ -598,7 +598,10 @@ namespace
                                     rosy_packager::node source_node = a->nodes[current_node_index];
                                     rosy_packager::node new_destination_node{};
                                     new_destination_node.name = source_node.name;
-                                    new_destination_node.transform = source_node.transform; // TODO: actually use the translation and yaw from the configured level data.
+                                    new_destination_node.custom_translate = md.location;
+                                    new_destination_node.custom_uniform_scale = md.scale;
+                                    new_destination_node.custom_yaw = md.yaw;
+                                    new_destination_node.transform = source_node.transform;
                                     new_destination_node.child_nodes = source_node.child_nodes; // These are remapped below.
                                     new_destination_node.mesh_id = UINT32_MAX; // This is remapped below.
                                     level_asset.nodes.push_back(new_destination_node);
