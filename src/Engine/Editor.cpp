@@ -575,7 +575,6 @@ namespace
                                                 level_asset.nodes[2].child_nodes.push_back(nm.destination_index);
                                                 break;
                                             }
-                                            first_node = false;
                                         }
                                         break;
                                     }
@@ -598,9 +597,12 @@ namespace
                                     rosy_packager::node source_node = a->nodes[current_node_index];
                                     rosy_packager::node new_destination_node{};
                                     new_destination_node.name = source_node.name;
-                                    new_destination_node.custom_translate = md.location;
-                                    new_destination_node.custom_uniform_scale = md.scale;
-                                    new_destination_node.custom_yaw = md.yaw;
+                                    if (first_node) {
+                                        // Set these only for the initial node.
+                                        new_destination_node.custom_translate = md.location;
+                                        new_destination_node.custom_uniform_scale = md.scale;
+                                        new_destination_node.custom_yaw = md.yaw;
+                                    }
                                     new_destination_node.transform = source_node.transform;
                                     new_destination_node.child_nodes = source_node.child_nodes; // These are remapped below.
                                     new_destination_node.mesh_id = UINT32_MAX; // This is remapped below.
@@ -863,6 +865,7 @@ namespace
                                 }
                             }
                             for (const uint32_t child : a->nodes[current_node_index].child_nodes) node_descendants.push(child);
+                            first_node = false;
                         }
                     }
                 }
@@ -914,9 +917,10 @@ namespace
 
         result load_asset([[maybe_unused]] level_editor_state* state)
         {
-            std::array<std::string, 3> asset_paths{
+            std::array<std::string, 4> asset_paths{
                 R"(..\assets\houdini\exports\Box_002\Box_002.rsy)",
                 R"(..\assets\sponza\sponza.rsy)",
+                R"(..\assets\cornell_dragons\cornell_dragons.rsy)",
                 R"(..\assets\deccer_cubes\SM_Deccer_Cubes_Textured_Complex.rsy)",
             };
             for (std::string& path : asset_paths)
