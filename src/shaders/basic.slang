@@ -69,10 +69,12 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float3 view = object_space_camera.xyz - v.position.xyz;
 
     bool tangentSpaceEnabled = sd.tangentSpaceEnabled == 1;
-    if (BasicPushConstants.md != nullptr) {
+    if (BasicPushConstants.md != nullptr)
+    {
         BasicMaterialData md = *BasicPushConstants.md;
         uint nti = md.normal_texture_index;
-        if (!validDescriptorIndex(nti)) {
+        if (!validDescriptorIndex(nti))
+        {
             tangentSpaceEnabled = false;
         }
     }
@@ -121,7 +123,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         float4 outFragColor = basicVertex.color * float4(ambientLight * sunLight, 1.0);
 
         Fragment output;
-        output.color = float4(0.f, 0.f, 1.f, 1.f);
+        output.color = outFragColor;
         return output;
     }
 
@@ -132,24 +134,28 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     float3 lightNormal = basicVertex.normal;
 
-    if (validDescriptorIndex(nti)) {
+    if (validDescriptorIndex(nti))
+    {
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
         lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
-    } 
+    }
 
-    float4 outFragColor;
+    float4 outFragColor = basicVertex.color;
     switch (sd.fragmentOutput)
     {
     case 0:
         uint cti = md.color_texture_index;
         uint csi = md.color_sampler_index;
 
-        texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
-        SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
-        float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
-        outFragColor = imageTextureColor;
+        if (validDescriptorIndex(cti))
+        {
+            texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
+            SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
+            float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
+            outFragColor = imageTextureColor;
+        }
         break;
     case 1:
         outFragColor = float4(normalize(basicVertex.worldNormal) * 0.5 + 0.5, 1.f);
@@ -188,7 +194,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
         }
 
-        outFragColor = max(outFragColor * float4(ambientLight, 1.f), outFragColor * float4(sunLight * shadowFactor, 1.0));
+        outFragColor =
+            max(outFragColor * float4(ambientLight, 1.f), outFragColor * float4(sunLight * shadowFactor, 1.0));
     }
 
     Fragment output;
