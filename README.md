@@ -4,7 +4,7 @@ This is a hobby project to build a game engine and eventually a game in my spare
 
 ![Sponza](https://github.com/user-attachments/assets/5cede515-33e1-488b-970f-f091bd9bc6ad)
 
-![Rosy](https://github.com/user-attachments/assets/a71c1672-3039-47c0-a3b1-cb47d8115938)
+![Rosy and friends](https://github.com/user-attachments/assets/1109c417-88a5-40d2-aa83-c1ff4296b977)
 
 ## Building
 
