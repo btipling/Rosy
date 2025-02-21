@@ -10,7 +10,7 @@ vk_sdk = os.getenv("VULKAN_SDK")
 project "Engine"
     kind "ConsoleApp"
     language "C++"
-    cppdialect "C++20"
+    cppdialect "C++23"
     targetdir "bin/%{cfg.buildcfg}"
     architecture("x86_64")
     filter "configurations:Clang"
@@ -66,7 +66,7 @@ project "Engine"
 project "Packager"
     kind "ConsoleApp"
     language "C++"
-    cppdialect "C++20"
+    cppdialect "C++23"
     targetdir "bin/%{cfg.buildcfg}"
     architecture("x86_64")
     filter "configurations:Clang"

@@ -89,6 +89,8 @@ rosy::result gltf::import(rosy::log* l)
 
     // MATERIALS
 
+    std::vector<uint32_t>normal_map_images;
+    std::vector<uint32_t>color_images;
     {
         for (fastgltf::Material& mat : gltf.materials)
         {
@@ -97,8 +99,8 @@ rosy::result gltf::import(rosy::log* l)
             {
                 if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.has_value())
                 {
-                    m.color_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().
-                                                                                  textureIndex].imageIndex.value());
+                    m.color_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value());
+                    color_images.push_back(m.color_image_index);
                 }
                 else
                 {
@@ -106,8 +108,7 @@ rosy::result gltf::import(rosy::log* l)
                 }
                 if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.has_value())
                 {
-                    m.color_sampler_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().
-                                                                                    textureIndex].samplerIndex.value());
+                    m.color_sampler_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].samplerIndex.value());
                 }
                 else
                 {
@@ -118,8 +119,8 @@ rosy::result gltf::import(rosy::log* l)
             {
                 if (gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.has_value())
                 {
-                    m.normal_image_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].
-                                                                 imageIndex.value());
+                    m.normal_image_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.value());
+                    normal_map_images.push_back(m.color_image_index);
                 }
                 else
                 {
@@ -150,6 +151,28 @@ rosy::result gltf::import(rosy::log* l)
                 m.alpha_cutoff = mat.alphaCutoff;
             }
             gltf_asset.materials.push_back(m);
+        }
+    }
+    {
+        std::ranges::sort(color_images);
+        auto last = std::ranges::unique(color_images).begin();
+        color_images.erase(last, color_images.end());
+        l->info(std::format("num color_images {}", color_images.size()));
+        for (const uint32_t i : color_images)
+        {
+            const auto img =  gltf.images[i];
+            l->info(std::format("{} is a color image", img.name));
+        }
+    }
+    {
+        std::ranges::sort(normal_map_images);
+        auto last = std::ranges::unique(normal_map_images).begin();
+        normal_map_images.erase(last, normal_map_images.end());
+        l->info(std::format("num normal_map_images {}", normal_map_images.size()));
+        for (const uint32_t i : color_images)
+        {
+            const auto img =  gltf.images[i];
+            l->info(std::format("{} is a normal map image", img.name));
         }
     }
 
