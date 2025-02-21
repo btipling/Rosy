@@ -74,7 +74,7 @@ rosy::result gltf::import(rosy::log* l)
     // IMAGES
     for (auto& [gltf_image_data, gltf_image_name] : gltf.images)
     {
-        l->debug(std::format("Adding image: {}", gltf_image_name));
+        l->info(std::format("Adding image: {}", gltf_image_name));
         image img{};
 
         std::filesystem::path img_path{gltf_asset.asset_path};
@@ -120,7 +120,7 @@ rosy::result gltf::import(rosy::log* l)
                 if (gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.has_value())
                 {
                     m.normal_image_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.value());
-                    normal_map_images.push_back(m.color_image_index);
+                    normal_map_images.push_back(m.normal_image_index);
                 }
                 else
                 {
@@ -160,8 +160,13 @@ rosy::result gltf::import(rosy::log* l)
         l->info(std::format("num color_images {}", color_images.size()));
         for (const uint32_t i : color_images)
         {
-            const auto img =  gltf.images[i];
+            const auto& img =  gltf.images[i];
             l->info(std::format("{} is a color image", img.name));
+            if (std::holds_alternative<fastgltf::sources::URI>(img.data))
+            {
+                const fastgltf::sources::URI uri = std::get<fastgltf::sources::URI>(img.data);
+                l->info(std::format("{} is a uri", uri.uri.string()));
+            }
         }
     }
     {
@@ -169,10 +174,15 @@ rosy::result gltf::import(rosy::log* l)
         auto last = std::ranges::unique(normal_map_images).begin();
         normal_map_images.erase(last, normal_map_images.end());
         l->info(std::format("num normal_map_images {}", normal_map_images.size()));
-        for (const uint32_t i : color_images)
+        for (const uint32_t i : normal_map_images)
         {
-            const auto img =  gltf.images[i];
+            const auto& img =  gltf.images[i];
             l->info(std::format("{} is a normal map image", img.name));
+            if (std::holds_alternative<fastgltf::sources::URI>(img.data))
+            {
+                const fastgltf::sources::URI uri = std::get<fastgltf::sources::URI>(img.data);
+                l->info(std::format("{} is a uri", uri.uri.string()));
+            }
         }
     }
 
