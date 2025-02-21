@@ -142,7 +142,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
     }
 
-    float4 outFragColor = basicVertex.color;
+    float4 outFragColor = md.color;
     switch (sd.fragmentOutput)
     {
     case 0:
