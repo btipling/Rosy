@@ -3638,6 +3638,7 @@ namespace
                     }
                     graphics_created_bitmask &= ~graphics_created_bit_shaders;
                 }
+                gpu_meshes.clear();
             }
             // *** SETTING IMAGES *** //
             std::vector<uint32_t> color_image_sampler_desc_index;
@@ -5366,8 +5367,7 @@ namespace
                                 vkCmdSetDepthTestEnableEXT(cf.command_buffer, VK_TRUE);
                                 vkCmdBindIndexBuffer(cf.command_buffer, index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
                                 size_t current_mesh_index = UINT64_MAX;
-                                for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index,
-                                         index_count, start_index, blended] : opaque_graphics)
+                                for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : opaque_graphics)
                                 {
                                     auto& gpu_mesh = gpu_meshes[mesh_index];
                                     if (mesh_index != current_mesh_index)
@@ -5377,15 +5377,11 @@ namespace
                                     gpu_draw_push_constants pc{
                                         .scene_buffer = cf.scene_buffer.scene_buffer_address,
                                         .vertex_buffer = vertex_buffer_address + gpu_mesh.vertex_buffer_offset,
-                                        .go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(
-                                            graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
-                                        .material_buffer = material_buffer.material_buffer_address + (sizeof(
-                                            gpu_material) * material_index),
+                                        .go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
+                                        .material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
                                     };
-                                    vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0,
-                                                       sizeof(gpu_draw_push_constants), &pc);
-                                    vkCmdDrawIndexed(cf.command_buffer, index_count, 1,
-                                                     gpu_mesh.index_offset + start_index, 0, 0);
+                                    vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
+                                    vkCmdDrawIndexed(cf.command_buffer,index_count, 1, gpu_mesh.index_offset + start_index, 0, 0);
                                     new_stats.draw_call_count += 1;
                                     new_stats.triangle_count += index_count / 3;
                                 }
@@ -5401,8 +5397,7 @@ namespace
                                     blend_equation.alphaBlendOp = VK_BLEND_OP_ADD;
                                     vkCmdSetColorBlendEnableEXT(cf.command_buffer, 0, 1, &enable);
                                     VkFlags color_component_flags{};
-                                    color_component_flags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+                                    color_component_flags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
                                     vkCmdSetColorWriteMaskEXT(cf.command_buffer, 0, 1, &color_component_flags);
                                     vkCmdSetColorBlendEquationEXT(cf.command_buffer, 0, 1, &blend_equation);
                                     vkCmdSetCullModeEXT(cf.command_buffer, VK_CULL_MODE_NONE);
@@ -5410,8 +5405,7 @@ namespace
                                 }
                                 current_mesh_index = UINT64_MAX;
                                 vkCmdBindIndexBuffer(cf.command_buffer, index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                                for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index,
-                                         index_count, start_index, blended] : blended_graphics)
+                                for (auto& [mesh_index, graphic_objects_offset, graphics_object_index, material_index, index_count, start_index, blended] : blended_graphics)
                                 {
                                     auto& gpu_mesh = gpu_meshes[mesh_index];
                                     if (mesh_index != current_mesh_index)
@@ -5421,15 +5415,11 @@ namespace
                                     gpu_draw_push_constants pc{
                                         .scene_buffer = cf.scene_buffer.scene_buffer_address,
                                         .vertex_buffer = vertex_buffer_address + gpu_mesh.vertex_buffer_offset,
-                                        .go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(
-                                            graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
-                                        .material_buffer = material_buffer.material_buffer_address + (sizeof(
-                                            gpu_material) * material_index),
+                                        .go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
+                                        .material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
                                     };
-                                    vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0,
-                                                       sizeof(gpu_draw_push_constants), &pc);
-                                    vkCmdDrawIndexed(cf.command_buffer, index_count, 1,
-                                                     gpu_mesh.index_offset + start_index, 0, 0);
+                                    vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL,0, sizeof(gpu_draw_push_constants), &pc);
+                                    vkCmdDrawIndexed(cf.command_buffer, index_count, 1,gpu_mesh.index_offset + start_index, 0, 0);
                                     new_stats.draw_call_count += 1;
                                     new_stats.triangle_count += index_count / 3;
                                 }
