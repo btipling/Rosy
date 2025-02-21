@@ -10,3 +10,6 @@
 [submodule "src/libs/flecs"]
 	path = src/libs/flecs
 	url = git@github.com:SanderMertens/flecs.git
+[submodule "src/libs/json"]
+	path = src/libs/json
+	url = git@github.com:nlohmann/json.git

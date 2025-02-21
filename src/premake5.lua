@@ -27,7 +27,7 @@ project "Engine"
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/imgui/" }
     includedirs { "libs/tracy/" }
-    includedirs { "libs/" }
+    includedirs { "libs/json/single_include/" }
     includedirs { "libs/KTX-Software/include/" }
     includedirs { "libs/flecs/include/" }
 
@@ -45,7 +45,7 @@ project "Engine"
     files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
     files { "libs/Volk.cpp" }
     files { "libs/VMA.cpp" }
-    files { "libs/nlohmann/json.hpp" }
+    files { "libs/json/single_include/nlohmann/json.hpp" }
     files { "shaders/*.slang", "shaders/*.ps1" }
 
     filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
