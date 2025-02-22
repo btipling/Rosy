@@ -85,10 +85,8 @@ rosy::result gltf::import(rosy::log* l)
         pre_rename_image_paths.emplace_back(img_path);
         img_path.replace_filename(std::format("{}.ktx2", gltf_image_name));
         l->debug(std::format("source: {} path: {} name: {}", gltf_asset.asset_path, img_path.string(), gltf_image_name));
-        std::wstring image_path_wide{img_path.c_str()};
-        std::string img_path_staging{img_path.string()};
 
-        std::ranges::copy(img_path_staging, std::back_inserter(img.name));
+        std::ranges::copy(img_path.string(), std::back_inserter(img.name));
         gltf_asset.images.push_back(img);
     }
 
@@ -167,7 +165,7 @@ rosy::result gltf::import(rosy::log* l)
             const auto& gltf_img = gltf.images[gltf_index];
             [[maybe_unused]] auto& img_path = pre_rename_image_paths[rosy_index];
             //l->info(std::format("{} is a gltf_img color image", gltf_img.name));
-            //l->info(std::format("{} is a image_path color image", img_path.string()));
+            //l->info(std::format("{} is an image_path color image", img_path.string()));
 
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data)) {
                 l->error(std::format("{} is not a URI datasource", gltf_img.name));
@@ -180,6 +178,18 @@ rosy::result gltf::import(rosy::log* l)
             std::filesystem::path source_img_path{ gltf_asset.asset_path };
             source_img_path.replace_filename(uri_ds.uri.string());
             l->info(std::format("source_img_path for color image is: {}", source_img_path.string()));
+
+            int x,y,n;
+            std::string filename{ source_img_path.string() };
+
+            unsigned char *image_data = stbi_load(filename.c_str(), &x, &y, &n, 0);
+            if (image_data == nullptr) {
+                l->error(std::format("failed to load color image data", filename));
+                return rosy::result::error;
+            }
+            l->info(std::format("image data is width: {} height: {} num_channels: {}", x, y, n));
+            stbi_image_free(image_data);
+
 
             {
                 //ktxTexture2* texture;
