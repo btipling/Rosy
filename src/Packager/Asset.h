@@ -86,8 +86,14 @@ namespace rosy_packager
         std::vector<surface> surfaces;
     };
 
+    // image_type is effectively an enum
+    constexpr uint32_t image_type_color{0};
+    constexpr uint32_t image_type_normal_map{1};
+
+    // More image types as needed will be added.
     struct image
     {
+        uint32_t image_type{0};
         std::vector<char> name;
     };
 

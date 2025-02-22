@@ -3,6 +3,8 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
 #include <iostream>
+#include <ktx.h>
+#include <vulkan/vulkan_core.h>
 
 using namespace rosy_packager;
 
@@ -74,12 +76,12 @@ rosy::result gltf::import(rosy::log* l)
     // IMAGES
     for (auto& [gltf_image_data, gltf_image_name] : gltf.images)
     {
-        l->info(std::format("Adding image: {}", gltf_image_name));
+        l->debug(std::format("Adding image: {}", gltf_image_name));
         image img{};
 
         std::filesystem::path img_path{gltf_asset.asset_path};
         img_path.replace_filename(std::format("{}.ktx2", gltf_image_name));
-        l->info(std::format("source: {} path: {} name: {}", gltf_asset.asset_path, img_path.string(), gltf_image_name));
+        l->debug(std::format("source: {} path: {} name: {}", gltf_asset.asset_path, img_path.string(), gltf_image_name));
         std::wstring image_path_wide{img_path.c_str()};
         std::string img_path_staging{img_path.string()};
 
@@ -89,8 +91,8 @@ rosy::result gltf::import(rosy::log* l)
 
     // MATERIALS
 
-    std::vector<uint32_t>normal_map_images;
-    std::vector<uint32_t>color_images;
+    std::vector<std::tuple<uint32_t, uint32_t>> normal_map_images;
+    std::vector<std::tuple<uint32_t, uint32_t>> color_images;
     {
         for (fastgltf::Material& mat : gltf.materials)
         {
@@ -100,7 +102,7 @@ rosy::result gltf::import(rosy::log* l)
                 if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.has_value())
                 {
                     m.color_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.value());
-                    color_images.push_back(m.color_image_index);
+                    color_images.emplace_back(m.color_image_index, static_cast<uint32_t>(color_images.size()));
                 }
                 else
                 {
@@ -120,7 +122,7 @@ rosy::result gltf::import(rosy::log* l)
                 if (gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.has_value())
                 {
                     m.normal_image_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].imageIndex.value());
-                    normal_map_images.push_back(m.normal_image_index);
+                    normal_map_images.emplace_back(m.normal_image_index, static_cast<uint32_t>(normal_map_images.size()));
                 }
                 else
                 {
@@ -128,8 +130,7 @@ rosy::result gltf::import(rosy::log* l)
                 }
                 if (gltf.textures[mat.normalTexture.value().textureIndex].samplerIndex.has_value())
                 {
-                    m.normal_sampler_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex]
-                                                                   .samplerIndex.value());
+                    m.normal_sampler_index = static_cast<uint32_t>(gltf.textures[mat.normalTexture.value().textureIndex].samplerIndex.value());
                 }
                 else
                 {
@@ -158,15 +159,62 @@ rosy::result gltf::import(rosy::log* l)
         auto last = std::ranges::unique(color_images).begin();
         color_images.erase(last, color_images.end());
         l->info(std::format("num color_images {}", color_images.size()));
-        for (const uint32_t i : color_images)
+        for (const auto& [gltf_index, rosy_index] : color_images)
         {
-            const auto& img =  gltf.images[i];
-            l->info(std::format("{} is a color image", img.name));
-            if (std::holds_alternative<fastgltf::sources::URI>(img.data))
-            {
-                const fastgltf::sources::URI uri = std::get<fastgltf::sources::URI>(img.data);
-                l->info(std::format("{} is a uri", uri.uri.string()));
-            }
+            const auto& gltf_img = gltf.images[gltf_index];
+            const auto& rsy_img = gltf_asset.images[rosy_index];
+            l->info(std::format("{} is a gltf_img color image", gltf_img.name));
+            l->info(std::format("{} is a rsy_img color image", rsy_img.name));
+
+            //{
+            //    ktxTexture2* texture;
+            //    ktxTextureCreateInfo create_info;
+            //    KTX_error_code result;
+            //    ktx_uint32_t level, layer, face_slice;
+            //    std::FILE* src;
+            //    ktx_size_t src_size;
+            //    ktxBasisParams params = { 0 };
+            //    params.structSize = sizeof(params);
+
+            //    create_info.glInternalformat = 0;  //Ignored as we'll create a KTX2 texture.
+            //    create_info.vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
+            //    create_info.baseWidth = 2048;
+            //    create_info.baseHeight = 1024;
+            //    create_info.baseDepth = 16;
+            //    create_info.numDimensions = 3;
+            //        // Note: it is not necessary to provide a full mipmap pyramid.
+            //    create_info.numLevels = log2(create_info.baseWidth) + 1;
+            //        create_info.numLayers = 1;
+            //    create_info.numFaces = 1;
+            //    create_info.isArray = KTX_FALSE;
+            //    create_info.generateMipmaps = KTX_FALSE;
+
+            //    result = ktxTexture2_Create(&create_info,
+            //        KTX_TEXTURE_CREATE_ALLOC_STORAGE,
+            //        &texture);
+
+            //    src = std::fopen(// Open the file for the baseLevel image, slice 0 and
+            //        // read it into memory.
+            //        src_size = // Query size of the file.
+            //        level = 0;
+            //    layer = 0;
+            //    face_slice = 0;
+            //    result = ktxTexture_SetImageFromMemory(ktxTexture(texture),
+            //        level, layer, face_slice,
+            //        src, src_size);
+            //    // Repeat for the other 15 slices of the base level and all other levels
+            //    // up to createInfo.numLevels.
+
+            //    // For BasisLZ/ETC1S
+            //    params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
+            //    // For UASTC
+            //    params.uastc = KTX_TRUE;
+            //    // Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
+            //    result = ktxtexture2_CompressBasisEx(texture, &params);
+
+            //    ktxTexture_WriteToNamedFile(ktxTexture(texture), "mytex3d.ktx2");
+            //    ktxTexture_Destroy(ktxTexture(texture));
+            //}
         }
     }
     {
@@ -174,15 +222,12 @@ rosy::result gltf::import(rosy::log* l)
         auto last = std::ranges::unique(normal_map_images).begin();
         normal_map_images.erase(last, normal_map_images.end());
         l->info(std::format("num normal_map_images {}", normal_map_images.size()));
-        for (const uint32_t i : normal_map_images)
+        for (const auto& [gltf_index, rosy_index] : normal_map_images)
         {
-            const auto& img =  gltf.images[i];
-            l->info(std::format("{} is a normal map image", img.name));
-            if (std::holds_alternative<fastgltf::sources::URI>(img.data))
-            {
-                const fastgltf::sources::URI uri = std::get<fastgltf::sources::URI>(img.data);
-                l->info(std::format("{} is a uri", uri.uri.string()));
-            }
+            const auto& gltf_img = gltf.images[gltf_index];
+            const auto& rsy_img = gltf_asset.images[rosy_index];
+            l->info(std::format("{} is a gltf_img normal image", gltf_img.name));
+            l->info(std::format("{} is a rsy_img normal image", rsy_img.name));
         }
     }
 
@@ -244,89 +289,78 @@ rosy::result gltf::import(rosy::log* l)
                 fastgltf::Accessor& index_accessor = gltf.accessors[primitive.indicesAccessor.value()];
                 new_mesh.indices.reserve(new_mesh.indices.size() + index_accessor.count);
 
-                fastgltf::iterateAccessor<std::uint32_t>(gltf, index_accessor,
-                                                         [&](const std::uint32_t idx)
-                                                         {
-                                                             new_mesh.indices.push_back(idx + initial_vtx);
-                                                             {
-                                                                 // Track triangles for tangent calculations later.
-                                                                 triangle[current_index] = idx;
-                                                                 current_index += 1;
-                                                                 if (current_index == 3)
-                                                                 {
-                                                                     triangle = {0, 0, 0};
-                                                                     current_index = 0;
-                                                                 }
-                                                             }
-                                                         });
+                fastgltf::iterateAccessor<std::uint32_t>(gltf, index_accessor, [&](const std::uint32_t idx)
+                {
+                    new_mesh.indices.push_back(idx + initial_vtx);
+                    {
+                        // Track triangles for tangent calculations later.
+                        triangle[current_index] = idx;
+                        current_index += 1;
+                        if (current_index == 3)
+                        {
+                            triangle = {0, 0, 0};
+                            current_index = 0;
+                        }
+                    }
+                });
             }
 
             // PRIMITIVE VERTEX
-            fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, pos_accessor,
-                                                                      [&](const fastgltf::math::fvec3& v,
-                                                                          const size_t index)
-                                                                      {
-                                                                          position new_position{};
-                                                                          for (size_t i{0}; i < 3; i++)
-                                                                          {
-                                                                              min_bounds[i] = std::min(
-                                                                                  v[i], min_bounds[i]);
-                                                                              max_bounds[i] = std::max(
-                                                                                  v[i], max_bounds[i]);
-                                                                          }
-                                                                          new_position.vertex = {v[0], v[1], v[2]};
-                                                                          new_position.normal = {1.0f, 0.0f, 0.0f};
-                                                                          new_position.tangents = {1.0f, 0.0f, 0.0f};
-                                                                          new_mesh.positions[initial_vtx + index] =
-                                                                              new_position;
-                                                                      });
+            fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, pos_accessor, [&](const fastgltf::math::fvec3& v, const size_t index)
+            {
+                position new_position{};
+                for (size_t i{0}; i < 3; i++)
+                {
+                    min_bounds[i] = std::min(
+                        v[i], min_bounds[i]);
+                    max_bounds[i] = std::max(
+                        v[i], max_bounds[i]);
+                }
+                new_position.vertex = {v[0], v[1], v[2]};
+                new_position.normal = {1.0f, 0.0f, 0.0f};
+                new_position.tangents = {1.0f, 0.0f, 0.0f};
+                new_mesh.positions[initial_vtx + index] =
+                    new_position;
+            });
 
             // PRIMITIVE NORMAL
             if (const auto normals = primitive.findAttribute("NORMAL"); normals != primitive.attributes.end())
             {
-                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, gltf.accessors[normals->accessorIndex],
-                                                                          [&](const fastgltf::math::fvec3& n,
-                                                                              const size_t index)
-                                                                          {
-                                                                              new_mesh.positions[initial_vtx + index].
-                                                                                  normal = {n[0], n[1], n[2]};
-                                                                          });
+                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, gltf.accessors[normals->accessorIndex], [&](const fastgltf::math::fvec3& n, const size_t index)
+                {
+                    new_mesh.positions[initial_vtx + index].
+                        normal = {n[0], n[1], n[2]};
+                });
             }
 
             // ReSharper disable once StringLiteralTypo
             if (auto uv = primitive.findAttribute("TEXCOORD_0"); uv != primitive.attributes.end())
             {
-                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(gltf, gltf.accessors[uv->accessorIndex],
-                                                                          [&](const fastgltf::math::fvec2& tc,
-                                                                              const size_t index)
-                                                                          {
-                                                                              new_mesh.positions[initial_vtx + index].
-                                                                                  texture_coordinates = {tc[0], tc[1]};
-                                                                          });
+                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(gltf, gltf.accessors[uv->accessorIndex], [&](const fastgltf::math::fvec2& tc, const size_t index)
+                {
+                    new_mesh.positions[initial_vtx + index].
+                        texture_coordinates = {tc[0], tc[1]};
+                });
             }
 
             // PRIMITIVE COLOR
             if (auto colors = primitive.findAttribute("COLOR_0"); colors != primitive.attributes.end())
             {
-                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[colors->accessorIndex],
-                                                                          [&](const fastgltf::math::fvec4& c,
-                                                                              const size_t index)
-                                                                          {
-                                                                              new_mesh.positions[initial_vtx + index].
-                                                                                  color = {c[0], c[1], c[2], c[3]};
-                                                                          });
+                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[colors->accessorIndex], [&](const fastgltf::math::fvec4& c, const size_t index)
+                {
+                    new_mesh.positions[initial_vtx + index].
+                        color = {c[0], c[1], c[2], c[3]};
+                });
             }
 
             // PRIMITIVE TANGENT
             if (auto tangents = primitive.findAttribute("TANGENT"); tangents != primitive.attributes.end())
             {
-                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[tangents->accessorIndex],
-                                                                          [&](const fastgltf::math::fvec4& t,
-                                                                              const size_t index)
-                                                                          {
-                                                                              new_mesh.positions[initial_vtx + index].
-                                                                                  tangents = {t[0], t[1], t[2], t[3]};
-                                                                          });
+                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[tangents->accessorIndex], [&](const fastgltf::math::fvec4& t, const size_t index)
+                {
+                    new_mesh.positions[initial_vtx + index].
+                        tangents = {t[0], t[1], t[2], t[3]};
+                });
             }
 
             // PRIMITIVE MATERIAL
