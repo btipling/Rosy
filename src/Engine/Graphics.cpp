@@ -3659,7 +3659,9 @@ namespace
                     }
                     new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
                 }
-
+                {
+                    new_ktx_img.texture;
+                }
                 {
                     if (ktx_error_code_e ktx_res = ktxTexture_VkUploadEx(
                         new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,

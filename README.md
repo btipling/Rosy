@@ -18,7 +18,15 @@ I initialize the project by running `premake5 vs2022` on the command line in the
 
 ### Vulkan SDK
 
-The most recent version of the Vulkan SDK should be on the system.
+The most recent version of the Vulkan SDK should be on the system. The Vulkan SDK can be downloaded from the [LunarG's Vulkan SDK website](https://www.lunarg.com/vulkan-sdk/).
+
+### NVTT
+
+Using the Packager program to create assets requires the NVIDIA Texture Tool library which may not work on non-NVIDIA hardware. The game itself does not use this library and builds and runs fine without it.
+In order to use the Packager tool the `NVTT_PATH` env variable must be set to where the header files are and the shipped DLL must be in the same directory as Packager.exe. The
+path is likely `C:\Program Files\NVIDIA Corporation\NVIDIA Texture Tools` on Windows. NVTT can be downloaded at the [NVIDIA Texture Tools 3 website](https://developer.nvidia.com/gpu-accelerated-texture-compression).
+
+NVTT is used to compress and generate mipmaps for asset textures. It does so using a better API than libktx and uses available GPU hardware to compress images faster than libktx can. This makes a big difference when you are compressing many images as part of an asset pipeline. The compression speeds are multiple orders of magnitudes faster when using NVTT on an NVIDIA GPU. Every model ships with a slew of PBR textures, normal maps, albedo, metallic, etc and with libkts running on the CPU it can take tens of seconds to compress each large image. It adds up.
 
 ### Git submodules
 

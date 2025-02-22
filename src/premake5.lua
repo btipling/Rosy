@@ -6,6 +6,7 @@ workspace "Rosy"
     filter {}
 
 vk_sdk = os.getenv("VULKAN_SDK")
+nvtt_path = os.getenv("NVTT_PATH")
 
 project "Engine"
     kind "ConsoleApp"
@@ -48,6 +49,7 @@ project "Engine"
     files { "libs/json/single_include/nlohmann/json.hpp" }
     files { "shaders/*.slang", "shaders/*.ps1" }
 
+    defines { "KHRONOS_STATIC" }
     filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
         defines { "DEBUG" }
         symbols "On"
@@ -76,20 +78,21 @@ project "Packager"
     flags { "MultiProcessorCompile" }
 
     links { "fastgltf" }
-    links { "ktx" }
+    links { "nvtt30205" }
 
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
-    includedirs { "libs/KTX-Software/include/" }
+    includedirs { "\"" .. nvtt_path .. "/include/\"" }
     includedirs { "libs/stb" }
 
     libdirs { "libs/fastgltf/build/Debug" }
-    libdirs { "libs/KTX-Software/build/Debug" }
+    libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
 
     files { "libs/stb_image.cpp" }
     files { "Packager/**.h", "Packager/**.cpp" }
     files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
 
+    defines { "KHRONOS_STATIC" }
     filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
         defines { "DEBUG" }
         symbols "On"
