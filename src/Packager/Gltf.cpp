@@ -163,9 +163,9 @@ rosy::result gltf::import(rosy::log* l)
         for (const auto& [gltf_index, rosy_index] : color_images)
         {
             const auto& gltf_img = gltf.images[gltf_index];
-            [[maybe_unused]] auto& img_path = pre_rename_image_paths[rosy_index];
-            //l->info(std::format("{} is a gltf_img color image", gltf_img.name));
-            //l->info(std::format("{} is an image_path color image", img_path.string()));
+            auto& img_path = pre_rename_image_paths[rosy_index];
+            l->info(std::format("{} is a gltf_img color image", gltf_img.name));
+            l->info(std::format("{} is an image_path color image", img_path.string()));
 
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data)) {
                 l->error(std::format("{} is not a URI datasource", gltf_img.name));
@@ -184,67 +184,73 @@ rosy::result gltf::import(rosy::log* l)
 
             unsigned char *image_data = stbi_load(filename.c_str(), &x, &y, &n, 0);
             if (image_data == nullptr) {
-                l->error(std::format("failed to load color image data", filename));
+                l->error(std::format("failed to load color image data: {}", filename));
                 return rosy::result::error;
             }
-            l->info(std::format("image data is width: {} height: {} num_channels: {}", x, y, n));
-            stbi_image_free(image_data);
+            size_t image_file_size = static_cast<size_t>(x) * static_cast<size_t>(y) * n;
+            l->info(std::format("image data is width: {} height: {} num_channels: {} num bytes: {}", x, y, n, image_file_size));
 
 
             {
-                //ktxTexture2* texture;
-                //ktxTextureCreateInfo create_info;
-                //KTX_error_code result;
-                //ktx_uint32_t level, layer, face_slice;
-                //std::ifstream infile{img_path};
-                //std::vector<ktx_uint8_t> buffer;
-                //ktx_size_t src_size;
-                //ktxBasisParams params = {0};
-                //params.structSize = sizeof(params);
+                ktxTexture2* texture;
+                ktxTextureCreateInfo create_info{};
+                KTX_error_code result;
+                ktx_uint32_t level, layer;
+                ktx_size_t src_size = static_cast<ktx_size_t>(image_file_size);
+                ktxBasisParams params = {0};
+                params.structSize = sizeof(params);
 
-                //create_info.glInternalformat = 0; //Ignored as we'll create a KTX2 texture.
-                //create_info.vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
-                //create_info.baseWidth = 2048;
-                //create_info.baseHeight = 1024;
-                //create_info.baseDepth = 16;
-                //create_info.numDimensions = 3;
-                //// Note: it is not necessary to provide a full mipmap pyramid.
-                //create_info.numLevels = log2(create_info.baseWidth) + 1;
-                //create_info.numLayers = 1;
-                //create_info.numFaces = 1;
-                //create_info.isArray = KTX_FALSE;
-                //create_info.generateMipmaps = KTX_FALSE;
+                const ktx_uint32_t num_levels = static_cast<ktx_uint32_t>(log2(x)) + 1;
+                l->info(std::format("num_levels for ktx2 texture: {} num levels: {}", filename, num_levels));
 
+                create_info.glInternalformat = 0;
+                create_info.vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
+                create_info.baseWidth = static_cast<ktx_uint32_t>(x);
+                create_info.baseHeight = static_cast<ktx_uint32_t>(y);
+                create_info.baseDepth = 1;
+                create_info.numDimensions = 2;
+                create_info.numLevels = 1;
+                create_info.numLayers = 1;
+                create_info.numFaces = 1;
+                create_info.isArray = KTX_FALSE;
+                create_info.generateMipmaps = KTX_TRUE;
 
+                result = ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture);
+                if (result != KTX_SUCCESS) {
+                    l->error(std::format("failed to create ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
+                    return rosy::result::error;
+                }
+                level = 0;
+                layer = 0;
+                while (level < texture->numLevels) {
+                    l->info(std::format("setting image memory for ktx2 texture: {} at level: {}", filename, level));
+                    result = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, KTX_FACESLICE_WHOLE_LEVEL, image_data, src_size);
+                    if (result != KTX_SUCCESS) {
+                        l->error(std::format("failed to set image memory for ktx2 texture: {} at level: {}, error: {}", filename, level, static_cast<uint32_t>(result)));
+                        return rosy::result::error;
+                    }
+                    level += 1;
+                }
+                l->info(std::format("finished setting image memory for ktx2 texture: {} num levels: {}", filename, level));
 
-                //result = ktxTexture2_Create(&create_info,
-                //                            KTX_TEXTURE_CREATE_ALLOC_STORAGE,
-                //                            &texture);
+                // For BasisLZ/ETC1S
+                params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
+                // For UASTC
+                params.uastc = KTX_TRUE;
+                // Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
+                result = ktxTexture2_CompressBasisEx(texture, &params);
 
-                //infile.seekg(0, std::ios::end);
-                //src_size = infile.tellg();
-                //level = 0;
-                //layer = 0;
-                //face_slice = 0;
-                //result = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, face_slice, buffer.data(), src_size);
-                //// Repeat for the other 15 slices of the base level and all other levels
-                //// up to createInfo.numLevels.
-
-                //img_path.replace_filename(std::format("{}.ktx2", gltf_img.name));
-
-                //// For BasisLZ/ETC1S
-                //params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
-                //// For UASTC
-                //params.uastc = KTX_TRUE;
-                //// Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
-                //result = ktxtexture2_CompressBasisEx(texture, &params);
-
-                //ktxTexture_WriteToNamedFile(ktxTexture(texture), "mytex3d.ktx2");
-                //ktxTexture_Destroy(ktxTexture(texture));
+                img_path.replace_filename(std::format("{}.ktx2", gltf_img.name));
+                filename = img_path.string();
+                ktxTexture_WriteToNamedFile(ktxTexture(texture), filename.c_str());
+                l->info(std::format("finished writing image to disk for ktx2 texture: {}", filename));
+                ktxTexture_Destroy(ktxTexture(texture));
+                l->info(std::format("finished converting to ktx2: {}", filename));
             }
+            stbi_image_free(image_data);
         }
     }
-    /*{
+    {
         std::ranges::sort(normal_map_images);
         auto last = std::ranges::unique(normal_map_images).begin();
         normal_map_images.erase(last, normal_map_images.end());
@@ -252,11 +258,93 @@ rosy::result gltf::import(rosy::log* l)
         for (const auto& [gltf_index, rosy_index] : normal_map_images)
         {
             const auto& gltf_img = gltf.images[gltf_index];
-            const auto& image_path = pre_rename_image_paths[rosy_index];
+            auto& img_path = pre_rename_image_paths[rosy_index];
             l->info(std::format("{} is a gltf_img normal image", gltf_img.name));
-            l->info(std::format("{} is a image_path normal image", image_path.string()));
+            l->info(std::format("{} is an image_path normal image", img_path.string()));
+
+            if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data)) {
+                l->error(std::format("{} is not a URI datasource", gltf_img.name));
+                return rosy::result::error;
+            }
+
+            const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_img.data);
+            l->info(std::format("normal image uri is: {}", uri_ds.uri.string()));
+
+            std::filesystem::path source_img_path{ gltf_asset.asset_path };
+            source_img_path.replace_filename(uri_ds.uri.string());
+            l->info(std::format("source_img_path for normal image is: {}", source_img_path.string()));
+
+            int x, y, n;
+            std::string filename{ source_img_path.string() };
+
+            unsigned char* image_data = stbi_load(filename.c_str(), &x, &y, &n, 4);
+            if (image_data == nullptr) {
+                l->error(std::format("failed to load normal image data: {}", filename));
+                return rosy::result::error;
+            }
+            size_t image_file_size = static_cast<size_t>(x) * static_cast<size_t>(y) * 4;
+            l->info(std::format("image data is width: {} height: {} num_channels: {} num bytes: {}", x, y, n, image_file_size));
+
+
+            {
+                ktxTexture2* texture;
+                ktxTextureCreateInfo create_info{};
+                KTX_error_code result;
+                ktx_uint32_t level, layer;
+                ktx_size_t src_size = static_cast<ktx_size_t>(image_file_size);
+                ktxBasisParams params = { 0 };
+                params.structSize = sizeof(params);
+
+                const ktx_uint32_t num_levels = static_cast<ktx_uint32_t>(log2(x)) + 1;
+                l->info(std::format("num_levels for ktx2 texture: {} num levels: {}", filename, num_levels));
+
+                create_info.glInternalformat = 0;
+                create_info.vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
+                create_info.baseWidth = static_cast<ktx_uint32_t>(x);
+                create_info.baseHeight = static_cast<ktx_uint32_t>(y);
+                create_info.baseDepth = 1;
+                create_info.numDimensions = 2;
+                create_info.numLevels = 1;
+                create_info.numLayers = 1;
+                create_info.numFaces = 1;
+                create_info.isArray = KTX_FALSE;
+                create_info.generateMipmaps = KTX_TRUE;
+
+                result = ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture);
+                if (result != KTX_SUCCESS) {
+                    l->error(std::format("failed to create ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
+                    return rosy::result::error;
+                }
+                level = 0;
+                layer = 0;
+                while (level < texture->numLevels) {
+                    l->info(std::format("setting image memory for ktx2 texture: {} at level: {}", filename, level));
+                    result = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, KTX_FACESLICE_WHOLE_LEVEL, image_data, src_size);
+                    if (result != KTX_SUCCESS) {
+                        l->error(std::format("failed to set image memory for ktx2 texture: {} at level: {}, error: {}", filename, level, static_cast<uint32_t>(result)));
+                        return rosy::result::error;
+                    }
+                    level += 1;
+                }
+                l->info(std::format("finished setting image memory for ktx2 texture: {} num levels: {}", filename, level));
+
+                // For BasisLZ/ETC1S
+                params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
+                // For UASTC
+                params.uastc = KTX_TRUE;
+                // Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
+                result = ktxTexture2_CompressBasisEx(texture, &params);
+
+                img_path.replace_filename(std::format("{}.ktx2", gltf_img.name));
+                filename = img_path.string();
+                ktxTexture_WriteToNamedFile(ktxTexture(texture), filename.c_str());
+                l->info(std::format("finished writing image to disk for ktx2 texture: {}", filename));
+                ktxTexture_Destroy(ktxTexture(texture));
+                l->info(std::format("finished converting to ktx2: {}", filename));
+            }
+            stbi_image_free(image_data);
         }
-    }*/
+    }
 
     // SAMPLERS
 
