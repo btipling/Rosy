@@ -97,7 +97,6 @@ namespace rosy_packager
         std::vector<char> name;
     };
 
-
     struct shader
     {
         std::string path{};

@@ -81,10 +81,12 @@ project "Packager"
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
     includedirs { "libs/KTX-Software/include/" }
+    includedirs { "libs/stb" }
 
     libdirs { "libs/fastgltf/build/Debug" }
     libdirs { "libs/KTX-Software/build/Debug" }
 
+    files { "libs/stb_image.cpp" }
     files { "Packager/**.h", "Packager/**.cpp" }
     files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
 

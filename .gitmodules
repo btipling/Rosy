@@ -13,3 +13,6 @@
 [submodule "src/libs/json"]
 	path = src/libs/json
 	url = git@github.com:nlohmann/json.git
+[submodule "src/libs/stb"]
+	path = src/libs/stb
+	url = git@github.com:nothings/stb.git
