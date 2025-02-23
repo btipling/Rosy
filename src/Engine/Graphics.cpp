@@ -3669,7 +3669,7 @@ namespace
                         dds_img_create_info.extent = dds_image_size;
                         dds_img_create_info.mipLevels = num_mip_maps;
                         dds_img_create_info.arrayLayers = 1;
-                        dds_img_create_info.samples = msaa_samples;
+                        dds_img_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
                         dds_img_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
                         dds_img_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
                         {
@@ -3775,14 +3775,14 @@ namespace
                         if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error resetting immediate fence for dds image upload: {} for {}",
-                                static_cast<uint8_t>(res), dds_image_name));
+                                                 static_cast<uint8_t>(res), dds_image_name));
                             return result::error;
                         }
 
                         if (VkResult res = vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error resetting immediate command buffer for dds image upload: {} for {}",
-                                static_cast<uint8_t>(res), dds_image_name));
+                                                 static_cast<uint8_t>(res), dds_image_name));
                             return result::error;
                         }
 
@@ -3793,7 +3793,7 @@ namespace
                         if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error beginning immediate command buffer for dds image upload: {} for {}",
-                                static_cast<uint8_t>(res), dds_image_name));
+                                                 static_cast<uint8_t>(res), dds_image_name));
                             return result::error;
                         }
                     }
