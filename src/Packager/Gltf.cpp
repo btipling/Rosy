@@ -182,10 +182,10 @@ rosy::result gltf::import(rosy::log* l)
 
 
             //int x,y,n;
-            std::string filename{ source_img_path.string() };
+            std::string input_filename{ source_img_path.string() };
 
             nvtt::Surface image;
-            image.load(filename.c_str());
+            image.load(input_filename.c_str());
 
             //unsigned char *image_data = stbi_load(filename.c_str(), &x, &y, &n, 4);
             //if (image_data == nullptr) {
@@ -193,8 +193,21 @@ rosy::result gltf::import(rosy::log* l)
             //    return rosy::result::error;
             //}
             //size_t image_file_size = static_cast<size_t>(x) * static_cast<size_t>(y) * 4;
-            l->info(std::format("image data is width: {} height: {} depth: {} type: {}", image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type())));
+            l->info(std::format("image data is width: {} height: {} depth: {} type: {} for ",
+                image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
 
+            nvtt::Context context(true); // Enable CUDA
+
+            nvtt::CompressionOptions compressionOptions;
+            compressionOptions.setFormat(nvtt::Format_BC7);
+
+            img_path.replace_filename(std::format("{}.ktx2", gltf_img.name));
+            std::string output_filename = img_path.string();
+            nvtt::OutputOptions outputOptions;
+            outputOptions.setFileName(output_filename.c_str());
+
+            const int numMipmaps = image.countMipmaps();
+            l->info(std::format("num mip maps are {} for {}", numMipmaps, gltf_img.name));
             //{
             //    ktxTexture2* texture;
             //    ktxTextureCreateInfo create_info{};
