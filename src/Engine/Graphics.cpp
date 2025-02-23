@@ -3612,7 +3612,9 @@ namespace
                 }
                 gpu_meshes.clear();
             }
+
             // *** SETTING IMAGES *** //
+
             std::vector<uint32_t> color_image_sampler_desc_index;
             for (const auto& img : a.images)
             {
@@ -3752,8 +3754,7 @@ namespace
                             debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
                             debug_name.objectHandle = reinterpret_cast<uint64_t>(dds_staging_buffer.buffer);
                             debug_name.pObjectName = object_name.c_str();
-                            if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res !=
-                                VK_SUCCESS)
+                            if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                             {
                                 l->error(std::format("Error creating dds image buffer name: {} for {}",
                                                      static_cast<uint8_t>(res), dds_image_name));
@@ -3835,9 +3836,9 @@ namespace
                         copy_region.bufferRowLength = 0;
                         copy_region.bufferImageHeight = 0;
                         copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                        copy_region.imageSubresource.mipLevel = 0;
+                        copy_region.imageSubresource.mipLevel = VK_REMAINING_MIP_LEVELS;
                         copy_region.imageSubresource.baseArrayLayer = 0;
-                        copy_region.imageSubresource.layerCount = 1;
+                        copy_region.imageSubresource.layerCount = VK_REMAINING_ARRAY_LAYERS;
                         copy_region.imageExtent = new_dds_img.image_extent;
 
                         vkCmdCopyBufferToImage(immediate_command_buffer, dds_staging_buffer.buffer, new_dds_img.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
@@ -3882,43 +3883,41 @@ namespace
                         }
                     }
                     {
-                        {
-                            constexpr VkImageSubresourceRange subresource_range{
-                                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                .baseMipLevel = 0,
-                                .levelCount = VK_REMAINING_MIP_LEVELS,
-                                .baseArrayLayer = 0,
-                                .layerCount = VK_REMAINING_ARRAY_LAYERS,
-                            };
+                        constexpr VkImageSubresourceRange subresource_range{
+                            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                            .baseMipLevel = 0,
+                            .levelCount = VK_REMAINING_MIP_LEVELS,
+                            .baseArrayLayer = 0,
+                            .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                        };
 
-                            VkImageMemoryBarrier2 image_barrier = {
-                                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                .pNext = nullptr,
-                                .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                                .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-                                .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                                .dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
-                                .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                .srcQueueFamilyIndex = 0,
-                                .dstQueueFamilyIndex = 0,
-                                .image = new_dds_img.image,
-                                .subresourceRange = subresource_range,
-                            };
+                        VkImageMemoryBarrier2 image_barrier = {
+                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                            .pNext = nullptr,
+                            .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                            .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+                            .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                            .dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+                            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                            .srcQueueFamilyIndex = 0,
+                            .dstQueueFamilyIndex = 0,
+                            .image = new_dds_img.image,
+                            .subresourceRange = subresource_range,
+                        };
 
-                            const VkDependencyInfo dependency_info{
-                                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                                .pNext = nullptr,
-                                .dependencyFlags = 0,
-                                .memoryBarrierCount = 0,
-                                .pMemoryBarriers = nullptr,
-                                .bufferMemoryBarrierCount = 0,
-                                .pBufferMemoryBarriers = nullptr,
-                                .imageMemoryBarrierCount = 1,
-                                .pImageMemoryBarriers = &image_barrier,
-                            };
-                            vkCmdPipelineBarrier2(immediate_command_buffer, &dependency_info);
-                        }
+                        const VkDependencyInfo dependency_info{
+                            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                            .pNext = nullptr,
+                            .dependencyFlags = 0,
+                            .memoryBarrierCount = 0,
+                            .pMemoryBarriers = nullptr,
+                            .bufferMemoryBarrierCount = 0,
+                            .pBufferMemoryBarriers = nullptr,
+                            .imageMemoryBarrierCount = 1,
+                            .pImageMemoryBarriers = &image_barrier,
+                        };
+                        vkCmdPipelineBarrier2(immediate_command_buffer, &dependency_info);
                     }
                     vmaDestroyBuffer(allocator, dds_staging_buffer.buffer, dds_staging_buffer.allocation);
                 }
