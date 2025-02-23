@@ -3671,7 +3671,7 @@ namespace
                         dds_img_create_info.arrayLayers = 1;
                         dds_img_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
                         dds_img_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-                        dds_img_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+                        dds_img_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
                         {
                             VmaAllocationCreateInfo r_img_alloc_info{};
                             r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
