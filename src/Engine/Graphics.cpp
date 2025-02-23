@@ -3601,26 +3601,46 @@ namespace
                 std::string input_filename{img.name.begin(), img.name.end()};
                 std::filesystem::path dds_img_path{input_filename};
 
-                size_t dds_image_data_size{0};
+                VkExtent3D dds_image_size;
+                uint32_t num_mip_maps{ 0 };
                 {
+                    nvtt::Surface dds_image;
+                    if (!dds_image.load(input_filename.c_str()))
+                    {
+                        l->error(std::format("Failed to open {}", input_filename));
+                        return result::error;
+                    }
+                    dds_image_size.width = dds_image.width();
+                    dds_image_size.height = dds_image.height();
+                    dds_image_size.depth = dds_image.depth();
+                    num_mip_maps = dds_image.countMipmaps();
+                }
+
+                char* dds_img_data{ nullptr };
+                size_t dds_image_data_size{0};
+                try {
                     std::ifstream in(dds_img_path, std::ifstream::ate | std::ifstream::binary);
                     dds_image_data_size = in.tellg();
+                    in.seekg(0, in.beg);
+                    dds_img_data = new(std::nothrow) char[dds_image_data_size];
+                    if (dds_img_data == nullptr)
+                    {
+                        l->error(std::format("Failed to allocate data for {}", input_filename));
+                        return result::allocation_failure;
+                    }
+                    in.read(dds_img_data, dds_image_data_size);
+
+                    in.close();
+                } catch (...)
+                {
+                    l->error(std::format("Failed to reading data for {}", input_filename));
+                    if (dds_img_data != nullptr) delete dds_img_data;
+                    return result::error;
                 }
 
                 std::string dds_image_name = dds_img_path.filename().string();
 
-                nvtt::Surface dds_image;
-                if (!dds_image.load(input_filename.c_str()))
                 {
-                    l->error(std::format("Failed to open {}", input_filename));
-                    return result::error;
-                }
-                const uint32_t num_mip_maps = dds_image.countMipmaps();
-                {
-                    VkExtent3D dds_image_size;
-                    dds_image_size.width = dds_image.width();
-                    dds_image_size.height = dds_image.height();
-                    dds_image_size.depth = dds_image.depth();
                     new_dds_img.image_extent = dds_image_size;
 
                     if (img.image_type == rosy_packager::image_type_color)
@@ -3634,6 +3654,7 @@ namespace
                     else
                     {
                         l->error(std::format("asset for dds image had unknown file type: {} for {}", img.image_type, dds_image_name));
+                        if (dds_img_data != nullptr) delete dds_img_data;
                         return result::invalid_state;
                     }
 
@@ -3658,6 +3679,7 @@ namespace
                                 VK_SUCCESS)
                             {
                                 l->error(std::format("Error creating dds image {}", dds_image_name));
+                                if (dds_img_data != nullptr) delete dds_img_data;
                                 return result::create_failed;
                             }
                         }
@@ -3679,6 +3701,7 @@ namespace
                         if (const auto res = vkCreateImageView(device, &dds_img_view_create_info, nullptr, &new_dds_img.image_view); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error creating dds image view {}", dds_image_name));
+                            if (dds_img_data != nullptr) delete dds_img_data;
                             return result::create_failed;
                         }
                         new_dds_img.graphics_created_bitmask |= graphics_created_bit_dds_image_view;
@@ -3694,6 +3717,7 @@ namespace
                         if (const auto res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error creating dds image debug object name {}", dds_image_name));
+                            if (dds_img_data != nullptr) delete dds_img_data;
                             return result::create_failed;
                         }
                     }
@@ -3708,6 +3732,7 @@ namespace
                         if (const auto res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error creating dds image view debug object name {}", dds_image_name));
+                            if (dds_img_data != nullptr) delete dds_img_data;
                             return result::create_failed;
                         }
                     }
@@ -3727,6 +3752,7 @@ namespace
                                                                  &dds_staging_buffer.info); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error creating dds image buffer: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
+                            if (dds_img_data != nullptr) delete dds_img_data;
                             return result::error;
                         }
                         {
@@ -3739,25 +3765,27 @@ namespace
                             debug_name.pObjectName = object_name.c_str();
                             if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                             {
-                                l->error(std::format("Error creating dds image buffer name: {} for {}",
-                                                     static_cast<uint8_t>(res), dds_image_name));
+                                l->error(std::format("Error creating dds image buffer name: {} for {}", static_cast<uint8_t>(res), dds_image_name));
+                                if (dds_img_data != nullptr) delete dds_img_data;
                                 return result::error;
                             }
                         }
                     }
                     {
-                        if (dds_staging_buffer.info.pMappedData != nullptr) memcpy(dds_staging_buffer.info.pMappedData, dds_image.data(), dds_image_data_size);
+                        if (dds_staging_buffer.info.pMappedData != nullptr) memcpy(dds_staging_buffer.info.pMappedData, dds_img_data, dds_image_data_size);
                     }
                     {
                         if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error resetting immediate fence for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
+                            if (dds_img_data != nullptr) delete dds_img_data;
                             return result::error;
                         }
 
                         if (VkResult res = vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error resetting immediate command buffer for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
+                            if (dds_img_data != nullptr) delete dds_img_data;
                             return result::error;
                         }
 
@@ -3768,7 +3796,11 @@ namespace
                         if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error beginning immediate command buffer for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
+                            if (dds_img_data != nullptr) delete dds_img_data;
                             return result::error;
+                        }
+                        {
+                            if (dds_img_data != nullptr) delete dds_img_data;
                         }
                     }
                     {
