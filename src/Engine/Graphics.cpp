@@ -3592,8 +3592,7 @@ namespace
 
                 if (graphics_created_bitmask & graphics_created_bit_materials_buffer)
                 {
-                    vmaDestroyBuffer(allocator, material_buffer.material_buffer.buffer,
-                                     material_buffer.material_buffer.allocation);
+                    vmaDestroyBuffer(allocator, material_buffer.material_buffer.buffer, material_buffer.material_buffer.allocation);
                     graphics_created_bitmask &= ~graphics_created_bit_materials_buffer;
                 }
 
@@ -3622,12 +3621,14 @@ namespace
                 std::string input_filename{img.name.begin(), img.name.end()};
                 std::filesystem::path dds_img_path{input_filename};
                 std::string dds_image_name = dds_img_path.filename().string();
+
                 nvtt::Surface dds_image;
                 if (!dds_image.load(input_filename.c_str()))
                 {
                     l->error(std::format("Failed to open {}", input_filename));
                     return result::error;
                 }
+
                 {
                     const size_t dds_image_data_size = static_cast<size_t>(dds_image.depth() * dds_image.width() * dds_image.height()) * 4;
 
@@ -3651,9 +3652,6 @@ namespace
                         return result::invalid_state;
                     }
 
-                    VmaAllocationCreateInfo r_img_alloc_info{};
-                    r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-                    r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                     {
                         VkImageCreateInfo dds_img_create_info{};
                         dds_img_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -3667,6 +3665,10 @@ namespace
                         dds_img_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
                         dds_img_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
                         {
+                            VmaAllocationCreateInfo r_img_alloc_info{};
+                            r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+                            r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
                             if (const auto res = vmaCreateImage(allocator, &dds_img_create_info, &r_img_alloc_info, &new_dds_img.image, &new_dds_img.allocation, nullptr); res !=
                                 VK_SUCCESS)
                             {
@@ -3736,11 +3738,8 @@ namespace
                         vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
                         vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info,
-                                                                 &dds_staging_buffer.buffer,
-                                                                 &dds_staging_buffer.allocation,
-                                                                 &dds_staging_buffer.info); res !=
-                            VK_SUCCESS)
+                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &dds_staging_buffer.buffer, &dds_staging_buffer.allocation,
+                                                                 &dds_staging_buffer.info); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error creating dds image buffer: {} for {}", static_cast<uint8_t>(res), dds_image_name));
                             return result::error;
@@ -3751,8 +3750,7 @@ namespace
                             debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
                             debug_name.pNext = nullptr;
                             debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-                            debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.
-                                                                                                 buffer);
+                            debug_name.objectHandle = reinterpret_cast<uint64_t>(dds_staging_buffer.buffer);
                             debug_name.pObjectName = object_name.c_str();
                             if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res !=
                                 VK_SUCCESS)
@@ -4117,27 +4115,21 @@ namespace
                     materials.push_back(new_mat);
                 }
 
-                if (const size_t material_buffer_size = materials.size() * sizeof(gpu_material); material_buffer_size >=
-                    sizeof(gpu_material))
+                if (const size_t material_buffer_size = materials.size() * sizeof(gpu_material); material_buffer_size >= sizeof(gpu_material))
                 {
                     {
                         VkBufferCreateInfo buffer_info{};
                         buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
                         buffer_info.pNext = nullptr;
                         buffer_info.size = material_buffer_size;
-                        buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+                        buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
                         VmaAllocationCreateInfo vma_alloc_info{};
                         vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-                        vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
-                            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+                        vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info,
-                                                                 &material_buffer.material_buffer.buffer,
-                                                                 &material_buffer.material_buffer.allocation,
-                                                                 &material_buffer.material_buffer.info); res !=
-                            VK_SUCCESS)
+                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &material_buffer.material_buffer.buffer,
+                                                                 &material_buffer.material_buffer.allocation, &material_buffer.material_buffer.info); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error creating materials buffer: {}", static_cast<uint8_t>(res)));
                             return result::error;
@@ -4147,11 +4139,9 @@ namespace
                             debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
                             debug_name.pNext = nullptr;
                             debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
-                            debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.
-                                                                                                 buffer);
+                            debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.buffer);
                             debug_name.pObjectName = "rosy material buffer";
-                            if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res !=
-                                VK_SUCCESS)
+                            if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                             {
                                 l->error(std::format("Error creating material buffer name: {}",
                                                      static_cast<uint8_t>(res)));
@@ -4166,8 +4156,7 @@ namespace
                         device_address_info.buffer = material_buffer.material_buffer.buffer;
 
                         // *** SETTING MATERIAL BUFFER ADDRESS *** //
-                        material_buffer.material_buffer_address =
-                            vkGetBufferDeviceAddress(device, &device_address_info);
+                        material_buffer.material_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
                     }
 
                     allocated_buffer staging{};
@@ -4180,15 +4169,11 @@ namespace
 
                         VmaAllocationCreateInfo vma_alloc_info{};
                         vma_alloc_info.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-                        vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
-                            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+                        vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info,
-                                                                 &staging.buffer, &staging.allocation,
-                                                                 &staging.info); res != VK_SUCCESS)
+                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &staging.buffer, &staging.allocation, &staging.info); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error creating materials staging buffer: {}",
-                                                 static_cast<uint8_t>(res)));
+                            l->error(std::format("Error creating materials staging buffer: {}", static_cast<uint8_t>(res)));
                             return result::error;
                         }
                         graphics_created_bitmask |= graphics_created_bit_materials_buffer;
@@ -4199,8 +4184,7 @@ namespace
                             debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
                             debug_name.objectHandle = reinterpret_cast<uint64_t>(staging.buffer);
                             debug_name.pObjectName = "rosy material staging buffer";
-                            if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res !=
-                                VK_SUCCESS)
+                            if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                             {
                                 l->error(std::format("Error creating material staging buffer name: {}",
                                                      static_cast<uint8_t>(res)));
@@ -4208,21 +4192,19 @@ namespace
                             }
                         }
                     }
-
-                    if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
-
+                    {
+                        if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
+                    }
                     {
                         if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error resetting immediate fence for materials buffer: {}",
-                                                 static_cast<uint8_t>(res)));
+                            l->error(std::format("Error resetting immediate fence for materials buffer: {}", static_cast<uint8_t>(res)));
                             return result::error;
                         }
 
                         if (VkResult res = vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error resetting immediate command buffer for materials buffer: {}",
-                                                 static_cast<uint8_t>(res)));
+                            l->error(std::format("Error resetting immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
                             return result::error;
                         }
 
