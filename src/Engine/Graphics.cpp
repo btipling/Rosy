@@ -16,6 +16,7 @@
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
 #include <filesystem>
+#include <fstream>
 
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
@@ -3632,7 +3633,11 @@ namespace
                 }
 
                 {
-                    const size_t dds_image_data_size = static_cast<size_t>(dds_image.depth() * dds_image.width() * dds_image.height()) * 4;
+                    size_t dds_image_data_size{0};
+                    {
+                        std::ifstream in(dds_img_path, std::ifstream::ate | std::ifstream::binary);
+                        dds_image_data_size = in.tellg();
+                    }
 
                     VkExtent3D dds_image_size;
                     dds_image_size.width = dds_image.width();

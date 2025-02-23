@@ -182,7 +182,7 @@ rosy::result gltf::import(rosy::log* l)
                 std::string input_filename{ source_img_path.string() };
 
                 nvtt::Surface image;
-                if (image.load(input_filename.c_str()))
+                if (!image.load(input_filename.c_str()))
                 {
                     l->error(std::format("Failed to load file  for  {}", input_filename));
                     return rosy::result::error;
