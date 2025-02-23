@@ -167,7 +167,8 @@ rosy::result gltf::import(rosy::log* l)
             l->info(std::format("{} is a gltf_img color image", gltf_img.name));
             l->info(std::format("{} is an image_path color image", img_path.string()));
 
-            if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data)) {
+            if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
+            {
                 l->error(std::format("{} is not a URI datasource", gltf_img.name));
                 return rosy::result::error;
             }
@@ -175,14 +176,13 @@ rosy::result gltf::import(rosy::log* l)
             const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_img.data);
             l->info(std::format("color image uri is: {}", uri_ds.uri.string()));
 
-            std::filesystem::path source_img_path{ gltf_asset.asset_path };
+            std::filesystem::path source_img_path{gltf_asset.asset_path};
             source_img_path.replace_filename(uri_ds.uri.string());
             l->info(std::format("source_img_path for color image is: {}", source_img_path.string()));
 
 
-
             //int x,y,n;
-            std::string input_filename{ source_img_path.string() };
+            std::string input_filename{source_img_path.string()};
 
             nvtt::Surface image;
             image.load(input_filename.c_str());
@@ -194,7 +194,7 @@ rosy::result gltf::import(rosy::log* l)
             //}
             //size_t image_file_size = static_cast<size_t>(x) * static_cast<size_t>(y) * 4;
             l->info(std::format("image data is width: {} height: {} depth: {} type: {} for ",
-                image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
+                                image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
 
             nvtt::Context context(true); // Enable CUDA
 
@@ -207,7 +207,37 @@ rosy::result gltf::import(rosy::log* l)
             outputOptions.setFileName(output_filename.c_str());
 
             const int numMipmaps = image.countMipmaps();
-            l->info(std::format("num mip maps are {} for {}", numMipmaps, gltf_img.name));
+            l->info(std::format("num mip maps are {} for {}", numMipmaps, input_filename));
+
+            if (!context.outputHeader(image, numMipmaps, compressionOptions, outputOptions))
+            {
+                l->error(std::format("Writing ktx2 headers failed for  {}", input_filename));
+                return rosy::result::error;
+            }
+
+            for (int mip = 0; mip < numMipmaps; mip++)
+            {
+                // Compress this image and write its data.
+                if (!context.compress(image, 0 /* face */, mip, compressionOptions, outputOptions))
+                {
+                    std::cerr << "Compressing and writing the DDS file failed!";
+                    l->error(std::format("Compressing and writing the ktx2 file failed for  {}", input_filename));
+                    return rosy::result::error;
+                }
+
+                if (mip == numMipmaps - 1)
+                {
+                    break;
+                }
+
+                image.toLinearFromSrgb();
+                image.premultiplyAlpha();
+
+                image.buildNextMipmap(nvtt::MipmapFilter_Box);
+
+                image.demultiplyAlpha();
+                image.toSrgb();
+            }
             //{
             //    ktxTexture2* texture;
             //    ktxTextureCreateInfo create_info{};
