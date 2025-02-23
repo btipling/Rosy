@@ -81,7 +81,7 @@ rosy::result gltf::import(rosy::log* l)
 
         std::filesystem::path img_path{gltf_asset.asset_path};
         pre_rename_image_paths.emplace_back(img_path);
-        img_path.replace_filename(std::format("{}.ktx2", gltf_image_name));
+        img_path.replace_filename(std::format("{}.dds", gltf_image_name));
         l->debug(std::format("source: {} path: {} name: {}", gltf_asset.asset_path, img_path.string(), gltf_image_name));
 
         std::ranges::copy(img_path.string(), std::back_inserter(img.name));

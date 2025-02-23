@@ -3625,7 +3625,7 @@ namespace
 
                     if (img.image_type == rosy_packager::image_type_color)
                     {
-                        new_dds_img.image_format = VK_FORMAT_BC7_SRGB_BLOCK;
+                        new_dds_img.image_format = VK_FORMAT_BC7_UNORM_BLOCK;
                     }
                     else if (img.image_type == rosy_packager::image_type_normal_map)
                     {
