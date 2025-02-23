@@ -3772,6 +3772,32 @@ namespace
                         if (dds_staging_buffer.info.pMappedData != nullptr) memcpy(dds_staging_buffer.info.pMappedData, dds_image.data(), dds_image_data_size);
                     }
                     {
+                        if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error resetting immediate fence for dds image upload: {} for {}",
+                                static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+
+                        if (VkResult res = vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error resetting immediate command buffer for dds image upload: {} for {}",
+                                static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+
+                        VkCommandBufferBeginInfo begin_info{};
+                        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+                        begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+                        if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error beginning immediate command buffer for dds image upload: {} for {}",
+                                static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+                    }
+                    {
                         {
                             const VkImageSubresourceRange subresource_range{
                                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -3810,33 +3836,7 @@ namespace
                             vkCmdPipelineBarrier2(immediate_command_buffer, &dependency_info);
                         }
                     }
-
                     {
-                        if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
-                        {
-                            l->error(std::format("Error resetting immediate fence for dds image upload: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
-                            return result::error;
-                        }
-
-                        if (VkResult res = vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
-                        {
-                            l->error(std::format("Error resetting immediate command buffer for dds image upload: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
-                            return result::error;
-                        }
-
-                        VkCommandBufferBeginInfo begin_info{};
-                        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-                        begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-                        if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
-                        {
-                            l->error(std::format("Error beginning immediate command buffer for dds image upload: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
-                            return result::error;
-                        }
-
                         VkBufferImageCopy copy_region{};
                         copy_region.bufferOffset = 0;
                         copy_region.bufferRowLength = 0;
