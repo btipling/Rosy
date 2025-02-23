@@ -6,6 +6,7 @@
 #include <stack>
 #include <algorithm>
 
+#include <nvtt/nvtt.h>
 #include "Volk/volk.h"
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vk_enum_string_helper.h"
@@ -123,8 +124,8 @@ namespace
     constexpr uint64_t graphics_created_bit_scene_buffer = {1ULL << 25};
     constexpr uint64_t graphics_created_bit_materials_buffer = {1ULL << 26};
     constexpr uint64_t graphics_created_bit_graphics_buffer = {1ULL << 27};
-    constexpr uint64_t graphics_created_bit_ktx_image = {1ULL << 28};
-    constexpr uint64_t graphics_created_bit_ktx_texture = {1ULL << 29};
+    constexpr uint64_t graphics_created_bit_dds_image = {1ULL << 28};
+    constexpr uint64_t graphics_created_bit_dds_image_view = {1ULL << 29};
     constexpr uint64_t graphics_created_bit_sampler = {1ULL << 30};
     constexpr uint64_t graphics_created_bit_csm_image = {1ULL << 31};
     constexpr uint64_t graphics_created_bit_csm_sampler = {1ULL << 32};
@@ -304,18 +305,12 @@ namespace
 
     struct allocated_image
     {
+        uint64_t graphics_created_bitmask{0};
         VkImage image;
         VkImageView image_view;
         VmaAllocation allocation;
         VkExtent3D image_extent;
         VkFormat image_format;
-    };
-
-    struct allocated_ktx_image
-    {
-        uint64_t graphics_created_bitmask{0};
-        //ktxTexture* texture;
-        //ktxVulkanTexture vk_texture;
     };
 
     struct allocated_csm
@@ -525,7 +520,7 @@ namespace
         VkDeviceAddress vertex_buffer_address{};
         std::vector<VkSampler> samplers;
         std::vector<VkImageView> image_views;
-        std::vector<allocated_ktx_image> ktx_textures;
+        std::vector<allocated_image> dds_textures;
         std::vector<gpu_mesh_buffers> gpu_meshes{};
         gpu_material_buffer material_buffer{};
         gpu_debug_draws_buffer debug_draws_buffer{};
@@ -757,13 +752,6 @@ namespace
                 return result::graphics_init_failure;
             }
 
-            vk_res = init_ktx();
-            if (vk_res != VK_SUCCESS)
-            {
-                l->error(
-                    std::format("Failed to init ktx! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
-                return result::graphics_init_failure;
-            }
             return result::ok;
         }
 
@@ -793,22 +781,17 @@ namespace
                 vkDestroyImageView(device, image_view, nullptr);
             }
 
-            //for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
-            //{
-            //    if (gfx_created_bitmask & graphics_created_bit_ktx_image)
-            //    {
-            //        ktxTexture_Destroy(ktx_texture);
-            //    }
-            //    if (gfx_created_bitmask & graphics_created_bit_ktx_texture)
-            //    {
-            //        ktxVulkanTexture_Destruct(&ktx_vk_texture, device, nullptr);
-            //    }
-            //}
-
-            //if (graphics_created_bitmask & graphics_created_bit_ktx_vdi_info)
-            //{
-            //    ktxVulkanDeviceInfo_Destruct(&ktx_vdi_info);
-            //}
+            for (auto& [gfx_created_bitmask, image, image_view, allocation, image_extent, image_format] : dds_textures)
+            {
+                if (gfx_created_bitmask & graphics_created_bit_dds_image)
+                {
+                    vmaDestroyImage(allocator, image, allocation);
+                }
+                if (gfx_created_bitmask & graphics_created_bit_dds_image_view)
+                {
+                    vkDestroyImageView(device, image_view, nullptr);
+                }
+            }
 
             {
                 if (graphics_created_bitmask & graphics_created_bit_csm_image)
@@ -3511,15 +3494,6 @@ namespace
             return VK_SUCCESS;
         }
 
-        VkResult init_ktx()
-        {
-            //l->info("Initializing ktx");
-            //ktxVulkanDeviceInfo_Construct(&ktx_vdi_info, physical_device, device, present_queue, immediate_command_pool,
-            //                              nullptr);
-            graphics_created_bitmask |= graphics_created_bit_ktx_vdi_info;
-            return VK_SUCCESS;
-        }
-
         [[nodiscard]] swap_chain_support_details query_swap_chain_support(const VkPhysicalDevice p_device) const
         {
             swap_chain_support_details details = {};
@@ -3591,18 +3565,18 @@ namespace
                     vkDestroyImageView(device, image_view, nullptr);
                 }
                 image_views.clear();
- /*               for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
+                for (auto& [gfx_created_bitmask, image, image_view, allocation, image_extent, image_format] : dds_textures)
                 {
-                    if (gfx_created_bitmask & graphics_created_bit_ktx_image)
+                    if (gfx_created_bitmask & graphics_created_bit_dds_image)
                     {
-                        ktxTexture_Destroy(ktx_texture);
+                        vmaDestroyImage(allocator, image, allocation);
                     }
-                    if (gfx_created_bitmask & graphics_created_bit_ktx_texture)
+                    if (gfx_created_bitmask & graphics_created_bit_dds_image_view)
                     {
-                        ktxVulkanTexture_Destruct(&ktx_vk_texture, device, nullptr);
+                        vkDestroyImageView(device, image_view, nullptr);
                     }
-                }*/
-                ktx_textures.clear();
+                }
+                dds_textures.clear();
 
                 if (graphics_created_bitmask & graphics_created_bit_index_buffer)
                 {
@@ -3643,52 +3617,331 @@ namespace
             std::vector<uint32_t> color_image_sampler_desc_index;
             for (const auto& img : a.images)
             {
-                const char* ktx_path{};
-                allocated_ktx_image new_ktx_img{};
+                allocated_image new_dds_img{};
 
-                std::string img_name{img.name.begin(), img.name.end()};
-                ktx_path = img_name.c_str();
+                std::string input_filename{img.name.begin(), img.name.end()};
+                std::filesystem::path dds_img_path{input_filename};
+                std::string dds_image_name = dds_img_path.filename().string();
+                nvtt::Surface dds_image;
+                if (!dds_image.load(input_filename.c_str()))
+                {
+                    l->error(std::format("Failed to open {}", input_filename));
+                    return result::error;
+                }
+                {
+                    const size_t dds_image_data_size = static_cast<size_t>(dds_image.depth() * dds_image.width() * dds_image.height()) * 4;
 
-                //{
-                //    if (ktx_error_code_e ktx_res = ktxTexture_CreateFromNamedFile(
-                //        ktx_path, KTX_TEXTURE_CREATE_NO_FLAGS, &new_ktx_img.texture); ktx_res != KTX_SUCCESS)
-                //    {
-                //        l->error(std::format("ktx create texture failure: {}", static_cast<uint8_t>(ktx_res)));
-                //        return result::create_failed;
-                //    }
-                //    new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
-                //}
-                //{
-                //    if (ktx_error_code_e ktx_res = ktxTexture_VkUploadEx(
-                //        new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
-                //        VK_IMAGE_TILING_OPTIMAL,
-                //        VK_IMAGE_USAGE_SAMPLED_BIT,
-                //        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); ktx_res != KTX_SUCCESS)
-                //    {
-                //        ktx_textures.push_back(new_ktx_img);
-                //        l->error(std::format("ktx create vulkan texture failure: {}", static_cast<uint8_t>(ktx_res)));
-                //        return result::create_failed;
-                //    }
-                //    new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_texture;
-                //}
+                    VkExtent3D dds_image_size;
+                    dds_image_size.width = dds_image.width();
+                    dds_image_size.height = dds_image.height();
+                    dds_image_size.depth = dds_image.depth();
+                    new_dds_img.image_extent = dds_image_size;
+
+                    if (img.image_type == rosy_packager::image_type_color)
+                    {
+                        new_dds_img.image_format = VK_FORMAT_R8G8B8A8_SRGB;
+                    }
+                    else if (img.image_type == rosy_packager::image_type_normal_map)
+                    {
+                        new_dds_img.image_format = VK_FORMAT_R8G8B8A8_UNORM;
+                    }
+                    else
+                    {
+                        l->error(std::format("asset for dds image had unknown file type: {} for {}", img.image_type, dds_image_name));
+                        return result::invalid_state;
+                    }
+
+                    VmaAllocationCreateInfo r_img_alloc_info{};
+                    r_img_alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+                    r_img_alloc_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                    {
+                        VkImageCreateInfo dds_img_create_info{};
+                        dds_img_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+                        dds_img_create_info.pNext = nullptr;
+                        dds_img_create_info.imageType = VK_IMAGE_TYPE_2D;
+                        dds_img_create_info.format = new_dds_img.image_format;
+                        dds_img_create_info.extent = dds_image_size;
+                        dds_img_create_info.mipLevels = VK_REMAINING_MIP_LEVELS;
+                        dds_img_create_info.arrayLayers = VK_REMAINING_ARRAY_LAYERS;
+                        dds_img_create_info.samples = msaa_samples;
+                        dds_img_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+                        dds_img_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+                        {
+                            if (const auto res = vmaCreateImage(allocator, &dds_img_create_info, &r_img_alloc_info, &new_dds_img.image, &new_dds_img.allocation, nullptr); res !=
+                                VK_SUCCESS)
+                            {
+                                l->error(std::format("Error creating dds image {}", dds_image_name));
+                                return result::create_failed;
+                            }
+                        }
+                        new_dds_img.graphics_created_bitmask |= graphics_created_bit_dds_image;
+                    }
+                    {
+                        VkImageViewCreateInfo dds_img_view_create_info{};
+                        dds_img_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                        dds_img_view_create_info.pNext = nullptr;
+                        dds_img_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                        dds_img_view_create_info.image = new_dds_img.image;
+                        dds_img_view_create_info.format = new_dds_img.image_format;
+                        dds_img_view_create_info.subresourceRange.baseMipLevel = 0;
+                        dds_img_view_create_info.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+                        dds_img_view_create_info.subresourceRange.baseArrayLayer = 0;
+                        dds_img_view_create_info.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+                        dds_img_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+                        if (const auto res = vkCreateImageView(device, &dds_img_view_create_info, nullptr, &new_dds_img.image_view); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error creating dds image view {}", dds_image_name));
+                            return result::create_failed;
+                        }
+                        new_dds_img.graphics_created_bitmask |= graphics_created_bit_dds_image_view;
+                    }
+                    {
+                        const std::string object_name = std::format("rosy dds img {}", dds_image_name);
+                        VkDebugUtilsObjectNameInfoEXT debug_name{};
+                        debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+                        debug_name.pNext = nullptr;
+                        debug_name.objectType = VK_OBJECT_TYPE_IMAGE;
+                        debug_name.objectHandle = reinterpret_cast<uint64_t>(new_dds_img.image);
+                        debug_name.pObjectName = object_name.c_str();
+                        if (const auto res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error creating dds image debug object name {}", dds_image_name));
+                            return result::create_failed;
+                        }
+                    }
+                    {
+                        const std::string object_name = std::format("rosy dds img view {}", dds_image_name);
+                        VkDebugUtilsObjectNameInfoEXT debug_name{};
+                        debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+                        debug_name.pNext = nullptr;
+                        debug_name.objectType = VK_OBJECT_TYPE_IMAGE_VIEW;
+                        debug_name.objectHandle = reinterpret_cast<uint64_t>(new_dds_img.image_view);
+                        debug_name.pObjectName = object_name.c_str();
+                        if (const auto res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error creating dds image view debug object name {}", dds_image_name));
+                            return result::create_failed;
+                        }
+                    }
+                    allocated_buffer dds_staging_buffer{};
+                    {
+                        VkBufferCreateInfo buffer_info{};
+                        buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+                        buffer_info.pNext = nullptr;
+                        buffer_info.size = dds_image_data_size;
+                        buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+                        VmaAllocationCreateInfo vma_alloc_info{};
+                        vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+                        vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+                        if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info,
+                                                                 &dds_staging_buffer.buffer,
+                                                                 &dds_staging_buffer.allocation,
+                                                                 &dds_staging_buffer.info); res !=
+                            VK_SUCCESS)
+                        {
+                            l->error(std::format("Error creating dds image buffer: {} for {}", static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+                        {
+                            const std::string object_name = std::format("rosy dds img buffer {}", dds_image_name);
+                            VkDebugUtilsObjectNameInfoEXT debug_name{};
+                            debug_name.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+                            debug_name.pNext = nullptr;
+                            debug_name.objectType = VK_OBJECT_TYPE_BUFFER;
+                            debug_name.objectHandle = reinterpret_cast<uint64_t>(material_buffer.material_buffer.
+                                                                                                 buffer);
+                            debug_name.pObjectName = object_name.c_str();
+                            if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res !=
+                                VK_SUCCESS)
+                            {
+                                l->error(std::format("Error creating dds image buffer name: {} for {}",
+                                                     static_cast<uint8_t>(res), dds_image_name));
+                                return result::error;
+                            }
+                        }
+                    }
+                    {
+                        if (dds_staging_buffer.info.pMappedData != nullptr) memcpy(dds_staging_buffer.info.pMappedData, dds_image.data(), dds_image_data_size);
+                    }
+                    {
+                        {
+                            constexpr VkImageSubresourceRange subresource_range{
+                                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel = 0,
+                                .levelCount = VK_REMAINING_MIP_LEVELS,
+                                .baseArrayLayer = 0,
+                                .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                            };
+
+                            VkImageMemoryBarrier2 image_barrier = {
+                                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                .pNext = nullptr,
+                                .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+                                .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                .dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+                                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                .srcQueueFamilyIndex = 0,
+                                .dstQueueFamilyIndex = 0,
+                                .image = new_dds_img.image,
+                                .subresourceRange = subresource_range,
+                            };
+
+                            const VkDependencyInfo dependency_info{
+                                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                .pNext = nullptr,
+                                .dependencyFlags = 0,
+                                .memoryBarrierCount = 0,
+                                .pMemoryBarriers = nullptr,
+                                .bufferMemoryBarrierCount = 0,
+                                .pBufferMemoryBarriers = nullptr,
+                                .imageMemoryBarrierCount = 1,
+                                .pImageMemoryBarriers = &image_barrier,
+                            };
+                            vkCmdPipelineBarrier2(immediate_command_buffer, &dependency_info);
+                        }
+                    }
+
+                    {
+                        if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error resetting immediate fence for dds image upload: {} for {}",
+                                                 static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+
+                        if (VkResult res = vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error resetting immediate command buffer for dds image upload: {} for {}",
+                                                 static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+
+                        VkCommandBufferBeginInfo begin_info{};
+                        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+                        begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+                        if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error beginning immediate command buffer for dds image upload: {} for {}",
+                                                 static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+
+                        VkBufferImageCopy copy_region{};
+                        copy_region.bufferOffset = 0;
+                        copy_region.bufferRowLength = 0;
+                        copy_region.bufferImageHeight = 0;
+                        copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                        copy_region.imageSubresource.mipLevel = 0;
+                        copy_region.imageSubresource.baseArrayLayer = 0;
+                        copy_region.imageSubresource.layerCount = 1;
+                        copy_region.imageExtent = new_dds_img.image_extent;
+
+                        vkCmdCopyBufferToImage(immediate_command_buffer, dds_staging_buffer.buffer, new_dds_img.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                                               &copy_region);
+
+                        if (VkResult res = vkEndCommandBuffer(immediate_command_buffer); res != VK_SUCCESS)
+                        {
+                            l->error(std::format("Error ending immediate command buffer for dds image upload: {} for {}",
+                                                 static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+
+                        VkCommandBufferSubmitInfo cmd_buffer_submit_info{};
+                        cmd_buffer_submit_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+                        cmd_buffer_submit_info.pNext = nullptr;
+                        cmd_buffer_submit_info.commandBuffer = immediate_command_buffer;
+                        cmd_buffer_submit_info.deviceMask = 0;
+                        VkSubmitInfo2 submit_info{};
+                        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+                        submit_info.pNext = nullptr;
+                        submit_info.waitSemaphoreInfoCount = 0;
+                        submit_info.pWaitSemaphoreInfos = nullptr;
+                        submit_info.signalSemaphoreInfoCount = 0;
+                        submit_info.pSignalSemaphoreInfos = nullptr;
+                        submit_info.commandBufferInfoCount = 1;
+                        submit_info.pCommandBufferInfos = &cmd_buffer_submit_info;
+
+                        if (VkResult res = vkQueueSubmit2(present_queue, 1, &submit_info, immediate_fence); res !=
+                            VK_SUCCESS)
+                        {
+                            l->error(std::format("Error submitting staging buffer for dds image upload: {} for {}",
+                                                 static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+
+                        if (VkResult res = vkWaitForFences(device, 1, &immediate_fence, true, 9999999999); res !=
+                            VK_SUCCESS)
+                        {
+                            l->error(std::format("Error waiting for immediate fence for dds image upload: {} for {}",
+                                                 static_cast<uint8_t>(res), dds_image_name));
+                            return result::error;
+                        }
+                    }
+                    {
+                        {
+                            constexpr VkImageSubresourceRange subresource_range{
+                                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel = 0,
+                                .levelCount = VK_REMAINING_MIP_LEVELS,
+                                .baseArrayLayer = 0,
+                                .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                            };
+
+                            VkImageMemoryBarrier2 image_barrier = {
+                                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                .pNext = nullptr,
+                                .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+                                .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                .dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+                                .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                .srcQueueFamilyIndex = 0,
+                                .dstQueueFamilyIndex = 0,
+                                .image = new_dds_img.image,
+                                .subresourceRange = subresource_range,
+                            };
+
+                            const VkDependencyInfo dependency_info{
+                                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                .pNext = nullptr,
+                                .dependencyFlags = 0,
+                                .memoryBarrierCount = 0,
+                                .pMemoryBarriers = nullptr,
+                                .bufferMemoryBarrierCount = 0,
+                                .pBufferMemoryBarriers = nullptr,
+                                .imageMemoryBarrierCount = 1,
+                                .pImageMemoryBarriers = &image_barrier,
+                            };
+                            vkCmdPipelineBarrier2(immediate_command_buffer, &dependency_info);
+                        }
+                    }
+                    vmaDestroyBuffer(allocator, dds_staging_buffer.buffer, dds_staging_buffer.allocation);
+                }
 
                 {
                     VkImageViewCreateInfo image_view_info{};
                     image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
                     image_view_info.pNext = nullptr;
                     image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                    //image_view_info.image = new_ktx_img.vk_texture.image;
-                    //image_view_info.format = new_ktx_img.vk_texture.imageFormat;
+                    image_view_info.image = new_dds_img.image;
+                    image_view_info.format = new_dds_img.image_format;
                     image_view_info.subresourceRange.baseMipLevel = 0;
-                    //image_view_info.subresourceRange.levelCount = new_ktx_img.vk_texture.levelCount;
+                    image_view_info.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
                     image_view_info.subresourceRange.baseArrayLayer = 0;
-                    //image_view_info.subresourceRange.layerCount = new_ktx_img.vk_texture.layerCount;
+                    image_view_info.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
                     image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                     VkImageView image_view{};
                     if (VkResult res = vkCreateImageView(device, &image_view_info, nullptr, &image_view); res !=
                         VK_SUCCESS)
                     {
-                        l->error(std::format("asset image view creation failure: {}", static_cast<uint8_t>(res)));
+                        l->error(std::format("dds image view creation failure: {} for {}", static_cast<uint8_t>(res), dds_image_name));
                         return result::create_failed;
                     }
                     const size_t index = image_views.size();
@@ -3703,8 +3956,8 @@ namespace
                         debug_name.pObjectName = obj_name.c_str();
                         if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error creating asset image view name: {}",
-                                                 static_cast<uint8_t>(res)));
+                            l->error(std::format("Error creating asset image view name: {} for {}",
+                                                 static_cast<uint8_t>(res), dds_image_name));
                             return result::error;
                         }
                     }
@@ -3713,8 +3966,8 @@ namespace
                         if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index);
                             res != result::ok)
                         {
-                            l->error(std::format("Error allocating sampler descriptor index: {}",
-                                                 static_cast<uint8_t>(res)));
+                            l->error(std::format("Error allocating sampler descriptor index: {} for {}",
+                                                 static_cast<uint8_t>(res), dds_image_name));
                             return result::create_failed;
                         }
                         {
@@ -3740,7 +3993,7 @@ namespace
                     assert(image_views.size() == color_image_sampler_desc_index.size());
                 }
 
-                ktx_textures.push_back(new_ktx_img);
+                dds_textures.push_back(new_dds_img);
             }
 
             // *** SETTING SAMPLERS *** //
@@ -3830,7 +4083,7 @@ namespace
                     {
                         color_image_sampler_index = color_image_sampler_desc_index[m.color_image_index];
 
-                        assert(ktx_textures.size() > m.color_image_index);
+                        assert(dds_textures.size() > m.color_image_index);
 
                         if (m.color_sampler_index < sampler_desc_index.size())
                         {
@@ -3843,7 +4096,7 @@ namespace
                     {
                         normal_image_sampler_index = color_image_sampler_desc_index[m.normal_image_index];
 
-                        assert(ktx_textures.size() > m.color_image_index);
+                        assert(dds_textures.size() > m.color_image_index);
 
                         if (m.normal_sampler_index < sampler_desc_index.size())
                         {
@@ -3956,9 +4209,7 @@ namespace
                         }
                     }
 
-                    if (staging.info.pMappedData != nullptr)
-                        memcpy(staging.info.pMappedData, materials.data(),
-                               material_buffer_size);
+                    if (staging.info.pMappedData != nullptr) memcpy(staging.info.pMappedData, materials.data(), material_buffer_size);
 
                     {
                         if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
@@ -5379,7 +5630,7 @@ namespace
                                         .material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
                                     };
                                     vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
-                                    vkCmdDrawIndexed(cf.command_buffer,index_count, 1, gpu_mesh.index_offset + start_index, 0, 0);
+                                    vkCmdDrawIndexed(cf.command_buffer, index_count, 1, gpu_mesh.index_offset + start_index, 0, 0);
                                     new_stats.draw_call_count += 1;
                                     new_stats.triangle_count += index_count / 3;
                                 }
@@ -5416,8 +5667,8 @@ namespace
                                         .go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
                                         .material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
                                     };
-                                    vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL,0, sizeof(gpu_draw_push_constants), &pc);
-                                    vkCmdDrawIndexed(cf.command_buffer, index_count, 1,gpu_mesh.index_offset + start_index, 0, 0);
+                                    vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
+                                    vkCmdDrawIndexed(cf.command_buffer, index_count, 1, gpu_mesh.index_offset + start_index, 0, 0);
                                     new_stats.draw_call_count += 1;
                                     new_stats.triangle_count += index_count / 3;
                                 }

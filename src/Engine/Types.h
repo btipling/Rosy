@@ -24,6 +24,7 @@ namespace rosy
         create_failed,
         update_failed,
         overflow,
+        invalid_state,
     };
 
     struct config
