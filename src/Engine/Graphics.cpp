@@ -548,88 +548,77 @@ namespace
             VkResult vk_res = volkInitialize();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to initialize volk! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to initialize volk! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = query_instance_layers();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to query instance layers! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to query instance layers! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = query_instance_extensions();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to query instance extensions! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to query instance extensions! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_instance();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to create Vulkan instance! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to create Vulkan instance! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = create_debug_callback();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to create Vulkan debug callback! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to create Vulkan debug callback! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_surface();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to create surface! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to create surface! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_physical_device();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to create Vulkan physical device! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to create Vulkan physical device! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = query_device_layers();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to query device layers! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to query device layers! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = query_device_extensions();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to query device extensions! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to query device extensions! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_device();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to create Vulkan device {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to create Vulkan device {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_tracy();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init tracy! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init tracy! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
@@ -644,72 +633,63 @@ namespace
             vk_res = init_presentation_queue();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to get presentation queue! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to get presentation queue! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_swapchain();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init swap chain! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init swap chain! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_swapchain_failure;
             }
 
             vk_res = init_msaa();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init msaa! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init msaa! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_draw_image();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init draw image! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init draw image! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_descriptors();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init draw descriptors! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init draw descriptors! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_command_pool();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init command pool! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init command pool! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_command_buffers();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init command buffers! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init command buffers! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_sync_objects();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init sync objects! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init sync objects! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_ui();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init UI! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init UI! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
@@ -724,32 +704,28 @@ namespace
             vk_res = init_commands();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init commands! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init commands! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_shaders();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init shaders! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init shaders! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_data();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init data! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init data! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
             vk_res = init_default_sampler();
             if (vk_res != VK_SUCCESS)
             {
-                l->error(std::format("Failed to init default sampler! {} {}", static_cast<uint8_t>(vk_res),
-                                     string_VkResult(vk_res)));
+                l->error(std::format("Failed to init default sampler! {} {}", static_cast<uint8_t>(vk_res), string_VkResult(vk_res)));
                 return result::graphics_init_failure;
             }
 
@@ -1372,8 +1348,7 @@ namespace
                 {
                     vkGetPhysicalDeviceQueueFamilyProperties(p_device, &new_queue_count, nullptr);
                     current_queue_family_properties_data.resize(new_queue_count);
-                    vkGetPhysicalDeviceQueueFamilyProperties(p_device, &new_queue_count,
-                                                             &current_queue_family_properties_data[0]);
+                    vkGetPhysicalDeviceQueueFamilyProperties(p_device, &new_queue_count, &current_queue_family_properties_data[0]);
                 }
 
                 for (std::uint32_t i = 0; i < current_queue_family_properties_data.size(); ++i)
@@ -1786,9 +1761,10 @@ namespace
                     swap_chain_image_view_create_info.subresourceRange.layerCount = 1;
                     swap_chain_image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                     VkImageView image_view{};
-                    if (const VkResult res = vkCreateImageView(device, &swap_chain_image_view_create_info, nullptr,
-                                                               &image_view); res != VK_SUCCESS)
+                    if (const VkResult res = vkCreateImageView(device, &swap_chain_image_view_create_info, nullptr, &image_view); res != VK_SUCCESS)
+                    {
                         return res;
+                    }
                     // don't initially size these so we can clean this up nicely if any fail
                     swapchain_image_views.push_back(image_view);
                 }
@@ -1864,9 +1840,10 @@ namespace
                     msaa_info.tiling = VK_IMAGE_TILING_OPTIMAL;
                     msaa_info.usage = msaa_image_usages;
 
-                    if (res = vmaCreateImage(allocator, &msaa_info, &r_img_alloc_info, &msaa_image.image,
-                                             &msaa_image.allocation, nullptr); res != VK_SUCCESS)
+                    if (res = vmaCreateImage(allocator, &msaa_info, &r_img_alloc_info, &msaa_image.image, &msaa_image.allocation, nullptr); res != VK_SUCCESS)
+                    {
                         return res;
+                    }
                     graphics_created_bitmask |= graphics_created_bit_msaa_image;
                 }
                 {
@@ -1949,9 +1926,10 @@ namespace
                     draw_info.tiling = VK_IMAGE_TILING_OPTIMAL;
                     draw_info.usage = draw_image_usages;
 
-                    if (res = vmaCreateImage(allocator, &draw_info, &r_img_alloc_info, &draw_image.image,
-                                             &draw_image.allocation, nullptr); res != VK_SUCCESS)
+                    if (res = vmaCreateImage(allocator, &draw_info, &r_img_alloc_info, &draw_image.image, &draw_image.allocation, nullptr); res != VK_SUCCESS)
+                    {
                         return res;
+                    }
                     graphics_created_bitmask |= graphics_created_bit_draw_image;
                 }
                 {
@@ -2011,9 +1989,10 @@ namespace
                     depth_image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
                     depth_image_info.usage = depth_image_usages;
 
-                    if (res = vmaCreateImage(allocator, &depth_image_info, &r_img_alloc_info, &depth_image.image,
-                                             &depth_image.allocation, nullptr); res != VK_SUCCESS)
+                    if (res = vmaCreateImage(allocator, &depth_image_info, &r_img_alloc_info, &depth_image.image, &depth_image.allocation, nullptr); res != VK_SUCCESS)
+                    {
                         return res;
+                    }
                     graphics_created_bitmask |= graphics_created_bit_depth_image;
                 }
                 {
@@ -2162,8 +2141,7 @@ namespace
             layout_create_info.pBindings = bindings.data();
 
 
-            if (const VkResult res = vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr,
-                                                                 &descriptor_set_layout); res != VK_SUCCESS)
+            if (const VkResult res = vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layout); res != VK_SUCCESS)
             {
                 return res;
             }
@@ -2219,8 +2197,7 @@ namespace
             for (size_t i = 0; i < swapchain_image_count; i++)
             {
                 VkCommandPool command_pool{};
-                if (const VkResult res = vkCreateCommandPool(device, &pool_info, nullptr, &command_pool); res !=
-                    VK_SUCCESS)
+                if (const VkResult res = vkCreateCommandPool(device, &pool_info, nullptr, &command_pool); res != VK_SUCCESS)
                 {
                     return res;
                 }
@@ -2235,8 +2212,9 @@ namespace
                     debug_name.objectHandle = reinterpret_cast<uint64_t>(command_pool);
                     debug_name.pObjectName = obj_name.c_str();
                     if (const auto res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
-                        return
-                            res;
+                    {
+                        return res;
+                    }
                 }
             }
             return VK_SUCCESS;
@@ -2270,7 +2248,9 @@ namespace
                         debug_name.objectHandle = reinterpret_cast<uint64_t>(command_buffer);
                         debug_name.pObjectName = obj_name.c_str();
                         if (const auto res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
+                        {
                             return res;
+                        }
                     }
                 }
             }
@@ -3740,7 +3720,7 @@ namespace
                         buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
                         buffer_info.pNext = nullptr;
                         buffer_info.size = dds_image_data_size;
-                        buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                        buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
                         VmaAllocationCreateInfo vma_alloc_info{};
                         vma_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
@@ -3802,7 +3782,7 @@ namespace
                             const VkImageSubresourceRange subresource_range{
                                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                 .baseMipLevel = 0,
-                                .levelCount = num_mip_maps,
+                                .levelCount = VK_REMAINING_MIP_LEVELS,
                                 .baseArrayLayer = 0,
                                 .layerCount = 1,
                             };
@@ -3842,7 +3822,7 @@ namespace
                         copy_region.bufferRowLength = 0;
                         copy_region.bufferImageHeight = 0;
                         copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                        copy_region.imageSubresource.mipLevel = num_mip_maps;
+                        copy_region.imageSubresource.mipLevel = 0;
                         copy_region.imageSubresource.baseArrayLayer = 0;
                         copy_region.imageSubresource.layerCount = 1;
                         copy_region.imageExtent = new_dds_img.image_extent;
