@@ -3625,11 +3625,11 @@ namespace
 
                     if (img.image_type == rosy_packager::image_type_color)
                     {
-                        new_dds_img.image_format = VK_FORMAT_R8G8B8A8_SRGB;
+                        new_dds_img.image_format = VK_FORMAT_BC7_SRGB_BLOCK;
                     }
                     else if (img.image_type == rosy_packager::image_type_normal_map)
                     {
-                        new_dds_img.image_format = VK_FORMAT_R8G8B8A8_UNORM;
+                        new_dds_img.image_format = VK_FORMAT_BC7_UNORM_BLOCK;
                     }
                     else
                     {
@@ -3811,19 +3811,57 @@ namespace
                         }
                     }
                     {
-                        VkBufferImageCopy copy_region{};
-                        copy_region.bufferOffset = 0;
-                        copy_region.bufferRowLength = 0;
-                        copy_region.bufferImageHeight = 0;
-                        copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                        copy_region.imageSubresource.mipLevel = 0;
-                        copy_region.imageSubresource.baseArrayLayer = 0;
-                        copy_region.imageSubresource.layerCount = 1;
-                        copy_region.imageExtent = new_dds_img.image_extent;
+                        {
+                            VkBufferImageCopy copy_region{};
+                            copy_region.bufferOffset = 0;
+                            copy_region.bufferRowLength = 0;
+                            copy_region.bufferImageHeight = 0;
+                            copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                            copy_region.imageSubresource.mipLevel = 0;
+                            copy_region.imageSubresource.baseArrayLayer = 0;
+                            copy_region.imageSubresource.layerCount = 1;
+                            copy_region.imageExtent = new_dds_img.image_extent;
 
-                        vkCmdCopyBufferToImage(immediate_command_buffer, dds_staging_buffer.buffer, new_dds_img.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                                               &copy_region);
+                            vkCmdCopyBufferToImage(immediate_command_buffer, dds_staging_buffer.buffer, new_dds_img.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                                &copy_region);
+                        }
+                        {
+                            const VkImageSubresourceRange subresource_range{
+                                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel = 0,
+                                .levelCount = num_mip_maps,
+                                .baseArrayLayer = 0,
+                                .layerCount = 1,
+                            };
 
+                            VkImageMemoryBarrier2 image_barrier = {
+                                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                .pNext = nullptr,
+                                .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+                                .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                .dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+                                .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                .srcQueueFamilyIndex = 0,
+                                .dstQueueFamilyIndex = 0,
+                                .image = new_dds_img.image,
+                                .subresourceRange = subresource_range,
+                            };
+
+                            const VkDependencyInfo dependency_info{
+                                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                .pNext = nullptr,
+                                .dependencyFlags = 0,
+                                .memoryBarrierCount = 0,
+                                .pMemoryBarriers = nullptr,
+                                .bufferMemoryBarrierCount = 0,
+                                .pBufferMemoryBarriers = nullptr,
+                                .imageMemoryBarrierCount = 1,
+                                .pImageMemoryBarriers = &image_barrier,
+                            };
+                            vkCmdPipelineBarrier2(immediate_command_buffer, &dependency_info);
+                        }
                         if (VkResult res = vkEndCommandBuffer(immediate_command_buffer); res != VK_SUCCESS)
                         {
                             l->error(std::format("Error ending immediate command buffer for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
@@ -3858,43 +3896,6 @@ namespace
                             l->error(std::format("Error waiting for immediate fence for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                             return result::error;
                         }
-                    }
-                    {
-                        const VkImageSubresourceRange subresource_range{
-                            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                            .baseMipLevel = 0,
-                            .levelCount = num_mip_maps,
-                            .baseArrayLayer = 0,
-                            .layerCount = 1,
-                        };
-
-                        VkImageMemoryBarrier2 image_barrier = {
-                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                            .pNext = nullptr,
-                            .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                            .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
-                            .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                            .dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
-                            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                            .srcQueueFamilyIndex = 0,
-                            .dstQueueFamilyIndex = 0,
-                            .image = new_dds_img.image,
-                            .subresourceRange = subresource_range,
-                        };
-
-                        const VkDependencyInfo dependency_info{
-                            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                            .pNext = nullptr,
-                            .dependencyFlags = 0,
-                            .memoryBarrierCount = 0,
-                            .pMemoryBarriers = nullptr,
-                            .bufferMemoryBarrierCount = 0,
-                            .pBufferMemoryBarriers = nullptr,
-                            .imageMemoryBarrierCount = 1,
-                            .pImageMemoryBarriers = &image_barrier,
-                        };
-                        vkCmdPipelineBarrier2(immediate_command_buffer, &dependency_info);
                     }
                     vmaDestroyBuffer(allocator, dds_staging_buffer.buffer, dds_staging_buffer.allocation);
                 }
