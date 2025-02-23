@@ -3623,6 +3623,13 @@ namespace
 
                 std::string input_filename{img.name.begin(), img.name.end()};
                 std::filesystem::path dds_img_path{input_filename};
+
+                size_t dds_image_data_size{0};
+                {
+                    std::ifstream in(dds_img_path, std::ifstream::ate | std::ifstream::binary);
+                    dds_image_data_size = in.tellg();
+                }
+
                 std::string dds_image_name = dds_img_path.filename().string();
 
                 nvtt::Surface dds_image;
@@ -3631,14 +3638,8 @@ namespace
                     l->error(std::format("Failed to open {}", input_filename));
                     return result::error;
                 }
-
+                const uint32_t num_mip_maps = dds_image.countMipmaps();
                 {
-                    size_t dds_image_data_size{0};
-                    {
-                        std::ifstream in(dds_img_path, std::ifstream::ate | std::ifstream::binary);
-                        dds_image_data_size = in.tellg();
-                    }
-
                     VkExtent3D dds_image_size;
                     dds_image_size.width = dds_image.width();
                     dds_image_size.height = dds_image.height();
@@ -3666,8 +3667,8 @@ namespace
                         dds_img_create_info.imageType = VK_IMAGE_TYPE_2D;
                         dds_img_create_info.format = new_dds_img.image_format;
                         dds_img_create_info.extent = dds_image_size;
-                        dds_img_create_info.mipLevels = VK_REMAINING_MIP_LEVELS;
-                        dds_img_create_info.arrayLayers = VK_REMAINING_ARRAY_LAYERS;
+                        dds_img_create_info.mipLevels = num_mip_maps;
+                        dds_img_create_info.arrayLayers = 1;
                         dds_img_create_info.samples = msaa_samples;
                         dds_img_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
                         dds_img_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -3693,9 +3694,9 @@ namespace
                         dds_img_view_create_info.image = new_dds_img.image;
                         dds_img_view_create_info.format = new_dds_img.image_format;
                         dds_img_view_create_info.subresourceRange.baseMipLevel = 0;
-                        dds_img_view_create_info.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+                        dds_img_view_create_info.subresourceRange.levelCount = num_mip_maps;
                         dds_img_view_create_info.subresourceRange.baseArrayLayer = 0;
-                        dds_img_view_create_info.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+                        dds_img_view_create_info.subresourceRange.layerCount = 1;
                         dds_img_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
                         if (const auto res = vkCreateImageView(device, &dds_img_view_create_info, nullptr, &new_dds_img.image_view); res != VK_SUCCESS)
@@ -3772,12 +3773,12 @@ namespace
                     }
                     {
                         {
-                            constexpr VkImageSubresourceRange subresource_range{
+                            const VkImageSubresourceRange subresource_range{
                                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                 .baseMipLevel = 0,
-                                .levelCount = VK_REMAINING_MIP_LEVELS,
+                                .levelCount = num_mip_maps,
                                 .baseArrayLayer = 0,
-                                .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                                .layerCount = 1,
                             };
 
                             VkImageMemoryBarrier2 image_barrier = {
@@ -3841,9 +3842,9 @@ namespace
                         copy_region.bufferRowLength = 0;
                         copy_region.bufferImageHeight = 0;
                         copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                        copy_region.imageSubresource.mipLevel = VK_REMAINING_MIP_LEVELS;
+                        copy_region.imageSubresource.mipLevel = num_mip_maps;
                         copy_region.imageSubresource.baseArrayLayer = 0;
-                        copy_region.imageSubresource.layerCount = VK_REMAINING_ARRAY_LAYERS;
+                        copy_region.imageSubresource.layerCount = 1;
                         copy_region.imageExtent = new_dds_img.image_extent;
 
                         vkCmdCopyBufferToImage(immediate_command_buffer, dds_staging_buffer.buffer, new_dds_img.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
@@ -3888,12 +3889,12 @@ namespace
                         }
                     }
                     {
-                        constexpr VkImageSubresourceRange subresource_range{
+                        const VkImageSubresourceRange subresource_range{
                             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                             .baseMipLevel = 0,
-                            .levelCount = VK_REMAINING_MIP_LEVELS,
+                            .levelCount = num_mip_maps,
                             .baseArrayLayer = 0,
-                            .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                            .layerCount = 1,
                         };
 
                         VkImageMemoryBarrier2 image_barrier = {
@@ -3935,9 +3936,9 @@ namespace
                     image_view_info.image = new_dds_img.image;
                     image_view_info.format = new_dds_img.image_format;
                     image_view_info.subresourceRange.baseMipLevel = 0;
-                    image_view_info.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+                    image_view_info.subresourceRange.levelCount = num_mip_maps;
                     image_view_info.subresourceRange.baseArrayLayer = 0;
-                    image_view_info.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+                    image_view_info.subresourceRange.layerCount = 1;
                     image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                     VkImageView image_view{};
                     if (VkResult res = vkCreateImageView(device, &image_view_info, nullptr, &image_view); res !=
