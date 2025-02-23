@@ -1081,21 +1081,18 @@ namespace
                 const auto extension_names = SDL_Vulkan_GetInstanceExtensions(&extension_count);
                 for (uint32_t i = 0; i < extension_count; i++)
                 {
-                    l->debug(std::format("pushing back required SDL instance extension with name: {}",
-                                         extension_names[i]));
+                    l->debug(std::format("pushing back required SDL instance extension with name: {}", extension_names[i]));
                     instance_extensions.push_back(extension_names[i]);
                 }
                 for (uint32_t i = 0; i < std::size(default_instance_extensions); i++)
                 {
-                    l->debug(std::format("pushing back required rosy instance extension with name: {}",
-                                         default_instance_extensions[i]));
+                    l->debug(std::format("pushing back required rosy instance extension with name: {}", default_instance_extensions[i]));
                     instance_extensions.push_back(default_instance_extensions[i]);
                 }
             }
             l->debug(std::format("num instanceExtensions: {}", instance_extensions.size()));
 
-            std::vector<const char*> required_instance_extensions(std::begin(instance_extensions),
-                                                                  std::end(instance_extensions));
+            std::vector<const char*> required_instance_extensions(std::begin(instance_extensions), std::end(instance_extensions));
 
             for (auto& [extensionName, specVersion] : extensions)
             {
@@ -3729,7 +3726,7 @@ namespace
                         if (const VkResult res = vmaCreateBuffer(allocator, &buffer_info, &vma_alloc_info, &dds_staging_buffer.buffer, &dds_staging_buffer.allocation,
                                                                  &dds_staging_buffer.info); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error creating dds image buffer: {} for {}", static_cast<uint8_t>(res), dds_image_name));
+                            l->error(std::format("Error creating dds image buffer: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                             return result::error;
                         }
                         {
@@ -3754,15 +3751,13 @@ namespace
                     {
                         if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error resetting immediate fence for dds image upload: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
+                            l->error(std::format("Error resetting immediate fence for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                             return result::error;
                         }
 
                         if (VkResult res = vkResetCommandBuffer(immediate_command_buffer, 0); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error resetting immediate command buffer for dds image upload: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
+                            l->error(std::format("Error resetting immediate command buffer for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                             return result::error;
                         }
 
@@ -3772,8 +3767,7 @@ namespace
 
                         if (VkResult res = vkBeginCommandBuffer(immediate_command_buffer, &begin_info); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error beginning immediate command buffer for dds image upload: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
+                            l->error(std::format("Error beginning immediate command buffer for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                             return result::error;
                         }
                     }
@@ -3832,8 +3826,7 @@ namespace
 
                         if (VkResult res = vkEndCommandBuffer(immediate_command_buffer); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error ending immediate command buffer for dds image upload: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
+                            l->error(std::format("Error ending immediate command buffer for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                             return result::error;
                         }
 
@@ -3855,16 +3848,14 @@ namespace
                         if (VkResult res = vkQueueSubmit2(present_queue, 1, &submit_info, immediate_fence); res !=
                             VK_SUCCESS)
                         {
-                            l->error(std::format("Error submitting staging buffer for dds image upload: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
+                            l->error(std::format("Error submitting staging buffer for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                             return result::error;
                         }
 
                         if (VkResult res = vkWaitForFences(device, 1, &immediate_fence, true, 9999999999); res !=
                             VK_SUCCESS)
                         {
-                            l->error(std::format("Error waiting for immediate fence for dds image upload: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
+                            l->error(std::format("Error waiting for immediate fence for dds image upload: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                             return result::error;
                         }
                     }
@@ -3924,7 +3915,7 @@ namespace
                     if (VkResult res = vkCreateImageView(device, &image_view_info, nullptr, &image_view); res !=
                         VK_SUCCESS)
                     {
-                        l->error(std::format("dds image view creation failure: {} for {}", static_cast<uint8_t>(res), dds_image_name));
+                        l->error(std::format("dds image view creation failure: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                         return result::create_failed;
                     }
                     const size_t index = image_views.size();
@@ -3939,8 +3930,7 @@ namespace
                         debug_name.pObjectName = obj_name.c_str();
                         if (const VkResult res = vkSetDebugUtilsObjectNameEXT(device, &debug_name); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error creating asset image view name: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
+                            l->error(std::format("Error creating asset image view name: {} {} for {}", static_cast<uint8_t>(res), string_VkResult(res), dds_image_name));
                             return result::error;
                         }
                     }
@@ -3949,8 +3939,7 @@ namespace
                         if (const result res = desc_sampled_images->allocator.allocate(&new_image_sampler_desc_index);
                             res != result::ok)
                         {
-                            l->error(std::format("Error allocating sampler descriptor index: {} for {}",
-                                                 static_cast<uint8_t>(res), dds_image_name));
+                            l->error(std::format("Error allocating sampler descriptor index: {} for {}", static_cast<uint8_t>(res), dds_image_name));
                             return result::create_failed;
                         }
                         {
