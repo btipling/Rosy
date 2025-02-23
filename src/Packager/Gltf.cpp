@@ -1,11 +1,9 @@
 #include "Gltf.h"
-#include <stb_image.h>
 #include <algorithm>
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
 #include <iostream>
 #include <nvtt/nvtt.h>
-#include <vulkan/vulkan_core.h>
 
 using namespace rosy_packager;
 

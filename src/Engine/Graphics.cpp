@@ -107,7 +107,7 @@ namespace
     constexpr uint64_t graphics_created_bit_depth_image = {1ULL << 8};
     constexpr uint64_t graphics_created_bit_ui_pool = {1ULL << 9};
     constexpr uint64_t graphics_created_bit_swapchain = {1ULL << 10};
-    constexpr uint64_t graphics_created_bit_ktx_vdi_info = {1ULL << 11};
+    [[maybe_unused]] constexpr uint64_t graphics_created_bit_unused = {1ULL << 11};
     constexpr uint64_t graphics_created_bit_descriptor_set = {1ULL << 12};
     constexpr uint64_t graphics_created_bit_descriptor_pool = {1ULL << 13};
     constexpr uint64_t graphics_created_bit_draw_image_view = {1ULL << 14};
