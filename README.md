@@ -22,7 +22,7 @@ The most recent version of the Vulkan SDK should be on the system. The Vulkan SD
 
 ### NVTT
 
-Using the Packager program to create assets requires the NVIDIA Texture Tool library which may not work on non-NVIDIA hardware. The game itself does not use this library and builds and runs fine without it.
+Using the Packager program to create assets requires the NVIDIA Texture Tool library which defaults to CPU on non-NVIDIA hardware. The game itself uses this library to read DDS files and builds and should eventually be able to run fine on NVIDIA hardware I hope.
 In order to use the Packager tool the `NVTT_PATH` env variable must be set to where the header files are and the shipped DLL must be in the same directory as Packager.exe. The
 path is likely `C:\Program Files\NVIDIA Corporation\NVIDIA Texture Tools` on Windows. NVTT can be downloaded at the [NVIDIA Texture Tools 3 website](https://developer.nvidia.com/gpu-accelerated-texture-compression).
 
@@ -36,14 +36,6 @@ SDL3 and flecs are dynamically linked, build the dlls and include next to binary
 ```txt
 git submodule init
 git submodule update
-```
-
-#### KTX
-
-```txt
-cd .\libs\KTX-Software\
-cmake . -B build
-cmake --build build
 ```
 
 #### FastGLTF
@@ -87,16 +79,3 @@ I have only tested this on Nvidia 3070 and 3060 gpus. I don't know if this appli
 * Bindless
 * Shader Objects
 * One global descriptor set for all images and samplers
-
-## TODO
-
-* [ ] config for physical device to use
-* [ ] read links in <https://github.com/Darianopolis/Links/blob/main/Links.txt>
-
-## Generating Cubemaps with ktx
-
-```txt
-ktx create --format R8G8B8A8_SRGB --generate-mipmap --mipmap-filter box --encode uastc --uastc-quality 0  --zstd 5 --cubemap  .\xp.png .\xn.png .\yp.png .\yn.png .\zp.png .\zn.png  skybox.ktx2
- ```
-
- Then have to open them up in Nvidia Texture Tools and save them to get the VkFormat correct

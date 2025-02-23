@@ -22,20 +22,21 @@ project "Engine"
 
     links { "SDL3" }
     links { "flecs" }
-    links { "ktx" }
+    links { "nvtt30205" }
 
     includedirs { "libs/SDL/include/" }
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/imgui/" }
     includedirs { "libs/tracy/" }
     includedirs { "libs/json/single_include/" }
-    includedirs { "libs/KTX-Software/include/" }
+    includedirs { "\"" .. nvtt_path .. "/include/\"" }
     includedirs { "libs/flecs/include/" }
 
     libdirs { "libs/SDL/build/Debug" }
-    libdirs { "libs/KTX-Software/build/Debug" }
     libdirs { vk_sdk .. "/Lib/" }
     libdirs { "libs/flecs/out/Debug" }
+    libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
+
     defines { "SIMDJSON_EXCEPTIONS=OFF" }
     filter "configurations:RenderDoc"
         defines { "RENDERDOC" }

@@ -180,63 +180,64 @@ rosy::result gltf::import(rosy::log* l)
             source_img_path.replace_filename(uri_ds.uri.string());
             l->info(std::format("source_img_path for color image is: {}", source_img_path.string()));
 
-
-            //int x,y,n;
-            std::string input_filename{source_img_path.string()};
-
-            nvtt::Surface image;
-            image.load(input_filename.c_str());
-
-            //unsigned char *image_data = stbi_load(filename.c_str(), &x, &y, &n, 4);
-            //if (image_data == nullptr) {
-            //    l->error(std::format("failed to load color image data: {}", filename));
-            //    return rosy::result::error;
-            //}
-            //size_t image_file_size = static_cast<size_t>(x) * static_cast<size_t>(y) * 4;
-            l->info(std::format("image data is width: {} height: {} depth: {} type: {} for ",
-                                image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
-
-            nvtt::Context context(true); // Enable CUDA
-
-            nvtt::CompressionOptions compressionOptions;
-            compressionOptions.setFormat(nvtt::Format_BC7);
-
-            img_path.replace_filename(std::format("{}.ktx2", gltf_img.name));
-            std::string output_filename = img_path.string();
-            nvtt::OutputOptions outputOptions;
-            outputOptions.setFileName(output_filename.c_str());
-
-            const int numMipmaps = image.countMipmaps();
-            l->info(std::format("num mip maps are {} for {}", numMipmaps, input_filename));
-
-            if (!context.outputHeader(image, numMipmaps, compressionOptions, outputOptions))
             {
-                l->error(std::format("Writing ktx2 headers failed for  {}", input_filename));
-                return rosy::result::error;
-            }
+                //int x,y,n;
+                std::string input_filename{ source_img_path.string() };
 
-            for (int mip = 0; mip < numMipmaps; mip++)
-            {
-                // Compress this image and write its data.
-                if (!context.compress(image, 0 /* face */, mip, compressionOptions, outputOptions))
+                nvtt::Surface image;
+                image.load(input_filename.c_str());
+
+                //unsigned char *image_data = stbi_load(filename.c_str(), &x, &y, &n, 4);
+                //if (image_data == nullptr) {
+                //    l->error(std::format("failed to load color image data: {}", filename));
+                //    return rosy::result::error;
+                //}
+                //size_t image_file_size = static_cast<size_t>(x) * static_cast<size_t>(y) * 4;
+                l->info(std::format("image data is width: {} height: {} depth: {} type: {} for ",
+                    image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
+
+                nvtt::Context context(true); // Enable CUDA
+
+                nvtt::CompressionOptions compression_options;
+                compression_options.setFormat(nvtt::Format_BC7);
+
+                img_path.replace_filename(std::format("{}.dds", gltf_img.name));
+                std::string output_filename = img_path.string();
+                nvtt::OutputOptions output_options;
+                output_options.setFileName(output_filename.c_str());
+
+                const int num_mipmaps = image.countMipmaps();
+                l->info(std::format("num mip maps are {} for {}", num_mipmaps, input_filename));
+
+                if (!context.outputHeader(image, num_mipmaps, compression_options, output_options))
                 {
-                    std::cerr << "Compressing and writing the DDS file failed!";
-                    l->error(std::format("Compressing and writing the ktx2 file failed for  {}", input_filename));
+                    l->error(std::format("Writing dds headers failed for  {}", input_filename));
                     return rosy::result::error;
                 }
 
-                if (mip == numMipmaps - 1)
+                for (int mip = 0; mip < num_mipmaps; mip++)
                 {
-                    break;
+                    // Compress this image and write its data.
+                    if (!context.compress(image, 0 /* face */, mip, compression_options, output_options))
+                    {
+                        std::cerr << "Compressing and writing the DDS file failed!";
+                        l->error(std::format("Compressing and writing the ktx2 file failed for  {}", input_filename));
+                        return rosy::result::error;
+                    }
+
+                    if (mip == num_mipmaps - 1)
+                    {
+                        break;
+                    }
+
+                    image.toLinearFromSrgb();
+                    image.premultiplyAlpha();
+
+                    image.buildNextMipmap(nvtt::MipmapFilter_Box);
+
+                    image.demultiplyAlpha();
+                    image.toSrgb();
                 }
-
-                image.toLinearFromSrgb();
-                image.premultiplyAlpha();
-
-                image.buildNextMipmap(nvtt::MipmapFilter_Box);
-
-                image.demultiplyAlpha();
-                image.toSrgb();
             }
             //{
             //    ktxTexture2* texture;
@@ -326,119 +327,181 @@ rosy::result gltf::import(rosy::log* l)
         auto last = std::ranges::unique(normal_map_images).begin();
         normal_map_images.erase(last, normal_map_images.end());
         l->info(std::format("num normal_map_images {}", normal_map_images.size()));
-        //for (const auto& [gltf_index, rosy_index] : normal_map_images)
-        //{
-        //    const auto& gltf_img = gltf.images[gltf_index];
-        //    auto& img_path = pre_rename_image_paths[rosy_index];
-        //    l->info(std::format("{} is a gltf_img normal image", gltf_img.name));
-        //    l->info(std::format("{} is an image_path normal image", img_path.string()));
 
-        //    if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data)) {
-        //        l->error(std::format("{} is not a URI datasource", gltf_img.name));
-        //        return rosy::result::error;
-        //    }
+        for (const auto& [gltf_index, rosy_index] : normal_map_images)
+        {
+            const auto& gltf_img = gltf.images[gltf_index];
+            auto& img_path = pre_rename_image_paths[rosy_index];
+            l->info(std::format("{} is a gltf_img normal image", gltf_img.name));
+            l->info(std::format("{} is an image_path normal image", img_path.string()));
 
-        //    const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_img.data);
-        //    l->info(std::format("normal image uri is: {}", uri_ds.uri.string()));
+            if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data)) {
+                l->error(std::format("{} is not a URI datasource", gltf_img.name));
+                return rosy::result::error;
+            }
 
-        //    std::filesystem::path source_img_path{ gltf_asset.asset_path };
-        //    source_img_path.replace_filename(uri_ds.uri.string());
-        //    l->info(std::format("source_img_path for normal image is: {}", source_img_path.string()));
+            const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_img.data);
+            l->info(std::format("normal image uri is: {}", uri_ds.uri.string()));
 
-        //    int x, y, n;
-        //    std::string filename{ source_img_path.string() };
-
-        //    unsigned char* image_data = stbi_load(filename.c_str(), &x, &y, &n, 4);
-        //    if (image_data == nullptr) {
-        //        l->error(std::format("failed to load normal image data: {}", filename));
-        //        return rosy::result::error;
-        //    }
-        //    size_t image_file_size = static_cast<size_t>(x) * static_cast<size_t>(y) * 4;
-        //    l->info(std::format("image data is width: {} height: {} num_channels: {} num bytes: {}", x, y, n, image_file_size));
+            std::filesystem::path source_img_path{ gltf_asset.asset_path };
+            source_img_path.replace_filename(uri_ds.uri.string());
+            l->info(std::format("source_img_path for normal image is: {}", source_img_path.string()));
 
 
-        //    {
-        //        ktxTexture2* texture;
-        //        ktxTextureCreateInfo create_info{};
-        //        KTX_error_code result;
-        //        ktx_uint32_t level, layer;
-        //        ktxBasisParams params = { 0 };
-        //        params.structSize = sizeof(params);
+            {
+                //int x,y,n;
+                std::string input_filename{ source_img_path.string() };
 
-        //        const ktx_uint32_t num_levels = static_cast<ktx_uint32_t>(log2(x)) + 1;
-        //        l->info(std::format("num_levels for ktx2 texture: {} num levels: {}", filename, num_levels));
+                nvtt::Surface image;
+                image.load(input_filename.c_str());
 
-        //        create_info.glInternalformat = 0;
-        //        //create_info.vkFormat = VK_FORMAT_BC7_SRGB_BLOCK;
-        //        create_info.vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
-        //        //create_info.vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
-        //        create_info.baseWidth = static_cast<ktx_uint32_t>(x);
-        //        create_info.baseHeight = static_cast<ktx_uint32_t>(y);
-        //        create_info.baseDepth = 1;
-        //        create_info.numDimensions = 2;
-        //        create_info.numLevels = num_levels;
-        //        create_info.numLayers = 1;
-        //        create_info.numFaces = 1;
-        //        create_info.isArray = KTX_FALSE;
-        //        create_info.generateMipmaps = KTX_FALSE;
+                //unsigned char *image_data = stbi_load(filename.c_str(), &x, &y, &n, 4);
+                //if (image_data == nullptr) {
+                //    l->error(std::format("failed to load color image data: {}", filename));
+                //    return rosy::result::error;
+                //}
+                //size_t image_file_size = static_cast<size_t>(x) * static_cast<size_t>(y) * 4;
+                l->info(std::format("image data is width: {} height: {} depth: {} type: {} for ",
+                    image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
 
-        //        result = ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture);
-        //        if (result != KTX_SUCCESS) {
-        //            l->error(std::format("failed to create ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
-        //            return rosy::result::error;
-        //        }
-        //        level = 0;
-        //        layer = 0;
-        //        ktx_size_t src_size = static_cast<ktx_size_t>(image_file_size);
-        //        while (level < texture->numLevels) {
-        //            l->info(std::format("setting image memory for ktx2 texture: {} at level: {}", filename, level));
-        //            result = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, KTX_FACESLICE_WHOLE_LEVEL, image_data, src_size);
-        //            if (result != KTX_SUCCESS) {
-        //                l->error(std::format("failed to set image memory for ktx2 texture: {} at level: {}, error: {}", filename, level, static_cast<uint32_t>(result)));
-        //                return rosy::result::error;
-        //            }
-        //            src_size /= 4;
-        //            level += 1;
-        //        }
-        //        l->info(std::format("finished setting image memory for ktx2 texture: {} num levels: {}", filename, level));
+                nvtt::Context context(true); // Enable CUDA
 
-        //        // For BasisLZ/ETC1S
-        //        params.compressionLevel = 2;
-        //        // For UASTC
-        //        params.uastc = KTX_TRUE;
-        //        // Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
-        //        result = ktxTexture2_CompressBasisEx(texture, &params);
-        //        if (result != KTX_SUCCESS) {
-        //            l->error(std::format("failed to compress ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
-        //            return rosy::result::error;
-        //        }
+                nvtt::CompressionOptions compression_options;
+                compression_options.setFormat(nvtt::Format_BC7);
 
-        //        if (ktxTexture2_NeedsTranscoding(texture))
-        //        {
-        //            l->info(std::format(" ktx2 texture needs transcoding {}!", filename));
-        //        }
+                img_path.replace_filename(std::format("{}.dds", gltf_img.name));
+                std::string output_filename = img_path.string();
+                nvtt::OutputOptions output_options;
+                output_options.setFileName(output_filename.c_str());
 
-        //        img_path.replace_filename(std::format("{}.ktx2", gltf_img.name));
-        //        filename = img_path.string();
-        //        char orientation[20]{};
-        //        if (const auto res = snprintf(orientation, sizeof(orientation), KTX_ORIENTATION2_FMT, 'r', 'd'); res < 0)
-        //        {
-        //            l->error(std::format("failed sprintf orientation header to ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
-        //            return rosy::result::error;
-        //        }
-        //        result = ktxHashList_AddKVPair(&texture->kvDataHead, KTX_ORIENTATION_KEY, static_cast<unsigned int>(strlen(orientation)) + 1, orientation);
-        //        if (result != KTX_SUCCESS) {
-        //            l->error(std::format("failed write orientation header to ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
-        //            return rosy::result::error;
-        //        }
+                const int num_mipmaps = image.countMipmaps();
+                l->info(std::format("num mip maps are {} for {}", num_mipmaps, input_filename));
 
-        //        ktxTexture_WriteToNamedFile(ktxTexture(texture), filename.c_str());
-        //        l->info(std::format("finished writing image to disk for ktx2 texture: {}", filename));
-        //        ktxTexture_Destroy(ktxTexture(texture));
-        //        l->info(std::format("finished converting to ktx2: {}", filename));
-        //    }
-        //    stbi_image_free(image_data);
-        //}
+                if (!context.outputHeader(image, num_mipmaps, compression_options, output_options))
+                {
+                    l->error(std::format("Writing dds headers failed for  {}", input_filename));
+                    return rosy::result::error;
+                }
+
+                for (int mip = 0; mip < num_mipmaps; mip++)
+                {
+                    // Compress this image and write its data.
+                    if (!context.compress(image, 0 /* face */, mip, compression_options, output_options))
+                    {
+                        std::cerr << "Compressing and writing the DDS file failed!";
+                        l->error(std::format("Compressing and writing the ktx2 file failed for  {}", input_filename));
+                        return rosy::result::error;
+                    }
+
+                    if (mip == num_mipmaps - 1)
+                    {
+                        break;
+                    }
+
+                    image.toLinearFromSrgb();
+                    image.premultiplyAlpha();
+
+                    image.buildNextMipmap(nvtt::MipmapFilter_Box);
+
+                    image.demultiplyAlpha();
+                    image.toSrgb();
+                }
+            }
+
+           /* int x, y, n;
+            std::string filename{ source_img_path.string() };
+
+            unsigned char* image_data = stbi_load(filename.c_str(), &x, &y, &n, 4);
+            if (image_data == nullptr) {
+                l->error(std::format("failed to load normal image data: {}", filename));
+                return rosy::result::error;
+            }
+            size_t image_file_size = static_cast<size_t>(x) * static_cast<size_t>(y) * 4;
+            l->info(std::format("image data is width: {} height: {} num_channels: {} num bytes: {}", x, y, n, image_file_size));*/
+
+
+            //{
+            //    ktxTexture2* texture;
+            //    ktxTextureCreateInfo create_info{};
+            //    KTX_error_code result;
+            //    ktx_uint32_t level, layer;
+            //    ktxBasisParams params = { 0 };
+            //    params.structSize = sizeof(params);
+
+            //    const ktx_uint32_t num_levels = static_cast<ktx_uint32_t>(log2(x)) + 1;
+            //    l->info(std::format("num_levels for ktx2 texture: {} num levels: {}", filename, num_levels));
+
+            //    create_info.glInternalformat = 0;
+            //    //create_info.vkFormat = VK_FORMAT_BC7_SRGB_BLOCK;
+            //    create_info.vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
+            //    //create_info.vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
+            //    create_info.baseWidth = static_cast<ktx_uint32_t>(x);
+            //    create_info.baseHeight = static_cast<ktx_uint32_t>(y);
+            //    create_info.baseDepth = 1;
+            //    create_info.numDimensions = 2;
+            //    create_info.numLevels = num_levels;
+            //    create_info.numLayers = 1;
+            //    create_info.numFaces = 1;
+            //    create_info.isArray = KTX_FALSE;
+            //    create_info.generateMipmaps = KTX_FALSE;
+
+            //    result = ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture);
+            //    if (result != KTX_SUCCESS) {
+            //        l->error(std::format("failed to create ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
+            //        return rosy::result::error;
+            //    }
+            //    level = 0;
+            //    layer = 0;
+            //    ktx_size_t src_size = static_cast<ktx_size_t>(image_file_size);
+            //    while (level < texture->numLevels) {
+            //        l->info(std::format("setting image memory for ktx2 texture: {} at level: {}", filename, level));
+            //        result = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, KTX_FACESLICE_WHOLE_LEVEL, image_data, src_size);
+            //        if (result != KTX_SUCCESS) {
+            //            l->error(std::format("failed to set image memory for ktx2 texture: {} at level: {}, error: {}", filename, level, static_cast<uint32_t>(result)));
+            //            return rosy::result::error;
+            //        }
+            //        src_size /= 4;
+            //        level += 1;
+            //    }
+            //    l->info(std::format("finished setting image memory for ktx2 texture: {} num levels: {}", filename, level));
+
+            //    // For BasisLZ/ETC1S
+            //    params.compressionLevel = 2;
+            //    // For UASTC
+            //    params.uastc = KTX_TRUE;
+            //    // Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
+            //    result = ktxTexture2_CompressBasisEx(texture, &params);
+            //    if (result != KTX_SUCCESS) {
+            //        l->error(std::format("failed to compress ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
+            //        return rosy::result::error;
+            //    }
+
+            //    if (ktxTexture2_NeedsTranscoding(texture))
+            //    {
+            //        l->info(std::format(" ktx2 texture needs transcoding {}!", filename));
+            //    }
+
+            //    img_path.replace_filename(std::format("{}.ktx2", gltf_img.name));
+            //    filename = img_path.string();
+            //    char orientation[20]{};
+            //    if (const auto res = snprintf(orientation, sizeof(orientation), KTX_ORIENTATION2_FMT, 'r', 'd'); res < 0)
+            //    {
+            //        l->error(std::format("failed sprintf orientation header to ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
+            //        return rosy::result::error;
+            //    }
+            //    result = ktxHashList_AddKVPair(&texture->kvDataHead, KTX_ORIENTATION_KEY, static_cast<unsigned int>(strlen(orientation)) + 1, orientation);
+            //    if (result != KTX_SUCCESS) {
+            //        l->error(std::format("failed write orientation header to ktx2 texture: {} error: {}", filename, static_cast<uint32_t>(result)));
+            //        return rosy::result::error;
+            //    }
+
+            //    ktxTexture_WriteToNamedFile(ktxTexture(texture), filename.c_str());
+            //    l->info(std::format("finished writing image to disk for ktx2 texture: {}", filename));
+            //    ktxTexture_Destroy(ktxTexture(texture));
+            //    l->info(std::format("finished converting to ktx2: {}", filename));
+            //}
+            //stbi_image_free(image_data);
+        }
     }
 
     // SAMPLERS

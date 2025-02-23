@@ -9,7 +9,6 @@
 #include "Volk/volk.h"
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vk_enum_string_helper.h"
-#include <ktxvulkan.h>
 #include <SDL3/SDL_vulkan.h>
 #pragma warning(disable: 4100 4459)
 //#include <tracy/Tracy.hpp>
@@ -315,8 +314,8 @@ namespace
     struct allocated_ktx_image
     {
         uint64_t graphics_created_bitmask{0};
-        ktxTexture* texture;
-        ktxVulkanTexture vk_texture;
+        //ktxTexture* texture;
+        //ktxVulkanTexture vk_texture;
     };
 
     struct allocated_csm
@@ -512,7 +511,7 @@ namespace
         VkCommandPool immediate_command_pool{nullptr};
 
         SDL_Window* window{nullptr};
-        ktxVulkanDeviceInfo ktx_vdi_info{};
+        //ktxVulkanDeviceInfo ktx_vdi_info{};
 
         // shaders
         std::vector<VkShaderEXT> debug_shaders;
@@ -794,22 +793,22 @@ namespace
                 vkDestroyImageView(device, image_view, nullptr);
             }
 
-            for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
-            {
-                if (gfx_created_bitmask & graphics_created_bit_ktx_image)
-                {
-                    ktxTexture_Destroy(ktx_texture);
-                }
-                if (gfx_created_bitmask & graphics_created_bit_ktx_texture)
-                {
-                    ktxVulkanTexture_Destruct(&ktx_vk_texture, device, nullptr);
-                }
-            }
+            //for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
+            //{
+            //    if (gfx_created_bitmask & graphics_created_bit_ktx_image)
+            //    {
+            //        ktxTexture_Destroy(ktx_texture);
+            //    }
+            //    if (gfx_created_bitmask & graphics_created_bit_ktx_texture)
+            //    {
+            //        ktxVulkanTexture_Destruct(&ktx_vk_texture, device, nullptr);
+            //    }
+            //}
 
-            if (graphics_created_bitmask & graphics_created_bit_ktx_vdi_info)
-            {
-                ktxVulkanDeviceInfo_Destruct(&ktx_vdi_info);
-            }
+            //if (graphics_created_bitmask & graphics_created_bit_ktx_vdi_info)
+            //{
+            //    ktxVulkanDeviceInfo_Destruct(&ktx_vdi_info);
+            //}
 
             {
                 if (graphics_created_bitmask & graphics_created_bit_csm_image)
@@ -3514,9 +3513,9 @@ namespace
 
         VkResult init_ktx()
         {
-            l->info("Initializing ktx");
-            ktxVulkanDeviceInfo_Construct(&ktx_vdi_info, physical_device, device, present_queue, immediate_command_pool,
-                                          nullptr);
+            //l->info("Initializing ktx");
+            //ktxVulkanDeviceInfo_Construct(&ktx_vdi_info, physical_device, device, present_queue, immediate_command_pool,
+            //                              nullptr);
             graphics_created_bitmask |= graphics_created_bit_ktx_vdi_info;
             return VK_SUCCESS;
         }
@@ -3592,7 +3591,7 @@ namespace
                     vkDestroyImageView(device, image_view, nullptr);
                 }
                 image_views.clear();
-                for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
+ /*               for (auto& [gfx_created_bitmask, ktx_texture, ktx_vk_texture] : ktx_textures)
                 {
                     if (gfx_created_bitmask & graphics_created_bit_ktx_image)
                     {
@@ -3602,7 +3601,7 @@ namespace
                     {
                         ktxVulkanTexture_Destruct(&ktx_vk_texture, device, nullptr);
                     }
-                }
+                }*/
                 ktx_textures.clear();
 
                 if (graphics_created_bitmask & graphics_created_bit_index_buffer)
@@ -3650,43 +3649,40 @@ namespace
                 std::string img_name{img.name.begin(), img.name.end()};
                 ktx_path = img_name.c_str();
 
-                {
-                    if (ktx_error_code_e ktx_res = ktxTexture_CreateFromNamedFile(
-                        ktx_path, KTX_TEXTURE_CREATE_NO_FLAGS, &new_ktx_img.texture); ktx_res != KTX_SUCCESS)
-                    {
-                        l->error(std::format("ktx create texture failure: {}", static_cast<uint8_t>(ktx_res)));
-                        return result::create_failed;
-                    }
-                    new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
-                }
-                {
-                    new_ktx_img.texture;
-                }
-                {
-                    if (ktx_error_code_e ktx_res = ktxTexture_VkUploadEx(
-                        new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
-                        VK_IMAGE_TILING_OPTIMAL,
-                        VK_IMAGE_USAGE_SAMPLED_BIT,
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); ktx_res != KTX_SUCCESS)
-                    {
-                        ktx_textures.push_back(new_ktx_img);
-                        l->error(std::format("ktx create vulkan texture failure: {}", static_cast<uint8_t>(ktx_res)));
-                        return result::create_failed;
-                    }
-                    new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_texture;
-                }
+                //{
+                //    if (ktx_error_code_e ktx_res = ktxTexture_CreateFromNamedFile(
+                //        ktx_path, KTX_TEXTURE_CREATE_NO_FLAGS, &new_ktx_img.texture); ktx_res != KTX_SUCCESS)
+                //    {
+                //        l->error(std::format("ktx create texture failure: {}", static_cast<uint8_t>(ktx_res)));
+                //        return result::create_failed;
+                //    }
+                //    new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_image;
+                //}
+                //{
+                //    if (ktx_error_code_e ktx_res = ktxTexture_VkUploadEx(
+                //        new_ktx_img.texture, &ktx_vdi_info, &new_ktx_img.vk_texture,
+                //        VK_IMAGE_TILING_OPTIMAL,
+                //        VK_IMAGE_USAGE_SAMPLED_BIT,
+                //        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); ktx_res != KTX_SUCCESS)
+                //    {
+                //        ktx_textures.push_back(new_ktx_img);
+                //        l->error(std::format("ktx create vulkan texture failure: {}", static_cast<uint8_t>(ktx_res)));
+                //        return result::create_failed;
+                //    }
+                //    new_ktx_img.graphics_created_bitmask |= graphics_created_bit_ktx_texture;
+                //}
 
                 {
                     VkImageViewCreateInfo image_view_info{};
                     image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
                     image_view_info.pNext = nullptr;
                     image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                    image_view_info.image = new_ktx_img.vk_texture.image;
-                    image_view_info.format = new_ktx_img.vk_texture.imageFormat;
+                    //image_view_info.image = new_ktx_img.vk_texture.image;
+                    //image_view_info.format = new_ktx_img.vk_texture.imageFormat;
                     image_view_info.subresourceRange.baseMipLevel = 0;
-                    image_view_info.subresourceRange.levelCount = new_ktx_img.vk_texture.levelCount;
+                    //image_view_info.subresourceRange.levelCount = new_ktx_img.vk_texture.levelCount;
                     image_view_info.subresourceRange.baseArrayLayer = 0;
-                    image_view_info.subresourceRange.layerCount = new_ktx_img.vk_texture.layerCount;
+                    //image_view_info.subresourceRange.layerCount = new_ktx_img.vk_texture.layerCount;
                     image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                     VkImageView image_view{};
                     if (VkResult res = vkCreateImageView(device, &image_view_info, nullptr, &image_view); res !=
