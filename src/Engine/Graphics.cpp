@@ -507,7 +507,6 @@ namespace
         VkCommandPool immediate_command_pool{nullptr};
 
         SDL_Window* window{nullptr};
-        //ktxVulkanDeviceInfo ktx_vdi_info{};
 
         // shaders
         std::vector<VkShaderEXT> debug_shaders;
