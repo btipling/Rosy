@@ -304,7 +304,7 @@ rosy::result gltf::import(rosy::log* l)
                     nvtt::Surface temp = image;
                     temp.transformNormals(nvtt::NormalTransform_Orthographic);
                     // Compress this image and write its data.
-                    if (!context.compress(image, 0 /* face */, mip, compression_options, output_options))
+                    if (!context.compress(temp, 0 /* face */, mip, compression_options, output_options))
                     {
                         l->error(std::format("Compressing and writing the dds file failed for  {}", input_filename));
                         return rosy::result::error;
