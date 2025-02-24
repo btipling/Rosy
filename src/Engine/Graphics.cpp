@@ -5974,16 +5974,16 @@ namespace
 
         result ui(const engine_stats& eng_stats)
         {
-            if (!rls->ui_enabled)
-            {
-                du->wls->enable_edit = false;
-                return result::ok;
-            }
             //ImGui::ShowDemoWindow();
             {
                 // Set dual read/write states
                 du->wls->game_camera_yaw = rls->game_camera_yaw;
                 du->wls->editor_commands.commands.clear();
+            }
+            if (!rls->ui_enabled)
+            {
+                du->wls->enable_edit = false;
+                return result::ok;
             }
             ImGuiWindowFlags window_flags{0};
             window_flags |= ImGuiWindowFlags_NoCollapse;
