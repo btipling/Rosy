@@ -282,7 +282,7 @@ rosy::result gltf::import(rosy::log* l)
                 nvtt::Context context(true); // Enable CUDA
 
                 nvtt::CompressionOptions compression_options;
-                compression_options.setFormat(nvtt::Format_BC7);
+                compression_options.setFormat(nvtt::Format_BC5);
 
                 img_path.replace_filename(std::format("{}.dds", gltf_img.name));
                 std::string output_filename = img_path.string();
@@ -300,6 +300,9 @@ rosy::result gltf::import(rosy::log* l)
 
                 for (int mip = 0; mip < num_mipmaps; mip++)
                 {
+                    image.normalizeNormalMap();
+                    nvtt::Surface temp = image;
+                    temp.transformNormals(nvtt::NormalTransform_Orthographic);
                     // Compress this image and write its data.
                     if (!context.compress(image, 0 /* face */, mip, compression_options, output_options))
                     {
@@ -311,14 +314,7 @@ rosy::result gltf::import(rosy::log* l)
                     {
                         break;
                     }
-
-                    image.toLinearFromSrgb();
-                    image.premultiplyAlpha();
-
                     image.buildNextMipmap(nvtt::MipmapFilter_Box);
-
-                    image.demultiplyAlpha();
-                    image.toSrgb();
                 }
             }
         }
