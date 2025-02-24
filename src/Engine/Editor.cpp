@@ -750,6 +750,7 @@ namespace
                                                 rosy_packager::image source_image = a->images[current_image_index];
                                                 rosy_packager::image destination_image{};
                                                 destination_image.name = source_image.name;
+                                                destination_image.image_type = source_image.image_type;
                                                 level_asset.images.push_back(destination_image);
                                             }
                                         }
@@ -821,6 +822,7 @@ namespace
                                                 rosy_packager::image source_image = a->images[current_image_index];
                                                 rosy_packager::image destination_image{};
                                                 destination_image.name = source_image.name;
+                                                destination_image.image_type = source_image.image_type;
                                                 level_asset.images.push_back(destination_image);
                                             }
                                         }
@@ -917,9 +919,10 @@ namespace
 
         result load_asset([[maybe_unused]] level_editor_state* state)
         {
-            std::array<std::string, 5> asset_paths{
+            std::array<std::string, 6> asset_paths{
                 R"(..\assets\houdini\exports\Box_002\Box_002.rsy)",
                 R"(..\assets\sponza\sponza.rsy)",
+                R"(..\assets\rosy_tt\rosy_tt1.rsy)",
                 R"(..\assets\cornell_dragons\cornell_dragons.rsy)",
                 R"(..\assets\two_cubes\two_cubes.rsy)",
                 R"(..\assets\deccer_cubes\SM_Deccer_Cubes_Textured_Complex.rsy)",

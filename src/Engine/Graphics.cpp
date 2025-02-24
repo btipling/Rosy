@@ -6,7 +6,6 @@
 #include <stack>
 #include <algorithm>
 
-#include <nvtt/nvtt.h>
 #include "Volk/volk.h"
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vk_enum_string_helper.h"
@@ -3616,7 +3615,7 @@ namespace
                 VkExtent3D dds_image_size = dds_img_create_info.extent;
                 num_mip_maps = dds_img_create_info.mipLevels;
 
-                size_t dds_image_data_size = dds_lib_image.data.size() * sizeof(uint8_t);
+                size_t dds_image_data_size = dds_lib_image.mipmaps[0].size() * sizeof(uint8_t);
 
 
                 std::string dds_image_name = dds_img_path.filename().string();
@@ -3625,22 +3624,23 @@ namespace
                     new_dds_img.image_extent = dds_image_size;
 
                     new_dds_img.image_format = dds::getVulkanFormat(dds_lib_image.format, dds_lib_image.supportsAlpha);
-                /*    if (img.image_type == rosy_packager::image_type_color)
+                    if (img.image_type == rosy_packager::image_type_color)
                     {
-                        new_dds_img.image_format = VK_FORMAT_BC7_UNORM_BLOCK;
+                        new_dds_img.image_format = VK_FORMAT_BC7_SRGB_BLOCK;
+                        
                     }
                     else if (img.image_type == rosy_packager::image_type_normal_map)
                     {
                         new_dds_img.image_format = VK_FORMAT_BC7_UNORM_BLOCK;
-                    }*/
-        /*            else
+                    }
+                    else
                     {
                         l->error(std::format("asset for dds image had unknown file type: {} for {}", img.image_type, dds_image_name));
-                        if (dds_img_data != nullptr) delete dds_img_data;
                         return result::invalid_state;
-                    }*/
+                    }
 
-                    {;
+                    {
+                        dds_img_create_info.format = new_dds_img.image_format;
                         dds_img_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
                         dds_img_create_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
                         {
@@ -3658,6 +3658,7 @@ namespace
                         new_dds_img.graphics_created_bitmask |= graphics_created_bit_dds_image;
                     }
                     {
+                        dds_img_view_create_info.format = new_dds_img.image_format;
                         dds_img_view_create_info.image = new_dds_img.image;
 
                         if (const auto res = vkCreateImageView(device, &dds_img_view_create_info, nullptr, &new_dds_img.image_view); res != VK_SUCCESS)
@@ -3729,7 +3730,7 @@ namespace
                         }
                     }
                     {
-                        if (dds_staging_buffer.info.pMappedData != nullptr) memcpy(dds_staging_buffer.info.pMappedData, static_cast<void*>(dds_lib_image.data.data()), dds_image_data_size);
+                        if (dds_staging_buffer.info.pMappedData != nullptr) memcpy(dds_staging_buffer.info.pMappedData, static_cast<void*>(dds_lib_image.mipmaps[0].data()), dds_image_data_size);
                     }
                     {
                         if (VkResult res = vkResetFences(device, 1, &immediate_fence); res != VK_SUCCESS)

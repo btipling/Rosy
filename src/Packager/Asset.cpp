@@ -48,7 +48,7 @@ rosy::result asset::write(const rosy::log* l)
 
     if (const errno_t err = fopen_s(&stream, asset_path.c_str(), "wb"); err != 0)
     {
-        l->error(std::format("failed to open {}, {}", asset_path, err));
+        l->error(std::format("failed to open for writing {}, {}", asset_path, err));
         return rosy::result::open_failed;
     }
 
@@ -363,7 +363,7 @@ rosy::result asset::write(const rosy::log* l)
                 l->error(std::format("failed to write {}/{} positions", res, positions.size()));
                 return rosy::result::write_failed;
             }
-            l->debug(std::format("wrote {} positions", res));
+            l->info(std::format("wrote {} positions", res));
         }
 
         // WRITE ONE MESH INDICES
@@ -408,7 +408,7 @@ rosy::result asset::read(rosy::log* l)
         l->debug(std::format("current file path: {}", std::filesystem::current_path().string()));
         if (const errno_t err = fopen_s(&stream, asset_path.c_str(), "rb"); err != 0)
         {
-            l->error(std::format("failed to open {}, {}", asset_path, err));
+            l->error(std::format("failed to open for reading {}, {}", asset_path, err));
             return rosy::result::open_failed;
         }
     }

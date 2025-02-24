@@ -160,6 +160,8 @@ rosy::result gltf::import(rosy::log* l)
         l->info(std::format("num color_images {}", color_images.size()));
         for (const auto& [gltf_index, rosy_index] : color_images)
         {
+            // Declare it as a color image
+            gltf_asset.images[gltf_index].image_type = image_type_color;
             const auto& gltf_img = gltf.images[gltf_index];
             auto& img_path = pre_rename_image_paths[rosy_index];
             l->info(std::format("{} is a gltf_img color image", gltf_img.name));
@@ -203,7 +205,6 @@ rosy::result gltf::import(rosy::log* l)
 
                 int num_mipmaps = image.countMipmaps();
 
-                num_mipmaps = 1;
                 l->info(std::format("num mip maps are {} for {}", num_mipmaps, input_filename));
 
                 if (!context.outputHeader(image, num_mipmaps, compression_options, output_options))
@@ -245,6 +246,8 @@ rosy::result gltf::import(rosy::log* l)
 
         for (const auto& [gltf_index, rosy_index] : normal_map_images)
         {
+            // Declare it as a normal map image
+            gltf_asset.images[gltf_index].image_type = image_type_normal_map;
             const auto& gltf_img = gltf.images[gltf_index];
             auto& img_path = pre_rename_image_paths[rosy_index];
             l->info(std::format("{} is a gltf_img normal image", gltf_img.name));
@@ -288,7 +291,7 @@ rosy::result gltf::import(rosy::log* l)
 
                 int num_mipmaps = image.countMipmaps();
                 l->info(std::format("num mip maps are {} for {}", num_mipmaps, input_filename));
-                num_mipmaps = 1;
+          
                 if (!context.outputHeader(image, num_mipmaps, compression_options, output_options))
                 {
                     l->error(std::format("Writing dds headers failed for  {}", input_filename));
