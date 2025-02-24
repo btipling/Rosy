@@ -29,8 +29,9 @@ using namespace rosy_packager;
 //       // index 5 -> num child_nodes -> a std::vector<uint32_t> to represent child node indices
 //       // index 6 - num characters -> a std::vector<char> to represent a node name
 // 7. Per Image
-// 7a.Image size layout: std::array<size_t, 1>
-//       // index 0 - num characters -> a std::vector<char> to represent an image name
+// 7a.Image size layout: std::array<size_t, 2>
+// index 0 - image type uint32_t, an uint32_t but effectively an enum.
+//       // index 1 - num characters -> a std::vector<char> to represent an image name
 // 8. Per mesh:
 // 8.a Mesh size layout: std::array<size_t,4>
 // index 0 - num positions -> a std::vector<position> of positions size given
@@ -47,7 +48,7 @@ rosy::result asset::write(const rosy::log* l)
 
     if (const errno_t err = fopen_s(&stream, asset_path.c_str(), "wb"); err != 0)
     {
-        l->error(std::format("failed to open {}, {}", asset_path, err));
+        l->error(std::format("failed to open for writing {}, {}", asset_path, err));
         return rosy::result::open_failed;
     }
 
@@ -194,7 +195,7 @@ rosy::result asset::write(const rosy::log* l)
                 l->error(std::format("failed to write {}/{} node_sizes", res, lookup_sizes));
                 return rosy::result::write_failed;
             }
-            l->info(std::format(
+            l->debug(std::format(
                 "wrote {} sizes, num_custom_translate: {}, num_custom_uniform_scale: {}, num_custom_yaw: {}, num_transforms: {} num_mesh_ids: {}, num_child_nodes: {},  num_name_chars: {}",
                 res, num_custom_translate, num_custom_uniform_scale, num_custom_yaw, num_transforms, num_mesh_ids, num_child_nodes, num_name_chars));
         }
@@ -208,7 +209,7 @@ rosy::result asset::write(const rosy::log* l)
                 l->error(std::format("failed to write {}/{} node custom_translate", res, num_custom_translate));
                 return rosy::result::write_failed;
             }
-            l->info(std::format("wrote {} node custom_translate", res));
+            l->debug(std::format("wrote {} node custom_translate", res));
         }
 
         // WRITE ONE NODE CUSTOM_UNIFORM_SCALE
@@ -220,7 +221,7 @@ rosy::result asset::write(const rosy::log* l)
                 l->error(std::format("failed to write {}/{} node custom_uniform_scale", res, num_custom_uniform_scale));
                 return rosy::result::write_failed;
             }
-            l->info(std::format("wrote {} node custom_uniform_scale", res));
+            l->debug(std::format("wrote {} node custom_uniform_scale", res));
         }
 
         // WRITE ONE NODE CUSTOM_CUSTOM_YAW
@@ -232,7 +233,7 @@ rosy::result asset::write(const rosy::log* l)
                 l->error(std::format("failed to write {}/{} node custom_yaw", res, num_custom_yaw));
                 return rosy::result::write_failed;
             }
-            l->info(std::format("wrote {} node custom_yaw", res));
+            l->debug(std::format("wrote {} node custom_yaw", res));
         }
 
         // WRITE ONE NODE TRANSFORM
@@ -286,14 +287,15 @@ rosy::result asset::write(const rosy::log* l)
 
     // WRITE ALL IMAGES ONE AT A TIME
 
-    for (const auto& [names] : images)
+    for (const auto& [image_type, names] : images)
     {
         // WRITE ONE IMAGE SIZE
 
+        constexpr size_t num_image_types{1};
         {
             const size_t num_chars{names.size()};
             constexpr size_t lookup_sizes = 1;
-            const std::array<size_t, 1> image_sizes{num_chars};
+            const std::array<size_t, 2> image_sizes{num_image_types, num_chars};
             size_t res = fwrite(&image_sizes, sizeof(image_sizes), lookup_sizes, stream);
             if (res != lookup_sizes)
             {
@@ -301,8 +303,19 @@ rosy::result asset::write(const rosy::log* l)
                 return rosy::result::write_failed;
             }
             l->debug(std::format(
-                "wrote {} sizes, num image name chars: {}",
-                res, num_chars));
+                "wrote {} sizes, num_image_types: {} num image name chars: {}",
+                res, num_image_types, num_chars));
+        }
+
+        // WRITE ONE IMAGE TYPE
+        {
+            size_t res = fwrite(&image_type, sizeof(uint32_t), num_image_types, stream);
+            if (res != num_image_types)
+            {
+                l->error(std::format("failed to write {}/{} image image_type", res, num_image_types));
+                return rosy::result::write_failed;
+            }
+            l->debug(std::format("wrote {} image image_type", res));
         }
 
         // WRITE ONE IMAGE NAME
@@ -350,7 +363,7 @@ rosy::result asset::write(const rosy::log* l)
                 l->error(std::format("failed to write {}/{} positions", res, positions.size()));
                 return rosy::result::write_failed;
             }
-            l->debug(std::format("wrote {} positions", res));
+            l->info(std::format("wrote {} positions", res));
         }
 
         // WRITE ONE MESH INDICES
@@ -395,7 +408,7 @@ rosy::result asset::read(rosy::log* l)
         l->debug(std::format("current file path: {}", std::filesystem::current_path().string()));
         if (const errno_t err = fopen_s(&stream, asset_path.c_str(), "rb"); err != 0)
         {
-            l->error(std::format("failed to open {}, {}", asset_path, err));
+            l->error(std::format("failed to open for reading {}, {}", asset_path, err));
             return rosy::result::open_failed;
         }
     }
@@ -555,7 +568,7 @@ rosy::result asset::read(rosy::log* l)
         size_t num_node_name_chars{0};
         {
             constexpr size_t lookup_sizes = 1;
-            std::array<size_t, 7> node_sizes{ 0, 0, 0, 0, 0, 0, 0};
+            std::array<size_t, 7> node_sizes{0, 0, 0, 0, 0, 0, 0};
             size_t res = fread(&node_sizes, sizeof(node_sizes), lookup_sizes, stream);
             if (res != lookup_sizes)
             {
@@ -679,23 +692,38 @@ rosy::result asset::read(rosy::log* l)
 
         // READ ONE IMAGE SIZE
 
+        size_t num_image_types{0};
         size_t num_chars{0};
         {
             constexpr size_t lookup_sizes = 1;
-            std::array<size_t, 1> image_sizes{0};
+            std::array<size_t, 2> image_sizes{0, 0};
             size_t res = fread(&image_sizes, sizeof(image_sizes), lookup_sizes, stream);
             if (res != lookup_sizes)
             {
                 l->error(std::format("failed to read {}/{} image_sizes", res, lookup_sizes));
                 return rosy::result::read_failed;
             }
-            num_chars = image_sizes[0];
+            num_image_types = image_sizes[0];
+            num_chars = image_sizes[1];
             l->debug(std::format(
-                "read {} sizes, num_chars: {}",
-                res, num_chars));
+                "read {} sizes, num_image_types: {}, num_chars: {}",
+                res, num_image_types, num_chars));
         }
+        assert(num_image_types == 1);
 
         img.name.resize(num_chars);
+
+        // READ ONE IMAGE TYPE
+
+        {
+            size_t res = fread(&img.image_type, sizeof(uint32_t), num_image_types, stream);
+            if (res != num_image_types)
+            {
+                l->error(std::format("failed to read {}/{} image image_type", res, num_image_types));
+                return rosy::result::read_failed;
+            }
+            l->debug(std::format("read {} image image_type", res));
+        }
 
         // READ ONE IMAGE NAME
 

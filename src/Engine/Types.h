@@ -20,10 +20,12 @@ namespace rosy
         graphics_swapchain_failure,
         open_failed,
         write_failed,
+        copy_failed,
         read_failed,
         create_failed,
         update_failed,
         overflow,
+        invalid_state,
     };
 
     struct config

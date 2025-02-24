@@ -6,11 +6,12 @@ workspace "Rosy"
     filter {}
 
 vk_sdk = os.getenv("VULKAN_SDK")
+nvtt_path = os.getenv("NVTT_PATH")
 
 project "Engine"
     kind "ConsoleApp"
     language "C++"
-    cppdialect "C++20"
+    cppdialect "C++23"
     targetdir "bin/%{cfg.buildcfg}"
     architecture("x86_64")
     filter "configurations:Clang"
@@ -21,20 +22,22 @@ project "Engine"
 
     links { "SDL3" }
     links { "flecs" }
-    links { "ktx" }
+    links { "nvtt30205" }
 
     includedirs { "libs/SDL/include/" }
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/imgui/" }
     includedirs { "libs/tracy/" }
+    includedirs { "libs/" }
     includedirs { "libs/json/single_include/" }
-    includedirs { "libs/KTX-Software/include/" }
+    includedirs { "\"" .. nvtt_path .. "/include/\"" }
     includedirs { "libs/flecs/include/" }
 
     libdirs { "libs/SDL/build/Debug" }
-    libdirs { "libs/KTX-Software/build/Debug" }
     libdirs { vk_sdk .. "/Lib/" }
     libdirs { "libs/flecs/out/Debug" }
+    libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
+
     defines { "SIMDJSON_EXCEPTIONS=OFF" }
     filter "configurations:RenderDoc"
         defines { "RENDERDOC" }
@@ -48,6 +51,7 @@ project "Engine"
     files { "libs/json/single_include/nlohmann/json.hpp" }
     files { "shaders/*.slang", "shaders/*.ps1" }
 
+    defines { "KHRONOS_STATIC" }
     filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
         defines { "DEBUG" }
         symbols "On"
@@ -66,7 +70,7 @@ project "Engine"
 project "Packager"
     kind "ConsoleApp"
     language "C++"
-    cppdialect "C++20"
+    cppdialect "C++23"
     targetdir "bin/%{cfg.buildcfg}"
     architecture("x86_64")
     filter "configurations:Clang"
@@ -76,14 +80,21 @@ project "Packager"
     flags { "MultiProcessorCompile" }
 
     links { "fastgltf" }
+    links { "nvtt30205" }
 
+    includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
+    includedirs { "\"" .. nvtt_path .. "/include/\"" }
+    includedirs { "libs/stb" }
 
     libdirs { "libs/fastgltf/build/Debug" }
+    libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
 
+    files { "libs/stb_image.cpp" }
     files { "Packager/**.h", "Packager/**.cpp" }
     files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
 
+    defines { "KHRONOS_STATIC" }
     filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
         defines { "DEBUG" }
         symbols "On"
