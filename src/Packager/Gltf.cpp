@@ -201,7 +201,9 @@ rosy::result gltf::import(rosy::log* l)
                 nvtt::OutputOptions output_options;
                 output_options.setFileName(output_filename.c_str());
 
-                const int num_mipmaps = image.countMipmaps();
+                int num_mipmaps = image.countMipmaps();
+
+                num_mipmaps = 1;
                 l->info(std::format("num mip maps are {} for {}", num_mipmaps, input_filename));
 
                 if (!context.outputHeader(image, num_mipmaps, compression_options, output_options))
@@ -284,9 +286,9 @@ rosy::result gltf::import(rosy::log* l)
                 nvtt::OutputOptions output_options;
                 output_options.setFileName(output_filename.c_str());
 
-                const int num_mipmaps = image.countMipmaps();
+                int num_mipmaps = image.countMipmaps();
                 l->info(std::format("num mip maps are {} for {}", num_mipmaps, input_filename));
-
+                num_mipmaps = 1;
                 if (!context.outputHeader(image, num_mipmaps, compression_options, output_options))
                 {
                     l->error(std::format("Writing dds headers failed for  {}", input_filename));

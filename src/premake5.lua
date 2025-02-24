@@ -28,6 +28,7 @@ project "Engine"
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/imgui/" }
     includedirs { "libs/tracy/" }
+    includedirs { "libs/" }
     includedirs { "libs/json/single_include/" }
     includedirs { "\"" .. nvtt_path .. "/include/\"" }
     includedirs { "libs/flecs/include/" }
