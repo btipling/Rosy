@@ -57,15 +57,15 @@ struct node_state
     glm::vec4 position{};
 
     void set_transform(const std::array<float, 16>& new_transform, const std::array<float, 16>& new_parent_transform,
-                       const std::array<float, 3> custom_translate, const float custom_scale, const float custom_yaw)
+                       const std::array<float, 3> world_translate, const float world_scale, const float world_yaw)
     {
         parent_transform = array_to_mat4(new_parent_transform);
         transform = array_to_mat4(new_transform);
 
         constexpr glm::mat4 m{1.f};
-        const glm::mat4 t = glm::translate(m, array_to_vec3(custom_translate));
-        const glm::mat4 r = toMat4(angleAxis(custom_yaw, glm::vec3{0.f, 1.f, 0.f}));
-        const glm::mat4 s = glm::scale(m, glm::vec3(custom_scale, custom_scale, custom_scale));
+        const glm::mat4 t = glm::translate(m, array_to_vec3(world_translate));
+        const glm::mat4 r = toMat4(angleAxis(world_yaw, glm::vec3{0.f, 1.f, 0.f}));
+        const glm::mat4 s = glm::scale(m, glm::vec3(world_scale, world_scale, world_scale));
 
         transform = t * r * s * transform;
         const glm::mat4 final_transform = parent_transform * transform;
@@ -107,7 +107,7 @@ struct node_state
 };
 
 result node::init(rosy::log* new_log, const std::array<float, 16>& new_transform, const std::array<float, 16>& new_parent_transform,
-                  const std::array<float, 3> new_custom_translate, const float new_custom_scale, const float new_custom_yaw)
+                  const std::array<float, 3> new_world_translate, const float new_world_scale, const float new_world_yaw)
 {
     l = new_log;
     if (ns = new(std::nothrow) node_state; ns == nullptr)
@@ -115,14 +115,14 @@ result node::init(rosy::log* new_log, const std::array<float, 16>& new_transform
         l->error("Error allocating node state");
         return result::allocation_failure;
     }
-    ns->set_transform(new_transform, new_parent_transform, new_custom_translate, new_custom_scale, new_custom_yaw);
+    ns->set_transform(new_transform, new_parent_transform, new_world_translate, new_world_scale, new_world_yaw);
     transform = mat4_to_array(ns->parent_transform * ns->transform);
     object_space_transform = mat4_to_array(ns->object_space_transform);
     normal_transform = mat4_to_array(ns->normal_transform);
     position = vec4_to_array(ns->position);
-    custom_translate = new_custom_translate;
-    custom_scale = new_custom_scale;
-    custom_yaw = new_custom_yaw;
+    world_translate = new_world_translate;
+    world_scale = new_world_scale;
+    world_yaw = new_world_yaw;
     return result::ok;
 }
 

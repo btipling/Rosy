@@ -704,7 +704,7 @@ namespace
                 const std::array<float, 16> identity_m = mat4_to_array(glm::mat4(1.f));
 
                 // All nodes must be initialized here and below.
-                if (const auto res = new_game_node->init(l, new_node.transform, identity_m, new_node.custom_translate, new_node.custom_uniform_scale, new_node.custom_yaw); res !=
+                if (const auto res = new_game_node->init(l, new_node.transform, identity_m, new_node.world_translate, new_node.world_scale, new_node.world_yaw); res !=
                     result::ok)
                 {
                     l->error("initial scene_objects initialization failed");
@@ -743,10 +743,10 @@ namespace
 
 
                 constexpr glm::mat4 m{1.f};
-                const glm::mat4 t = glm::translate(m, array_to_vec3(queue_item.game_node->custom_translate));
-                const glm::mat4 r = toMat4(angleAxis(queue_item.game_node->custom_yaw, glm::vec3{0.f, 1.f, 0.f}));
-                float custom_scale = queue_item.game_node->custom_scale;
-                const glm::mat4 s = glm::scale(m, glm::vec3(custom_scale, custom_scale, custom_scale));
+                const glm::mat4 t = glm::translate(m, array_to_vec3(queue_item.game_node->world_translate));
+                const glm::mat4 r = toMat4(angleAxis(queue_item.game_node->world_yaw, glm::vec3{0.f, 1.f, 0.f}));
+                float world_scale = queue_item.game_node->world_scale;
+                const glm::mat4 s = glm::scale(m, glm::vec3(world_scale, world_scale, world_scale));
 
                 glm::mat4 node_transform = t * r * s * array_to_mat4(queue_item.stack_node.transform);
 
@@ -844,8 +844,8 @@ namespace
                     }
 
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l, mat4_to_array(transform), mat4_to_array(node_transform), new_node.custom_translate, new_node.custom_uniform_scale,
-                                                             new_node.custom_yaw);
+                    if (const auto res = new_game_node->init(l, mat4_to_array(transform), mat4_to_array(node_transform), new_node.world_translate, new_node.world_scale,
+                                                             new_node.world_yaw);
                         res != result::ok)
                     {
                         l->error("Error initializing new game node in set asset");

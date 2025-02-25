@@ -599,9 +599,9 @@ namespace
                                     new_destination_node.name = source_node.name;
                                     if (first_node) {
                                         // Set these only for the initial node.
-                                        new_destination_node.custom_translate = md.location;
-                                        new_destination_node.custom_uniform_scale = md.scale;
-                                        new_destination_node.custom_yaw = md.yaw;
+                                        new_destination_node.world_translate = md.location;
+                                        new_destination_node.world_scale = md.scale;
+                                        new_destination_node.world_yaw = md.yaw;
                                     }
                                     new_destination_node.transform = source_node.transform;
                                     new_destination_node.child_nodes = source_node.child_nodes; // These are remapped below.

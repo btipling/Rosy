@@ -48,13 +48,13 @@ namespace rosy
             0.f, 0.f, 0.f, 1.f,
         };
         std::array<float, 4> position{};
-        std::array<float, 3> custom_translate{};
-        float custom_scale{1.f};
-        float custom_yaw{0.f};
+        std::array<float, 3> world_translate{};
+        float world_scale{1.f};
+        float world_yaw{0.f};
         node_bounds bounds{};
 
         [[nodiscard]] result init(log* new_log, const std::array<float, 16>& new_transform, const std::array<float, 16>& new_parent_transform,
-                                  const std::array<float, 3> new_custom_translate, float new_custom_scale, float new_custom_yaw);
+                                  const std::array<float, 3> new_world_translate, float new_world_scale, float new_world_yaw);
         void deinit();
         [[nodiscard]] result set_position(const std::array<float, 3>& new_position);
         [[nodiscard]] result update_transform(const std::array<float, 16>& new_parent_transform);

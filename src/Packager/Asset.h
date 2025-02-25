@@ -51,9 +51,9 @@ namespace rosy_packager
 
     struct node
     {
-        std::array<float, 3> custom_translate{0.f, 0.f, 0.f};
-        float custom_uniform_scale{1.f};
-        float custom_yaw{0.f};
+        std::array<float, 3> world_translate{0.f, 0.f, 0.f};
+        float world_scale{1.f};
+        float world_yaw{0.f};
         std::array<float, 16> transform{
             1.f, 0.f, 0.f, 0.f,
             0.f, 1.f, 0.f, 0.f,
@@ -113,6 +113,12 @@ namespace rosy_packager
         std::vector<image> images;
         std::vector<mesh> meshes;
         std::vector<shader> shaders;
+        std::array<float, 16> asset_coordinate_system{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         uint32_t root_scene{0};
 
         rosy::result write(const rosy::log* l);
