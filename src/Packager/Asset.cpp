@@ -60,6 +60,7 @@ rosy::result asset::write(const rosy::log* l)
             .magic = rosy_format,
             .version = current_version,
             .endianness = 1, // for std::endian::little
+            .coordinate_system = asset_coordinate_system,
             .root_scene = root_scene,
         };
         size_t res = fwrite(&header, sizeof(header), num_headers, stream);
@@ -69,6 +70,13 @@ rosy::result asset::write(const rosy::log* l)
             return rosy::result::write_failed;
         }
         l->debug(std::format("wrote {} headers", res));
+        l->info(std::format(
+            "coordinate system: (\n{:.2f},{:.2f},{:.2f},{:.2f},\n{:.2f},{:.2f},{:.2f},{:.2f},\n{:.2f},{:.2f},{:.2f},{:.2f},\n{:.2f},{:.2f},{:.2f},{:.2f},\n)",
+            asset_coordinate_system[0], asset_coordinate_system[1], asset_coordinate_system[2], asset_coordinate_system[3],
+            asset_coordinate_system[4], asset_coordinate_system[5], asset_coordinate_system[6], asset_coordinate_system[7],
+            asset_coordinate_system[8], asset_coordinate_system[9], asset_coordinate_system[10], asset_coordinate_system[11],
+            asset_coordinate_system[12], asset_coordinate_system[13], asset_coordinate_system[14], asset_coordinate_system[15]
+        ));
     }
 
     // WRITE GLTF SIZES FOR ASSET RESOURCES
@@ -421,6 +429,7 @@ rosy::result asset::read(rosy::log* l)
             .magic = 0,
             .version = 0,
             .endianness = 0,
+            .coordinate_system = {},
             .root_scene = 0,
         };
         size_t res = fread(&header, sizeof(header), num_headers, stream);
@@ -436,22 +445,27 @@ rosy::result asset::read(rosy::log* l)
         }
         if (header.version != current_version)
         {
-            l->error(std::format("failed to read, version mismatch file is version {} current version is {}",
-                                 header.version, current_version));
+            l->error(std::format("failed to read, version mismatch file is version {} current version is {}", header.version, current_version));
             return rosy::result::read_failed;
         }
         constexpr uint32_t is_little_endian = 1; // This always true: std::endian::native == std::endian::little 
         // NOLINT(clang-diagnostic-unreachable-code)
         if (header.endianness != is_little_endian)
         {
-            l->error(std::format("failed to read, endianness mismatch file is {} system is {}", header.endianness,
-                                 is_little_endian));
+            l->error(std::format("failed to read, endianness mismatch file is {} system is {}", header.endianness, is_little_endian));
             return rosy::result::read_failed;
         }
+        asset_coordinate_system = header.coordinate_system;
         root_scene = header.root_scene;
         l->debug(std::format("read {} headers", res));
-        l->debug(std::format("format version: {} is little endian: {} root scene: {}",
-                             header.version, is_little_endian, root_scene));
+        l->debug(std::format("format version: {} is little endian: {} root scene: {}", header.version, is_little_endian, root_scene));
+        l->info(std::format(
+            "coordinate system: (\n{:.2f},{:.2f},{:.2f},{:.2f},\n{:.2f},{:.2f},{:.2f},{:.2f},\n{:.2f},{:.2f},{:.2f},{:.2f},\n{:.2f},{:.2f},{:.2f},{:.2f},\n)",
+            asset_coordinate_system[0], asset_coordinate_system[1], asset_coordinate_system[2], asset_coordinate_system[3],
+            asset_coordinate_system[4], asset_coordinate_system[5], asset_coordinate_system[6], asset_coordinate_system[7],
+            asset_coordinate_system[8], asset_coordinate_system[9], asset_coordinate_system[10], asset_coordinate_system[11],
+            asset_coordinate_system[12], asset_coordinate_system[13], asset_coordinate_system[14], asset_coordinate_system[15]
+        ));
     }
 
     // WRITE GLTF SIZES FOR ALL ASSET RESOURCES

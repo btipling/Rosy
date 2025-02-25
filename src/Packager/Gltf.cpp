@@ -47,7 +47,12 @@ namespace
 rosy::result gltf::import(rosy::log* l)
 {
     const std::filesystem::path file_path{source_path};
-
+    gltf_asset.asset_coordinate_system = {
+           -1.f, 0.f, 0.f, 0.f,
+           0.f, 1.f, 0.f, 0.f,
+           0.f, 0.f, 1.f, 0.f,
+           0.f, 0.f, 0.f, 1.f,
+    };
     constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
         fastgltf::Options::LoadExternalBuffers | fastgltf::Options::DecomposeNodeMatrices;
 

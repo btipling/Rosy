@@ -15,6 +15,12 @@ namespace rosy_packager
         uint32_t magic{0};
         uint32_t version{0};
         uint32_t endianness{0};
+        std::array<float, 16> coordinate_system{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         uint32_t root_scene{0};
     };
 
