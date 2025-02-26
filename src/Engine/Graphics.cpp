@@ -417,7 +417,7 @@ namespace
     {
         [[maybe_unused]] std::array<float, 16> transform;
         [[maybe_unused]] std::array<float, 16> normal_transform;
-        [[maybe_unused]] std::array<float, 16> object_space_transform;
+        [[maybe_unused]] std::array<float, 16> to_object_space_transform;
     };
 
     struct frame_data
@@ -4673,7 +4673,7 @@ namespace
                 go_data.push_back({
                     .transform = go.transform,
                     .normal_transform = go.normal_transform,
-                    .object_space_transform = go.object_space_transform,
+                    .to_object_space_transform = go.to_object_space_transform,
                 });
                 for (const auto& s : go.surface_data)
                 {
@@ -5080,7 +5080,7 @@ namespace
                         updated.push_back({
                             .transform = gou.transform,
                             .normal_transform = gou.normal_transform,
-                            .object_space_transform = gou.object_space_transform,
+                            .to_object_space_transform = gou.to_object_space_transform,
                         });
                     }
                     vkCmdUpdateBuffer(cf.command_buffer,

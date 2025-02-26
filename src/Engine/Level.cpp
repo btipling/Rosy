@@ -131,7 +131,7 @@ namespace
             0.f, 0.f, 0.f, 1.f,
         };
         const auto pos_r = glm::value_ptr(m);
-        for (uint64_t i{0}; i < 16; i++) a[i] = pos_r[i];
+        for (size_t i{0}; i < 16; i++) a[i] = pos_r[i];
         return a;
     }
 
@@ -139,7 +139,7 @@ namespace
     {
         glm::mat4 m{1.f};
         const auto pos_r = glm::value_ptr(m);
-        for (uint64_t i{0}; i < 16; i++) pos_r[i] = a[i];
+        for (size_t i{0}; i < 16; i++) pos_r[i] = a[i];
         return m;
     }
 
@@ -147,7 +147,7 @@ namespace
     {
         glm::vec4 v{};
         const auto pos_r = glm::value_ptr(v);
-        for (uint64_t i{0}; i < 4; i++) pos_r[i] = a[i];
+        for (size_t i{0}; i < 4; i++) pos_r[i] = a[i];
         return v;
     }
 
@@ -155,14 +155,14 @@ namespace
     {
         glm::vec3 v{};
         const auto pos_r = glm::value_ptr(v);
-        for (uint64_t i{0}; i < 3; i++) pos_r[i] = a[i];
+        for (size_t i{0}; i < 3; i++) pos_r[i] = a[i];
         return v;
     }
 
     std::array<float, 3> vec3_to_array(glm::vec3 v)
     {
         std::array<float, 3> a{};
-        for (uint64_t i{ 0 }; i < 3; i++) a[i] = v[i];
+        for (size_t i{ 0 }; i < 3; i++) a[i] = v[static_cast<glm::length_t>(i)];
         return a;
     }
 

@@ -20,8 +20,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float4x4 worldMat = gd.transform;
     float4x4 normalMat = gd.normalTransform;
 
-    float4 object_space_camera = mul(gd.objectSpaceTransform, sd.cameraPosition);
-    float4 object_light_dir = mul(gd.objectSpaceTransform, float4(sd.sunlight.xyz, 0.f));
+    float4 object_space_camera = mul(gd.toObjectSpaceTransform, sd.cameraPosition);
+    float4 object_light_dir = mul(gd.toObjectSpaceTransform, float4(sd.sunlight.xyz, 0.f));
 
     float4 posWorld = float4(v.position, 1.0);
 
