@@ -352,6 +352,8 @@ namespace
         uint32_t color_sampler_index{UINT32_MAX};
         uint32_t normal_sampled_image_index{UINT32_MAX};
         uint32_t normal_sampler_index{UINT32_MAX};
+        uint32_t metallic_sampled_image_index{ UINT32_MAX };
+        uint32_t metallic_sampler_index{ UINT32_MAX };
     };
 
     struct gpu_material_buffer
@@ -4087,11 +4089,24 @@ namespace
                     {
                         normal_image_sampler_index = color_image_sampler_desc_index[m.normal_image_index];
 
-                        assert(dds_textures.size() > m.color_image_index);
+                        assert(dds_textures.size() > m.normal_image_index);
 
                         if (m.normal_sampler_index < sampler_desc_index.size())
                         {
                             normal_sampler_index = sampler_desc_index[m.normal_sampler_index];
+                        }
+                    }
+                    uint32_t metallic_image_sampler_index = UINT32_MAX;
+                    uint32_t metallic_sampler_index = default_sampler_index;
+                    if (m.metallic_image_index < color_image_sampler_desc_index.size())
+                    {
+                        metallic_image_sampler_index = color_image_sampler_desc_index[m.metallic_image_index];
+
+                        assert(dds_textures.size() > m.metallic_image_index);
+
+                        if (m.metallic_sampler_index < sampler_desc_index.size())
+                        {
+                            metallic_sampler_index = sampler_desc_index[m.metallic_sampler_index];
                         }
                     }
                     gpu_material new_mat{};
@@ -4105,6 +4120,8 @@ namespace
                     new_mat.color_sampler_index = color_sampler_index;
                     new_mat.normal_sampled_image_index = normal_image_sampler_index;
                     new_mat.normal_sampler_index = normal_sampler_index;
+                    new_mat.metallic_sampled_image_index = metallic_image_sampler_index;
+                    new_mat.metallic_sampler_index = metallic_sampler_index;
                     materials.push_back(new_mat);
                 }
 
