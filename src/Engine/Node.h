@@ -23,42 +23,22 @@ namespace rosy
         std::vector<graphics_object> graphics_objects;
         std::string name{};
         std::vector<node*> children;
-        std::array<float, 16> parent_transform{
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
-        std::array<float, 16> transform{
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
-        std::array<float, 16> normal_transform{
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
-        std::array<float, 16> object_space_transform{
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
-        std::array<float, 4> position{};
-        std::array<float, 3> world_translate{};
-        float world_scale{1.f};
-        float world_yaw{0.f};
         node_bounds bounds{};
 
-        [[nodiscard]] result init(log* new_log, const std::array<float, 16>& new_transform, const std::array<float, 16>& new_parent_transform,
-                                  const std::array<float, 3> new_world_translate, float new_world_scale, float new_world_yaw);
+        [[nodiscard]] result init(
+            log* new_log,
+            const std::array<float, 16>& coordinate_space,
+            const std::array<float, 16>& new_object_space_parent_transform,
+            const std::array<float, 16>& new_object_space_transform,
+            const std::array<float, 3> new_world_translate,
+            float new_world_scale,
+            float new_world_yaw);
         void deinit();
-        [[nodiscard]] result set_position(const std::array<float, 3>& new_position);
-        [[nodiscard]] result update_transform(const std::array<float, 16>& new_parent_transform);
-        void update_parent_transform(const std::array<float, 16>& new_parent_transform);
+        void set_world_space_translate(const std::array<float, 3>& new_world_space_translate) const;
+        void set_world_space_scale(const float new_world_space_scale) const;
+        void set_world_space_yaw(float new_world_space_yaw) const;
+        [[nodiscard]] std::array<float, 16> get_world_space_transform() const;
+        void update_object_space_parent_transform(const std::array<float, 16>& new_parent_transform) const;
         void populate_graph(std::vector<graphics_object>& graph) const;
         void debug();
     };

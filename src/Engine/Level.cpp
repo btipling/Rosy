@@ -1153,7 +1153,7 @@ namespace
 
                     // Update rosy's transform.
                     const glm::mat4 tr = glm::translate(glm::mat4(1.f), new_rosy_pos);
-                    if (const auto res = ctx->rosy_reference.node->update_transform(mat4_to_array(tr * r)); res !=
+                    if (const auto res = ctx->rosy_reference.node->set_world_transform(mat4_to_array(tr * r)); res !=
                         result::ok)
                     {
                         ctx->l->error("error transforming rosy");
@@ -1203,7 +1203,7 @@ namespace
                 ctx->rls->mob_read.clear_edits = true;
                 if (mobs.size() > ctx->wls->mob_edit.edit_index)
                 {
-                    if (const auto res = mobs[0]->set_position(ctx->wls->mob_edit.position); res != result::ok)
+                    if (const auto res = mobs[0]->set_world_translate(ctx->wls->mob_edit.position); res != result::ok)
                     {
                         ctx->l->error("Error updating mob position");
                     }
