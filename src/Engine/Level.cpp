@@ -169,7 +169,7 @@ namespace
     struct stack_item
     {
         node* game_node{nullptr};
-        rosy_packager::node stack_node;
+        rosy_packager::node asset_node;
         glm::mat4 parent_transform{glm::mat4{1.f}};
         bool is_mob{false};
     };
@@ -731,7 +731,7 @@ namespace
                 // Populate the node queue.
                 queue.push({
                     .game_node = new_game_node,
-                    .stack_node = new_node,
+                    .asset_node = new_node,
                     .parent_transform = glm::mat4{1.f},
                     .is_mob = false, // Root nodes are assumed to be static.
                 });
@@ -750,27 +750,16 @@ namespace
                 assert(queue_item.game_node != nullptr);
 
 
-                const glm::mat4 transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
-
-                std::array<float, 16> node_coordinate_system = asset_coordinate_system_transform;
-                // Check if the node has its own coordinate system (because the nodes in the assets may come from different coordinate systems).
-                for (const float v : queue_item.stack_node.coordinate_system)
-                {
-                    if (std::abs(v) > 0.000001)
-                    {
-                        node_coordinate_system = queue_item.stack_node.coordinate_system;
-                        break;
-                    }
-                }
-                glm::mat4 object_to_world_transform = array_to_mat4(node_coordinate_system);
+                const glm::mat4 node_object_space_transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
+                const glm::mat4 node_world_space_transform = array_to_mat4(queue_item.game_node->get_world_space_transform());
 
                 // Set node bounds for bound testing.
                 node_bounds bounds{};
                 // Advance the next item in the node queue
-                if (queue_item.stack_node.mesh_id < new_asset.meshes.size())
+                if (queue_item.asset_node.mesh_id < new_asset.meshes.size())
                 {
                     // Each node has a mesh id. 
-                    const auto current_mesh_index = queue_item.stack_node.mesh_id;
+                    const auto current_mesh_index = queue_item.asset_node.mesh_id;
 
                     // Get the mesh from the asset using the mesh index
                     const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
@@ -785,10 +774,10 @@ namespace
 
                     {
                         // Record the assets transforms from the asset
-                        const glm::mat4 to_object_space_transform = glm::inverse(static_cast<glm::mat3>(object_to_world_transform * transform));
+                        const glm::mat4 to_object_space_transform = glm::inverse(static_cast<glm::mat3>(node_world_space_transform));
                         const glm::mat4 normal_transform = glm::transpose(to_object_space_transform);
 
-                        go.transform = mat4_to_array(object_to_world_transform * transform);
+                        go.transform = mat4_to_array(node_world_space_transform);
                         go.normal_transform = mat4_to_array(normal_transform);
                         go.to_object_space_transform = mat4_to_array(to_object_space_transform);
                     }
@@ -843,10 +832,10 @@ namespace
                 queue_item.game_node->bounds = bounds;
 
                 // Each node can have an arbitrary number of child nodes.
-                for (const size_t child_index : queue_item.stack_node.child_nodes)
+                for (const size_t child_index : queue_item.asset_node.child_nodes)
                 {
                     // This is the same node initialization sequence from the root's scenes logic above.
-                    const rosy_packager::node new_node = new_asset.nodes[child_index];
+                    const rosy_packager::node new_asset_node = new_asset.nodes[child_index];
 
                     // Create the pointer
                     auto new_game_node = new(std::nothrow) node;
@@ -856,9 +845,20 @@ namespace
                         return result::allocation_failure;
                     }
 
+                    std::array<float, 16> node_coordinate_system = asset_coordinate_system_transform;
+                    // Check if the node has its own coordinate system (because the nodes in the assets may come from different coordinate systems).
+                    for (const float v : new_asset_node.coordinate_system)
+                    {
+                        if (std::abs(v) > 0.000001)
+                        {
+                            node_coordinate_system = new_asset_node.coordinate_system;
+                            break;
+                        }
+                    }
+
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l, node_coordinate_system, mat4_to_array(transform), new_node.transform, new_node.world_translate, new_node.world_scale,
-                                                             new_node.world_yaw);
+                    if (const auto res = new_game_node->init(l, node_coordinate_system, mat4_to_array(node_object_space_transform), new_asset_node.transform, new_asset_node.world_translate, new_asset_node.world_scale,
+                                                             new_asset_node.world_yaw);
                         res != result::ok)
                     {
                         l->error("Error initializing new game node in set asset");
@@ -868,7 +868,7 @@ namespace
                     }
 
                     // Give it a name
-                    new_game_node->name = std::string(new_node.name.begin(), new_node.name.end());
+                    new_game_node->name = std::string(new_asset_node.name.begin(), new_asset_node.name.end());
 
                     // New nodes are recorded as children of their parent to form a scene graph.
                     queue_item.game_node->children.push_back(new_game_node);
@@ -879,8 +879,8 @@ namespace
                     // Add the node to the node queue to have their meshes and primitives processed.
                     queue.push({
                         .game_node = new_game_node,
-                        .stack_node = new_node,
-                        .parent_transform = queue_item.parent_transform * transform,
+                        .asset_node = new_asset_node,
+                        .parent_transform = queue_item.parent_transform * node_object_space_transform,
                         .is_mob = is_mob,
                     });
                 }
