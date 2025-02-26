@@ -180,6 +180,7 @@ rosy::result asset::write(const rosy::log* l)
              world_scale,
              world_yaw,
              coordinate_transform,
+             is_world_node,
              transform,
              mesh_id,
              child_nodes,

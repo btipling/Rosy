@@ -222,7 +222,7 @@ namespace
                 l->error("root scene_objects allocation failed");
                 return result::allocation_failure;
             };
-            if (const auto res = level_game_node->init(l, {},  {}, {}, {}, 1.f, 0.f); res != result::ok)
+            if (const auto res = level_game_node->init(l, false, {},  {}, {}, {}, 1.f, 0.f); res != result::ok)
             {
                 l->error("root scene_objects initialization failed");
                 delete level_game_node;
@@ -712,7 +712,7 @@ namespace
                 const std::array<float, 16> identity_m = mat4_to_array(glm::mat4(1.f));
 
                 // All nodes must be initialized here and below.
-                if (const auto res = new_game_node->init(l, asset_coordinate_system_transform, identity_m, new_node.transform, new_node.world_translate, new_node.world_scale, new_node.world_yaw); res !=
+                if (const auto res = new_game_node->init(l, false, asset_coordinate_system_transform, identity_m, new_node.transform, new_node.world_translate, new_node.world_scale, new_node.world_yaw); res !=
                     result::ok)
                 {
                     l->error("initial scene_objects initialization failed");
@@ -857,7 +857,7 @@ namespace
                     }
 
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l, node_coordinate_system, mat4_to_array(node_object_space_transform), new_asset_node.transform, new_asset_node.world_translate, new_asset_node.world_scale,
+                    if (const auto res = new_game_node->init(l, new_asset_node.is_world_node, node_coordinate_system, mat4_to_array(node_object_space_transform), new_asset_node.transform, new_asset_node.world_translate, new_asset_node.world_scale,
                                                              new_asset_node.world_yaw);
                         res != result::ok)
                     {

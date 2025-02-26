@@ -27,6 +27,7 @@ namespace rosy
 
         [[nodiscard]] result init(
             log* new_log,
+            bool is_world_node,
             const std::array<float, 16>& coordinate_space,
             const std::array<float, 16>& new_object_space_parent_transform,
             const std::array<float, 16>& new_object_space_transform,

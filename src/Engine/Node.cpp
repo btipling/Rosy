@@ -50,6 +50,8 @@ namespace
 
 struct node_state
 {
+    rosy::log* l{nullptr};
+    bool is_world_node{false};
     glm::mat4 object_to_world_transform{};
     glm::mat4 object_space_parent_transform{};
     glm::mat4 object_space_transform{};
@@ -58,6 +60,8 @@ struct node_state
     float world_space_yaw{0.f};
 
     void init(
+        rosy::log* new_log,
+        const bool new_is_world_node,
         const std::array<float, 16>& coordinate_space_transform,
         const std::array<float, 16>& new_object_space_parent_transform,
         const std::array<float, 16>& new_object_space_transform,
@@ -66,6 +70,8 @@ struct node_state
         const float new_world_space_yaw
     )
     {
+        l = new_log;
+        is_world_node = new_is_world_node;
         object_to_world_transform = array_to_mat4(coordinate_space_transform);
         object_space_parent_transform = array_to_mat4(new_object_space_parent_transform);
         object_space_transform = array_to_mat4(new_object_space_transform);
@@ -91,6 +97,7 @@ struct node_state
 
 result node::init(
     rosy::log* new_log,
+    bool is_world_node,
     const std::array<float, 16>& coordinate_space,
     const std::array<float, 16>& new_object_space_parent_transform,
     const std::array<float, 16>& new_object_space_transform,
@@ -104,6 +111,8 @@ result node::init(
         return result::allocation_failure;
     }
     ns->init(
+        l,
+        is_world_node,
         coordinate_space,
         new_object_space_parent_transform,
         new_object_space_transform,
@@ -153,7 +162,7 @@ std::array<float, 16> node::get_world_space_transform() const
 std::array<float, 3> node::get_world_space_position() const
 {
     const auto rv = vec4_to_array(ns->get_world_space_transform() * glm::vec4(0.f, 0.f, 0.f, 1.f));
-    return { rv[0], rv[1], rv[2] };
+    return {rv[0], rv[1], rv[2]};
 }
 
 void node::update_object_space_parent_transform(const std::array<float, 16>& new_parent_transform) const

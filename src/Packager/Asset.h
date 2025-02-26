@@ -36,8 +36,8 @@ namespace rosy_packager
         float alpha_cutoff{0.f};
         uint32_t normal_image_index{UINT32_MAX}; // UINT32_MAX == not present
         uint32_t normal_sampler_index{UINT32_MAX}; // UINT32_MAX == not present
-        uint32_t metallic_image_index{ UINT32_MAX }; // UINT32_MAX == not present
-        uint32_t metallic_sampler_index{ UINT32_MAX }; // UINT32_MAX == not present
+        uint32_t metallic_image_index{UINT32_MAX}; // UINT32_MAX == not present
+        uint32_t metallic_sampler_index{UINT32_MAX}; // UINT32_MAX == not present
     };
 
     struct sampler
@@ -65,6 +65,9 @@ namespace rosy_packager
         // Nodes need a coordinate system because they can be combined from different asset systems at runtime.
         // Not written to file! It is intentionally by default a zero matrix to identify it easily as not valid.
         std::array<float, 16> coordinate_system{};
+        //  is_world_node another node property that not written to the file format and helps distinguish nodes
+        // that are independent world nodes from nodes that are ancestors of world nodes.
+        bool is_world_node{false};
         std::array<float, 16> transform{
             1.f, 0.f, 0.f, 0.f,
             0.f, 1.f, 0.f, 0.f,
