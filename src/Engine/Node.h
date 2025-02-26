@@ -37,7 +37,19 @@ namespace rosy
         void set_world_space_translate(const std::array<float, 3>& new_world_space_translate) const;
         void set_world_space_scale(const float new_world_space_scale) const;
         void set_world_space_yaw(float new_world_space_yaw) const;
+
+        // get_object_space_transform does not return any world space transforms and does not escape the node's asset inherited coordinate system!
+        // The only purpose this function can serve is within **the same** mesh's object space derived from the same asset! Cannot be used with other nodes!
+        // Like if you wanted to move a hat around already on the model.
+        [[nodiscard]] std::array<float, 16> get_object_space_transform() const;
+
+        // get_world_space_transform returns the asset's representation in the world after all object space transforms have been applied, from asset to rosy's
+        // world space coordinate system and then any world space transforms
         [[nodiscard]] std::array<float, 16> get_world_space_transform() const;
+
+       
+        [[nodiscard]] std::array<float, 3> get_world_space_position() const;
+
         void update_object_space_parent_transform(const std::array<float, 16>& new_parent_transform) const;
         void populate_graph(std::vector<graphics_object>& graph) const;
         void debug();

@@ -82,6 +82,11 @@ struct node_state
 
         return t * r * s * object_to_world_transform * object_space_parent_transform * object_space_transform;
     }
+
+    [[nodiscard]] glm::mat4 get_object_space_transform() const
+    {
+        return object_space_parent_transform * object_space_transform;
+    }
 };
 
 result node::init(
@@ -135,9 +140,20 @@ void node::set_world_space_yaw(const float new_world_space_yaw) const
     ns->world_space_yaw = new_world_space_yaw;
 }
 
+std::array<float, 16> node::get_object_space_transform() const
+{
+    return mat4_to_array(ns->get_object_space_transform());
+}
+
 std::array<float, 16> node::get_world_space_transform() const
 {
     return mat4_to_array(ns->get_world_space_transform());
+}
+
+std::array<float, 3> node::get_world_space_position() const
+{
+    const auto rv = vec4_to_array(ns->get_world_space_transform() * glm::vec4(0.f, 0.f, 0.f, 1.f));
+    return { rv[0], rv[1], rv[2] };
 }
 
 void node::update_object_space_parent_transform(const std::array<float, 16>& new_parent_transform) const

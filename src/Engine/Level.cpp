@@ -151,12 +151,19 @@ namespace
         return v;
     }
 
-    glm::vec3 array_to_vec3(std::array<float, 3> a)
+    [[maybe_unused]] glm::vec3 array_to_vec3(std::array<float, 3> a)
     {
         glm::vec3 v{};
         const auto pos_r = glm::value_ptr(v);
         for (uint64_t i{0}; i < 3; i++) pos_r[i] = a[i];
         return v;
+    }
+
+    std::array<float, 3> vec3_to_array(glm::vec3 v)
+    {
+        std::array<float, 3> a{};
+        for (uint64_t i{ 0 }; i < 3; i++) a[i] = v[i];
+        return a;
     }
 
     struct stack_item
@@ -215,7 +222,7 @@ namespace
                 l->error("root scene_objects allocation failed");
                 return result::allocation_failure;
             };
-            if (const auto res = level_game_node->init(l, {}, {}, {}, 1.f, 0.f); res != result::ok)
+            if (const auto res = level_game_node->init(l, {},  {}, {}, {}, 1.f, 0.f); res != result::ok)
             {
                 l->error("root scene_objects initialization failed");
                 delete level_game_node;
@@ -602,8 +609,7 @@ namespace
                     float new_yaw = rls->game_camera_yaw + mbe.y / 25.f * direction;
                     if (new_yaw < 0.f) new_yaw += glm::pi<float>() * 2;
                     if (new_yaw >= glm::pi<float>() * 2) new_yaw -= glm::pi<float>() * 2;
-                    const std::array<float, 4> pos = rosy_reference.node->position;
-                    game_cam->set_yaw_around_position(new_yaw, {pos[0], pos[1], pos[2]});
+                    game_cam->set_yaw_around_position(new_yaw, rosy_reference.node->get_world_space_position());
                 }
             }
 
@@ -682,6 +688,8 @@ namespace
                 return result::invalid_argument;
             }
 
+            const std::array<float, 16> asset_coordinate_system_transform = new_asset.asset_coordinate_system;
+
             {
                 // Reset state
                 while (!queue.empty()) queue.pop();
@@ -704,7 +712,7 @@ namespace
                 const std::array<float, 16> identity_m = mat4_to_array(glm::mat4(1.f));
 
                 // All nodes must be initialized here and below.
-                if (const auto res = new_game_node->init(l, new_node.transform, identity_m, new_node.world_translate, new_node.world_scale, new_node.world_yaw); res !=
+                if (const auto res = new_game_node->init(l, asset_coordinate_system_transform, identity_m, new_node.transform, new_node.world_translate, new_node.world_scale, new_node.world_yaw); res !=
                     result::ok)
                 {
                     l->error("initial scene_objects initialization failed");
@@ -742,13 +750,9 @@ namespace
                 assert(queue_item.game_node != nullptr);
 
 
-                constexpr glm::mat4 m{1.f};
-                const glm::mat4 t = glm::translate(m, array_to_vec3(queue_item.game_node->world_translate));
-                const glm::mat4 r = toMat4(angleAxis(queue_item.game_node->world_yaw, glm::vec3{0.f, 1.f, 0.f}));
-                float world_scale = queue_item.game_node->world_scale;
-                const glm::mat4 s = glm::scale(m, glm::vec3(world_scale, world_scale, world_scale));
+                constexpr glm::mat4 parent_transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
 
-                glm::mat4 node_transform = t * r * s * array_to_mat4(queue_item.stack_node.transform);
+                glm::mat4 node_transform = parent_transform * array_to_mat4(queue_item.stack_node.transform);
 
                 const glm::mat4 transform = queue_item.parent_transform * node_transform;
                 // Set node bounds for bound testing.
@@ -777,7 +781,7 @@ namespace
 
                         go.transform = mat4_to_array(transform);
                         go.normal_transform = mat4_to_array(normal_transform);
-                        go.object_space_transform = mat4_to_array(object_space_transform);
+                        go.to_object_space_transform = mat4_to_array(object_space_transform);
                     }
 
                     {
@@ -844,7 +848,7 @@ namespace
                     }
 
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l, mat4_to_array(transform), mat4_to_array(node_transform), new_node.world_translate, new_node.world_scale,
+                    if (const auto res = new_game_node->init(l,asset_coordinate_system_transform, mat4_to_array(node_transform), mat4_to_array(transform), new_node.world_translate, new_node.world_scale,
                                                              new_node.world_yaw);
                         res != result::ok)
                     {
@@ -925,8 +929,7 @@ namespace
                         {
                             rosy_reference = ref;
                             ecs_add(world, node_entity, t_rosy);
-                            const std::array<float, 4> pos = rosy_reference.node->position;
-                            game_cam->set_game_cam_position({pos[0], pos[1], pos[2]});
+                            game_cam->set_game_cam_position(rosy_reference.node->get_world_space_position());
                         }
                     }
                 }
@@ -970,8 +973,7 @@ namespace
             // to clip space. From clip space their position is on the projection plane in view space. A ray is created from the click position on the projection plane from
             // the view space camera position, which is just origin. The ray is transformed to world space, the floor's origin is the same as the world space origin.
             // Plucker coordinates are used to calculate the ray's intersection in the floor plane, as derived from Foundations of Game Engine Development [Lengyel]
-            const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(
-                ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
+            const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
             const camera* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
 
             auto camera_pos = glm::vec3(glm::vec4(cam->position[0], cam->position[1], cam->position[2], 1.f));
@@ -1020,9 +1022,10 @@ namespace
                 ctx->world, ctx->floor_entity, ecs_id(c_static)));
             const node* floor_node = ctx->get_static()[floor_index->index];
             // Transform world space rosy target to the actual floor meshes object space because that's the space the bounds are in.
-            auto min_bounds = glm::vec3(array_to_mat4(floor_node->transform) * glm::vec4(
+            const glm::mat4 floor_world_space_transform = array_to_mat4(floor_node->get_world_space_transform());
+            auto min_bounds = glm::vec3(floor_world_space_transform * glm::vec4(
                 floor_node->bounds.min[0], floor_node->bounds.min[1], floor_node->bounds.min[2], 1.f));
-            auto max_bounds = glm::vec3(array_to_mat4(floor_node->transform) * glm::vec4(
+            auto max_bounds = glm::vec3(floor_world_space_transform * glm::vec4(
                 floor_node->bounds.max[0], floor_node->bounds.max[1], floor_node->bounds.max[2], 1.f));
             for (int j{0}; j < 3; j++)
             {
@@ -1108,8 +1111,8 @@ namespace
             // If rosy is targeting orient rosy and move her toward the target.
             if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target)))
             {
-                const auto rosy_position = ctx->rosy_reference.node->position;
-                const auto rosy_pos = glm::vec3(rosy_position[0], rosy_position[1], rosy_position[2]);
+                const std::array<float, 3> node_world_space_position = ctx->rosy_reference.node->get_world_space_position();
+                const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
                 const glm::mat4 rosy_translate = glm::translate(glm::mat4(1.f), rosy_pos);
                 constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
                 const glm::mat4 to_rosy_space = glm::inverse(rosy_translate);
@@ -1145,19 +1148,14 @@ namespace
                     // Set rosy's orientation to face target
                     glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{0.f, 1.f, 0.f});
                     if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
-                    const glm::mat4 r = toMat4(yaw_rotation);
 
                     // Linearly interpolate rosy's position toward the target
                     const float t = 1.f * it->delta_time;
                     glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
 
-                    // Update rosy's transform.
-                    const glm::mat4 tr = glm::translate(glm::mat4(1.f), new_rosy_pos);
-                    if (const auto res = ctx->rosy_reference.node->set_world_transform(mat4_to_array(tr * r)); res !=
-                        result::ok)
-                    {
-                        ctx->l->error("error transforming rosy");
-                    }
+                    // Update rosy's world space orientationa nd position
+                    ctx->rosy_reference.node->set_world_space_translate(vec3_to_array(new_rosy_pos));
+                    ctx->rosy_reference.node->set_world_space_yaw(target_yaw);
 
                     ctx->game_cam->set_game_cam_position({new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
                 }
@@ -1173,8 +1171,7 @@ namespace
             // Write active camera values
             if (std::abs(ctx->game_cam->yaw - ctx->wls->game_camera_yaw) >= 0.2)
             {
-                const std::array<float, 4> pos = ctx->rosy_reference.node->position;
-                ctx->game_cam->set_yaw_around_position(ctx->wls->game_camera_yaw, {pos[0], pos[1], pos[2]});
+                ctx->game_cam->set_yaw_around_position(ctx->wls->game_camera_yaw, ctx->rosy_reference.node->get_world_space_position());
             }
             const camera* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
             ctx->rls->cam.p = cam->p;
@@ -1201,13 +1198,7 @@ namespace
             if (ctx->wls->mob_edit.submitted)
             {
                 ctx->rls->mob_read.clear_edits = true;
-                if (mobs.size() > ctx->wls->mob_edit.edit_index)
-                {
-                    if (const auto res = mobs[0]->set_world_translate(ctx->wls->mob_edit.position); res != result::ok)
-                    {
-                        ctx->l->error("Error updating mob position");
-                    }
-                }
+                if (mobs.size() > ctx->wls->mob_edit.edit_index)  mobs[0]->set_world_space_translate(ctx->wls->mob_edit.position);
             }
             else
             {
@@ -1216,6 +1207,8 @@ namespace
             ctx->rls->mob_read.mob_states.clear();
             for (const game_node_reference& nr : ctx->game_nodes)
             {
+                const std::array<float, 3> node_world_space_pos = nr.node->get_world_space_position();
+
                 std::array<float, 3> target = {0.f, 0.f, 0.f};
                 float yaw = 0.f;
                 if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_target)))
@@ -1231,7 +1224,7 @@ namespace
                 }
                 ctx->rls->mob_read.mob_states.push_back({
                     .name = nr.node->name,
-                    .position = {nr.node->position[0], nr.node->position[1], nr.node->position[2]},
+                    .position = node_world_space_pos,
                     .yaw = yaw,
                     .target = target,
                 });
