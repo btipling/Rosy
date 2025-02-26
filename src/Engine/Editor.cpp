@@ -603,6 +603,7 @@ namespace
                                         new_destination_node.world_scale = md.scale;
                                         new_destination_node.world_yaw = md.yaw;
                                     }
+                                    new_destination_node.coordinate_system = a->asset_coordinate_system;
                                     new_destination_node.transform = source_node.transform;
                                     new_destination_node.child_nodes = source_node.child_nodes; // These are remapped below.
                                     new_destination_node.mesh_id = UINT32_MAX; // This is remapped below.

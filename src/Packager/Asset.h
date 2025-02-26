@@ -62,6 +62,9 @@ namespace rosy_packager
         std::array<float, 3> world_translate{0.f, 0.f, 0.f};
         float world_scale{1.f};
         float world_yaw{0.f};
+        // Nodes need a coordinate system because they can be combined from different asset systems at runtime.
+        // Not written to file! It is intentionally by default a zero matrix to identify it easily as not valid.
+        std::array<float, 16> coordinate_system{};
         std::array<float, 16> transform{
             1.f, 0.f, 0.f, 0.f,
             0.f, 1.f, 0.f, 0.f,

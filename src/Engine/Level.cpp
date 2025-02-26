@@ -689,7 +689,6 @@ namespace
             }
 
             const std::array<float, 16> asset_coordinate_system_transform = new_asset.asset_coordinate_system;
-            glm::mat4 object_to_world_transform = array_to_mat4(asset_coordinate_system_transform);
 
             {
                 // Reset state
@@ -752,6 +751,19 @@ namespace
 
 
                 const glm::mat4 transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
+
+                std::array<float, 16> node_coordinate_system = asset_coordinate_system_transform;
+                // Check if the node has its own coordinate system (because the nodes in the assets may come from different coordinate systems).
+                for (const float v : queue_item.stack_node.coordinate_system)
+                {
+                    if (std::abs(v) > 0.000001)
+                    {
+                        node_coordinate_system = queue_item.stack_node.coordinate_system;
+                        break;
+                    }
+                }
+                glm::mat4 object_to_world_transform = array_to_mat4(node_coordinate_system);
+
                 // Set node bounds for bound testing.
                 node_bounds bounds{};
                 // Advance the next item in the node queue
@@ -845,7 +857,7 @@ namespace
                     }
 
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l,asset_coordinate_system_transform, mat4_to_array(transform), new_node.transform, new_node.world_translate, new_node.world_scale,
+                    if (const auto res = new_game_node->init(l, node_coordinate_system, mat4_to_array(transform), new_node.transform, new_node.world_translate, new_node.world_scale,
                                                              new_node.world_yaw);
                         res != result::ok)
                     {
