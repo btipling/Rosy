@@ -150,7 +150,7 @@ namespace rosy
 
     struct draw_config_state
     {
-        bool reverse_winding_order_enabled{true};
+        bool reverse_winding_order_enabled{false};
         bool cull_enabled{false};
         bool wire_enabled{false};
         bool thick_wire_lines{false};
