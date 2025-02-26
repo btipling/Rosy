@@ -750,7 +750,7 @@ namespace
                 assert(queue_item.game_node != nullptr);
 
 
-                constexpr glm::mat4 parent_transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
+                const glm::mat4 parent_transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
 
                 glm::mat4 node_transform = parent_transform * array_to_mat4(queue_item.stack_node.transform);
 

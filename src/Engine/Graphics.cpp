@@ -3615,7 +3615,7 @@ namespace
                 num_mip_maps = dds_img_create_info.mipLevels;
 
                 size_t dds_image_data_size{0};
-                for (const auto m : dds_lib_image.mipmaps)
+                for (const auto& m : dds_lib_image.mipmaps)
                 {
                     dds_image_data_size += m.size();
                 }
