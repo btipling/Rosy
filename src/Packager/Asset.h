@@ -36,6 +36,8 @@ namespace rosy_packager
         float alpha_cutoff{0.f};
         uint32_t normal_image_index{UINT32_MAX}; // UINT32_MAX == not present
         uint32_t normal_sampler_index{UINT32_MAX}; // UINT32_MAX == not present
+        uint32_t metallic_image_index{ UINT32_MAX }; // UINT32_MAX == not present
+        uint32_t metallic_sampler_index{ UINT32_MAX }; // UINT32_MAX == not present
     };
 
     struct sampler
@@ -95,6 +97,7 @@ namespace rosy_packager
     // image_type is effectively an enum
     constexpr uint32_t image_type_color{0};
     constexpr uint32_t image_type_normal_map{1};
+    constexpr uint32_t image_type_metallic_roughness{2};
 
     // More image types as needed will be added.
     struct image

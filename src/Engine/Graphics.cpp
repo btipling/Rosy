@@ -3604,8 +3604,8 @@ namespace
                 dds::Image dds_lib_image;
                 if (const auto res = dds::readFile(input_filename, &dds_lib_image); res != dds::Success)
                 {
-                    l->error(std::format("Failed to read dds lib data for {}", input_filename));
-                    return result::read_failed;
+                    l->warn(std::format("Failed to read dds lib data for {}, is it unused?", input_filename));
+                    continue;
                 }
 
                 VkImageCreateInfo dds_img_create_info = dds::getVulkanImageCreateInfo(&dds_lib_image);
@@ -3634,6 +3634,10 @@ namespace
                     else if (img.image_type == rosy_packager::image_type_normal_map)
                     {
                         new_dds_img.image_format = VK_FORMAT_BC5_UNORM_BLOCK;
+                    }
+                    else if (img.image_type == rosy_packager::image_type_metallic_roughness)
+                    {
+                        new_dds_img.image_format = VK_FORMAT_BC7_SRGB_BLOCK;
                     }
                     else
                     {

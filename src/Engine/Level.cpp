@@ -750,11 +750,7 @@ namespace
                 assert(queue_item.game_node != nullptr);
 
 
-                const glm::mat4 parent_transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
-
-                glm::mat4 node_transform = parent_transform * array_to_mat4(queue_item.stack_node.transform);
-
-                const glm::mat4 transform = queue_item.parent_transform * node_transform;
+                const glm::mat4 transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
                 // Set node bounds for bound testing.
                 node_bounds bounds{};
                 // Advance the next item in the node queue
@@ -848,7 +844,7 @@ namespace
                     }
 
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l,asset_coordinate_system_transform, mat4_to_array(node_transform), mat4_to_array(transform), new_node.world_translate, new_node.world_scale,
+                    if (const auto res = new_game_node->init(l,asset_coordinate_system_transform, mat4_to_array(transform), mat4_to_array(transform), new_node.world_translate, new_node.world_scale,
                                                              new_node.world_yaw);
                         res != result::ok)
                     {
@@ -871,7 +867,7 @@ namespace
                     queue.push({
                         .game_node = new_game_node,
                         .stack_node = new_node,
-                        .parent_transform = queue_item.parent_transform * node_transform,
+                        .parent_transform = queue_item.parent_transform * transform,
                         .is_mob = is_mob,
                     });
                 }
