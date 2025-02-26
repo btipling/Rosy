@@ -1153,7 +1153,7 @@ namespace
                     const float t = 1.f * it->delta_time;
                     glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
 
-                    // Update rosy's world space orientationa nd position
+                    // Update rosy's world space orientation and position
                     ctx->rosy_reference.node->set_world_space_translate(vec3_to_array(new_rosy_pos));
                     ctx->rosy_reference.node->set_world_space_yaw(target_yaw);
 
@@ -1461,6 +1461,7 @@ result level::update(const uint32_t viewport_width, const uint32_t viewport_heig
     return result::ok;
 }
 
+// ReSharper disable once CppMemberFunctionMayBeStatic
 result level::process()
 {
     ls->rls->go_update.offset = ls->static_objects_offset;
