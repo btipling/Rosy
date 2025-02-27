@@ -788,20 +788,20 @@ namespace
                         go.surface_data.reserve(current_mesh.surfaces.size());
                         for (const auto& surf : current_mesh.surfaces)
                         {
-                            glm::vec4 min_bounds = { surf.min_bounds[0], surf.min_bounds[1], surf.min_bounds[2], 1.f };
-                            glm::vec4 max_bounds = { surf.max_bounds[0], surf.max_bounds[1], surf.max_bounds[2], 1.f };
-                            max_bounds = node_world_space_transform * min_bounds;
-                            min_bounds = node_world_space_transform * max_bounds;
+                            glm::vec4 os_min_bounds = { surf.min_bounds[0], surf.min_bounds[1], surf.min_bounds[2], 1.f };
+                            glm::vec4 os_max_bounds = { surf.max_bounds[0], surf.max_bounds[1], surf.max_bounds[2], 1.f };
+                            glm::vec4 ws_min_bounds = node_world_space_transform * os_min_bounds;
+                            glm::vec4 ws_max_bounds = node_world_space_transform * os_max_bounds;
                             for (glm::length_t i{0}; i < 3; i++)
                             {
-                                if (min_bounds[i] > max_bounds[i])
+                                if (ws_min_bounds[i] > ws_max_bounds[i])
                                 {
-                                    float s = min_bounds[i];
-                                    min_bounds[i] = max_bounds[i];
-                                    max_bounds[i] = s;
+                                    float s = ws_min_bounds[i];
+                                    ws_min_bounds[i] = ws_max_bounds[i];
+                                    ws_max_bounds[i] = s;
                                 }
-                                world_space_bounds.min[i] = glm::min(min_bounds[i], world_space_bounds.min[i]);
-                                world_space_bounds.max[i] = glm::max(max_bounds[i], world_space_bounds.max[i]);
+                                world_space_bounds.min[i] = glm::min(ws_min_bounds[i], world_space_bounds.min[i]);
+                                world_space_bounds.max[i] = glm::max(ws_max_bounds[i], world_space_bounds.max[i]);
                             }
                             surface_graphics_data sgd{};
                             sgd.mesh_index = current_mesh_index;
