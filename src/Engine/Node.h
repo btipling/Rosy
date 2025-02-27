@@ -23,7 +23,7 @@ namespace rosy
         std::vector<graphics_object> graphics_objects;
         std::string name{};
         std::vector<node*> children;
-        node_bounds bounds{};
+        node_bounds world_space_bounds{};
 
         [[nodiscard]] result init(
             log* new_log,
@@ -47,6 +47,9 @@ namespace rosy
         // get_world_space_transform returns the asset's representation in the world after all object space transforms have been applied, from asset to rosy's
         // world space coordinate system and then any world space transforms
         [[nodiscard]] std::array<float, 16> get_world_space_transform() const;
+
+        // get_to_object_space_transform this returns the matrix required to take something from world space to this object's space. 
+        [[nodiscard]] std::array<float, 16> get_to_object_space_transform() const;
 
        
         [[nodiscard]] std::array<float, 3> get_world_space_position() const;

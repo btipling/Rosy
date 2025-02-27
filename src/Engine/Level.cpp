@@ -162,7 +162,7 @@ namespace
     std::array<float, 3> vec3_to_array(glm::vec3 v)
     {
         std::array<float, 3> a{};
-        for (size_t i{ 0 }; i < 3; i++) a[i] = v[static_cast<glm::length_t>(i)];
+        for (size_t i{0}; i < 3; i++) a[i] = v[static_cast<glm::length_t>(i)];
         return a;
     }
 
@@ -222,7 +222,7 @@ namespace
                 l->error("root scene_objects allocation failed");
                 return result::allocation_failure;
             };
-            if (const auto res = level_game_node->init(l, false, {},  {}, {}, {}, 1.f, 0.f); res != result::ok)
+            if (const auto res = level_game_node->init(l, false, {}, {}, {}, {}, 1.f, 0.f); res != result::ok)
             {
                 l->error("root scene_objects initialization failed");
                 delete level_game_node;
@@ -712,7 +712,8 @@ namespace
                 const std::array<float, 16> identity_m = mat4_to_array(glm::mat4(1.f));
 
                 // All nodes must be initialized here and below.
-                if (const auto res = new_game_node->init(l, false, asset_coordinate_system_transform, identity_m, new_node.transform, new_node.world_translate, new_node.world_scale, new_node.world_yaw); res !=
+                if (const auto res = new_game_node->init(l, false, asset_coordinate_system_transform, identity_m, new_node.transform, new_node.world_translate,
+                                                         new_node.world_scale, new_node.world_yaw); res !=
                     result::ok)
                 {
                     l->error("initial scene_objects initialization failed");
@@ -754,7 +755,7 @@ namespace
                 const glm::mat4 node_world_space_transform = array_to_mat4(queue_item.game_node->get_world_space_transform());
 
                 // Set node bounds for bound testing.
-                node_bounds bounds{};
+                node_bounds world_space_bounds{};
                 // Advance the next item in the node queue
                 if (queue_item.asset_node.mesh_id < new_asset.meshes.size())
                 {
@@ -787,10 +788,20 @@ namespace
                         go.surface_data.reserve(current_mesh.surfaces.size());
                         for (const auto& surf : current_mesh.surfaces)
                         {
-                            for (size_t i{0}; i < 3; i++)
+                            glm::vec4 min_bounds = { surf.min_bounds[0], surf.min_bounds[1], surf.min_bounds[2], 1.f };
+                            glm::vec4 max_bounds = { surf.max_bounds[0], surf.max_bounds[1], surf.max_bounds[2], 1.f };
+                            max_bounds = node_world_space_transform * min_bounds;
+                            min_bounds = node_world_space_transform * max_bounds;
+                            for (glm::length_t i{0}; i < 3; i++)
                             {
-                                bounds.min[i] = glm::min(surf.min_bounds[i], bounds.min[i]);
-                                bounds.max[i] = glm::max(surf.max_bounds[i], bounds.max[i]);
+                                if (min_bounds[i] > max_bounds[i])
+                                {
+                                    float s = min_bounds[i];
+                                    min_bounds[i] = max_bounds[i];
+                                    max_bounds[i] = s;
+                                }
+                                world_space_bounds.min[i] = glm::min(min_bounds[i], world_space_bounds.min[i]);
+                                world_space_bounds.max[i] = glm::max(max_bounds[i], world_space_bounds.max[i]);
                             }
                             surface_graphics_data sgd{};
                             sgd.mesh_index = current_mesh_index;
@@ -829,7 +840,7 @@ namespace
                         queue_item.game_node->graphics_objects.push_back(go);
                     }
                 }
-                queue_item.game_node->bounds = bounds;
+                queue_item.game_node->world_space_bounds = world_space_bounds;
 
                 // Each node can have an arbitrary number of child nodes.
                 for (const size_t child_index : queue_item.asset_node.child_nodes)
@@ -857,7 +868,9 @@ namespace
                     }
 
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l, new_asset_node.is_world_node, node_coordinate_system, mat4_to_array(node_object_space_transform), new_asset_node.transform, new_asset_node.world_translate, new_asset_node.world_scale,
+                    if (const auto res = new_game_node->init(l, new_asset_node.is_world_node,
+                                                             node_coordinate_system, mat4_to_array(node_object_space_transform), new_asset_node.transform,
+                                                             new_asset_node.world_translate, new_asset_node.world_scale,
                                                              new_asset_node.world_yaw);
                         res != result::ok)
                     {
@@ -1019,43 +1032,43 @@ namespace
             const glm::vec3 intersection = m_x_n + d_v;
             const float intersection_w = glm::dot(-normal, plucker_v);
 
-            ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w,
-                                      intersection[1] / intersection_w, intersection[2] / intersection_w));
+            ctx->l->info(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
             // Set rosy to target that intersection.
-            auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w,
-                                         intersection[2] / intersection_w);
+            auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+            ctx->l->info(std::format("rosy_target huh00000? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
 
             // Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
-            const auto floor_index = static_cast<const c_static*>(ecs_get_id(
-                ctx->world, ctx->floor_entity, ecs_id(c_static)));
+            const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
             const node* floor_node = ctx->get_static()[floor_index->index];
             // Transform world space rosy target to the actual floor meshes object space because that's the space the bounds are in.
             const glm::mat4 floor_world_space_transform = array_to_mat4(floor_node->get_world_space_transform());
-            auto min_bounds = glm::vec3(floor_world_space_transform * glm::vec4(
-                floor_node->bounds.min[0], floor_node->bounds.min[1], floor_node->bounds.min[2], 1.f));
-            auto max_bounds = glm::vec3(floor_world_space_transform * glm::vec4(
-                floor_node->bounds.max[0], floor_node->bounds.max[1], floor_node->bounds.max[2], 1.f));
+            auto min_bounds = glm::vec3(floor_node->world_space_bounds.min[0], floor_node->world_space_bounds.min[1], floor_node->world_space_bounds.min[2]);
+            auto max_bounds = glm::vec3(floor_node->world_space_bounds.max[0], floor_node->world_space_bounds.max[1], floor_node->world_space_bounds.max[2]);
+            ctx->l->info(std::format("rosy_target huh00000_8? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
             for (int j{0}; j < 3; j++)
             {
                 if (rosy_target[j] < min_bounds[j])
                 {
+                    ctx->l->info("min bound");
                     rosy_target[j] = min_bounds[j];
                 }
                 if (rosy_target[j] > max_bounds[j])
                 {
+                    ctx->l->info("min bound");
                     rosy_target[j] = max_bounds[j];
                 }
             }
 
+            ctx->l->info(std::format("rosy_target huh00000_9? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
             c_target target{.x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z};
             ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target), sizeof(c_target), &target);
 
             // Draw some debugging UI to display picking performance.
             if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
             {
-                const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(
-                    ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
+                ctx->l->info(std::format("rosy_target huh000001? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
+                const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id( ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
                 glm::mat4 m;
                 std::array<float, 4> color;
                 if (pick_debugging->space & debug_object_flag_screen_space)
@@ -1103,10 +1116,7 @@ namespace
             else
             {
                 // In this case, if we're in edit mode we will draw nice little cursor on the actual floor where rosy is targeting.
-                glm::mat4 circle_m = glm::translate(glm::mat4(1.f),
-                                                    glm::vec3(intersection[0] / intersection_w,
-                                                              (intersection[1] / intersection_w) + 0.1f,
-                                                              intersection[2] / intersection_w));
+                glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, (intersection[1] / intersection_w) + 0.1f, intersection[2] / intersection_w));
                 circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
                 circle_m = glm::scale(circle_m, glm::vec3(0.25f));
 
@@ -1117,34 +1127,35 @@ namespace
                     .flags = 0,
                 };
             }
+            ctx->l->info(std::format("rosy_target huh000002? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
             // If rosy is targeting orient rosy and move her toward the target.
             if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target)))
             {
+                ctx->l->info(std::format("rosy_target huh000003? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
                 const std::array<float, 3> node_world_space_position = ctx->rosy_reference.node->get_world_space_position();
                 const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
-                const glm::mat4 rosy_translate = glm::translate(glm::mat4(1.f), rosy_pos);
                 constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
-                const glm::mat4 to_rosy_space = glm::inverse(rosy_translate);
 
                 // convert rosy target to rosy's object space and verify that the rosy_space target isn't the null vector, if it is she's already there.
                 // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
-                if (const auto rosy_space_target = glm::vec3(to_rosy_space * glm::vec4(rosy_target, 1.f));
-                    rosy_space_target != glm::zero<glm::vec3>())
+                if (rosy_target != glm::zero<glm::vec3>())
                 {
+                    ctx->l->info(std::format("rosy_target huh000003a? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
                     // Calculate the difference between rosy's orientation and her target position
-                    const float offset = rosy_space_target.x > 0 ? -1.f : 0.f;
+                    const float offset = rosy_target.x > 0 ? 0.f : -1.f;
                     // This offset's rosy's orientation based on her orientation around the x-axis.
-                    const float target_game_cos_theta = glm::dot(glm::normalize(rosy_space_target), game_forward);
+                    const float target_game_cos_theta = glm::dot(glm::normalize(rosy_target), game_forward);
                     // This dot product is used to get the angle of the target with respect to rosy's position.
-                    const float target_yaw = -std::acos(target_game_cos_theta);
+                    const float target_yaw = std::acos(target_game_cos_theta);
                     // This is negated because we of the handedness of the coordinate system.
                     const float new_yaw = target_yaw + offset;
 
-                    ctx->l->debug(std::format(
-                        "(target: ({:.3f}, {:.3f}), {:.3f})) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
-                        rosy_space_target[0],
-                        rosy_space_target[1],
-                        rosy_space_target[2],
+                    ctx->l->info(std::format("rosy_target huh000004? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
+                    ctx->l->info(std::format(
+                        "target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
+                        rosy_target[0],
+                        rosy_target[1],
+                        rosy_target[2],
                         target_game_cos_theta,
                         target_yaw,
                         offset,
@@ -1207,7 +1218,7 @@ namespace
             if (ctx->wls->mob_edit.submitted)
             {
                 ctx->rls->mob_read.clear_edits = true;
-                if (mobs.size() > ctx->wls->mob_edit.edit_index)  mobs[0]->set_world_space_translate(ctx->wls->mob_edit.position);
+                if (mobs.size() > ctx->wls->mob_edit.edit_index) mobs[0]->set_world_space_translate(ctx->wls->mob_edit.position);
             }
             else
             {

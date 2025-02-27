@@ -159,6 +159,15 @@ std::array<float, 16> node::get_world_space_transform() const
     return mat4_to_array(ns->get_world_space_transform());
 }
 
+std::array<float, 16> node::get_to_object_space_transform() const
+{
+    const glm::mat4 world_space_transform = ns->get_world_space_transform();
+    const glm::mat4 world_to_object_space_transform = inverse(world_space_transform);
+    const glm::mat4 world_space_normal_transform = transpose(world_to_object_space_transform);
+
+    return mat4_to_array(world_space_normal_transform);
+}
+
 std::array<float, 3> node::get_world_space_position() const
 {
     const auto rv = vec4_to_array(ns->get_world_space_transform() * glm::vec4(0.f, 0.f, 0.f, 1.f));
