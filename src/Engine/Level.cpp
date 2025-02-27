@@ -1127,23 +1127,26 @@ namespace
                 // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
                 if (rosy_target != glm::zero<glm::vec3>())
                 {
+                    // This is not rosy's asset-origin space, this just translating world origin to get a world yaw for rosy.
+                    glm::mat4 transform_world_origin_to_rosy_position = glm::translate(glm::mat4(1.f), { -rosy_pos[0], -rosy_pos[1], -rosy_pos[2] });
+                    glm::vec4 rosy_target_if_rosy_is_world_origin = transform_world_origin_to_rosy_position * glm::vec4(rosy_target, 1.f);
                     // Calculate the difference between rosy's orientation and her target position
-                    const float offset = rosy_target.x > 0 ? 0.f : -1.f;
+                    const float sign = rosy_target_if_rosy_is_world_origin.x > 0 ? -1.f : 1.f;
                     // This offset's rosy's orientation based on her orientation around the x-axis.
-                    const float target_game_cos_theta = glm::dot(glm::normalize(rosy_target), game_forward);
+                    const float target_game_cos_theta = glm::dot(glm::normalize(glm::vec3(rosy_target_if_rosy_is_world_origin)), game_forward);
                     // This dot product is used to get the angle of the target with respect to rosy's position.
-                    const float target_yaw = std::acos(target_game_cos_theta);
+                    const float target_yaw = sign * std::acos(target_game_cos_theta);
                     // This is negated because we of the handedness of the coordinate system.
-                    const float new_yaw = target_yaw + offset;
+                    const float new_yaw = target_yaw;
 
-                    ctx->l->info(std::format(
-                        "target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
-                        rosy_target[0],
-                        rosy_target[1],
-                        rosy_target[2],
+                    ctx->l->debug(std::format(
+                        "rosy_target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) yaw: {:.3f}) sign: {:.3f} new_yaw: {:.3f}",
+                        rosy_target_if_rosy_is_world_origin[0],
+                        rosy_target_if_rosy_is_world_origin[1],
+                        rosy_target_if_rosy_is_world_origin[2],
                         target_game_cos_theta,
                         target_yaw,
-                        offset,
+                        sign,
                         new_yaw
                     ));
 
@@ -1152,7 +1155,7 @@ namespace
 
                     // Set rosy's orientation to face target
                     glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{0.f, 1.f, 0.f});
-                    if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
+                    //if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
 
                     // Linearly interpolate rosy's position toward the target
                     const float t = 1.f * it->delta_time;
