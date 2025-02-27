@@ -1028,11 +1028,10 @@ namespace
             const glm::vec3 intersection = m_x_n + d_v;
             const float intersection_w = glm::dot(-normal, plucker_v);
 
-            ctx->l->info(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+            ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
             // Set rosy to target that intersection.
             auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
-            ctx->l->info(std::format("rosy_target huh00000? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
 
             // Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
             const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
@@ -1040,29 +1039,24 @@ namespace
             // Transform world space rosy target to the actual floor meshes object space because that's the space the bounds are in.
             const glm::mat4 floor_world_space_transform = array_to_mat4(floor_node->get_world_space_transform());
             auto world_space_floor_bounds = floor_node->get_world_space_bounds();
-            ctx->l->info(std::format("rosy_target huh00000_8? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
             for (int j{0}; j < 3; j++)
             {
                 if (rosy_target[j] < world_space_floor_bounds.min[j])
                 {
-                    ctx->l->info("min bound");
                     rosy_target[j] = world_space_floor_bounds.min[j];
                 }
                 if (rosy_target[j] > world_space_floor_bounds.max[j])
                 {
-                    ctx->l->info("max bound");
                     rosy_target[j] = world_space_floor_bounds.max[j];
                 }
             }
 
-            ctx->l->info(std::format("rosy_target huh00000_9? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
             c_target target{.x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z};
             ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target), sizeof(c_target), &target);
 
             // Draw some debugging UI to display picking performance.
             if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
             {
-                ctx->l->info(std::format("rosy_target huh000001? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
                 const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
                 glm::mat4 m;
                 std::array<float, 4> color;
@@ -1122,11 +1116,9 @@ namespace
                     .flags = 0,
                 };
             }
-            ctx->l->info(std::format("rosy_target huh000002? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
             // If rosy is targeting orient rosy and move her toward the target.
             if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target)))
             {
-                ctx->l->info(std::format("rosy_target huh000003? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
                 const std::array<float, 3> node_world_space_position = ctx->rosy_reference.node->get_world_space_position();
                 const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
                 constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
@@ -1135,7 +1127,6 @@ namespace
                 // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
                 if (rosy_target != glm::zero<glm::vec3>())
                 {
-                    ctx->l->info(std::format("rosy_target huh000003a? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
                     // Calculate the difference between rosy's orientation and her target position
                     const float offset = rosy_target.x > 0 ? 0.f : -1.f;
                     // This offset's rosy's orientation based on her orientation around the x-axis.
@@ -1145,7 +1136,6 @@ namespace
                     // This is negated because we of the handedness of the coordinate system.
                     const float new_yaw = target_yaw + offset;
 
-                    ctx->l->info(std::format("rosy_target huh000004? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
                     ctx->l->info(std::format(
                         "target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) yaw: {:.3f}) offset: {:.3f} new_yaw: {:.3f}",
                         rosy_target[0],
