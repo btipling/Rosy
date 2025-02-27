@@ -222,7 +222,7 @@ namespace
                 l->error("root scene_objects allocation failed");
                 return result::allocation_failure;
             };
-            if (const auto res = level_game_node->init(l, false,{}, {}, {}, {}, 1.f, 0.f); res != result::ok)
+            if (const auto res = level_game_node->init(l, false, {}, {}, {}, {}, 1.f, 0.f); res != result::ok)
             {
                 l->error("root scene_objects initialization failed");
                 delete level_game_node;
@@ -1033,11 +1033,10 @@ namespace
             // Set rosy to target that intersection.
             auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
 
+            // This is all taking place in world space. It used to be in object space and that was incorrect because this is about moving rosy in world space.
             // Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
             const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
             const node* floor_node = ctx->get_static()[floor_index->index];
-            // Transform world space rosy target to the actual floor meshes object space because that's the space the bounds are in.
-            const glm::mat4 floor_world_space_transform = array_to_mat4(floor_node->get_world_space_transform());
             auto world_space_floor_bounds = floor_node->get_world_space_bounds();
             for (int j{0}; j < 3; j++)
             {
@@ -1123,31 +1122,28 @@ namespace
                 const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
                 constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
 
-                // convert rosy target to rosy's object space and verify that the rosy_space target isn't the null vector, if it is she's already there.
+                // Convert rosy target translation to world position if rosy's position was world origin.
                 // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
-                if (rosy_target != glm::zero<glm::vec3>())
+                // This is not rosy's asset-origin space, this just translating world origin to get a world yaw for rosy.
+                glm::mat4 transform_world_origin_to_rosy_position = glm::translate(glm::mat4(1.f), {-rosy_pos[0], -rosy_pos[1], -rosy_pos[2]});
+                // Verify that the rosy_space target isn't the null vector, if it is she's already there.
+                if (glm::vec4 rosy_target_if_rosy_is_world_origin = transform_world_origin_to_rosy_position * glm::vec4(rosy_target, 1.f); rosy_target_if_rosy_is_world_origin != glm::zero<glm::vec4>())
                 {
-                    // This is not rosy's asset-origin space, this just translating world origin to get a world yaw for rosy.
-                    glm::mat4 transform_world_origin_to_rosy_position = glm::translate(glm::mat4(1.f), { -rosy_pos[0], -rosy_pos[1], -rosy_pos[2] });
-                    glm::vec4 rosy_target_if_rosy_is_world_origin = transform_world_origin_to_rosy_position * glm::vec4(rosy_target, 1.f);
                     // Calculate the difference between rosy's orientation and her target position
                     const float sign = rosy_target_if_rosy_is_world_origin.x > 0 ? -1.f : 1.f;
                     // This offset's rosy's orientation based on her orientation around the x-axis.
                     const float target_game_cos_theta = glm::dot(glm::normalize(glm::vec3(rosy_target_if_rosy_is_world_origin)), game_forward);
                     // This dot product is used to get the angle of the target with respect to rosy's position.
                     const float target_yaw = sign * std::acos(target_game_cos_theta);
-                    // This is negated because we of the handedness of the coordinate system.
-                    const float new_yaw = target_yaw;
 
                     ctx->l->debug(std::format(
-                        "rosy_target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) yaw: {:.3f}) sign: {:.3f} new_yaw: {:.3f}",
+                        "rosy_target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) target_yaw: {:.3f}) sign: {:.3f}",
                         rosy_target_if_rosy_is_world_origin[0],
                         rosy_target_if_rosy_is_world_origin[1],
                         rosy_target_if_rosy_is_world_origin[2],
                         target_game_cos_theta,
                         target_yaw,
-                        sign,
-                        new_yaw
+                        sign
                     ));
 
                     c_forward nf{.yaw = target_yaw};
@@ -1155,7 +1151,6 @@ namespace
 
                     // Set rosy's orientation to face target
                     glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{0.f, 1.f, 0.f});
-                    //if (offset < 0.f) yaw_rotation = glm::inverse(yaw_rotation);
 
                     // Linearly interpolate rosy's position toward the target
                     const float t = 1.f * it->delta_time;
