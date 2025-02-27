@@ -222,7 +222,7 @@ namespace
                 l->error("root scene_objects allocation failed");
                 return result::allocation_failure;
             };
-            if (const auto res = level_game_node->init(l, false, {}, {}, {}, {}, 1.f, 0.f); res != result::ok)
+            if (const auto res = level_game_node->init(l, false,{}, {}, {}, {}, 1.f, 0.f); res != result::ok)
             {
                 l->error("root scene_objects initialization failed");
                 delete level_game_node;
@@ -755,7 +755,7 @@ namespace
                 const glm::mat4 node_world_space_transform = array_to_mat4(queue_item.game_node->get_world_space_transform());
 
                 // Set node bounds for bound testing.
-                node_bounds world_space_bounds{};
+                node_bounds object_space_bounds{};
                 // Advance the next item in the node queue
                 if (queue_item.asset_node.mesh_id < new_asset.meshes.size())
                 {
@@ -788,21 +788,14 @@ namespace
                         go.surface_data.reserve(current_mesh.surfaces.size());
                         for (const auto& surf : current_mesh.surfaces)
                         {
-                            glm::vec4 os_min_bounds = { surf.min_bounds[0], surf.min_bounds[1], surf.min_bounds[2], 1.f };
-                            glm::vec4 os_max_bounds = { surf.max_bounds[0], surf.max_bounds[1], surf.max_bounds[2], 1.f };
-                            glm::vec4 ws_min_bounds = node_world_space_transform * os_min_bounds;
-                            glm::vec4 ws_max_bounds = node_world_space_transform * os_max_bounds;
+                            glm::vec4 object_space_min_bounds = {surf.min_bounds[0], surf.min_bounds[1], surf.min_bounds[2], 1.f};
+                            glm::vec4 object_space_max_bounds = {surf.max_bounds[0], surf.max_bounds[1], surf.max_bounds[2], 1.f};
                             for (glm::length_t i{0}; i < 3; i++)
                             {
-                                if (ws_min_bounds[i] > ws_max_bounds[i])
-                                {
-                                    float s = ws_min_bounds[i];
-                                    ws_min_bounds[i] = ws_max_bounds[i];
-                                    ws_max_bounds[i] = s;
-                                }
-                                world_space_bounds.min[i] = glm::min(ws_min_bounds[i], world_space_bounds.min[i]);
-                                world_space_bounds.max[i] = glm::max(ws_max_bounds[i], world_space_bounds.max[i]);
+                                object_space_bounds.min[i] = glm::min(object_space_min_bounds[i], object_space_bounds.min[i]);
+                                object_space_bounds.max[i] = glm::max(object_space_max_bounds[i], object_space_bounds.max[i]);
                             }
+                            queue_item.game_node->set_object_space_bounds(object_space_bounds);
                             surface_graphics_data sgd{};
                             sgd.mesh_index = current_mesh_index;
                             // The index written to the surface graphic object is critical for pulling its transforms out of the buffer for rendering.
@@ -840,7 +833,6 @@ namespace
                         queue_item.game_node->graphics_objects.push_back(go);
                     }
                 }
-                queue_item.game_node->world_space_bounds = world_space_bounds;
 
                 // Each node can have an arbitrary number of child nodes.
                 for (const size_t child_index : queue_item.asset_node.child_nodes)
@@ -868,9 +860,13 @@ namespace
                     }
 
                     // Initialize its state
-                    if (const auto res = new_game_node->init(l, new_asset_node.is_world_node,
-                                                             node_coordinate_system, mat4_to_array(node_object_space_transform), new_asset_node.transform,
-                                                             new_asset_node.world_translate, new_asset_node.world_scale,
+                    if (const auto res = new_game_node->init(l,
+                                                             new_asset_node.is_world_node,
+                                                             node_coordinate_system,
+                                                             mat4_to_array(node_object_space_transform),
+                                                             new_asset_node.transform,
+                                                             new_asset_node.world_translate,
+                                                             new_asset_node.world_scale,
                                                              new_asset_node.world_yaw);
                         res != result::ok)
                     {
@@ -1043,20 +1039,19 @@ namespace
             const node* floor_node = ctx->get_static()[floor_index->index];
             // Transform world space rosy target to the actual floor meshes object space because that's the space the bounds are in.
             const glm::mat4 floor_world_space_transform = array_to_mat4(floor_node->get_world_space_transform());
-            auto min_bounds = glm::vec3(floor_node->world_space_bounds.min[0], floor_node->world_space_bounds.min[1], floor_node->world_space_bounds.min[2]);
-            auto max_bounds = glm::vec3(floor_node->world_space_bounds.max[0], floor_node->world_space_bounds.max[1], floor_node->world_space_bounds.max[2]);
+            auto world_space_floor_bounds = floor_node->get_world_space_bounds();
             ctx->l->info(std::format("rosy_target huh00000_8? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
             for (int j{0}; j < 3; j++)
             {
-                if (rosy_target[j] < min_bounds[j])
+                if (rosy_target[j] < world_space_floor_bounds.min[j])
                 {
                     ctx->l->info("min bound");
-                    rosy_target[j] = min_bounds[j];
+                    rosy_target[j] = world_space_floor_bounds.min[j];
                 }
-                if (rosy_target[j] > max_bounds[j])
+                if (rosy_target[j] > world_space_floor_bounds.max[j])
                 {
-                    ctx->l->info("min bound");
-                    rosy_target[j] = max_bounds[j];
+                    ctx->l->info("max bound");
+                    rosy_target[j] = world_space_floor_bounds.max[j];
                 }
             }
 
@@ -1068,7 +1063,7 @@ namespace
             if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
             {
                 ctx->l->info(std::format("rosy_target huh000001? {:.3f}, {:.3f}, {:.3f}", rosy_target[0], rosy_target[1], rosy_target[2]));
-                const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id( ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
+                const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
                 glm::mat4 m;
                 std::array<float, 4> color;
                 if (pick_debugging->space & debug_object_flag_screen_space)

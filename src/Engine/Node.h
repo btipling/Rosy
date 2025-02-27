@@ -23,7 +23,6 @@ namespace rosy
         std::vector<graphics_object> graphics_objects;
         std::string name{};
         std::vector<node*> children;
-        node_bounds world_space_bounds{};
 
         [[nodiscard]] result init(
             log* new_log,
@@ -38,6 +37,7 @@ namespace rosy
         void set_world_space_translate(const std::array<float, 3>& new_world_space_translate) const;
         void set_world_space_scale(const float new_world_space_scale) const;
         void set_world_space_yaw(float new_world_space_yaw) const;
+        void set_object_space_bounds(node_bounds new_object_space_bounds) const;
 
         // get_object_space_transform does not return any world space transforms and does not escape the node's asset inherited coordinate system!
         // The only purpose this function can serve is within **the same** mesh's object space derived from the same asset! Cannot be used with other nodes!
@@ -50,6 +50,9 @@ namespace rosy
 
         // get_to_object_space_transform this returns the matrix required to take something from world space to this object's space. 
         [[nodiscard]] std::array<float, 16> get_to_object_space_transform() const;
+
+        // get_world_space_bounds this returns the world space bounds that this object fills in world space.
+        [[nodiscard]] node_bounds get_world_space_bounds() const;
 
        
         [[nodiscard]] std::array<float, 3> get_world_space_position() const;

@@ -56,6 +56,7 @@ struct node_state
     glm::mat4 object_space_parent_transform{};
     glm::mat4 object_space_transform{};
     glm::vec3 world_space_translate{};
+    node_bounds object_space_bounds{};
     float world_space_scale{1.f};
     float world_space_yaw{0.f};
 
@@ -97,7 +98,7 @@ struct node_state
 
 result node::init(
     rosy::log* new_log,
-    bool is_world_node,
+    const bool is_world_node,
     const std::array<float, 16>& coordinate_space,
     const std::array<float, 16>& new_object_space_parent_transform,
     const std::array<float, 16>& new_object_space_transform,
@@ -149,6 +150,11 @@ void node::set_world_space_yaw(const float new_world_space_yaw) const
     ns->world_space_yaw = new_world_space_yaw;
 }
 
+void node::set_object_space_bounds(node_bounds new_object_space_bounds) const
+{
+    ns->object_space_bounds = new_object_space_bounds;
+}
+
 std::array<float, 16> node::get_object_space_transform() const
 {
     return mat4_to_array(ns->get_object_space_transform());
@@ -166,6 +172,26 @@ std::array<float, 16> node::get_to_object_space_transform() const
     const glm::mat4 world_space_normal_transform = transpose(world_to_object_space_transform);
 
     return mat4_to_array(world_space_normal_transform);
+}
+
+node_bounds node::get_world_space_bounds() const
+{
+    const glm::mat4 world_space_transform = ns->get_world_space_transform();
+    const glm::vec4 object_space_min_bounds = {ns->object_space_bounds.min[0], ns->object_space_bounds.min[1], ns->object_space_bounds.min[2], 1.f};
+    const glm::vec4 object_space_max_bounds = {ns->object_space_bounds.max[0], ns->object_space_bounds.max[1], ns->object_space_bounds.max[2], 1.f};
+    glm::vec4 world_space_min_bounds = world_space_transform * object_space_min_bounds;
+    glm::vec4 world_space_max_bounds = world_space_transform * object_space_max_bounds;
+
+    for (glm::length_t i{0}; i < 3; i++)
+    {
+        if (world_space_min_bounds[i] > world_space_max_bounds[i])
+        {
+            const float swap = world_space_min_bounds[i];
+            world_space_min_bounds[i] = world_space_max_bounds[i];
+            world_space_max_bounds[i] = swap;
+        }
+    }
+    return { .min = {world_space_min_bounds[0], world_space_min_bounds[1], world_space_min_bounds[2]}, .max ={world_space_max_bounds[0], world_space_max_bounds[1], world_space_max_bounds[2]}};
 }
 
 std::array<float, 3> node::get_world_space_position() const
