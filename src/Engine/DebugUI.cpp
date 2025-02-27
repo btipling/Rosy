@@ -236,7 +236,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Enable Shadows", &wls->fragment_config.shadows_enabled);
                 ImGui::TableNextColumn();
-                ImGui::Text("");
+                ImGui::Checkbox("Enable Normal maps", &wls->fragment_config.normal_maps_enabled);
 
                 ImGui::EndTable();
             }

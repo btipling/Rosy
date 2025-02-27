@@ -302,6 +302,7 @@ namespace
         [[maybe_unused]] uint32_t light_enabled{0};
         [[maybe_unused]] uint32_t tangent_space_enabled{0};
         [[maybe_unused]] uint32_t shadows_enabled{0};
+        [[maybe_unused]] uint32_t normal_maps_enabled{0};
     };
 
     struct allocated_image
@@ -352,8 +353,8 @@ namespace
         uint32_t color_sampler_index{UINT32_MAX};
         uint32_t normal_sampled_image_index{UINT32_MAX};
         uint32_t normal_sampler_index{UINT32_MAX};
-        uint32_t metallic_sampled_image_index{ UINT32_MAX };
-        uint32_t metallic_sampler_index{ UINT32_MAX };
+        uint32_t metallic_sampled_image_index{UINT32_MAX};
+        uint32_t metallic_sampler_index{UINT32_MAX};
     };
 
     struct gpu_material_buffer
@@ -3739,12 +3740,12 @@ namespace
                     }
                     if (dds_staging_buffer.info.pMappedData != nullptr)
                     {
-                        size_t offset{ 0 };
+                        size_t offset{0};
                         for (const auto& m : dds_lib_image.mipmaps)
                         {
                             if (offset + m.size() > dds_staging_buffer.info.size)
                             {
-                                l->error(std::format("Error mip mapping buffer overflow. buffer size {}  copy size: {} for {}",  dds_staging_buffer.info.size, offset + m.size(), dds_image_name));
+                                l->error(std::format("Error mip mapping buffer overflow. buffer size {}  copy size: {} for {}", dds_staging_buffer.info.size, offset + m.size(), dds_image_name));
                                 return result::overflow;
                             }
                             memcpy(static_cast<char*>(dds_staging_buffer.info.pMappedData) + offset, static_cast<void*>(m.data()), m.size());
@@ -3819,7 +3820,7 @@ namespace
                         }
                         {
                             std::vector<VkBufferImageCopy> regions;
-                            size_t buffer_offset{ 0 };
+                            size_t buffer_offset{0};
                             VkExtent3D current_extent = new_dds_img.image_extent;
                             for (size_t mip{0}; mip < dds_lib_image.numMips; mip++)
                             {
@@ -5993,6 +5994,7 @@ namespace
             const uint32_t light_enabled = new_rls.fragment_config.light_enabled ? 1 : 0;
             const uint32_t tangent_space_enabled = new_rls.fragment_config.tangent_space_enabled ? 1 : 0;
             const uint32_t shadows_enabled = new_rls.fragment_config.shadows_enabled ? 1 : 0;
+            const uint32_t normal_maps_enabled = new_rls.fragment_config.normal_maps_enabled ? 1 : 0;
             const uint32_t flip_x = new_rls.light.flip_light_x ? 1 : 0;
             const uint32_t flip_y = new_rls.light.flip_light_y ? 1 : 0;
             const uint32_t flip_z = new_rls.light.flip_light_z ? 1 : 0;
@@ -6018,6 +6020,7 @@ namespace
             sd.light_enabled = light_enabled;
             sd.tangent_space_enabled = tangent_space_enabled;
             sd.shadows_enabled = shadows_enabled;
+            sd.normal_maps_enabled = normal_maps_enabled;
 
             rls = &new_rls;
             scene_data = sd;

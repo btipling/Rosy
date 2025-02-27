@@ -162,6 +162,7 @@ namespace rosy
         bool light_enabled{false};
         bool tangent_space_enabled{false};
         bool shadows_enabled{false};
+        bool normal_maps_enabled{false};
     };
 
     struct mob_state

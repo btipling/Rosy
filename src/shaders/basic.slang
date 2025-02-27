@@ -23,11 +23,12 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float4 object_space_camera = mul(gd.toObjectSpaceTransform, sd.cameraPosition);
     float4 object_light_dir = mul(gd.toObjectSpaceTransform, float4(sd.sunlight.xyz, 0.f));
 
-    float4 posWorld = float4(v.position, 1.0);
+    float4 vertPos = float4(v.position, 1.0);
+    float4 camPos = mul(mul(sd.view, worldMat), vertPos);
 
     float4x4 ndc_to_tc = { 0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1 };
 
-    float3 light = object_light_dir.xyz;
+    float3 light = object_light_dir.xyz - camPos.xyz;
     float4 new_tangent = v.tangent;
 
     // flip lights
@@ -62,11 +63,11 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         new_tangent = new_tangent * float4(1, 1, 1, -1);
     }
 
-    float3 normal = v.normal;
-    float3 tangent = new_tangent.xyz;
-    float3 bitangent = cross(normal, tangent) * new_tangent.w;
+    float3 normal = mul(normalMat, float4(v.normal, 1.f)).xyz;
+    float3 tangent = mul(normalMat, new_tangent).xyz;
+    float3 bitangent = normalize(cross(normal, tangent)) * new_tangent.w;
 
-    float3 view = object_space_camera.xyz - v.position.xyz;
+    float3 view = normalize(-camPos.xyz);
 
     bool tangentSpaceEnabled = sd.tangentSpaceEnabled == 1;
     if (BasicPushConstants.md != nullptr)
@@ -81,8 +82,9 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     if (tangentSpaceEnabled)
     {
-        view = float3(dot(tangent, view), dot(bitangent, view), dot(normal, view));
-        light = float3(dot(tangent, light), dot(bitangent, light), dot(normal, light));
+        float3x3 toObjectLocal = float3x3(tangent, bitangent, normal);
+        view = mul(toObjectLocal, view);
+        light = mul(toObjectLocal, light);
     }
 
     BasicVertexStageOutput output;
@@ -94,9 +96,9 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.viewDir = view;
     output.basicVertex.lightDir = light;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
-    output.csm.near = mul(mul(mul(ndc_to_tc, sd.shadowProjNear), worldMat), posWorld);
+    output.csm.near = mul(mul(mul(ndc_to_tc, sd.shadowProjNear), worldMat), vertPos);
 
-    output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
+    output.sv_position = mul(mul(sd.viewproj, worldMat), vertPos);
 
     return output;
 }
@@ -134,7 +136,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     float3 lightNormal = basicVertex.normal;
 
-    if (validDescriptorIndex(nti))
+    if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
     {
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];

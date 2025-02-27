@@ -1415,6 +1415,7 @@ result level::init(log* new_log, const config new_cfg)
             wls.fragment_config.light_enabled = true;
             wls.fragment_config.tangent_space_enabled = true;
             wls.fragment_config.shadows_enabled = true;
+            wls.fragment_config.normal_maps_enabled = true;
             wls.target_fps = initial_fps_target;
             rls.ui_enabled = true;
         }

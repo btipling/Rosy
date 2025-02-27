@@ -59,6 +59,7 @@ public struct SceneData
     public uint lightEnabled;
     public uint tangentSpaceEnabled;
     public uint shadowsEnabled;
+    public uint normalMapsEnabled;
 };
 
 public struct Fragment
