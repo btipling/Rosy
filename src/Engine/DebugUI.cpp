@@ -198,6 +198,12 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
 
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Inverse BNT", &wls->light.inverse_bnt);
+                ImGui::TableNextColumn();
+                ImGui::Text("");
+
                 ImGui::EndTable();
             }
         }

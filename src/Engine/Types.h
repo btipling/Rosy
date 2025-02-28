@@ -136,6 +136,7 @@ namespace rosy
         bool flip_tangent_y{false};
         bool flip_tangent_z{false};
         bool flip_tangent_w{false};
+        bool inverse_bnt{false};
     };
 
     struct light_debug_state

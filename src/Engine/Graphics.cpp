@@ -303,6 +303,7 @@ namespace
         [[maybe_unused]] uint32_t tangent_space_enabled{0};
         [[maybe_unused]] uint32_t shadows_enabled{0};
         [[maybe_unused]] uint32_t normal_maps_enabled{0};
+        [[maybe_unused]] uint32_t inverse_bnt{ 0 };
     };
 
     struct allocated_image
@@ -6002,6 +6003,7 @@ namespace
             const uint32_t flip_tangent_y = new_rls.light.flip_tangent_y ? 1 : 0;
             const uint32_t flip_tangent_z = new_rls.light.flip_tangent_z ? 1 : 0;
             const uint32_t flip_tangent_w = new_rls.light.flip_tangent_w ? 1 : 0;
+            const uint32_t inverse_bnt = new_rls.light.inverse_bnt ? 1 : 0;
             gpu_scene_data sd;
             sd.view = new_rls.cam.v;
             sd.proj = new_rls.cam.p;
@@ -6021,6 +6023,7 @@ namespace
             sd.tangent_space_enabled = tangent_space_enabled;
             sd.shadows_enabled = shadows_enabled;
             sd.normal_maps_enabled = normal_maps_enabled;
+            sd.inverse_bnt = inverse_bnt;
 
             rls = &new_rls;
             scene_data = sd;
