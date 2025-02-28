@@ -420,8 +420,8 @@ namespace
     struct graphic_object_data
     {
         [[maybe_unused]] std::array<float, 16> transform;
-        [[maybe_unused]] std::array<float, 16> normal_transform;
         [[maybe_unused]] std::array<float, 16> to_object_space_transform;
+        [[maybe_unused]] std::array<float, 9> normal_transform;
     };
 
     struct frame_data
@@ -4695,8 +4695,8 @@ namespace
             {
                 go_data.push_back({
                     .transform = go.transform,
-                    .normal_transform = go.normal_transform,
                     .to_object_space_transform = go.to_object_space_transform,
+                    .normal_transform = go.normal_transform,
                 });
                 for (const auto& s : go.surface_data)
                 {
@@ -5102,14 +5102,11 @@ namespace
                     {
                         updated.push_back({
                             .transform = gou.transform,
-                            .normal_transform = gou.normal_transform,
                             .to_object_space_transform = gou.to_object_space_transform,
+                            .normal_transform = gou.normal_transform,
                         });
                     }
-                    vkCmdUpdateBuffer(cf.command_buffer,
-                                      frame_datas[frame_to_update].graphic_objects_buffer.go_buffer.buffer,
-                                      sizeof(graphic_object_data) * graphics_object_update_data.offset,
-                                      sizeof(graphic_object_data) * updated.size(), updated.data());
+                    vkCmdUpdateBuffer(cf.command_buffer,  frame_datas[frame_to_update].graphic_objects_buffer.go_buffer.buffer, sizeof(graphic_object_data) * graphics_object_update_data.offset, sizeof(graphic_object_data) * updated.size(), updated.data());
                     // Clear out state so that we avoid unnecessary updates.
                     graphics_object_update_data.offset = 0;
                     graphics_object_update_data.graphic_objects.clear();

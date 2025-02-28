@@ -18,7 +18,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     BasicInputVertex v = *(BasicPushConstants.v + uiVertexId);
     BasicGraphicsData gd = *BasicPushConstants.gd;
     float4x4 worldMat = gd.transform;
-    float4x4 normalMat = gd.normalTransform;
+    float3x3 normalMat = gd.normalTransform;
 
     float4x4 ndc_to_tc = { 0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1 };
 
@@ -70,8 +70,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float3 viewDir;
 
-    float3 normal = mul(normalMat, float4(v.normal, 1.f)).xyz;
-    float3 tangent = mul(normalMat, new_tangent).xyz;
+    float3 normal = normalize(mul(normalMat, v.normal));
+    float3 tangent = normalize(mul(normalMat, new_tangent.xyz));
 
     if (tangentSpaceEnabled)
     {
@@ -87,7 +87,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         }
         float3 pos = mul(mul(sd.view, worldMat), float4(v.position, 1.0)).xyz;
 
-        lightDir = mul(toObjectLocal, lightDir - pos);
+        lightDir = mul(toObjectLocal, lightDir);
         viewDir = mul(toObjectLocal, normalize(-pos));
     } else {
         viewDir = mul(mul(sd.view, worldMat), float4(v.position, 1.0)).xyz;
@@ -98,7 +98,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
     output.basicVertex.normal = normal;
-    output.basicVertex.worldNormal = mul(gd.normalTransform, float4(v.normal, 0.f)).xyz;
+    output.basicVertex.worldNormal = mul(gd.normalTransform, v.normal);
     output.basicVertex.color = v.color;
     output.basicVertex.tangent = tangent * v.tangent.w;
     output.basicVertex.viewDir = viewDir;

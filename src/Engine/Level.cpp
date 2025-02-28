@@ -135,6 +135,18 @@ namespace
         return a;
     }
 
+    std::array<float, 9> mat3_to_array(glm::mat3 m)
+    {
+        std::array<float, 9> a{
+            1.f, 0.f, 0.f,
+            0.f, 1.f, 0.f,
+            0.f, 0.f, 1.f,
+        };
+        const auto pos_r = glm::value_ptr(m);
+        for (size_t i{ 0 }; i < 9; i++) a[i] = pos_r[i];
+        return a;
+    }
+
     glm::mat4 array_to_mat4(const std::array<float, 16>& a)
     {
         glm::mat4 m{1.f};
@@ -775,12 +787,12 @@ namespace
 
                     {
                         // Record the assets transforms from the asset
-                        const glm::mat4 to_object_space_transform = glm::inverse(static_cast<glm::mat3>(node_world_space_transform));
-                        const glm::mat4 normal_transform = glm::transpose(to_object_space_transform);
+                        const glm::mat4 to_object_space_transform = glm::inverse(static_cast<glm::mat4>(node_world_space_transform));
+                        const glm::mat3 normal_transform = glm::transpose(glm::inverse(glm::mat3(node_world_space_transform)));
 
                         go.transform = mat4_to_array(node_world_space_transform);
-                        go.normal_transform = mat4_to_array(normal_transform);
                         go.to_object_space_transform = mat4_to_array(to_object_space_transform);
+                        go.normal_transform = mat3_to_array(normal_transform);
                     }
 
                     {

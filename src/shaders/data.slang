@@ -29,8 +29,8 @@ public struct BasicInputVertex {
 
 public struct BasicGraphicsData {
     public float4x4 transform;
-    public float4x4 normalTransform;
     public float4x4 toObjectSpaceTransform;
+    public float3x3 normalTransform;
 };
 
 public struct CSM

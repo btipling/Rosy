@@ -23,6 +23,18 @@ namespace
         return a;
     }
 
+    std::array<float, 9> mat3_to_array(glm::mat3 m)
+    {
+        std::array<float, 9> a{
+            1.f, 0.f, 0.f,
+            0.f, 1.f, 0.f,
+            0.f, 0.f, 1.f,
+        };
+        const auto pos_r = glm::value_ptr(m);
+        for (size_t i{ 0 }; i < 9; i++) a[i] = pos_r[i];
+        return a;
+    }
+
     glm::mat4 array_to_mat4(const std::array<float, 16>& a)
     {
         glm::mat4 m{};
@@ -213,11 +225,11 @@ void node::populate_graph(std::vector<graphics_object>& graph) const
 {
     const glm::mat4 world_space_transform = ns->get_world_space_transform();
     const glm::mat4 world_to_object_space_transform = inverse(world_space_transform);
-    const glm::mat4 world_space_normal_transform = transpose(world_to_object_space_transform);
+    const glm::mat3 world_space_normal_transform = glm::transpose(glm::inverse(glm::mat3(world_space_transform)));
 
     const std::array<float, 16> go_transform = mat4_to_array(world_space_transform);
-    const std::array<float, 16> go_normal_transform = mat4_to_array(world_space_normal_transform);
-    const std::array<float, 16> go_to_object_space_transform = mat4_to_array(world_space_normal_transform);
+    const std::array<float, 16> go_to_object_space_transform = mat4_to_array(world_to_object_space_transform);
+    const std::array<float, 9> go_normal_transform = mat3_to_array(world_space_normal_transform);
 
     for (graphics_object go : graphics_objects)
     {
