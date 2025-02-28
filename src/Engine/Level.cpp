@@ -143,7 +143,7 @@ namespace
             0.f, 0.f, 1.f,
         };
         const auto pos_r = glm::value_ptr(m);
-        for (size_t i{ 0 }; i < 9; i++) a[i] = pos_r[i];
+        for (size_t i{0}; i < 9; i++) a[i] = pos_r[i];
         return a;
     }
 
@@ -1288,25 +1288,16 @@ namespace
                 // Lighting math
 
                 {
-                    const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {
-                                                                         0.f, 0.f,
-                                                                         1.f * ctx->wls->light_debug.sun_distance
-                                                                     });
-                    debug_light_translate = glm::translate(glm::mat4(1.f), {
-                                                               0.f, 0.f, -1.f * ctx->wls->light_debug.sun_distance
-                                                           });
-                    const glm::quat pitch_rotation = angleAxis(-ctx->wls->light_debug.sun_pitch,
-                                                               glm::vec3{1.f, 0.f, 0.f});
+                    const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * ctx->wls->light_debug.sun_distance});
+                    debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * ctx->wls->light_debug.sun_distance});
+                    const glm::quat pitch_rotation = angleAxis(-ctx->wls->light_debug.sun_pitch, glm::vec3{1.f, 0.f, 0.f});
                     const glm::quat yaw_rotation = angleAxis(ctx->wls->light_debug.sun_yaw, glm::vec3{0.f, -1.f, 0.f});
                     light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
 
-                    const auto camera_position = glm::vec3(
-                        light_line_rot * glm::vec4(0.f, 0.f, -ctx->wls->light_debug.sun_distance, 0.f));
+                    const auto camera_position = glm::vec3(light_line_rot * glm::vec4(0.f, 0.f, -ctx->wls->light_debug.sun_distance, 0.f));
                     auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
                     light_sun_view = light_line_rot * light_translate;
-                    debug_light_sun_view = light_line_rot * (ctx->wls->light_debug.enable_light_perspective
-                                                                 ? light_translate
-                                                                 : debug_light_translate);
+                    debug_light_sun_view = light_line_rot * (ctx->wls->light_debug.enable_light_perspective ? light_translate : debug_light_translate);
 
                     ctx->rls->light.sunlight = {sunlight[0], sunlight[1], sunlight[2], sunlight[3]};
                 };
@@ -1316,11 +1307,7 @@ namespace
             {
                 // Generate debug lines for light and shadow debugging
                 const glm::mat4 debug_draw_view = light_line_rot * debug_light_translate;
-                const glm::mat4 debug_light_line = glm::scale(debug_draw_view, {
-                                                                  ctx->wls->light_debug.sun_distance,
-                                                                  ctx->wls->light_debug.sun_distance,
-                                                                  ctx->wls->light_debug.sun_distance
-                                                              });
+                const glm::mat4 debug_light_line = glm::scale(debug_draw_view, {ctx->wls->light_debug.sun_distance, ctx->wls->light_debug.sun_distance, ctx->wls->light_debug.sun_distance});
 
                 debug_object line;
                 line.type = debug_object_type::line;
@@ -1421,7 +1408,7 @@ result level::init(log* new_log, const config new_cfg)
             wls.light.depth_bias_clamp = -20.937f;
             wls.light.depth_bias_slope_factor = -3.922f;
             wls.draw_config.cull_enabled = true;
-            wls.light.sunlight_color = { 0.55f, 0.55f, 0.55f, 1.f };
+            wls.light.sunlight_color = {0.55f, 0.55f, 0.55f, 1.f};
             wls.light.ambient_light = 0.04f;
             wls.light.depth_bias_enabled = true;
             wls.draw_config.thick_wire_lines = false;

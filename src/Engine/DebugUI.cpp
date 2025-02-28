@@ -156,7 +156,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::ColorEdit4("Ambient light", wls->light.sunlight_color.data(), 0);
+                ImGui::ColorEdit4("Sunlight color", wls->light.sunlight_color.data(), 0);
 
                 ImGui::EndTable();
             }
