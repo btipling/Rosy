@@ -6009,8 +6009,8 @@ namespace
             sd.shadow_projection_near = new_rls.cam.shadow_projection_near;
             sd.sunlight = new_rls.light.sunlight;
             sd.camera_position = new_rls.cam.position;
-            sd.ambient_color = {0.04f, 0.04f, 0.04f, 1.f};
-            sd.sunlight_color = {0.55f, 0.55f, 0.55f, 1.f};
+            sd.ambient_color = {new_rls.light.ambient_light, new_rls.light.ambient_light, new_rls.light.ambient_light, 1.f};
+            sd.sunlight_color = new_rls.light.sunlight_color;
             sd.flip_lights = {flip_x, flip_y, flip_z, 1};
             sd.flip_tangents = {flip_tangent_x, flip_tangent_y, flip_tangent_z, flip_tangent_w};
             sd.draw_extent = {static_cast<float>(swapchain_extent.width), static_cast<float>(swapchain_extent.height)};

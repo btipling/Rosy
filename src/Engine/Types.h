@@ -123,7 +123,9 @@ namespace rosy
     struct light_read_write_state
     {
         std::array<float, 4> sunlight{};
+        std::array<float, 4> sunlight_color{};
         bool depth_bias_enabled{false};
+        float ambient_light{0.f};
         float depth_bias_constant{0.f};
         float depth_bias_clamp{0.f};
         float depth_bias_slope_factor{0.f};
@@ -158,7 +160,7 @@ namespace rosy
 
     struct fragment_config_state
     {
-        int output{0}; // 0 normal, 1 normals, 2 tangent, 3 light
+        int output{0}; // 0 default, 1 normals, 2 tangent, 3 light, 4 view 5 vertex colors
         bool light_enabled{false};
         bool tangent_space_enabled{false};
         bool shadows_enabled{false};
