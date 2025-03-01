@@ -29,8 +29,8 @@ public struct BasicInputVertex {
 
 public struct BasicGraphicsData {
     public float4x4 transform;
-    public float4x4 normalTransform;
-    public float4x4 objectSpaceTransform;
+    public float4x4 toObjectSpaceTransform;
+    public float3x3 normalTransform;
 };
 
 public struct CSM
@@ -59,6 +59,8 @@ public struct SceneData
     public uint lightEnabled;
     public uint tangentSpaceEnabled;
     public uint shadowsEnabled;
+    public uint normalMapsEnabled;
+    public uint inverseBNT;
 };
 
 public struct Fragment
@@ -76,6 +78,8 @@ public struct BasicMaterialData {
     public uint32_t color_sampler_index;
     public uint32_t normal_texture_index;
     public uint32_t normal_sampler_index;
+    public uint32_t metallic_texture_index;
+    public uint32_t metallic_sampler_index;
 };
 
 public struct BasicPushConstant {

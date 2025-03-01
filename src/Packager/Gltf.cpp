@@ -47,7 +47,12 @@ namespace
 rosy::result gltf::import(rosy::log* l)
 {
     const std::filesystem::path file_path{source_path};
-
+    gltf_asset.asset_coordinate_system = {
+           -1.f, 0.f, 0.f, 0.f,
+           0.f, 1.f, 0.f, 0.f,
+           0.f, 0.f, 1.f, 0.f,
+           0.f, 0.f, 0.f, 1.f,
+    };
     constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
         fastgltf::Options::LoadExternalBuffers | fastgltf::Options::DecomposeNodeMatrices;
 
@@ -91,6 +96,7 @@ rosy::result gltf::import(rosy::log* l)
     // MATERIALS
 
     std::vector<std::tuple<uint32_t, uint32_t>> normal_map_images;
+    std::vector<std::tuple<uint32_t, uint32_t>> metallic_images;
     std::vector<std::tuple<uint32_t, uint32_t>> color_images;
     {
         for (fastgltf::Material& mat : gltf.materials)
@@ -114,6 +120,26 @@ rosy::result gltf::import(rosy::log* l)
                 else
                 {
                     m.color_sampler_index = UINT32_MAX;
+                }
+            }
+            if (mat.pbrData.metallicRoughnessTexture.has_value())
+            {
+                if (gltf.textures[mat.pbrData.metallicRoughnessTexture.value().textureIndex].imageIndex.has_value())
+                {
+                    m.metallic_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.metallicRoughnessTexture.value().textureIndex].imageIndex.value());
+                    metallic_images.emplace_back(m.metallic_image_index, static_cast<uint32_t>(color_images.size()));
+                }
+                else
+                {
+                    m.metallic_image_index = UINT32_MAX;
+                }
+                if (gltf.textures[mat.pbrData.metallicRoughnessTexture.value().textureIndex].samplerIndex.has_value())
+                {
+                    m.metallic_sampler_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.metallicRoughnessTexture.value().textureIndex].samplerIndex.value());
+                }
+                else
+                {
+                    m.metallic_sampler_index = UINT32_MAX;
                 }
             }
             if (mat.normalTexture.has_value())
@@ -194,6 +220,91 @@ rosy::result gltf::import(rosy::log* l)
                     image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
 
                 nvtt::Context context(true); // Enable CUDA
+
+                nvtt::CompressionOptions compression_options;
+                compression_options.setFormat(nvtt::Format_BC7);
+
+                img_path.replace_filename(std::format("{}.dds", gltf_img.name));
+                std::string output_filename = img_path.string();
+                nvtt::OutputOptions output_options;
+                output_options.setFileName(output_filename.c_str());
+
+                int num_mipmaps = image.countMipmaps();
+
+                l->info(std::format("num mip maps are {} for {}", num_mipmaps, input_filename));
+
+                if (!context.outputHeader(image, num_mipmaps, compression_options, output_options))
+                {
+                    l->error(std::format("Writing dds headers failed for  {}", input_filename));
+                    return rosy::result::error;
+                }
+
+                for (int mip = 0; mip < num_mipmaps; mip++)
+                {
+                    // Compress this image and write its data.
+                    if (!context.compress(image, 0 /* face */, mip, compression_options, output_options))
+                    {
+                        l->error(std::format("Compressing and writing the dds file failed for  {}", input_filename));
+                        return rosy::result::error;
+                    }
+
+                    if (mip == num_mipmaps - 1)
+                    {
+                        break;
+                    }
+
+                    image.toLinearFromSrgb();
+                    image.premultiplyAlpha();
+
+                    image.buildNextMipmap(nvtt::MipmapFilter_Box);
+
+                    image.demultiplyAlpha();
+                    image.toSrgb();
+                }
+            }
+        }
+    }
+    {
+        std::ranges::sort(metallic_images);
+        auto last = std::ranges::unique(metallic_images).begin();
+        metallic_images.erase(last, metallic_images.end());
+        l->info(std::format("num metallic_images {}", metallic_images.size()));
+        for (const auto& [gltf_index, rosy_index] : metallic_images)
+        {
+            // Declare it as a metallic image
+            gltf_asset.images[gltf_index].image_type = image_type_metallic_roughness;
+            const auto& gltf_img = gltf.images[gltf_index];
+            auto& img_path = pre_rename_image_paths[rosy_index];
+            l->info(std::format("{} is a gltf_img metallic image", gltf_img.name));
+            l->info(std::format("{} is an image_path metallic image", img_path.string()));
+
+            if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
+            {
+                l->error(std::format("{} is not a URI datasource", gltf_img.name));
+                return rosy::result::error;
+            }
+
+            const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_img.data);
+            l->info(std::format("metallic image uri is: {}", uri_ds.uri.string()));
+
+            std::filesystem::path source_img_path{ gltf_asset.asset_path };
+            source_img_path.replace_filename(uri_ds.uri.string());
+            l->info(std::format("source_img_path for metallic image is: {}", source_img_path.string()));
+
+            {
+                std::string input_filename{ source_img_path.string() };
+
+                nvtt::Surface image;
+                if (!image.load(input_filename.c_str()))
+                {
+                    l->error(std::format("Failed to load file  for  {}", input_filename));
+                    return rosy::result::error;
+                }
+
+                l->info(std::format("image data is width: {} height: {} depth: {} type: {} for ",
+                    image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
+
+                nvtt::Context context(true);
 
                 nvtt::CompressionOptions compression_options;
                 compression_options.setFormat(nvtt::Format_BC7);

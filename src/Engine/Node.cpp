@@ -23,6 +23,18 @@ namespace
         return a;
     }
 
+    std::array<float, 9> mat3_to_array(glm::mat3 m)
+    {
+        std::array<float, 9> a{
+            1.f, 0.f, 0.f,
+            0.f, 1.f, 0.f,
+            0.f, 0.f, 1.f,
+        };
+        const auto pos_r = glm::value_ptr(m);
+        for (size_t i{ 0 }; i < 9; i++) a[i] = pos_r[i];
+        return a;
+    }
+
     glm::mat4 array_to_mat4(const std::array<float, 16>& a)
     {
         glm::mat4 m{};
@@ -50,64 +62,60 @@ namespace
 
 struct node_state
 {
-    glm::mat4 parent_transform{};
-    glm::mat4 transform{};
+    rosy::log* l{nullptr};
+    bool is_world_node{false};
+    glm::mat4 object_to_world_transform{};
+    glm::mat4 object_space_parent_transform{};
     glm::mat4 object_space_transform{};
-    glm::mat4 normal_transform{};
-    glm::vec4 position{};
+    glm::vec3 world_space_translate{};
+    node_bounds object_space_bounds{};
+    float world_space_scale{1.f};
+    float world_space_yaw{0.f};
 
-    void set_transform(const std::array<float, 16>& new_transform, const std::array<float, 16>& new_parent_transform,
-                       const std::array<float, 3> custom_translate, const float custom_scale, const float custom_yaw)
+    void init(
+        rosy::log* new_log,
+        const bool new_is_world_node,
+        const std::array<float, 16>& coordinate_space_transform,
+        const std::array<float, 16>& new_object_space_parent_transform,
+        const std::array<float, 16>& new_object_space_transform,
+        const std::array<float, 3> new_world_space_translate,
+        const float new_world_space_scale,
+        const float new_world_space_yaw
+    )
     {
-        parent_transform = array_to_mat4(new_parent_transform);
-        transform = array_to_mat4(new_transform);
-
-        constexpr glm::mat4 m{1.f};
-        const glm::mat4 t = glm::translate(m, array_to_vec3(custom_translate));
-        const glm::mat4 r = toMat4(angleAxis(custom_yaw, glm::vec3{0.f, 1.f, 0.f}));
-        const glm::mat4 s = glm::scale(m, glm::vec3(custom_scale, custom_scale, custom_scale));
-
-        transform = t * r * s * transform;
-        const glm::mat4 final_transform = parent_transform * transform;
-
-        position = final_transform * glm::vec4(0.f, 0.f, 0.f, 1.f);
-        object_space_transform = glm::inverse(static_cast<glm::mat3>(final_transform));
-        normal_transform = glm::transpose(object_space_transform);
+        l = new_log;
+        is_world_node = new_is_world_node;
+        object_to_world_transform = array_to_mat4(coordinate_space_transform);
+        object_space_parent_transform = array_to_mat4(new_object_space_parent_transform);
+        object_space_transform = array_to_mat4(new_object_space_transform);
+        world_space_translate = array_to_vec3(new_world_space_translate);
+        world_space_scale = new_world_space_scale;
+        world_space_yaw = new_world_space_yaw;
     }
 
-    void update_transform(const std::array<float, 16>& new_transform)
+    [[nodiscard]] glm::mat4 get_world_space_transform() const
     {
-        transform = array_to_mat4(new_transform);
-        const glm::mat4 final_transform = parent_transform * transform;
+        const glm::mat4 t = translate(glm::mat4(1.f), world_space_translate);
+        const glm::mat4 r = toMat4(angleAxis(world_space_yaw, glm::vec3{0.f, -1.f, 0.f}));
+        const glm::mat4 s = scale(glm::mat4(1.f), glm::vec3(world_space_scale, world_space_scale, world_space_scale));
 
-        position = final_transform * glm::vec4(0.f, 0.f, 0.f, 1.f);
-        object_space_transform = glm::inverse(static_cast<glm::mat3>(final_transform));
-        normal_transform = glm::transpose(object_space_transform);
+        return t * r * s * object_to_world_transform * object_space_parent_transform * object_space_transform;
     }
 
-    void update_parent_transform(const std::array<float, 16>& new_parent_transform)
+    [[nodiscard]] glm::mat4 get_object_space_transform() const
     {
-        parent_transform = array_to_mat4(new_parent_transform);
-        position = transform * glm::vec4(0.f, 0.f, 0.f, 1.f);
-    }
-
-    void set_position(const std::array<float, 3>& new_position)
-    {
-        position = glm::vec4(new_position[0], new_position[1], new_position[2], 1.f);
-        transform = glm::mat4(
-            transform[0],
-            transform[1],
-            transform[2],
-            position
-        );
-
-        object_space_transform = glm::inverse(static_cast<glm::mat3>(parent_transform * transform));
-        normal_transform = glm::transpose(object_space_transform);
+        return object_space_parent_transform * object_space_transform;
     }
 };
 
-result node::init(rosy::log* new_log, const std::array<float, 16>& new_transform, const std::array<float, 16>& new_parent_transform,
-                  const std::array<float, 3> new_custom_translate, const float new_custom_scale, const float new_custom_yaw)
+result node::init(
+    rosy::log* new_log,
+    const bool is_world_node,
+    const std::array<float, 16>& coordinate_space,
+    const std::array<float, 16>& new_object_space_parent_transform,
+    const std::array<float, 16>& new_object_space_transform,
+    const std::array<float, 3> new_world_translate,
+    const float new_world_scale, const float new_world_yaw)
 {
     l = new_log;
     if (ns = new(std::nothrow) node_state; ns == nullptr)
@@ -115,14 +123,15 @@ result node::init(rosy::log* new_log, const std::array<float, 16>& new_transform
         l->error("Error allocating node state");
         return result::allocation_failure;
     }
-    ns->set_transform(new_transform, new_parent_transform, new_custom_translate, new_custom_scale, new_custom_yaw);
-    transform = mat4_to_array(ns->parent_transform * ns->transform);
-    object_space_transform = mat4_to_array(ns->object_space_transform);
-    normal_transform = mat4_to_array(ns->normal_transform);
-    position = vec4_to_array(ns->position);
-    custom_translate = new_custom_translate;
-    custom_scale = new_custom_scale;
-    custom_yaw = new_custom_yaw;
+    ns->init(
+        l,
+        is_world_node,
+        coordinate_space,
+        new_object_space_parent_transform,
+        new_object_space_transform,
+        new_world_translate,
+        new_world_scale,
+        new_world_yaw);
     return result::ok;
 }
 
@@ -138,60 +147,96 @@ void node::deinit()
     ns = nullptr;
 }
 
-result node::set_position(const std::array<float, 3>& new_position)
+void node::set_world_space_translate(const std::array<float, 3>& new_world_space_translate) const
 {
-    ns->set_position(new_position);
-    transform = mat4_to_array(ns->parent_transform * ns->transform);
-    position = vec4_to_array(ns->position);
-    object_space_transform = mat4_to_array(ns->object_space_transform);
-    normal_transform = mat4_to_array(ns->normal_transform);
-    for (node* n : children)
-    {
-        n->update_parent_transform(transform);
-    }
-    return result::ok;
+    ns->world_space_translate = array_to_vec3(new_world_space_translate);
 }
 
-result node::update_transform(const std::array<float, 16>& new_parent_transform)
+void node::set_world_space_scale(const float new_world_space_scale) const
 {
-    ns->update_transform(new_parent_transform);
-    transform = mat4_to_array(ns->parent_transform * ns->transform);
-    position = vec4_to_array(ns->position);
-    if (std::isnan(position[0]) || std::isnan(position[1]) || std::isnan(position[2]))
-    {
-        l->error("update_transform: error nan");
-        return result::error;
-    }
-    object_space_transform = mat4_to_array(ns->object_space_transform);
-    normal_transform = mat4_to_array(ns->normal_transform);
-    for (node* n : children)
-    {
-        n->update_parent_transform(transform);
-    }
-    return result::ok;
+    ns->world_space_scale = new_world_space_scale;
 }
 
-void node::update_parent_transform(const std::array<float, 16>& new_parent_transform)
+void node::set_world_space_yaw(const float new_world_space_yaw) const
 {
-    ns->update_parent_transform(new_parent_transform);
-    transform = mat4_to_array(ns->parent_transform * ns->transform);
-    position = vec4_to_array(ns->position);
-    object_space_transform = mat4_to_array(ns->object_space_transform);
-    normal_transform = mat4_to_array(ns->normal_transform);
-    for (node* n : children)
+    ns->world_space_yaw = new_world_space_yaw;
+}
+
+void node::set_object_space_bounds(node_bounds new_object_space_bounds) const
+{
+    ns->object_space_bounds = new_object_space_bounds;
+}
+
+std::array<float, 16> node::get_object_space_transform() const
+{
+    return mat4_to_array(ns->get_object_space_transform());
+}
+
+std::array<float, 16> node::get_world_space_transform() const
+{
+    return mat4_to_array(ns->get_world_space_transform());
+}
+
+std::array<float, 16> node::get_to_object_space_transform() const
+{
+    const glm::mat4 world_space_transform = ns->get_world_space_transform();
+    const glm::mat4 world_to_object_space_transform = inverse(world_space_transform);
+    const glm::mat4 world_space_normal_transform = transpose(world_to_object_space_transform);
+
+    return mat4_to_array(world_space_normal_transform);
+}
+
+node_bounds node::get_world_space_bounds() const
+{
+    const glm::mat4 world_space_transform = ns->get_world_space_transform();
+    const glm::vec4 object_space_min_bounds = {ns->object_space_bounds.min[0], ns->object_space_bounds.min[1], ns->object_space_bounds.min[2], 1.f};
+    const glm::vec4 object_space_max_bounds = {ns->object_space_bounds.max[0], ns->object_space_bounds.max[1], ns->object_space_bounds.max[2], 1.f};
+    glm::vec4 world_space_min_bounds = world_space_transform * object_space_min_bounds;
+    glm::vec4 world_space_max_bounds = world_space_transform * object_space_max_bounds;
+
+    for (glm::length_t i{0}; i < 3; i++)
     {
-        n->update_parent_transform(transform);
+        if (world_space_min_bounds[i] > world_space_max_bounds[i])
+        {
+            const float swap = world_space_min_bounds[i];
+            world_space_min_bounds[i] = world_space_max_bounds[i];
+            world_space_max_bounds[i] = swap;
+        }
+    }
+    return { .min = {world_space_min_bounds[0], world_space_min_bounds[1], world_space_min_bounds[2]}, .max ={world_space_max_bounds[0], world_space_max_bounds[1], world_space_max_bounds[2]}};
+}
+
+std::array<float, 3> node::get_world_space_position() const
+{
+    const auto rv = vec4_to_array(ns->get_world_space_transform() * glm::vec4(0.f, 0.f, 0.f, 1.f));
+    return {rv[0], rv[1], rv[2]};
+}
+
+void node::update_object_space_parent_transform(const std::array<float, 16>& new_parent_transform) const
+{
+    ns->object_space_parent_transform = array_to_mat4(new_parent_transform);
+    for (const node* n : children)
+    {
+        n->update_object_space_parent_transform(mat4_to_array(ns->object_space_parent_transform * ns->object_space_transform));
     }
 }
 
 void node::populate_graph(std::vector<graphics_object>& graph) const
 {
+    const glm::mat4 world_space_transform = ns->get_world_space_transform();
+    const glm::mat4 world_to_object_space_transform = inverse(world_space_transform);
+    const glm::mat3 world_space_normal_transform = glm::transpose(glm::inverse(glm::mat3(world_space_transform)));
+
+    const std::array<float, 16> go_transform = mat4_to_array(world_space_transform);
+    const std::array<float, 16> go_to_object_space_transform = mat4_to_array(world_to_object_space_transform);
+    const std::array<float, 9> go_normal_transform = mat3_to_array(world_space_normal_transform);
+
     for (graphics_object go : graphics_objects)
     {
         assert(graph.size() > go.index);
-        go.transform = transform;
-        go.normal_transform = normal_transform;
-        go.object_space_transform = object_space_transform;
+        go.transform = go_transform;
+        go.normal_transform = go_normal_transform;
+        go.to_object_space_transform = go_to_object_space_transform;
         graph[go.index] = go;
     }
     for (const node* n : children)
@@ -204,8 +249,7 @@ void node::debug()
 {
     size_t num_surfaces{0};
     for (const auto& go : graphics_objects) num_surfaces += go.surface_data.size();
-    l->debug(std::format("game node name: {} num graphic objects: {} num surfaces: {}", name, graphics_objects.size(),
-                         num_surfaces));
+    l->debug(std::format("game node name: {} num graphic objects: {} num surfaces: {}", name, graphics_objects.size(), num_surfaces));
     for (node* n : children)
     {
         n->debug();

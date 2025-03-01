@@ -120,27 +120,47 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
         }
         if (ImGui::CollapsingHeader("Lighting"))
         {
-            if (ImGui::BeginTable("Edit Scene Data", 1,
-                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+            if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
             {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 ImGui::SliderFloat("Spherical distance", &wls->light_debug.sun_distance, 0.f, 25.f);
-                ImGui::SliderFloat("Spherical pitch", &wls->light_debug.sun_pitch, 0.f,
-                                   4 * static_cast<float>(pi));
-                ImGui::SliderFloat("Spherical yaw", &wls->light_debug.sun_yaw, 0.f,
-                                   4 * static_cast<float>(pi));
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::SliderFloat("Spherical pitch", &wls->light_debug.sun_pitch, 0.f, 4 * static_cast<float>(pi));
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::SliderFloat("Spherical yaw", &wls->light_debug.sun_yaw, 0.f, 4 * static_cast<float>(pi));
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 ImGui::SliderFloat("Light depth", &wls->light_debug.orthographic_depth, 0.f, 500.f);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 ImGui::SliderFloat("Light cascade level", &wls->light_debug.cascade_level, 0.f, 50.f);
-                ImGui::SliderFloat("Depth bias constant", &wls->light.depth_bias_constant, -500.f,
-                                   500.f);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::SliderFloat("Depth bias constant", &wls->light.depth_bias_constant, -500.f, 500.f);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 ImGui::SliderFloat("Depth bias clamp", &wls->light.depth_bias_clamp, -500.f, 500.f);
-                ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor,
-                                   -50.f, 50.f);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::SliderFloat("Ambient light", &wls->light.ambient_light, 0.f, 1.f);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::ColorEdit4("Sunlight color", wls->light.sunlight_color.data(), 0);
+
                 ImGui::EndTable();
             }
-            if (ImGui::BeginTable("##ToggleOptions", 2,
-                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+            if (ImGui::BeginTable("##ToggleOptions", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
             {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
@@ -178,6 +198,12 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
 
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Inverse BNT", &wls->light.inverse_bnt);
+                ImGui::TableNextColumn();
+                ImGui::Text("");
+
                 ImGui::EndTable();
             }
         }
@@ -214,7 +240,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
         }
         if (ImGui::CollapsingHeader("Fragment Config"))
         {
-            ImGui::RadioButton("color", &wls->fragment_config.output, 0);
+            ImGui::RadioButton("default", &wls->fragment_config.output, 0);
             ImGui::SameLine();
             ImGui::RadioButton("normal", &wls->fragment_config.output, 1);
             ImGui::SameLine();
@@ -223,6 +249,8 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
             ImGui::RadioButton("light", &wls->fragment_config.output, 3);
             ImGui::SameLine();
             ImGui::RadioButton("view", &wls->fragment_config.output, 4);
+            ImGui::SameLine();
+            ImGui::RadioButton("vertex colors", &wls->fragment_config.output, 5);
             if (ImGui::BeginTable("##ToggleFragmentOptions", 2,
                                   ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
             {
@@ -236,7 +264,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Enable Shadows", &wls->fragment_config.shadows_enabled);
                 ImGui::TableNextColumn();
-                ImGui::Text("");
+                ImGui::Checkbox("Enable Normal maps", &wls->fragment_config.normal_maps_enabled);
 
                 ImGui::EndTable();
             }

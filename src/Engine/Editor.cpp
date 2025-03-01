@@ -543,7 +543,7 @@ namespace
                             }
                             node_descendants.push(static_cast<uint32_t>(node_index));
                         }
-                        bool first_node{true};
+                        bool is_world_node{true};
                         while (!node_descendants.empty())
                         {
                             uint32_t current_node_index = node_descendants.front();
@@ -559,7 +559,7 @@ namespace
                                     if (nm.source_index == current_node_index)
                                     {
                                         node_mapped = true;
-                                        if (first_node)
+                                        if (is_world_node)
                                         {
                                             // Even in this case we have seen the node before, add the top level model node to static or mob
                                             // the same model can be added multiple times.
@@ -597,25 +597,27 @@ namespace
                                     rosy_packager::node source_node = a->nodes[current_node_index];
                                     rosy_packager::node new_destination_node{};
                                     new_destination_node.name = source_node.name;
-                                    if (first_node) {
-                                        // Set these only for the initial node.
-                                        new_destination_node.custom_translate = md.location;
-                                        new_destination_node.custom_uniform_scale = md.scale;
-                                        new_destination_node.custom_yaw = md.yaw;
+                                    {
+                                        // Every node needs to know its world node's parent's world transform
+                                        new_destination_node.world_translate = md.location;
+                                        new_destination_node.world_scale = md.scale;
+                                        new_destination_node.world_yaw = md.yaw;
                                     }
+                                    new_destination_node.coordinate_system = a->asset_coordinate_system;
+                                    new_destination_node.is_world_node = is_world_node;
                                     new_destination_node.transform = source_node.transform;
                                     new_destination_node.child_nodes = source_node.child_nodes; // These are remapped below.
                                     new_destination_node.mesh_id = UINT32_MAX; // This is remapped below.
                                     level_asset.nodes.push_back(new_destination_node);
                                 }
                             }
-                            if (first_node)
+                            if (is_world_node)
                             {
-                                // Add the top level model node to static or mob.
+                                // Add the top level world model node to static or mob.
                                 switch (static_cast<editor_command::model_type>(md.model_type))
                                 {
                                 case editor_command::model_type::no_model:
-                                    l->error(std::format("invalid model type for {}", md.id));
+                                    l->error(std::format("invalid world model type for {}", md.id));
                                     return result::error;
                                 case editor_command::model_type::mob_model:
                                     level_asset.nodes[1].child_nodes.push_back(destination_node_index);
@@ -624,7 +626,7 @@ namespace
                                     level_asset.nodes[2].child_nodes.push_back(destination_node_index);
                                     break;
                                 }
-                                first_node = false;
+                                is_world_node = false;
                             }
                             // Get a reference to the destination node to change mesh index. Children have to be fully re-indexed in this queue before they can be remapped.
                             {
@@ -867,7 +869,7 @@ namespace
                                 }
                             }
                             for (const uint32_t child : a->nodes[current_node_index].child_nodes) node_descendants.push(child);
-                            first_node = false;
+                            is_world_node = false;
                         }
                     }
                 }
@@ -919,10 +921,9 @@ namespace
 
         result load_asset([[maybe_unused]] level_editor_state* state)
         {
-            std::array<std::string, 6> asset_paths{
+            std::array<std::string, 5> asset_paths{
                 R"(..\assets\houdini\exports\Box_002\Box_002.rsy)",
                 R"(..\assets\sponza\sponza.rsy)",
-                R"(..\assets\rosy_tt\rosy_tt1.rsy)",
                 R"(..\assets\cornell_dragons\cornell_dragons.rsy)",
                 R"(..\assets\two_cubes\two_cubes.rsy)",
                 R"(..\assets\deccer_cubes\SM_Deccer_Cubes_Textured_Complex.rsy)",

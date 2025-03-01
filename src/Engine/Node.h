@@ -23,42 +23,41 @@ namespace rosy
         std::vector<graphics_object> graphics_objects;
         std::string name{};
         std::vector<node*> children;
-        std::array<float, 16> parent_transform{
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
-        std::array<float, 16> transform{
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
-        std::array<float, 16> normal_transform{
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
-        std::array<float, 16> object_space_transform{
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f,
-        };
-        std::array<float, 4> position{};
-        std::array<float, 3> custom_translate{};
-        float custom_scale{1.f};
-        float custom_yaw{0.f};
-        node_bounds bounds{};
 
-        [[nodiscard]] result init(log* new_log, const std::array<float, 16>& new_transform, const std::array<float, 16>& new_parent_transform,
-                                  const std::array<float, 3> new_custom_translate, float new_custom_scale, float new_custom_yaw);
+        [[nodiscard]] result init(
+            log* new_log,
+            bool is_world_node,
+            const std::array<float, 16>& coordinate_space,
+            const std::array<float, 16>& new_object_space_parent_transform,
+            const std::array<float, 16>& new_object_space_transform,
+            const std::array<float, 3> new_world_translate,
+            float new_world_scale,
+            float new_world_yaw);
         void deinit();
-        [[nodiscard]] result set_position(const std::array<float, 3>& new_position);
-        [[nodiscard]] result update_transform(const std::array<float, 16>& new_parent_transform);
-        void update_parent_transform(const std::array<float, 16>& new_parent_transform);
+        void set_world_space_translate(const std::array<float, 3>& new_world_space_translate) const;
+        void set_world_space_scale(const float new_world_space_scale) const;
+        void set_world_space_yaw(float new_world_space_yaw) const;
+        void set_object_space_bounds(node_bounds new_object_space_bounds) const;
+
+        // get_object_space_transform does not return any world space transforms and does not escape the node's asset inherited coordinate system!
+        // The only purpose this function can serve is within **the same** mesh's object space derived from the same asset! Cannot be used with other nodes!
+        // Like if you wanted to move a hat around already on the model.
+        [[nodiscard]] std::array<float, 16> get_object_space_transform() const;
+
+        // get_world_space_transform returns the asset's representation in the world after all object space transforms have been applied, from asset to rosy's
+        // world space coordinate system and then any world space transforms
+        [[nodiscard]] std::array<float, 16> get_world_space_transform() const;
+
+        // get_to_object_space_transform this returns the matrix required to take something from world space to this object's space. 
+        [[nodiscard]] std::array<float, 16> get_to_object_space_transform() const;
+
+        // get_world_space_bounds this returns the world space bounds that this object fills in world space.
+        [[nodiscard]] node_bounds get_world_space_bounds() const;
+
+
+        [[nodiscard]] std::array<float, 3> get_world_space_position() const;
+
+        void update_object_space_parent_transform(const std::array<float, 16>& new_parent_transform) const;
         void populate_graph(std::vector<graphics_object>& graph) const;
         void debug();
     };

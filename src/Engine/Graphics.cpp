@@ -302,6 +302,8 @@ namespace
         [[maybe_unused]] uint32_t light_enabled{0};
         [[maybe_unused]] uint32_t tangent_space_enabled{0};
         [[maybe_unused]] uint32_t shadows_enabled{0};
+        [[maybe_unused]] uint32_t normal_maps_enabled{0};
+        [[maybe_unused]] uint32_t inverse_bnt{0};
     };
 
     struct allocated_image
@@ -352,6 +354,8 @@ namespace
         uint32_t color_sampler_index{UINT32_MAX};
         uint32_t normal_sampled_image_index{UINT32_MAX};
         uint32_t normal_sampler_index{UINT32_MAX};
+        uint32_t metallic_sampled_image_index{UINT32_MAX};
+        uint32_t metallic_sampler_index{UINT32_MAX};
     };
 
     struct gpu_material_buffer
@@ -416,8 +420,8 @@ namespace
     struct graphic_object_data
     {
         [[maybe_unused]] std::array<float, 16> transform;
-        [[maybe_unused]] std::array<float, 16> normal_transform;
-        [[maybe_unused]] std::array<float, 16> object_space_transform;
+        [[maybe_unused]] std::array<float, 16> to_object_space_transform;
+        [[maybe_unused]] std::array<float, 9> normal_transform;
     };
 
     struct frame_data
@@ -3604,8 +3608,8 @@ namespace
                 dds::Image dds_lib_image;
                 if (const auto res = dds::readFile(input_filename, &dds_lib_image); res != dds::Success)
                 {
-                    l->error(std::format("Failed to read dds lib data for {}", input_filename));
-                    return result::read_failed;
+                    l->warn(std::format("Failed to read dds lib data for {}, is it unused?", input_filename));
+                    continue;
                 }
 
                 VkImageCreateInfo dds_img_create_info = dds::getVulkanImageCreateInfo(&dds_lib_image);
@@ -3615,7 +3619,7 @@ namespace
                 num_mip_maps = dds_img_create_info.mipLevels;
 
                 size_t dds_image_data_size{0};
-                for (const auto m : dds_lib_image.mipmaps)
+                for (const auto& m : dds_lib_image.mipmaps)
                 {
                     dds_image_data_size += m.size();
                 }
@@ -3634,6 +3638,10 @@ namespace
                     else if (img.image_type == rosy_packager::image_type_normal_map)
                     {
                         new_dds_img.image_format = VK_FORMAT_BC5_UNORM_BLOCK;
+                    }
+                    else if (img.image_type == rosy_packager::image_type_metallic_roughness)
+                    {
+                        new_dds_img.image_format = VK_FORMAT_BC7_SRGB_BLOCK;
                     }
                     else
                     {
@@ -3733,12 +3741,12 @@ namespace
                     }
                     if (dds_staging_buffer.info.pMappedData != nullptr)
                     {
-                        size_t offset{ 0 };
+                        size_t offset{0};
                         for (const auto& m : dds_lib_image.mipmaps)
                         {
                             if (offset + m.size() > dds_staging_buffer.info.size)
                             {
-                                l->error(std::format("Error mip mapping buffer overflow. buffer size {}  copy size: {} for {}",  dds_staging_buffer.info.size, offset + m.size(), dds_image_name));
+                                l->error(std::format("Error mip mapping buffer overflow. buffer size {}  copy size: {} for {}", dds_staging_buffer.info.size, offset + m.size(), dds_image_name));
                                 return result::overflow;
                             }
                             memcpy(static_cast<char*>(dds_staging_buffer.info.pMappedData) + offset, static_cast<void*>(m.data()), m.size());
@@ -3813,7 +3821,7 @@ namespace
                         }
                         {
                             std::vector<VkBufferImageCopy> regions;
-                            size_t buffer_offset{ 0 };
+                            size_t buffer_offset{0};
                             VkExtent3D current_extent = new_dds_img.image_extent;
                             for (size_t mip{0}; mip < dds_lib_image.numMips; mip++)
                             {
@@ -4083,11 +4091,24 @@ namespace
                     {
                         normal_image_sampler_index = color_image_sampler_desc_index[m.normal_image_index];
 
-                        assert(dds_textures.size() > m.color_image_index);
+                        assert(dds_textures.size() > m.normal_image_index);
 
                         if (m.normal_sampler_index < sampler_desc_index.size())
                         {
                             normal_sampler_index = sampler_desc_index[m.normal_sampler_index];
+                        }
+                    }
+                    uint32_t metallic_image_sampler_index = UINT32_MAX;
+                    uint32_t metallic_sampler_index = default_sampler_index;
+                    if (m.metallic_image_index < color_image_sampler_desc_index.size())
+                    {
+                        metallic_image_sampler_index = color_image_sampler_desc_index[m.metallic_image_index];
+
+                        assert(dds_textures.size() > m.metallic_image_index);
+
+                        if (m.metallic_sampler_index < sampler_desc_index.size())
+                        {
+                            metallic_sampler_index = sampler_desc_index[m.metallic_sampler_index];
                         }
                     }
                     gpu_material new_mat{};
@@ -4101,6 +4122,8 @@ namespace
                     new_mat.color_sampler_index = color_sampler_index;
                     new_mat.normal_sampled_image_index = normal_image_sampler_index;
                     new_mat.normal_sampler_index = normal_sampler_index;
+                    new_mat.metallic_sampled_image_index = metallic_image_sampler_index;
+                    new_mat.metallic_sampler_index = metallic_sampler_index;
                     materials.push_back(new_mat);
                 }
 
@@ -4672,8 +4695,8 @@ namespace
             {
                 go_data.push_back({
                     .transform = go.transform,
+                    .to_object_space_transform = go.to_object_space_transform,
                     .normal_transform = go.normal_transform,
-                    .object_space_transform = go.object_space_transform,
                 });
                 for (const auto& s : go.surface_data)
                 {
@@ -5079,13 +5102,11 @@ namespace
                     {
                         updated.push_back({
                             .transform = gou.transform,
+                            .to_object_space_transform = gou.to_object_space_transform,
                             .normal_transform = gou.normal_transform,
-                            .object_space_transform = gou.object_space_transform,
                         });
                     }
-                    vkCmdUpdateBuffer(cf.command_buffer,
-                                      frame_datas[frame_to_update].graphic_objects_buffer.go_buffer.buffer,
-                                      sizeof(graphic_object_data) * graphics_object_update_data.offset,
+                    vkCmdUpdateBuffer(cf.command_buffer, frame_datas[frame_to_update].graphic_objects_buffer.go_buffer.buffer, sizeof(graphic_object_data) * graphics_object_update_data.offset,
                                       sizeof(graphic_object_data) * updated.size(), updated.data());
                     // Clear out state so that we avoid unnecessary updates.
                     graphics_object_update_data.offset = 0;
@@ -5972,6 +5993,7 @@ namespace
             const uint32_t light_enabled = new_rls.fragment_config.light_enabled ? 1 : 0;
             const uint32_t tangent_space_enabled = new_rls.fragment_config.tangent_space_enabled ? 1 : 0;
             const uint32_t shadows_enabled = new_rls.fragment_config.shadows_enabled ? 1 : 0;
+            const uint32_t normal_maps_enabled = new_rls.fragment_config.normal_maps_enabled ? 1 : 0;
             const uint32_t flip_x = new_rls.light.flip_light_x ? 1 : 0;
             const uint32_t flip_y = new_rls.light.flip_light_y ? 1 : 0;
             const uint32_t flip_z = new_rls.light.flip_light_z ? 1 : 0;
@@ -5979,6 +6001,7 @@ namespace
             const uint32_t flip_tangent_y = new_rls.light.flip_tangent_y ? 1 : 0;
             const uint32_t flip_tangent_z = new_rls.light.flip_tangent_z ? 1 : 0;
             const uint32_t flip_tangent_w = new_rls.light.flip_tangent_w ? 1 : 0;
+            const uint32_t inverse_bnt = new_rls.light.inverse_bnt ? 1 : 0;
             gpu_scene_data sd;
             sd.view = new_rls.cam.v;
             sd.proj = new_rls.cam.p;
@@ -5986,8 +6009,8 @@ namespace
             sd.shadow_projection_near = new_rls.cam.shadow_projection_near;
             sd.sunlight = new_rls.light.sunlight;
             sd.camera_position = new_rls.cam.position;
-            sd.ambient_color = {0.04f, 0.04f, 0.04f, 1.f};
-            sd.sunlight_color = {0.55f, 0.55f, 0.55f, 1.f};
+            sd.ambient_color = {new_rls.light.ambient_light, new_rls.light.ambient_light, new_rls.light.ambient_light, 1.f};
+            sd.sunlight_color = new_rls.light.sunlight_color;
             sd.flip_lights = {flip_x, flip_y, flip_z, 1};
             sd.flip_tangents = {flip_tangent_x, flip_tangent_y, flip_tangent_z, flip_tangent_w};
             sd.draw_extent = {static_cast<float>(swapchain_extent.width), static_cast<float>(swapchain_extent.height)};
@@ -5997,6 +6020,8 @@ namespace
             sd.light_enabled = light_enabled;
             sd.tangent_space_enabled = tangent_space_enabled;
             sd.shadows_enabled = shadows_enabled;
+            sd.normal_maps_enabled = normal_maps_enabled;
+            sd.inverse_bnt = inverse_bnt;
 
             rls = &new_rls;
             scene_data = sd;

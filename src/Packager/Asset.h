@@ -15,6 +15,12 @@ namespace rosy_packager
         uint32_t magic{0};
         uint32_t version{0};
         uint32_t endianness{0};
+        std::array<float, 16> coordinate_system{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         uint32_t root_scene{0};
     };
 
@@ -30,6 +36,8 @@ namespace rosy_packager
         float alpha_cutoff{0.f};
         uint32_t normal_image_index{UINT32_MAX}; // UINT32_MAX == not present
         uint32_t normal_sampler_index{UINT32_MAX}; // UINT32_MAX == not present
+        uint32_t metallic_image_index{UINT32_MAX}; // UINT32_MAX == not present
+        uint32_t metallic_sampler_index{UINT32_MAX}; // UINT32_MAX == not present
     };
 
     struct sampler
@@ -51,9 +59,15 @@ namespace rosy_packager
 
     struct node
     {
-        std::array<float, 3> custom_translate{0.f, 0.f, 0.f};
-        float custom_uniform_scale{1.f};
-        float custom_yaw{0.f};
+        std::array<float, 3> world_translate{0.f, 0.f, 0.f};
+        float world_scale{1.f};
+        float world_yaw{0.f};
+        // Nodes need a coordinate system because they can be combined from different asset systems at runtime.
+        // Not written to file! It is intentionally by default a zero matrix to identify it easily as not valid.
+        std::array<float, 16> coordinate_system{};
+        //  is_world_node another node property that not written to the file format and helps distinguish nodes
+        // that are independent world nodes from nodes that are ancestors of world nodes.
+        bool is_world_node{false};
         std::array<float, 16> transform{
             1.f, 0.f, 0.f, 0.f,
             0.f, 1.f, 0.f, 0.f,
@@ -89,6 +103,7 @@ namespace rosy_packager
     // image_type is effectively an enum
     constexpr uint32_t image_type_color{0};
     constexpr uint32_t image_type_normal_map{1};
+    constexpr uint32_t image_type_metallic_roughness{2};
 
     // More image types as needed will be added.
     struct image
@@ -113,6 +128,12 @@ namespace rosy_packager
         std::vector<image> images;
         std::vector<mesh> meshes;
         std::vector<shader> shaders;
+        std::array<float, 16> asset_coordinate_system{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
         uint32_t root_scene{0};
 
         rosy::result write(const rosy::log* l);

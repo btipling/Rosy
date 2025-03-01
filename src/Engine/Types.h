@@ -50,8 +50,8 @@ namespace rosy
         size_t index{0};
         std::vector<surface_graphics_data> surface_data{};
         std::array<float, 16> transform{};
-        std::array<float, 16> normal_transform{};
-        std::array<float, 16> object_space_transform{};
+        std::array<float, 16> to_object_space_transform{};
+        std::array<float, 9> normal_transform{};
     };
 
     struct graphics_object_update
@@ -123,7 +123,9 @@ namespace rosy
     struct light_read_write_state
     {
         std::array<float, 4> sunlight{};
+        std::array<float, 4> sunlight_color{};
         bool depth_bias_enabled{false};
+        float ambient_light{0.f};
         float depth_bias_constant{0.f};
         float depth_bias_clamp{0.f};
         float depth_bias_slope_factor{0.f};
@@ -134,6 +136,7 @@ namespace rosy
         bool flip_tangent_y{false};
         bool flip_tangent_z{false};
         bool flip_tangent_w{false};
+        bool inverse_bnt{false};
     };
 
     struct light_debug_state
@@ -150,7 +153,7 @@ namespace rosy
 
     struct draw_config_state
     {
-        bool reverse_winding_order_enabled{true};
+        bool reverse_winding_order_enabled{false};
         bool cull_enabled{false};
         bool wire_enabled{false};
         bool thick_wire_lines{false};
@@ -158,10 +161,11 @@ namespace rosy
 
     struct fragment_config_state
     {
-        int output{0}; // 0 normal, 1 normals, 2 tangent, 3 light
+        int output{0}; // 0 default, 1 normals, 2 tangent, 3 light, 4 view 5 vertex colors
         bool light_enabled{false};
         bool tangent_space_enabled{false};
         bool shadows_enabled{false};
+        bool normal_maps_enabled{false};
     };
 
     struct mob_state

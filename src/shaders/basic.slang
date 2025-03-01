@@ -18,30 +18,25 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     BasicInputVertex v = *(BasicPushConstants.v + uiVertexId);
     BasicGraphicsData gd = *BasicPushConstants.gd;
     float4x4 worldMat = gd.transform;
-    float4x4 normalMat = gd.normalTransform;
-
-    float4 object_space_camera = mul(gd.objectSpaceTransform, sd.cameraPosition);
-    float4 object_light_dir = mul(gd.objectSpaceTransform, float4(sd.sunlight.xyz, 0.f));
-
-    float4 posWorld = float4(v.position, 1.0);
+    float3x3 normalMat = gd.normalTransform;
 
     float4x4 ndc_to_tc = { 0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1 };
 
-    float3 light = object_light_dir.xyz;
+    float3 lightDir = sd.sunlight.xyz;
     float4 new_tangent = v.tangent;
 
     // flip lights
     if (sd.flipLights[0] == 1)
     {
-        light = light * float3(-1, 1, 1);
+        lightDir = lightDir * float3(-1, 1, 1);
     }
     if (sd.flipLights[1] == 1)
     {
-        light = light * float3(1, -1, 1);
+        lightDir = lightDir * float3(1, -1, 1);
     }
     if (sd.flipLights[2] == 1)
     {
-        light = light * float3(1, 1, -1);
+        lightDir = lightDir * float3(1, 1, -1);
     }
 
     // flip tangents
@@ -62,12 +57,6 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         new_tangent = new_tangent * float4(1, 1, 1, -1);
     }
 
-    float3 normal = v.normal;
-    float3 tangent = new_tangent.xyz;
-    float3 bitangent = cross(normal, tangent) * new_tangent.w;
-
-    float3 view = object_space_camera.xyz - v.position.xyz;
-
     bool tangentSpaceEnabled = sd.tangentSpaceEnabled == 1;
     if (BasicPushConstants.md != nullptr)
     {
@@ -79,24 +68,45 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         }
     }
 
+    float3 viewDir;
+
+    float3 normal = normalize(mul(normalMat, v.normal));
+    float3 tangent = normalize(mul(normalMat, new_tangent.xyz));
+
     if (tangentSpaceEnabled)
     {
-        view = float3(dot(tangent, view), dot(bitangent, view), dot(normal, view));
-        light = float3(dot(tangent, light), dot(bitangent, light), dot(normal, light));
+        float3 bitangent = normalize(cross(normal, tangent)) * new_tangent.w;
+
+        float3x3 toObjectLocal = float3x3(tangent, bitangent, normal);
+        if (sd.inverseBNT > 0) {
+            toObjectLocal = float3x3(
+                float3(tangent.x, bitangent.x, normal.x),
+                float3(tangent.y, bitangent.y, normal.y),
+                float3(tangent.z, bitangent.z, normal.z),
+            );
+        }
+        float3 pos = mul(mul(sd.view, worldMat), float4(v.position, 1.0)).xyz;
+
+        lightDir = mul(toObjectLocal, lightDir);
+        viewDir = mul(toObjectLocal, normalize(-pos));
+    } else {
+        viewDir = mul(mul(sd.view, worldMat), float4(v.position, 1.0)).xyz;
     }
+
+    float4 vertPos = float4(v.position, 1.0);
 
     BasicVertexStageOutput output;
     output.basicVertex.vertex = float4(v.position, 1.f);
     output.basicVertex.normal = normal;
-    output.basicVertex.worldNormal = mul(gd.normalTransform, float4(v.normal, 0.f)).xyz;
+    output.basicVertex.worldNormal = mul(gd.normalTransform, v.normal);
     output.basicVertex.color = v.color;
     output.basicVertex.tangent = tangent * v.tangent.w;
-    output.basicVertex.viewDir = view;
-    output.basicVertex.lightDir = light;
+    output.basicVertex.viewDir = viewDir;
+    output.basicVertex.lightDir = lightDir;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
-    output.csm.near = mul(mul(mul(ndc_to_tc, sd.shadowProjNear), worldMat), posWorld);
+    output.csm.near = mul(mul(mul(ndc_to_tc, sd.shadowProjNear), worldMat), vertPos);
 
-    output.sv_position = mul(mul(sd.viewproj, worldMat), posWorld);
+    output.sv_position = mul(mul(sd.viewproj, worldMat), vertPos);
 
     return output;
 }
@@ -106,25 +116,33 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 {
     SceneData sd = *BasicPushConstants.sd;
 
-    if (BasicPushConstants.md == nullptr)
+    if (sd.fragmentOutput == 5 || BasicPushConstants.md == nullptr)
     {
 
-        float3 V = normalize(basicVertex.viewDir);
-        float3 L = normalize(basicVertex.lightDir);
-        float3 N = normalize(basicVertex.normal);
-        float3 H = L + V;
+        if (sd.lightEnabled > 0)
+        {
+            float3 V = normalize(basicVertex.viewDir);
+            float3 L = normalize(basicVertex.lightDir);
+            float3 N = normalize(basicVertex.normal);
+            float3 H = L + V;
 
-        float cosTheta = dot(L, N);
-        float cosPhi = dot(H, N);
+            float cosTheta = dot(L, N);
+            float cosPhi = dot(H, N);
 
-        float3 ambientLight = sd.ambientColor.xyz;
-        float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
+            float3 ambientLight = sd.ambientColor.xyz;
+            float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
-        float4 outFragColor = basicVertex.color * float4(ambientLight * sunLight, 1.0);
+            float4 outFragColor = basicVertex.color * float4(ambientLight * sunLight, 1.0);
+
+            Fragment output;
+            output.color = outFragColor;
+            return output;
+        }
 
         Fragment output;
-        output.color = outFragColor;
+        output.color = basicVertex.color;
         return output;
+
     }
 
     BasicMaterialData md = *BasicPushConstants.md;
@@ -132,14 +150,16 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     uint nti = md.normal_texture_index;
     uint nsi = md.normal_sampler_index;
 
-    float3 lightNormal = basicVertex.normal;
+    float3 lightNormal = normalize(basicVertex.normal);
+    float3 lightDir = normalize(basicVertex.lightDir);
 
-    if (validDescriptorIndex(nti))
+    if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
     {
+        lightDir = normalize(-basicVertex.lightDir);
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-        lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
+        lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1;
     }
 
     float4 outFragColor = md.color;
@@ -169,12 +189,14 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     case 4:
         outFragColor = float4(normalize(basicVertex.viewDir) * 0.5 + 0.5, 1.f);
         break;
+    default:
+        break;
     }
 
     if (sd.lightEnabled > 0)
     {
         float3 V = normalize(basicVertex.viewDir);
-        float3 L = normalize(basicVertex.lightDir);
+        float3 L = lightDir;
         float3 N = lightNormal;
         float3 H = L + V;
 
@@ -194,8 +216,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
         }
 
-        outFragColor =
-            max(outFragColor * float4(ambientLight, 1.f), outFragColor * float4(sunLight * shadowFactor, 1.0));
+        outFragColor = max(outFragColor * float4(ambientLight, 1.f), outFragColor * float4(sunLight * shadowFactor, 1.0));
     }
 
     Fragment output;
