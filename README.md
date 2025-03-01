@@ -7,6 +7,8 @@ This is a hobby project to build a game engine and eventually a game in my spare
 
 ![Rosy and friends](https://github.com/user-attachments/assets/1109c417-88a5-40d2-aa83-c1ff4296b977)
 
+![Rosy and a shadow casting dragon](https://github.com/user-attachments/assets/92573443-0900-4f11-807f-ab386c76bb5b)
+
 ## Building
 
 This project will likely not build for anyone else at this time. See assets and hardware section below.
