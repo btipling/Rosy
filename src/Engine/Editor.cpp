@@ -534,6 +534,11 @@ namespace
                             }
                             node_index += 1;
                         }
+                        if (node_index >= a->nodes.size())
+                        {
+                            l->error(std::format("Unable to find mesh with name {} in {}", model_node_name, md.id));
+                            return result::error;
+                        }
                         // The node's index and the index of all child nodes all the way down the graph need to be added to the new level asset and re-indexed.
                         {
                             if (!node_descendants.empty())

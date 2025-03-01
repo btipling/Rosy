@@ -159,7 +159,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-        lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1;
+        lightNormal = normalize(normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1);
     }
 
     float4 outFragColor = md.color;

@@ -152,6 +152,10 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
+                ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor,  -50.f, 50.f);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 ImGui::SliderFloat("Ambient light", &wls->light.ambient_light, 0.f, 1.f);
 
                 ImGui::TableNextRow();

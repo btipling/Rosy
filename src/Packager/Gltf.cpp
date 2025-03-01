@@ -48,10 +48,10 @@ rosy::result gltf::import(rosy::log* l)
 {
     const std::filesystem::path file_path{source_path};
     gltf_asset.asset_coordinate_system = {
-           -1.f, 0.f, 0.f, 0.f,
-           0.f, 1.f, 0.f, 0.f,
-           0.f, 0.f, 1.f, 0.f,
-           0.f, 0.f, 0.f, 1.f,
+        -1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
     };
     constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
         fastgltf::Options::LoadExternalBuffers | fastgltf::Options::DecomposeNodeMatrices;
@@ -81,14 +81,18 @@ rosy::result gltf::import(rosy::log* l)
     std::vector<std::filesystem::path> pre_rename_image_paths;
     for (auto& [gltf_image_data, gltf_image_name] : gltf.images)
     {
-        l->debug(std::format("Adding image: {}", gltf_image_name));
+        const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_image_data);
+        const std::string gltf_img_name{uri_ds.uri.string().substr(0, uri_ds.uri.string().find('.'))};
+
+        l->info(std::format("Adding image: {}", gltf_img_name));
         image img{};
 
         std::filesystem::path img_path{gltf_asset.asset_path};
         pre_rename_image_paths.emplace_back(img_path);
-        img_path.replace_filename(std::format("{}.dds", gltf_image_name));
-        l->debug(std::format("source: {} path: {} name: {}", gltf_asset.asset_path, img_path.string(), gltf_image_name));
+        img_path.replace_filename(std::format("{}.dds", gltf_img_name));
+        l->debug(std::format("source: {} path: {} name: {}", gltf_asset.asset_path, img_path.string(), gltf_img_name));
 
+        l->info(std::format("Adding image: {}", gltf_img_name));
         std::ranges::copy(img_path.string(), std::back_inserter(img.name));
         gltf_asset.images.push_back(img);
     }
@@ -189,25 +193,26 @@ rosy::result gltf::import(rosy::log* l)
             // Declare it as a color image
             gltf_asset.images[gltf_index].image_type = image_type_color;
             const auto& gltf_img = gltf.images[gltf_index];
-            auto& img_path = pre_rename_image_paths[rosy_index];
-            l->info(std::format("{} is a gltf_img color image", gltf_img.name));
-            l->info(std::format("{} is an image_path color image", img_path.string()));
-
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
             {
-                l->error(std::format("{} is not a URI datasource", gltf_img.name));
+                l->error("not a URI datasource");
                 return rosy::result::error;
             }
 
             const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_img.data);
             l->info(std::format("color image uri is: {}", uri_ds.uri.string()));
+            const std::string gltf_img_name{uri_ds.uri.string().substr(0, uri_ds.uri.string().find('.'))};
+
+            auto& img_path = pre_rename_image_paths[rosy_index];
+            l->info(std::format("{} is a gltf_img color image", gltf_img_name));
+            l->info(std::format("{} is an image_path color image", img_path.string()));
 
             std::filesystem::path source_img_path{gltf_asset.asset_path};
             source_img_path.replace_filename(uri_ds.uri.string());
             l->info(std::format("source_img_path for color image is: {}", source_img_path.string()));
 
             {
-                std::string input_filename{ source_img_path.string() };
+                std::string input_filename{source_img_path.string()};
 
                 nvtt::Surface image;
                 if (!image.load(input_filename.c_str()))
@@ -216,15 +221,14 @@ rosy::result gltf::import(rosy::log* l)
                     return rosy::result::error;
                 }
 
-                l->info(std::format("image data is width: {} height: {} depth: {} type: {} for ",
-                    image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
+                l->debug(std::format("image data is width: {} height: {} depth: {} type: {} for ", image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
 
                 nvtt::Context context(true); // Enable CUDA
 
                 nvtt::CompressionOptions compression_options;
                 compression_options.setFormat(nvtt::Format_BC7);
 
-                img_path.replace_filename(std::format("{}.dds", gltf_img.name));
+                img_path.replace_filename(std::format("{}.dds", gltf_img_name));
                 std::string output_filename = img_path.string();
                 nvtt::OutputOptions output_options;
                 output_options.setFileName(output_filename.c_str());
@@ -274,25 +278,26 @@ rosy::result gltf::import(rosy::log* l)
             // Declare it as a metallic image
             gltf_asset.images[gltf_index].image_type = image_type_metallic_roughness;
             const auto& gltf_img = gltf.images[gltf_index];
-            auto& img_path = pre_rename_image_paths[rosy_index];
-            l->info(std::format("{} is a gltf_img metallic image", gltf_img.name));
-            l->info(std::format("{} is an image_path metallic image", img_path.string()));
-
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
             {
-                l->error(std::format("{} is not a URI datasource", gltf_img.name));
+                l->error("not a URI datasource");
                 return rosy::result::error;
             }
 
             const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_img.data);
             l->info(std::format("metallic image uri is: {}", uri_ds.uri.string()));
+            const std::string gltf_img_name{uri_ds.uri.string().substr(0, uri_ds.uri.string().find('.'))};
 
-            std::filesystem::path source_img_path{ gltf_asset.asset_path };
+            auto& img_path = pre_rename_image_paths[rosy_index];
+            l->info(std::format("{} is a gltf_img metallic image", gltf_img_name));
+            l->info(std::format("{} is an image_path metallic image", img_path.string()));
+
+            std::filesystem::path source_img_path{gltf_asset.asset_path};
             source_img_path.replace_filename(uri_ds.uri.string());
             l->info(std::format("source_img_path for metallic image is: {}", source_img_path.string()));
 
             {
-                std::string input_filename{ source_img_path.string() };
+                std::string input_filename{source_img_path.string()};
 
                 nvtt::Surface image;
                 if (!image.load(input_filename.c_str()))
@@ -302,14 +307,14 @@ rosy::result gltf::import(rosy::log* l)
                 }
 
                 l->info(std::format("image data is width: {} height: {} depth: {} type: {} for ",
-                    image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
+                                    image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
 
                 nvtt::Context context(true);
 
                 nvtt::CompressionOptions compression_options;
                 compression_options.setFormat(nvtt::Format_BC7);
 
-                img_path.replace_filename(std::format("{}.dds", gltf_img.name));
+                img_path.replace_filename(std::format("{}.dds", gltf_img_name));
                 std::string output_filename = img_path.string();
                 nvtt::OutputOptions output_options;
                 output_options.setFileName(output_filename.c_str());
@@ -360,25 +365,26 @@ rosy::result gltf::import(rosy::log* l)
             // Declare it as a normal map image
             gltf_asset.images[gltf_index].image_type = image_type_normal_map;
             const auto& gltf_img = gltf.images[gltf_index];
-            auto& img_path = pre_rename_image_paths[rosy_index];
-            l->info(std::format("{} is a gltf_img normal image", gltf_img.name));
-            l->info(std::format("{} is an image_path normal image", img_path.string()));
-
-            if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data)) {
-                l->error(std::format("{} is not a URI datasource", gltf_img.name));
+            if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
+            {
+                l->error("not a URI datasource");
                 return rosy::result::error;
             }
 
             const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_img.data);
             l->info(std::format("normal image uri is: {}", uri_ds.uri.string()));
+            const std::string gltf_img_name{uri_ds.uri.string().substr(0, uri_ds.uri.string().find('.'))};
 
-            std::filesystem::path source_img_path{ gltf_asset.asset_path };
+            auto& img_path = pre_rename_image_paths[rosy_index];
+            l->info(std::format("{} is a gltf_img normal image", gltf_img_name));
+            l->info(std::format("{} is an image_path normal image", img_path.string()));
+
+            std::filesystem::path source_img_path{gltf_asset.asset_path};
             source_img_path.replace_filename(uri_ds.uri.string());
             l->info(std::format("source_img_path for normal image is: {}", source_img_path.string()));
 
-
             {
-                std::string input_filename{ source_img_path.string() };
+                std::string input_filename{source_img_path.string()};
 
                 nvtt::Surface image;
                 if (!image.load(input_filename.c_str()))
@@ -388,21 +394,21 @@ rosy::result gltf::import(rosy::log* l)
                 }
 
                 l->info(std::format("image data is width: {} height: {} depth: {} type: {} for ",
-                    image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
+                                    image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
 
                 nvtt::Context context(true); // Enable CUDA
 
                 nvtt::CompressionOptions compression_options;
                 compression_options.setFormat(nvtt::Format_BC5);
 
-                img_path.replace_filename(std::format("{}.dds", gltf_img.name));
+                img_path.replace_filename(std::format("{}.dds", gltf_img_name));
                 std::string output_filename = img_path.string();
                 nvtt::OutputOptions output_options;
                 output_options.setFileName(output_filename.c_str());
 
                 int num_mipmaps = image.countMipmaps();
                 l->info(std::format("num mip maps are {} for {}", num_mipmaps, input_filename));
-          
+
                 if (!context.outputHeader(image, num_mipmaps, compression_options, output_options))
                 {
                     l->error(std::format("Writing dds headers failed for  {}", input_filename));
