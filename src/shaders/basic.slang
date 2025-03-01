@@ -151,13 +151,15 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     uint nsi = md.normal_sampler_index;
 
     float3 lightNormal = normalize(basicVertex.normal);
+    float3 lightDir = normalize(basicVertex.lightDir);
 
     if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
     {
+        lightDir = normalize(-basicVertex.lightDir);
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-        lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz;
+        lightNormal = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1;
     }
 
     float4 outFragColor = md.color;
@@ -194,7 +196,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     if (sd.lightEnabled > 0)
     {
         float3 V = normalize(basicVertex.viewDir);
-        float3 L = normalize(basicVertex.lightDir);
+        float3 L = lightDir;
         float3 N = lightNormal;
         float3 H = L + V;
 
