@@ -4,6 +4,7 @@
 #include <fastgltf/tools.hpp>
 #include <iostream>
 #include <nvtt/nvtt.h>
+#include <mikktspace.h>
 
 using namespace rosy_packager;
 
@@ -43,6 +44,50 @@ namespace
         return UINT16_MAX;
     }
 }
+
+struct t_space_generator_context
+{
+    asset* gltf_asset{nullptr};
+    size_t mesh_index;
+};
+
+int t_space_get_num_faces(const SMikkTSpaceContext* p_context)  // NOLINT(misc-use-internal-linkage)
+{
+    return 0;
+}
+
+int t_space_get_num_vertices_of_face(const SMikkTSpaceContext* p_context, const int i_face)  // NOLINT(misc-use-internal-linkage)
+{
+    return 3;
+}
+
+void t_space_get_position(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert)  // NOLINT(misc-use-internal-linkage)
+{
+    // do stuff
+}
+
+void t_space_get_normal(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert)  // NOLINT(misc-use-internal-linkage)
+{
+    // do stuff
+}
+
+void t_space_get_texture_coordinates(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert)  // NOLINT(misc-use-internal-linkage)
+{
+    // do stuff
+}
+
+void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float tangent[], const float sign, const int i_face, const int i_vert)  // NOLINT(misc-use-internal-linkage)
+{
+    // do stuff
+}
+
+SMikkTSpaceInterface t_space_generator = {  // NOLINT(misc-use-internal-linkage)
+    .m_getNumFaces = t_space_get_num_faces,
+    .m_getNumVerticesOfFace =  t_space_get_num_vertices_of_face,
+    .m_getPosition = t_space_get_position,
+    .m_getTexCoord = t_space_get_texture_coordinates,
+    .m_setTSpaceBasic = t_space_set_tangent,
+};
 
 rosy::result gltf::import(rosy::log* l)
 {

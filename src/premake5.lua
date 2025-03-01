@@ -85,12 +85,14 @@ project "Packager"
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
     includedirs { "\"" .. nvtt_path .. "/include/\"" }
-    includedirs { "libs/stb" }
+    includedirs { "libs/stb/" }
+    includedirs { "libs/MikkTSpace/" }
 
     libdirs { "libs/fastgltf/build/Debug" }
     libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
 
     files { "libs/stb_image.cpp" }
+    files { "libs/MikkTSpace/mikktspace.c" }
     files { "Packager/**.h", "Packager/**.cpp" }
     files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
 
