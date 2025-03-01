@@ -1161,15 +1161,13 @@ namespace
                     c_forward nf{.yaw = target_yaw};
                     ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
 
-                    // Set rosy's orientation to face target
-                    glm::quat yaw_rotation = angleAxis(target_yaw, glm::vec3{0.f, 1.f, 0.f});
-
                     // Linearly interpolate rosy's position toward the target
                     const float t = 1.f * it->delta_time;
                     glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
 
                     // Update rosy's world space orientation and position
                     ctx->rosy_reference.node->set_world_space_translate(vec3_to_array(new_rosy_pos));
+                    // Set rosy's orientation to face target
                     ctx->rosy_reference.node->set_world_space_yaw(target_yaw);
 
                     ctx->game_cam->set_game_cam_position({new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});

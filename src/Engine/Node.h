@@ -54,7 +54,7 @@ namespace rosy
         // get_world_space_bounds this returns the world space bounds that this object fills in world space.
         [[nodiscard]] node_bounds get_world_space_bounds() const;
 
-       
+
         [[nodiscard]] std::array<float, 3> get_world_space_position() const;
 
         void update_object_space_parent_transform(const std::array<float, 16>& new_parent_transform) const;

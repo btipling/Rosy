@@ -303,7 +303,7 @@ namespace
         [[maybe_unused]] uint32_t tangent_space_enabled{0};
         [[maybe_unused]] uint32_t shadows_enabled{0};
         [[maybe_unused]] uint32_t normal_maps_enabled{0};
-        [[maybe_unused]] uint32_t inverse_bnt{ 0 };
+        [[maybe_unused]] uint32_t inverse_bnt{0};
     };
 
     struct allocated_image
@@ -5106,7 +5106,8 @@ namespace
                             .normal_transform = gou.normal_transform,
                         });
                     }
-                    vkCmdUpdateBuffer(cf.command_buffer,  frame_datas[frame_to_update].graphic_objects_buffer.go_buffer.buffer, sizeof(graphic_object_data) * graphics_object_update_data.offset, sizeof(graphic_object_data) * updated.size(), updated.data());
+                    vkCmdUpdateBuffer(cf.command_buffer, frame_datas[frame_to_update].graphic_objects_buffer.go_buffer.buffer, sizeof(graphic_object_data) * graphics_object_update_data.offset,
+                                      sizeof(graphic_object_data) * updated.size(), updated.data());
                     // Clear out state so that we avoid unnecessary updates.
                     graphics_object_update_data.offset = 0;
                     graphics_object_update_data.graphic_objects.clear();
