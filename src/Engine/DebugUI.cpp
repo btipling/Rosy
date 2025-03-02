@@ -249,12 +249,12 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
             ImGui::RadioButton("normal", &wls->fragment_config.output, 1);
             ImGui::SameLine();
             ImGui::RadioButton("tangent", &wls->fragment_config.output, 2);
-            ImGui::SameLine();
             ImGui::RadioButton("light", &wls->fragment_config.output, 3);
             ImGui::SameLine();
             ImGui::RadioButton("view", &wls->fragment_config.output, 4);
             ImGui::SameLine();
             ImGui::RadioButton("vertex colors", &wls->fragment_config.output, 5);
+            ImGui::RadioButton("tangent space normals", &wls->fragment_config.output, 6);
             if (ImGui::BeginTable("##ToggleFragmentOptions", 2,
                                   ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
             {
@@ -273,73 +273,75 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::EndTable();
             }
         }
-        if (ImGui::CollapsingHeader("Mobs"))
-        {
-            if (ImGui::BeginTable("##Mob states", 2,
-                                  ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+        if (!rls->mob_read.mob_states.empty()) {
+            if (ImGui::CollapsingHeader("Mobs"))
             {
-                for (const auto& mob_states : rls->mob_read.mob_states)
+                if (ImGui::BeginTable("##Mob states", 2,
+                    ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
                 {
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("name");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%s", mob_states.name.c_str());
+                    for (const auto& mob_states : rls->mob_read.mob_states)
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::Text("name");
+                        ImGui::TableNextColumn();
+                        ImGui::Text("%s", mob_states.name.c_str());
 
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("position");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.position[0], mob_states.position[1],
-                                mob_states.position[2]);
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::Text("position");
+                        ImGui::TableNextColumn();
+                        ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.position[0], mob_states.position[1],
+                            mob_states.position[2]);
 
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("yaw");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("(%.2f)", mob_states.yaw);
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::Text("yaw");
+                        ImGui::TableNextColumn();
+                        ImGui::Text("(%.2f)", mob_states.yaw);
 
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("target");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.target[0], mob_states.target[1],
-                                mob_states.target[2]);
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::Text("target");
+                        ImGui::TableNextColumn();
+                        ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.target[0], mob_states.target[1],
+                            mob_states.target[2]);
 
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::Text("");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("");
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::Text("");
+                        ImGui::TableNextColumn();
+                        ImGui::Text("");
+                    }
+                    ImGui::EndTable();
                 }
-                ImGui::EndTable();
-            }
 
-            if (ImGui::BeginCombo("Select mob",
-                                  rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
-            {
-                for (size_t i = 0; i < rls->mob_read.mob_states.size(); ++i)
+                if (ImGui::BeginCombo("Select mob",
+                    rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
                 {
-                    const auto& mob_state = rls->mob_read.mob_states[i];
-                    const bool is_selected = (wls->mob_edit.edit_index == i);
-                    if (ImGui::Selectable(mob_state.name.c_str(), is_selected))
+                    for (size_t i = 0; i < rls->mob_read.mob_states.size(); ++i)
                     {
-                        wls->mob_edit.edit_index = i;
+                        const auto& mob_state = rls->mob_read.mob_states[i];
+                        const bool is_selected = (wls->mob_edit.edit_index == i);
+                        if (ImGui::Selectable(mob_state.name.c_str(), is_selected))
+                        {
+                            wls->mob_edit.edit_index = i;
+                        }
+                        if (is_selected)
+                        {
+                            ImGui::SetItemDefaultFocus();
+                        }
                     }
-                    if (is_selected)
-                    {
-                        ImGui::SetItemDefaultFocus();
-                    }
+                    ImGui::EndCombo();
                 }
-                ImGui::EndCombo();
-            }
-            if (!wls->mob_edit.updated)
-                wls->mob_edit.position = rls->mob_read.mob_states[wls->mob_edit.
-                                                                       edit_index].position;
-            if (ImGui::InputFloat3("position", wls->mob_edit.position.data()))
-                wls->mob_edit.updated =
+                if (!wls->mob_edit.updated)
+                    wls->mob_edit.position = rls->mob_read.mob_states[wls->mob_edit.
+                    edit_index].position;
+                if (ImGui::InputFloat3("position", wls->mob_edit.position.data()))
+                    wls->mob_edit.updated =
                     true;
-            if (ImGui::Button("Update", button_dims)) wls->mob_edit.submitted = true;
+                if (ImGui::Button("Update", button_dims)) wls->mob_edit.submitted = true;
+            }
         }
         if (ImGui::CollapsingHeader("Picking"))
         {

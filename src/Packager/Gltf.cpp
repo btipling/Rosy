@@ -4,6 +4,7 @@
 #include <fastgltf/tools.hpp>
 #include <iostream>
 #include <nvtt/nvtt.h>
+#include <mikktspace.h>
 
 using namespace rosy_packager;
 
@@ -44,7 +45,162 @@ namespace
     }
 }
 
-rosy::result gltf::import(rosy::log* l)
+struct t_space_surface_map
+{
+    size_t surface_index{0}; // The surface's index in the gltf asset's mesh vector
+    int triangle_count_offset{0}; // The number of triangles that precede this surfaces triangles
+    int current_triangle{0}; // The current triangle's index within the surface.
+};
+
+struct t_space_generator_context
+{
+    asset* gltf_asset{nullptr};
+    std::vector<t_space_surface_map> triangle_surface_map;
+    size_t mesh_index{0};
+    size_t surface_index{0};
+    int num_triangles{0};
+    rosy::log* l;
+};
+
+// All faces are triangles below and are referred to as triangles instead of faces unless it is a mikktspace header field name.
+
+void t_space_gen_num_faces(t_space_generator_context& ctx) // NOLINT(misc-use-internal-linkage)
+{
+    const mesh& m = ctx.gltf_asset->meshes[ctx.mesh_index];
+    const size_t surface_index = ctx.surface_index;
+    const surface& s = m.surfaces[surface_index];
+    int num_triangles{0};
+    const int num_triangles_in_surface = static_cast<int>(s.count) / 3;
+    ctx.triangle_surface_map.reserve(ctx.triangle_surface_map.size() + num_triangles_in_surface);
+    for (int i{0}; i < num_triangles_in_surface; i++)
+    {
+        t_space_surface_map sm{
+            .surface_index = surface_index,
+            .triangle_count_offset = num_triangles,
+            .current_triangle = i,
+        };
+        ctx.triangle_surface_map.emplace_back(sm);
+    }
+    num_triangles += num_triangles_in_surface;
+    ctx.l->info(std::format("num triangles {} in surface {} for mesh {}", num_triangles, surface_index, ctx.mesh_index));
+    ctx.num_triangles = num_triangles;
+}
+
+int t_space_get_num_faces(const SMikkTSpaceContext* p_context) // NOLINT(misc-use-internal-linkage)
+{
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    return ctx->num_triangles;
+}
+
+int t_space_get_num_vertices_of_face([[maybe_unused]] const SMikkTSpaceContext* p_context, [[maybe_unused]] const int requested_triangle) // NOLINT(misc-use-internal-linkage)
+{
+    // Hard code return 3 vertices per face as the faces are all triangles
+    return 3;
+}
+
+size_t t_space_get_asset_position_data(const SMikkTSpaceContext* p_context, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage))
+{
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+
+    const t_space_surface_map& sm = ctx->triangle_surface_map[static_cast<size_t>(requested_triangle)];
+
+    const surface& s = m.surfaces[sm.surface_index];
+
+    const int surface_triangle = sm.current_triangle;
+
+
+    const size_t indices_index = static_cast<size_t>(s.start_index) + static_cast<size_t>(surface_triangle * 3) + static_cast<size_t>(requested_triangle_vertex);
+    return m.indices[indices_index];
+}
+
+void t_space_get_position(const SMikkTSpaceContext* p_context, float* fv_pos_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
+{
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    if (requested_triangle % 1000 == 0) {
+        ctx->l->info(std::format("t_space_get_position progress is {}/{} in surface {} for mesh {}", requested_triangle, ctx->triangle_surface_map.size(), ctx->surface_index, ctx->mesh_index));
+    }
+    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
+    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const position& p = m.positions[position_index];
+    std::memcpy(fv_pos_out, p.vertex.data(), sizeof(std::array<float, 3>));
+}
+
+void t_space_get_normal(const SMikkTSpaceContext* p_context, float* fv_normal_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
+{
+    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const position& p = m.positions[position_index];
+    std::memcpy(fv_normal_out, p.normal.data(), sizeof(std::array<float, 3>));
+}
+
+void t_space_get_texture_coordinates(const SMikkTSpaceContext* p_context, float* fv_text_coords_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
+{
+    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const position& p = m.positions[position_index];
+    std::memcpy(fv_text_coords_out, p.texture_coordinates.data(), sizeof(std::array<float, 2>));
+}
+
+// Given only a normal vector, finds a valid tangent.
+//
+// This uses the technique from "Improved accuracy when building an orthonormal
+// basis" by Nelson Max, https://jcgt.org/published/0006/01/02.
+// Any tangent-generating algorithm must produce at least one discontinuity
+// when operating on a sphere (due to the hairy ball theorem); this has a
+// small ring-shaped discontinuity at normal.z == -0.99998796.
+// via https://github.com/nvpro-samples/nvpro_core
+static fastgltf::math::fvec4 make_fast_space_fast_tangent(const fastgltf::math::fvec3& n)
+{
+    if (n[2] < -0.99998796f) // Handle the singularity
+    {
+        return fastgltf::math::fvec4(0.f, -1.f, 0.f, 1.f);
+    }
+    const float a = 1.f / (1.f + n[2]);
+    const float b = -n[0] * n[1] * a;
+    return fastgltf::math::fvec4(1.f - n[0] * n[0] * a, b, -n[0], 1.f);
+}
+
+void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float new_tangent[], const float new_sign, const int requested_triangle, const int requested_triangle_vertex)
+// NOLINT(misc-use-internal-linkage)
+{
+    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+
+    std::array<float, 3> n = m.positions[position_index].normal;
+    float sign = new_sign;
+    const auto normal = fastgltf::math::fvec3{n[0], n[1], n[2]};
+    fastgltf::math::fvec3 tangent = {new_tangent[0], new_tangent[1], new_tangent[2]};
+    if (std::abs(fastgltf::math::dot(tangent, normal)) < 0.9f)
+    {
+        tangent = {new_tangent[0], new_tangent[1], new_tangent[2]};
+        sign = -sign;
+    }
+    else
+    {
+        tangent = make_fast_space_fast_tangent(normal);
+    }
+
+    m.positions[position_index].tangents[0] = tangent[0];
+    m.positions[position_index].tangents[1] = tangent[1];
+    m.positions[position_index].tangents[2] = tangent[2];
+    m.positions[position_index].tangents[3] = sign;
+}
+
+SMikkTSpaceInterface t_space_generator = { // NOLINT(misc-use-internal-linkage)
+    .m_getNumFaces = t_space_get_num_faces,
+    .m_getNumVerticesOfFace = t_space_get_num_vertices_of_face,
+    .m_getPosition = t_space_get_position,
+    .m_getNormal = t_space_get_normal,
+    .m_getTexCoord = t_space_get_texture_coordinates,
+    .m_setTSpaceBasic = t_space_set_tangent,
+    .m_setTSpace = nullptr,
+};
+
+rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 {
     const std::filesystem::path file_path{source_path};
     gltf_asset.asset_coordinate_system = {
@@ -183,6 +339,7 @@ rosy::result gltf::import(rosy::log* l)
             gltf_asset.materials.push_back(m);
         }
     }
+    if (cfg.condition_images)
     {
         std::ranges::sort(color_images);
         auto last = std::ranges::unique(color_images).begin();
@@ -268,6 +425,7 @@ rosy::result gltf::import(rosy::log* l)
             }
         }
     }
+    if (cfg.condition_images)
     {
         std::ranges::sort(metallic_images);
         auto last = std::ranges::unique(metallic_images).begin();
@@ -354,6 +512,7 @@ rosy::result gltf::import(rosy::log* l)
             }
         }
     }
+    if (cfg.condition_images)
     {
         std::ranges::sort(normal_map_images);
         auto last = std::ranges::unique(normal_map_images).begin();
@@ -624,6 +783,36 @@ rosy::result gltf::import(rosy::log* l)
             n.child_nodes.push_back(static_cast<uint32_t>(node_index));
         }
         gltf_asset.nodes.push_back(n);
+    }
+
+    if (cfg.use_mikktspace)
+    {
+        l->info(std::format("generating tangents for {} meshes", gltf_asset.meshes.size()));
+        for (size_t mesh_index{0}; mesh_index < gltf_asset.meshes.size(); mesh_index++)
+        {
+            for (size_t surface_index{0}; surface_index < gltf_asset.meshes[mesh_index].surfaces.size(); surface_index++)
+            {
+                l->info(std::format("generating tangent for mesh at index {}", mesh_index));
+                t_space_generator_context t_ctx{
+                    .gltf_asset = &gltf_asset,
+                    .triangle_surface_map = {},
+                    .mesh_index = mesh_index,
+                    .surface_index = surface_index,
+                    .num_triangles = 0,
+                    .l = l,
+                };
+                t_space_gen_num_faces(t_ctx);
+                SMikkTSpaceContext s_mikktspace_ctx{
+                    .m_pInterface = &t_space_generator,
+                    .m_pUserData = static_cast<void*>(&t_ctx),
+                };
+                if (!genTangSpaceDefault(&s_mikktspace_ctx))
+                {
+                    l->error(std::format("Error generating tangents for mesh at index {}", mesh_index));
+                    return rosy::result::error;
+                }
+            }
+        }
     }
     return rosy::result::ok;
 }

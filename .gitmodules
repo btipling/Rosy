@@ -16,3 +16,6 @@
 [submodule "src/libs/stb"]
 	path = src/libs/stb
 	url = git@github.com:nothings/stb.git
+[submodule "src/libs/MikkTSpace"]
+	path = src/libs/MikkTSpace
+	url = git@github.com:btipling/MikkTSpace.git
