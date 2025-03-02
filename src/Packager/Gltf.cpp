@@ -787,7 +787,6 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 
     if (cfg.use_mikktspace)
     {
-        // This is really slow and does not render nicely.
         l->info(std::format("generating tangents for {} meshes", gltf_asset.meshes.size()));
         for (size_t mesh_index{0}; mesh_index < gltf_asset.meshes.size(); mesh_index++)
         {
