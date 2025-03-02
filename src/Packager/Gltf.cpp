@@ -163,7 +163,7 @@ SMikkTSpaceInterface t_space_generator = { // NOLINT(misc-use-internal-linkage)
     .m_setTSpace = nullptr,
 };
 
-rosy::result gltf::import(rosy::log* l)
+rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 {
     const std::filesystem::path file_path{source_path};
     gltf_asset.asset_coordinate_system = {
@@ -302,7 +302,7 @@ rosy::result gltf::import(rosy::log* l)
             gltf_asset.materials.push_back(m);
         }
     }
-    {
+    if (cfg.condition_images) {
         std::ranges::sort(color_images);
         auto last = std::ranges::unique(color_images).begin();
         color_images.erase(last, color_images.end());
@@ -387,7 +387,7 @@ rosy::result gltf::import(rosy::log* l)
             }
         }
     }
-    {
+    if (cfg.condition_images) {
         std::ranges::sort(metallic_images);
         auto last = std::ranges::unique(metallic_images).begin();
         metallic_images.erase(last, metallic_images.end());
@@ -473,7 +473,7 @@ rosy::result gltf::import(rosy::log* l)
             }
         }
     }
-    {
+    if (cfg.condition_images) {
         std::ranges::sort(normal_map_images);
         auto last = std::ranges::unique(normal_map_images).begin();
         normal_map_images.erase(last, normal_map_images.end());
@@ -743,6 +743,24 @@ rosy::result gltf::import(rosy::log* l)
             n.child_nodes.push_back(static_cast<uint32_t>(node_index));
         }
         gltf_asset.nodes.push_back(n);
+    }
+
+    for (size_t mesh_index{0}; mesh_index < gltf_asset.meshes.size(); mesh_index++)
+    {
+        l->info(std::format("generating tangent for mesh at index {}", mesh_index));
+        t_space_generator_context t_ctx{
+            .gltf_asset = &gltf_asset,
+            .mesh_index = mesh_index
+        };
+        SMikkTSpaceContext s_mikktspace_ctx{
+            .m_pInterface = &t_space_generator,
+            .m_pUserData = static_cast<void*>(&t_ctx),
+        };
+        if (!genTangSpaceDefault(&s_mikktspace_ctx))
+        {
+            l->error(std::format("Error generating tangents for mesh at index {}", mesh_index));
+            return rosy::result::error;
+        }
     }
     return rosy::result::ok;
 }

@@ -49,7 +49,8 @@ int main(const int argc, char* argv[])
         g.source_path = source_path.string();
         g.gltf_asset = a;
     }
-    if (const auto res = g.import(&l); res != rosy::result::ok)
+    gltf_config gltf_cfg{ .condition_images = false };
+    if (const auto res = g.import(&l, gltf_cfg); res != rosy::result::ok)
     {
         l.error(std::format("Error importing gltf {}", static_cast<uint8_t>(res)));
         return EXIT_FAILURE;
@@ -61,7 +62,7 @@ int main(const int argc, char* argv[])
     int i{0};
     for (const auto& p : g.gltf_asset.meshes[0].positions)
     {
-        l.debug(std::format("{}: ({}, {}, {}) |  ({}, {}, {}) |  ({}, {}, {}) |  ({}, {}, {}, {}) |  ({}, {})", i,
+        l.info(std::format("{}: ({}, {}, {}) |  ({}, {}, {}) |  ({}, {}, {}) |  ({}, {}, {}, {}) |  ({}, {})", i,
                             p.vertex[0], p.vertex[1], p.vertex[2],
                             p.normal[0], p.normal[1], p.normal[2],
                             p.tangents[0], p.tangents[1], p.tangents[2],
