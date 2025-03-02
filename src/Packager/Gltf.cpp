@@ -51,42 +51,54 @@ struct t_space_generator_context
     size_t mesh_index;
 };
 
-int t_space_get_num_faces(const SMikkTSpaceContext* p_context)  // NOLINT(misc-use-internal-linkage)
+int t_space_get_num_faces(const SMikkTSpaceContext* p_context) // NOLINT(misc-use-internal-linkage)
 {
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
     return 0;
 }
 
-int t_space_get_num_vertices_of_face(const SMikkTSpaceContext* p_context, const int i_face)  // NOLINT(misc-use-internal-linkage)
+int t_space_get_num_vertices_of_face([[maybe_unused]] const SMikkTSpaceContext* p_context, [[maybe_unused]] const int i_face) // NOLINT(misc-use-internal-linkage)
 {
     return 3;
 }
 
-void t_space_get_position(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert)  // NOLINT(misc-use-internal-linkage)
+void t_space_get_position(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert) // NOLINT(misc-use-internal-linkage)
 {
-    // do stuff
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
 }
 
-void t_space_get_normal(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert)  // NOLINT(misc-use-internal-linkage)
+void t_space_get_normal(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert) // NOLINT(misc-use-internal-linkage)
 {
-    // do stuff
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
 }
 
-void t_space_get_texture_coordinates(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert)  // NOLINT(misc-use-internal-linkage)
+void t_space_get_texture_coordinates(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert) // NOLINT(misc-use-internal-linkage)
 {
-    // do stuff
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
 }
 
-void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float tangent[], const float sign, const int i_face, const int i_vert)  // NOLINT(misc-use-internal-linkage)
+void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float tangent[], const float sign, const int i_face, const int i_vert) // NOLINT(misc-use-internal-linkage)
 {
-    // do stuff
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
 }
 
-SMikkTSpaceInterface t_space_generator = {  // NOLINT(misc-use-internal-linkage)
+
+void t_space_set_tangent_unused( // NOLINT(misc-use-internal-linkage)
+    [[maybe_unused]] const SMikkTSpaceContext* p_context, [[maybe_unused]] const float tangent[], [[maybe_unused]] const float sign, [[maybe_unused]] const int i_face,
+    [[maybe_unused]] const int i_vert)
+{
+    // This is a noop function used only to satisfy the t_space_genera
+}
+
+
+SMikkTSpaceInterface t_space_generator = { // NOLINT(misc-use-internal-linkage)
     .m_getNumFaces = t_space_get_num_faces,
-    .m_getNumVerticesOfFace =  t_space_get_num_vertices_of_face,
+    .m_getNumVerticesOfFace = t_space_get_num_vertices_of_face,
     .m_getPosition = t_space_get_position,
+    .m_getNormal = t_space_get_normal,
     .m_getTexCoord = t_space_get_texture_coordinates,
     .m_setTSpaceBasic = t_space_set_tangent,
+    .m_setTSpace = nullptr,
 };
 
 rosy::result gltf::import(rosy::log* l)
