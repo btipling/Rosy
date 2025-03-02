@@ -51,45 +51,107 @@ struct t_space_generator_context
     size_t mesh_index;
 };
 
+// All faces are triangles below and are referred to as triangles instead of faces unless it is a mikktspace header field name.
+
 int t_space_get_num_faces(const SMikkTSpaceContext* p_context) // NOLINT(misc-use-internal-linkage)
 {
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    return 0;
+    const mesh m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    int num_triangles{0};
+    for (const surface& s : m.surfaces)
+    {
+        // Each gltf primitive is referred to as a surface, it as an index offset and a count of indices, each three indices represents a triangle
+        assert(s.count % 3 == 0); // There must only be triangles in a surface.
+        const int num_triangles_in_surface = static_cast<int>(s.count) / 3;
+        num_triangles += num_triangles_in_surface;
+    }
+    return num_triangles;
 }
 
-int t_space_get_num_vertices_of_face([[maybe_unused]] const SMikkTSpaceContext* p_context, [[maybe_unused]] const int i_face) // NOLINT(misc-use-internal-linkage)
+int t_space_get_num_vertices_of_face([[maybe_unused]] const SMikkTSpaceContext* p_context, [[maybe_unused]] const int requested_triangle) // NOLINT(misc-use-internal-linkage)
 {
+    // Hard code return 3 vertices per face as the faces are all triangles
     return 3;
 }
 
-void t_space_get_position(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert) // NOLINT(misc-use-internal-linkage)
+size_t t_space_get_asset_position_data(const SMikkTSpaceContext* p_context, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage))
 {
+    size_t rv{};
+    assert(requested_triangle_vertex < 3); // requested_triangle_vertex must be one of {0, 1, 2};
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    // Iterate over all surfaces and all of their triangle to find the current triangle for requested_triangle, derive the index and return its position.
+    int num_triangles_visited{0};
+    bool found{false};
+    for (const surface& s : m.surfaces)
+    {
+        const auto num_indices_in_surface = static_cast<int>(s.count);
+        const int num_triangles_in_surface = num_indices_in_surface / 3;
+        if (const int last_triangle_in_surface = num_triangles_visited + num_triangles_in_surface; last_triangle_in_surface < requested_triangle)
+        {
+            // This loop must iterate further to find the surface with the requested triangle.
+            num_triangles_visited += num_triangles_in_surface;
+            continue;
+        }
+        // Each surface has a number of triangles, requested_triangle is an index into the list of all triangles given the sum of all triangles across all surfaces in the mesh.
+        // num_triangles_visited is the number of triangles we have visited already, requested_triangle - num_triangles_visited should represent a triangle referenced by the current surface
+        // given that requested_triangle is less than last_triangle_in_surface.
+        const int surface_triangle = requested_triangle - num_triangles_visited;
+        // surface_triangle is the index of the triangle in this surface, not across all the mesh's triangles
+        assert(surface_triangle < num_triangles_in_surface);
+        // The indices_index for the requested triangle's vertex begins at the surfaces.start_index + the nth number of triangle vertices + the index of the requested triangle's vertex which is one of {0, 1, 2}
+        const size_t indices_index = static_cast<size_t>(s.start_index) + static_cast<size_t>(surface_triangle * 3) + static_cast<size_t>(requested_triangle_vertex);
+        assert(m.indices.size() > indices_index); // Cannot reference an index larger than the number of indices available.
+        rv = static_cast<size_t>(m.indices[indices_index]);
+        found = true;
+        break;
+    }
+    assert(found); // The requested triangle and vertex must have been found.
+    return rv;
 }
 
-void t_space_get_normal(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert) // NOLINT(misc-use-internal-linkage)
+void t_space_get_position(const SMikkTSpaceContext* p_context, float* fv_pos_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
 {
+    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    const mesh m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const position p = m.positions[position_index];
+    *(fv_pos_out + 0) = p.vertex[0];
+    *(fv_pos_out + 1) = p.vertex[1];
+    *(fv_pos_out + 2) = p.vertex[2];
 }
 
-void t_space_get_texture_coordinates(const SMikkTSpaceContext* p_context, float fv_pos_out[], const int i_face, const int i_vert) // NOLINT(misc-use-internal-linkage)
+void t_space_get_normal(const SMikkTSpaceContext* p_context, float* fv_normal_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
 {
+    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    const mesh m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const position p = m.positions[position_index];
+    *(fv_normal_out + 0) = p.normal[0];
+    *(fv_normal_out + 1) = p.normal[1];
+    *(fv_normal_out + 2) = p.normal[2];
 }
 
-void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float tangent[], const float sign, const int i_face, const int i_vert) // NOLINT(misc-use-internal-linkage)
+void t_space_get_texture_coordinates(const SMikkTSpaceContext* p_context, float* fv_text_coords_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
 {
+    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    const mesh m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const position p = m.positions[position_index];
+    *(fv_text_coords_out + 0) = p.texture_coordinates[0];
+    *(fv_text_coords_out + 1) = p.texture_coordinates[1];
 }
 
-
-void t_space_set_tangent_unused( // NOLINT(misc-use-internal-linkage)
-    [[maybe_unused]] const SMikkTSpaceContext* p_context, [[maybe_unused]] const float tangent[], [[maybe_unused]] const float sign, [[maybe_unused]] const int i_face,
-    [[maybe_unused]] const int i_vert)
+void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float tangent[], const float sign, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
 {
-    // This is a noop function used only to satisfy the t_space_genera
+    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    m.positions[position_index].tangents[0] = tangent[0];
+    m.positions[position_index].tangents[1] = tangent[1];
+    m.positions[position_index].tangents[2] = tangent[2];
+    m.positions[position_index].tangents[3] = sign;
 }
-
 
 SMikkTSpaceInterface t_space_generator = { // NOLINT(misc-use-internal-linkage)
     .m_getNumFaces = t_space_get_num_faces,

@@ -104,3 +104,7 @@ project "Packager"
     filter "configurations:Release"
         defines { "NDEBUG" }
         optimize "On"
+
+    filter "files:libs/MikkTSpace/mikktspace.c"
+        warnings "Off"
+    filter {}
