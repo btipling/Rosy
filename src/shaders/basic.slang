@@ -75,7 +75,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     if (tangentSpaceEnabled)
     {
-        float3 bitangent = normalize(cross(normal, tangent)) * new_tangent.w;
+        float3 bitangent = cross(normal, tangent) * new_tangent.w;
         float3x3 toObjectLocal = float3x3(tangent, bitangent, normal);
         if (sd.inverseBNT > 0) {
             toObjectLocal = float3x3(
@@ -150,7 +150,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     uint nsi = md.normal_sampler_index;
 
     float3 lightNormal = normalize(basicVertex.normal);
-    float3 lightDir = normalize(basicVertex.lightDir);
+    float3 lightDir = basicVertex.lightDir;
 
     if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
     {
@@ -201,7 +201,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     if (sd.lightEnabled > 0)
     {
-        float3 V = normalize(basicVertex.viewDir);
+        float3 V = basicVertex.viewDir;
         float3 L = lightDir;
         float3 N = lightNormal;
         float3 H = L + V;
@@ -222,7 +222,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
         }
 
-        outFragColor = max(outFragColor * float4(ambientLight, 1.f), outFragColor * float4(sunLight * shadowFactor, 1.0));
+        outFragColor = outFragColor * float4(ambientLight, 1.f) + outFragColor * float4(sunLight * shadowFactor, 1.0);
     }
 
     Fragment output;
