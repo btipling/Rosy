@@ -161,7 +161,7 @@ namespace rosy
 
     struct fragment_config_state
     {
-        int output{0}; // 0 default, 1 normals, 2 tangent, 3 light, 4 view 5 vertex colors
+        int output{0}; // 0 default, 1 normals, 2 tangent, 3 light, 4 view 5 vertex colors, 6 normal map
         bool light_enabled{false};
         bool tangent_space_enabled{false};
         bool shadows_enabled{false};

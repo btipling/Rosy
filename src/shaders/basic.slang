@@ -23,7 +23,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float4x4 ndc_to_tc = { 0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1 };
 
     float3 lightDir = sd.sunlight.xyz;
-    float4 new_tangent = v.tangent;
+    float4 new_tangent = -v.tangent;
 
     // flip lights
     if (sd.flipLights[0] == 1)
@@ -191,6 +191,9 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         break;
     case 4:
         outFragColor = float4(normalize(basicVertex.viewDir) * 0.5 + 0.5, 1.f);
+        break;
+    case 6:
+        outFragColor = float4(lightNormal * 0.5 + 0.5, 1.f);
         break;
     default:
         break;
