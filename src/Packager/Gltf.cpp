@@ -789,6 +789,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             l->info(std::format("generating tangent for mesh at index {}", mesh_index));
             t_space_generator_context t_ctx{
                 .gltf_asset = &gltf_asset,
+                .triangle_surface_map = {},
                 .mesh_index = mesh_index,
                 .l = l,
             };
