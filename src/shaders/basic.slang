@@ -150,7 +150,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     uint nsi = md.normal_sampler_index;
 
     float3 lightNormal = normalize(basicVertex.normal);
-    float3 lightDir = basicVertex.lightDir;
+    float3 lightDir = normalize(basicVertex.lightDir);
 
     if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
     {
