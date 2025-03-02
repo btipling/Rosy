@@ -51,7 +51,7 @@ int main(const int argc, char* argv[])
     }
     gltf_config gltf_cfg{
         .condition_images = true,
-        .use_mikktspace = false,
+        .use_mikktspace = true,
     };
     if (const auto res = g.import(&l, gltf_cfg); res != rosy::result::ok)
     {
