@@ -33,9 +33,7 @@ project "Engine"
     includedirs { "\"" .. nvtt_path .. "/include/\"" }
     includedirs { "libs/flecs/include/" }
 
-    libdirs { "libs/SDL/build/Debug" }
     libdirs { vk_sdk .. "/Lib/" }
-    libdirs { "libs/flecs/out/Debug" }
     libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
 
     defines { "SIMDJSON_EXCEPTIONS=OFF" }
@@ -53,11 +51,15 @@ project "Engine"
 
     defines { "KHRONOS_STATIC" }
     filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
+        libdirs { "libs/SDL/build/Debug" }
+        libdirs { "libs/flecs/out/Debug" }
         defines { "DEBUG" }
         symbols "On"
     filter {}
 
     filter "configurations:Release"
+        libdirs { "libs/SDL/build/Release" }
+        libdirs { "libs/flecs/out/Release" }
         defines { "NDEBUG" }
         optimize "On"
     filter {}
@@ -88,7 +90,6 @@ project "Packager"
     includedirs { "libs/stb/" }
     includedirs { "libs/MikkTSpace/" }
 
-    libdirs { "libs/fastgltf/build/Debug" }
     libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
 
     files { "libs/stb_image.cpp" }
@@ -98,10 +99,12 @@ project "Packager"
 
     defines { "KHRONOS_STATIC" }
     filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
+        libdirs { "libs/fastgltf/build/Debug" }
         defines { "DEBUG" }
         symbols "On"
 
     filter "configurations:Release"
+        libdirs { "libs/fastgltf/build/Release" }
         defines { "NDEBUG" }
         optimize "On"
 

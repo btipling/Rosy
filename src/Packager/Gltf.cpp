@@ -45,27 +45,62 @@ namespace
     }
 }
 
+struct t_space_surface_map
+{
+    size_t surface_index{0}; // The surface's index in the gltf asset's mesh vector
+    int triangle_count_offset{0}; // The number of triangles that precede this surfaces triangles
+    int current_triangle{0}; // The current triangle's index within the surface.
+};
+
 struct t_space_generator_context
 {
     asset* gltf_asset{nullptr};
+    std::vector<t_space_surface_map> triangle_surface_map;
     size_t mesh_index;
+    int num_triangles{ 0 };
+    rosy::log* l;
 };
 
 // All faces are triangles below and are referred to as triangles instead of faces unless it is a mikktspace header field name.
 
-int t_space_get_num_faces(const SMikkTSpaceContext* p_context) // NOLINT(misc-use-internal-linkage)
+
+void t_space_gen_num_faces(t_space_generator_context& ctx) // NOLINT(misc-use-internal-linkage)
 {
-    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    const mesh m = ctx->gltf_asset->meshes[ctx->mesh_index];
-    int num_triangles{0};
+    const mesh& m = ctx.gltf_asset->meshes[ctx.mesh_index];
+    int num_triangles{ 0 };
+    size_t surface_index{ 0 };
+    ctx.l->info(std::format("t_space_get_num_faces in mesh {} for {} num surfaces", ctx.mesh_index, m.surfaces.size()));
     for (const surface& s : m.surfaces)
     {
+        if (surface_index % 500 == 0)
+        {
+            ctx.l->info(std::format("t_space_get_num_faces progress is {}/{} in mesh {}", surface_index, m.surfaces.size(), ctx.mesh_index));
+        }
         // Each gltf primitive is referred to as a surface, it as an index offset and a count of indices, each three indices represents a triangle
         assert(s.count % 3 == 0); // There must only be triangles in a surface.
         const int num_triangles_in_surface = static_cast<int>(s.count) / 3;
+        // Triangles are addressed in the order in which they exist in gltf_asset.surfaces, this offers a fast look-up for requested_triangle -> surface
+        ctx.triangle_surface_map.reserve(ctx.triangle_surface_map.size() + num_triangles_in_surface);
+        for (int i{ 0 }; i < num_triangles_in_surface; i++)
+        {
+            t_space_surface_map sm{
+                .surface_index = surface_index,
+                .triangle_count_offset = num_triangles,
+                .current_triangle = i,
+            };
+            ctx.triangle_surface_map.emplace_back(sm);
+        }
         num_triangles += num_triangles_in_surface;
+        surface_index += 1;
     }
-    return num_triangles;
+    ctx.l->info(std::format("num triangles {} in mesh {}", num_triangles, ctx.mesh_index));
+    ctx.num_triangles = num_triangles;
+}
+
+int t_space_get_num_faces(const SMikkTSpaceContext* p_context) // NOLINT(misc-use-internal-linkage)
+{
+    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    return ctx->num_triangles;
 }
 
 int t_space_get_num_vertices_of_face([[maybe_unused]] const SMikkTSpaceContext* p_context, [[maybe_unused]] const int requested_triangle) // NOLINT(misc-use-internal-linkage)
@@ -76,44 +111,42 @@ int t_space_get_num_vertices_of_face([[maybe_unused]] const SMikkTSpaceContext* 
 
 size_t t_space_get_asset_position_data(const SMikkTSpaceContext* p_context, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage))
 {
-    size_t rv{};
     assert(requested_triangle_vertex < 3); // requested_triangle_vertex must be one of {0, 1, 2};
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
     const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
-    // Iterate over all surfaces and all of their triangle to find the current triangle for requested_triangle, derive the index and return its position.
-    int num_triangles_visited{0};
-    bool found{false};
-    for (const surface& s : m.surfaces)
-    {
-        const auto num_indices_in_surface = static_cast<int>(s.count);
-        const int num_triangles_in_surface = num_indices_in_surface / 3;
-        if (const int last_triangle_in_surface = num_triangles_visited + num_triangles_in_surface; last_triangle_in_surface < requested_triangle)
-        {
-            // This loop must iterate further to find the surface with the requested triangle.
-            num_triangles_visited += num_triangles_in_surface;
-            continue;
-        }
-        // Each surface has a number of triangles, requested_triangle is an index into the list of all triangles given the sum of all triangles across all surfaces in the mesh.
-        // num_triangles_visited is the number of triangles we have visited already, requested_triangle - num_triangles_visited should represent a triangle referenced by the current surface
-        // given that requested_triangle is less than last_triangle_in_surface.
-        const int surface_triangle = requested_triangle - num_triangles_visited;
-        // surface_triangle is the index of the triangle in this surface, not across all the mesh's triangles
-        assert(surface_triangle < num_triangles_in_surface);
-        // The indices_index for the requested triangle's vertex begins at the surfaces.start_index + the nth number of triangle vertices + the index of the requested triangle's vertex which is one of {0, 1, 2}
-        const size_t indices_index = static_cast<size_t>(s.start_index) + static_cast<size_t>(surface_triangle * 3) + static_cast<size_t>(requested_triangle_vertex);
-        assert(m.indices.size() > indices_index); // Cannot reference an index larger than the number of indices available.
-        rv = static_cast<size_t>(m.indices[indices_index]);
-        found = true;
-        break;
-    }
-    assert(found); // The requested triangle and vertex must have been found.
-    return rv;
+
+    assert(ctx->triangle_surface_map.size() > static_cast<size_t>(requested_triangle)); // Cannot request more triangles than there are.
+    const auto sm = ctx->triangle_surface_map[static_cast<size_t>(requested_triangle)];
+
+    assert(sm.triangle_count_offset + sm.current_triangle == requested_triangle); // The requested triangle must match what's in the map or this is an invalid request.
+    assert(m.surfaces.size() > sm.surface_index); // Cannot request more surfaces in the mesh than there are.
+
+    const surface& s = m.surfaces[sm.surface_index];
+
+    const auto num_indices_in_surface = static_cast<int>(s.count);
+    const int num_triangles_in_surface = num_indices_in_surface / 3;
+
+    // Each surface has a number of triangles, requested_triangle is an index into the list of all triangles given the sum of all triangles across all surfaces in the mesh.
+    // num_triangles_visited is the number of triangles we have visited already, sm.current_triangle should represent a triangle referenced by the current surface
+    const int surface_triangle = sm.current_triangle;
+
+    // surface_triangle is the index of the triangle in this surface, not across all the mesh's triangles
+    assert(surface_triangle < num_triangles_in_surface);
+
+    // The indices_index for the requested triangle's vertex begins at the surfaces.start_index + the nth number of triangle vertices + the index of the requested triangle's vertex which is one of {0, 1, 2}
+    const size_t indices_index = static_cast<size_t>(s.start_index) + static_cast<size_t>(surface_triangle * 3) + static_cast<size_t>(requested_triangle_vertex);
+    assert(m.indices.size() > indices_index); // Cannot reference an index larger than the number of indices available.
+    return m.indices[indices_index];
 }
 
 void t_space_get_position(const SMikkTSpaceContext* p_context, float* fv_pos_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
 {
-    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
+    if (requested_triangle % 500 == 0)
+    {
+        ctx->l->info(std::format("t_space_get_position progress is {}/{} in mesh {}", requested_triangle, ctx->triangle_surface_map.size(), ctx->mesh_index));
+    }
+    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const mesh m = ctx->gltf_asset->meshes[ctx->mesh_index];
     const position p = m.positions[position_index];
     *(fv_pos_out + 0) = p.vertex[0];
@@ -302,7 +335,8 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             gltf_asset.materials.push_back(m);
         }
     }
-    if (cfg.condition_images) {
+    if (cfg.condition_images)
+    {
         std::ranges::sort(color_images);
         auto last = std::ranges::unique(color_images).begin();
         color_images.erase(last, color_images.end());
@@ -387,7 +421,8 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             }
         }
     }
-    if (cfg.condition_images) {
+    if (cfg.condition_images)
+    {
         std::ranges::sort(metallic_images);
         auto last = std::ranges::unique(metallic_images).begin();
         metallic_images.erase(last, metallic_images.end());
@@ -473,7 +508,8 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             }
         }
     }
-    if (cfg.condition_images) {
+    if (cfg.condition_images)
+    {
         std::ranges::sort(normal_map_images);
         auto last = std::ranges::unique(normal_map_images).begin();
         normal_map_images.erase(last, normal_map_images.end());
@@ -745,13 +781,16 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
         gltf_asset.nodes.push_back(n);
     }
 
+    l->info(std::format("generating tangents for {} meshes", gltf_asset.meshes.size()));
     for (size_t mesh_index{0}; mesh_index < gltf_asset.meshes.size(); mesh_index++)
     {
         l->info(std::format("generating tangent for mesh at index {}", mesh_index));
         t_space_generator_context t_ctx{
             .gltf_asset = &gltf_asset,
-            .mesh_index = mesh_index
+            .mesh_index = mesh_index,
+            .l = l,
         };
+        t_space_gen_num_faces(t_ctx);
         SMikkTSpaceContext s_mikktspace_ctx{
             .m_pInterface = &t_space_generator,
             .m_pUserData = static_cast<void*>(&t_ctx),
