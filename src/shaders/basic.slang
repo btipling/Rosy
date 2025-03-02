@@ -201,7 +201,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     if (sd.lightEnabled > 0)
     {
-        float3 V = basicVertex.viewDir;
+        float3 V = normalize(basicVertex.viewDir);
         float3 L = lightDir;
         float3 N = lightNormal;
         float3 H = L + V;
