@@ -49,7 +49,10 @@ int main(const int argc, char* argv[])
         g.source_path = source_path.string();
         g.gltf_asset = a;
     }
-    gltf_config gltf_cfg{.condition_images = true};
+    gltf_config gltf_cfg{
+        .condition_images = true,
+        .use_mikktspace = false,
+    };
     if (const auto res = g.import(&l, gltf_cfg); res != rosy::result::ok)
     {
         l.error(std::format("Error importing gltf {}", static_cast<uint8_t>(res)));
@@ -59,12 +62,14 @@ int main(const int argc, char* argv[])
     {
         return EXIT_FAILURE;
     }
-    int mi{ 0 };
-    for (const auto& m : g.gltf_asset.meshes) {
-        int pi{ 0 };
+    int mi{0};
+    constexpr int max_pos{1};
+    for (const auto& m : g.gltf_asset.meshes)
+    {
+        int pi{0};
         for (const auto& p : m.positions)
         {
-            l.info(std::format(
+            l.debug(std::format(
                 "mesh: {: 3d} vertex: {: 6d}: ({:+.3f}, {:+.3f}, {:+.3f}) | normal: ({:+.3f}, {:+.3f}, {:+.3f}) | tangent:  ({:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}) | color: ({:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}) | texture coordinates: ({:+.3f}, {:+.3f})",
                 mi, pi,
                 p.vertex[0], p.vertex[1], p.vertex[2],
@@ -74,6 +79,10 @@ int main(const int argc, char* argv[])
                 p.texture_coordinates[0], p.texture_coordinates[1]
             ));
             pi += 1;
+            if (pi >= max_pos)
+            {
+                break;
+            }
         }
         mi += 1;
     }

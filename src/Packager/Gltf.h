@@ -7,7 +7,8 @@ namespace rosy_packager
 {
     struct gltf_config
     {
-        bool condition_images{ true };
+        bool condition_images{true};
+        bool use_mikktspace{true};
     };
 
     struct gltf

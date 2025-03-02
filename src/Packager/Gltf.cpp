@@ -781,24 +781,27 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
         gltf_asset.nodes.push_back(n);
     }
 
-    l->info(std::format("generating tangents for {} meshes", gltf_asset.meshes.size()));
-    for (size_t mesh_index{0}; mesh_index < gltf_asset.meshes.size(); mesh_index++)
-    {
-        l->info(std::format("generating tangent for mesh at index {}", mesh_index));
-        t_space_generator_context t_ctx{
-            .gltf_asset = &gltf_asset,
-            .mesh_index = mesh_index,
-            .l = l,
-        };
-        t_space_gen_num_faces(t_ctx);
-        SMikkTSpaceContext s_mikktspace_ctx{
-            .m_pInterface = &t_space_generator,
-            .m_pUserData = static_cast<void*>(&t_ctx),
-        };
-        if (!genTangSpaceDefault(&s_mikktspace_ctx))
+    if (cfg.use_mikktspace) {
+        // This is really slow and does not render nicely.
+        l->info(std::format("generating tangents for {} meshes", gltf_asset.meshes.size()));
+        for (size_t mesh_index{ 0 }; mesh_index < gltf_asset.meshes.size(); mesh_index++)
         {
-            l->error(std::format("Error generating tangents for mesh at index {}", mesh_index));
-            return rosy::result::error;
+            l->info(std::format("generating tangent for mesh at index {}", mesh_index));
+            t_space_generator_context t_ctx{
+                .gltf_asset = &gltf_asset,
+                .mesh_index = mesh_index,
+                .l = l,
+            };
+            t_space_gen_num_faces(t_ctx);
+            SMikkTSpaceContext s_mikktspace_ctx{
+                .m_pInterface = &t_space_generator,
+                .m_pUserData = static_cast<void*>(&t_ctx),
+            };
+            if (!genTangSpaceDefault(&s_mikktspace_ctx))
+            {
+                l->error(std::format("Error generating tangents for mesh at index {}", mesh_index));
+                return rosy::result::error;
+            }
         }
     }
     return rosy::result::ok;

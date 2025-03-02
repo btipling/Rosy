@@ -76,7 +76,6 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     if (tangentSpaceEnabled)
     {
         float3 bitangent = normalize(cross(normal, tangent)) * new_tangent.w;
-
         float3x3 toObjectLocal = float3x3(tangent, bitangent, normal);
         if (sd.inverseBNT > 0) {
             toObjectLocal = float3x3(
@@ -100,7 +99,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.normal = normal;
     output.basicVertex.worldNormal = mul(gd.normalTransform, v.normal);
     output.basicVertex.color = v.color;
-    output.basicVertex.tangent = tangent * v.tangent.w;
+    output.basicVertex.tangent = new_tangent;
     output.basicVertex.viewDir = viewDir;
     output.basicVertex.lightDir = lightDir;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
@@ -160,6 +159,10 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
         lightNormal = normalize(normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1);
+        if (sd.tangentSpaceEnabled == 0) {
+            float3 bitangent = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.tangent.w;
+            lightNormal = normalize(lightNormal.x * basicVertex.tangent.xyz + lightNormal.y * bitangent + lightNormal.z * basicVertex.normal);
+        }
     }
 
     float4 outFragColor = md.color;
@@ -181,7 +184,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         outFragColor = float4(normalize(basicVertex.worldNormal) * 0.5 + 0.5, 1.f);
         break;
     case 2:
-        outFragColor = float4(normalize(basicVertex.tangent) * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.tangent.xyz) * 0.5 + 0.5, 1.f);
         break;
     case 3:
         outFragColor = float4(normalize(basicVertex.lightDir) * 0.5 + 0.5, 1.f);
