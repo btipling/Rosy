@@ -77,7 +77,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float3 normal = normalize(mul(normalMat, v.normal));
     float3 tangent = normalize(mul(normalMat, new_tangent.xyz));
     float3 bitangent = cross(normal, tangent) * new_tangent.w;
-    if (sd.reveseCrossBitangent == 1) {
+    if (sd.reverseCrossBitangent == 1) {
         bitangent = cross(tangent, normal) * new_tangent.w;
     }
 

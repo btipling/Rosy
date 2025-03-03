@@ -64,7 +64,7 @@ public struct SceneData
     public uint inverseBNT;
     public uint ingoreAssetTangentSign;
     public uint ensureOrthogonalBitangent;
-    public uint reveseCrossBitangent;
+    public uint reverseCrossBitangent;
 };
 
 public struct Fragment
