@@ -306,7 +306,7 @@ namespace
         [[maybe_unused]] uint32_t inverse_bnt{0};
         [[maybe_unused]] uint32_t ignore_asset_tangent_sign{0};
         [[maybe_unused]] uint32_t ensure_orthogonal_bitangent{0};
-        [[maybe_unused]] uint32_t reverse_cross_bitangent{ 0 };
+        [[maybe_unused]] uint32_t reverse_cross_bitangent{0};
     };
 
     struct allocated_image
