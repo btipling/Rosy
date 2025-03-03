@@ -189,7 +189,7 @@ namespace
     // Game nodes are double referenced by entity id and index in a vector.
     struct game_node_reference
     {
-        ecs_entity_t entity{0};
+        flecs::entity entity;
         [[maybe_unused]] size_t index{0};
         node* node{nullptr};
     };
@@ -221,10 +221,10 @@ namespace
         std::vector<game_node_reference> game_nodes;
 
         // ECS
-        ecs_world_t* world{nullptr};
-        ecs_entity_t level_entity{0};
+        flecs::world world;
+        flecs::entity level_entity = world.entity("level");
         game_node_reference rosy_reference{};
-        ecs_entity_t floor_entity{0};
+        flecs::entity floor_entity = world.entity("floor");
 
         result init(rosy::log* new_log, const config new_cfg)
         {
@@ -295,16 +295,9 @@ namespace
                 };
             }
 
-            world = ecs_init();
-            if (world == nullptr)
-            {
-                l->error("flecs world init failed");
-                return result::error;
-            }
-            level_entity = ecs_new(world);
-            assert(ecs_is_alive(world, level_entity));
+            assert(world.is_alive(level_entity));
 
-            ecs_set_target_fps(world, initial_fps_target);
+            world.set_target_fps(initial_fps_target);
 
             init_components();
             init_tags();
@@ -317,7 +310,7 @@ namespace
         {
             for (const game_node_reference& gnr : game_nodes)
             {
-                ecs_delete(world, gnr.entity);
+                gnr.entity.destruct();
             }
             if (level_game_node != nullptr)
             {
@@ -325,14 +318,10 @@ namespace
                 delete level_game_node;
                 level_game_node = nullptr;
             }
-            if (ecs_is_alive(world, level_entity))
+            if (world.is_alive(level_entity))
             {
-                ecs_delete(world, level_entity);
-                assert(!ecs_is_alive(world, level_entity));
-            }
-            if (world != nullptr)
-            {
-                ecs_fini(world);
+                level_entity.destruct();
+                assert(!world.is_alive(level_entity));
             }
             if (level_editor)
             {
@@ -359,32 +348,23 @@ namespace
             rosy_reference = {};
             for (const game_node_reference& gnr : game_nodes)
             {
-                ecs_delete(world, gnr.entity);
+                gnr.entity.destruct();
             }
             {
                 // Clear existing game nodes
                 for (node* n : level_game_node->children) n->deinit();
                 level_game_node->children.clear();
             }
-            if (ecs_is_alive(world, level_entity))
+            if (world.is_alive(level_entity))
             {
-                ecs_delete(world, level_entity);
-                assert(!ecs_is_alive(world, level_entity));
+                level_entity.destruct();
+                assert(!world.is_alive(level_entity));
             }
-            if (world != nullptr)
-            {
-                ecs_fini(world);
-            }
-            world = ecs_init();
-            if (world == nullptr)
-            {
-                l->error("flecs world init failed");
-                return result::error;
-            }
-            level_entity = ecs_new(world);
-            assert(ecs_is_alive(world, level_entity));
+            world = flecs::world{};
+            level_entity = world.entity("level");
+            assert(world.is_alive(level_entity));
 
-            ecs_set_target_fps(world, initial_fps_target);
+            world.set_target_fps(initial_fps_target);
 
             init_components();
             init_tags();
@@ -395,109 +375,110 @@ namespace
 
         void init_components() const
         {
-            ECS_COMPONENT_DEFINE(world, c_position);
+         /*   ECS_COMPONENT_DEFINE(world, c_position);
             ECS_COMPONENT_DEFINE(world, c_mob);
             ECS_COMPONENT_DEFINE(world, c_static);
             ECS_COMPONENT_DEFINE(world, c_cursor_position);
             ECS_COMPONENT_DEFINE(world, c_target);
             ECS_COMPONENT_DEFINE(world, c_forward);
-            ECS_COMPONENT_DEFINE(world, c_pick_debugging_enabled);
+            ECS_COMPONENT_DEFINE(world, c_pick_debugging_enabled);*/
         }
 
         void init_tags() const
         {
-            ECS_TAG_DEFINE(world, t_rosy);
+          /*  ECS_TAG_DEFINE(world, t_rosy);
             ECS_TAG_DEFINE(world, t_floor);
             ECS_TAG_DEFINE(world, t_rosy_action);
             ECS_TAG_DEFINE(world, t_pick_debugging_record);
-            ECS_TAG_DEFINE(world, t_pick_debugging_clear);
+            ECS_TAG_DEFINE(world, t_pick_debugging_clear);*/
         }
 
         void init_systems()
         {
-            {
-                // Load initial writable state from renderer
-                ecs_system_desc_t desc{};
-                {
-                    ecs_entity_desc_t e_desc{};
-                    e_desc.id = 0;
-                    e_desc.name = "init_level_state";
-                    {
-                        ecs_id_t add_ids[3]{};
-                        add_ids[0] = {ecs_dependson(flecs::OnLoad)};
-                        add_ids[1] = flecs::OnLoad;
-                        add_ids[2] = 0;
-                        e_desc.add = add_ids;
-                    }
-                    desc.entity = ecs_entity_init(world, &e_desc);
-                }
-                desc.ctx = static_cast<void*>(this);
-                desc.callback = init_level_state;
-                ecs_system_init(world, &desc);
-            }
-            {
-                // Detect mob
-                ecs_system_desc_t desc{};
-                {
-                    ecs_entity_desc_t e_desc{};
-                    e_desc.id = 0;
-                    e_desc.name = "detect_mob";
-                    {
-                        ecs_id_t add_ids[3]{};
-                        add_ids[0] = {ecs_dependson(EcsOnUpdate)};
-                        add_ids[1] = EcsOnUpdate;
-                        add_ids[2] = 0;
-                        e_desc.add = add_ids;
-                    }
-                    desc.entity = ecs_entity_init(world, &e_desc);
-                }
-                desc.query.expr = "c_mob";
-                desc.ctx = static_cast<void*>(this);
-                desc.callback = detect_mob;
-                ecs_system_init(world, &desc);
-            }
-            {
-                // Detect floor
-                ecs_system_desc_t desc{};
-                {
-                    ecs_entity_desc_t e_desc{};
-                    e_desc.id = 0;
-                    e_desc.name = "detect_floor";
-                    {
-                        ecs_id_t add_ids[3]{};
-                        add_ids[0] = {ecs_dependson(EcsOnUpdate)};
-                        add_ids[1] = EcsOnUpdate;
-                        add_ids[2] = 0;
-                        e_desc.add = add_ids;
-                    }
-                    desc.entity = ecs_entity_init(world, &e_desc);
-                }
-                desc.query.expr = "t_floor";
-                desc.ctx = static_cast<void*>(this);
-                desc.callback = detect_floor;
-                ecs_system_init(world, &desc);
-            }
-            {
-                // Move rosy
-                ecs_system_desc_t desc{};
-                {
-                    ecs_entity_desc_t e_desc{};
-                    e_desc.id = 0;
-                    e_desc.name = "move_rosy";
-                    {
-                        ecs_id_t add_ids[3]{};
-                        add_ids[0] = {ecs_dependson(EcsOnUpdate)};
-                        add_ids[1] = EcsOnUpdate;
-                        add_ids[2] = 0;
-                        e_desc.add = add_ids;
-                    }
-                    desc.entity = ecs_entity_init(world, &e_desc);
-                }
-                desc.query.expr = "t_rosy_action";
-                desc.ctx = static_cast<void*>(this);
-                desc.callback = move_rosy;
-                ecs_system_init(world, &desc);
-            }
+            //auto hello_world_sys = 
+            //{
+            //    // Load initial writable state from renderer
+            //    ecs_system_desc_t desc{};
+            //    {
+            //        ecs_entity_desc_t e_desc{};
+            //        e_desc.id = 0;
+            //        e_desc.name = "init_level_state";
+            //        {
+            //            ecs_id_t add_ids[3]{};
+            //            add_ids[0] = {ecs_dependson(flecs::OnLoad)};
+            //            add_ids[1] = flecs::OnLoad;
+            //            add_ids[2] = 0;
+            //            e_desc.add = add_ids;
+            //        }
+            //        desc.entity = ecs_entity_init(world, &e_desc);
+            //    }
+            //    desc.ctx = static_cast<void*>(this);
+            //    desc.callback = init_level_state;
+            //    ecs_system_init(world, &desc);
+            //}
+            //{
+            //    // Detect mob
+            //    ecs_system_desc_t desc{};
+            //    {
+            //        ecs_entity_desc_t e_desc{};
+            //        e_desc.id = 0;
+            //        e_desc.name = "detect_mob";
+            //        {
+            //            ecs_id_t add_ids[3]{};
+            //            add_ids[0] = {ecs_dependson(EcsOnUpdate)};
+            //            add_ids[1] = EcsOnUpdate;
+            //            add_ids[2] = 0;
+            //            e_desc.add = add_ids;
+            //        }
+            //        desc.entity = ecs_entity_init(world, &e_desc);
+            //    }
+            //    desc.query.expr = "c_mob";
+            //    desc.ctx = static_cast<void*>(this);
+            //    desc.callback = detect_mob;
+            //    ecs_system_init(world, &desc);
+            //}
+            //{
+            //    // Detect floor
+            //    ecs_system_desc_t desc{};
+            //    {
+            //        ecs_entity_desc_t e_desc{};
+            //        e_desc.id = 0;
+            //        e_desc.name = "detect_floor";
+            //        {
+            //            ecs_id_t add_ids[3]{};
+            //            add_ids[0] = {ecs_dependson(EcsOnUpdate)};
+            //            add_ids[1] = EcsOnUpdate;
+            //            add_ids[2] = 0;
+            //            e_desc.add = add_ids;
+            //        }
+            //        desc.entity = ecs_entity_init(world, &e_desc);
+            //    }
+            //    desc.query.expr = "t_floor";
+            //    desc.ctx = static_cast<void*>(this);
+            //    desc.callback = detect_floor;
+            //    ecs_system_init(world, &desc);
+            //}
+            //{
+            //    // Move rosy
+            //    ecs_system_desc_t desc{};
+            //    {
+            //        ecs_entity_desc_t e_desc{};
+            //        e_desc.id = 0;
+            //        e_desc.name = "move_rosy";
+            //        {
+            //            ecs_id_t add_ids[3]{};
+            //            add_ids[0] = {ecs_dependson(EcsOnUpdate)};
+            //            add_ids[1] = EcsOnUpdate;
+            //            add_ids[2] = 0;
+            //            e_desc.add = add_ids;
+            //        }
+            //        desc.entity = ecs_entity_init(world, &e_desc);
+            //    }
+            //    desc.query.expr = "t_rosy_action";
+            //    desc.ctx = static_cast<void*>(this);
+            //    desc.callback = move_rosy;
+            //    ecs_system_init(world, &desc);
+            //}
         }
 
         [[nodiscard]] std::vector<node*> get_mobs() const
@@ -530,12 +511,12 @@ namespace
 
         [[nodiscard]] result setup_frame() const
         {
-            rls->go_update.graphic_objects.clear();
+          /*  rls->go_update.graphic_objects.clear();
             if (rls->target_fps != wls->target_fps)
             {
                 ecs_set_target_fps(world, wls->target_fps);
                 rls->target_fps = wls->target_fps;
-            }
+            }*/
             return result::ok;
         }
 
@@ -563,7 +544,7 @@ namespace
                 l->error("Error updating camera");
                 return res;
             }
-            ecs_progress(world, static_cast<float>(dt));
+            world.progress(static_cast<float>(dt));
             return result::ok;
         }
 
@@ -625,7 +606,7 @@ namespace
                 }
             }
 
-            constexpr Uint8 rosy_attention_btn{1};
+           /* constexpr Uint8 rosy_attention_btn{1};
             constexpr Uint8 pick_debug_toggle_btn{2};
             constexpr Uint8 pick_debug_record_btn{3};
             const ecs_entity_t rosy_entity = rosy_reference.entity;
@@ -672,7 +653,7 @@ namespace
                 if (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button ==
                     rosy_attention_btn)
                     ecs_remove(world, rosy_entity, t_rosy_action);
-            }
+            }*/
             return result::ok;
         }
 
@@ -933,54 +914,54 @@ namespace
                 level_game_node->debug();
             }
             {
-                // Initialize ECS game nodes
-                {
-                    // Track mobs
-                    std::vector<node*> mobs = get_mobs();
-                    game_nodes.resize(mobs.size());
-                    for (size_t i{0}; i < mobs.size(); i++)
-                    {
-                        node* n = mobs[i];
-                        ecs_entity_t node_entity = ecs_new(world);
+                //// Initialize ECS game nodes
+                //{
+                //    // Track mobs
+                //    std::vector<node*> mobs = get_mobs();
+                //    game_nodes.resize(mobs.size());
+                //    for (size_t i{0}; i < mobs.size(); i++)
+                //    {
+                //        node* n = mobs[i];
+                //        ecs_entity_t node_entity = ecs_new(world);
 
-                        game_node_reference ref = {
-                            .entity = node_entity,
-                            .index = i,
-                            .node = n,
-                        };
-                        game_nodes[i] = ref;
+                //        game_node_reference ref = {
+                //            .entity = node_entity,
+                //            .index = i,
+                //            .node = n,
+                //        };
+                //        game_nodes[i] = ref;
 
-                        c_mob m{i};
-                        ecs_set_id(world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
-                        c_forward forward{.yaw = 0.f};
-                        ecs_set_id(world, node_entity, ecs_id(c_forward), sizeof(c_forward), &forward);
+                //        c_mob m{i};
+                //        ecs_set_id(world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
+                //        c_forward forward{.yaw = 0.f};
+                //        ecs_set_id(world, node_entity, ecs_id(c_forward), sizeof(c_forward), &forward);
 
-                        if (n->name == "rosy")
-                        {
-                            rosy_reference = ref;
-                            ecs_add(world, node_entity, t_rosy);
-                            game_cam->set_game_cam_position(rosy_reference.node->get_world_space_position());
-                        }
-                    }
-                }
-                {
-                    // Track special static objects
-                    std::vector<node*> static_objects = get_static();
-                    for (size_t i{0}; i < static_objects.size(); i++)
-                    {
-                        node* n = static_objects[i];
-                        ecs_entity_t node_entity = ecs_new(world);
+                //        if (n->name == "rosy")
+                //        {
+                //            rosy_reference = ref;
+                //            ecs_add(world, node_entity, t_rosy);
+                //            game_cam->set_game_cam_position(rosy_reference.node->get_world_space_position());
+                //        }
+                //    }
+                //}
+                //{
+                //    // Track special static objects
+                //    std::vector<node*> static_objects = get_static();
+                //    for (size_t i{0}; i < static_objects.size(); i++)
+                //    {
+                //        node* n = static_objects[i];
+                //        ecs_entity_t node_entity = ecs_new(world);
 
-                        if (n->name == "floor")
-                        {
-                            floor_entity = node_entity;
-                            ecs_add(world, node_entity, t_floor);
-                            c_static m{i};
-                            ecs_set_id(world, node_entity, ecs_id(c_static), sizeof(c_static), &m);
-                            break;
-                        }
-                    }
-                }
+                //        if (n->name == "floor")
+                //        {
+                //            floor_entity = node_entity;
+                //            ecs_add(world, node_entity, t_floor);
+                //            c_static m{i};
+                //            ecs_set_id(world, node_entity, ecs_id(c_static), sizeof(c_static), &m);
+                //            break;
+                //        }
+                //    }
+                //}
             }
             return result::ok;
         }
@@ -991,379 +972,379 @@ namespace
     // **** ECS SYSTEM DEFINITIONS ****/
 
     // ReSharper disable once CppParameterMayBeConstPtrOrRef
-    void move_rosy(ecs_iter_t* it)
+    void move_rosy([[maybe_unused]] ecs_iter_t* it)
     {
-        // This function moves rosy to where the screen cursor is when the left mouse button is pushed.
-        const auto ctx = static_cast<level_state*>(it->param);
-        for (int i = 0; i < it->count; i++)
-        {
-            if (!ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position))) continue;
+        //// This function moves rosy to where the screen cursor is when the left mouse button is pushed.
+        //const auto ctx = static_cast<level_state*>(it->param);
+        //for (int i = 0; i < it->count; i++)
+        //{
+        //    if (!ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position))) continue;
 
-            // Start picking. Picking here works by converting the 2D screen space cursor position to Vulkan NDC coordinates and then converts them
-            // to clip space. From clip space their position is on the projection plane in view space. A ray is created from the click position on the projection plane from
-            // the view space camera position, which is just origin. The ray is transformed to world space, the floor's origin is the same as the world space origin.
-            // Plucker coordinates are used to calculate the ray's intersection in the floor plane, as derived from Foundations of Game Engine Development [Lengyel]
-            const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
-            const camera* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
+        //    // Start picking. Picking here works by converting the 2D screen space cursor position to Vulkan NDC coordinates and then converts them
+        //    // to clip space. From clip space their position is on the projection plane in view space. A ray is created from the click position on the projection plane from
+        //    // the view space camera position, which is just origin. The ray is transformed to world space, the floor's origin is the same as the world space origin.
+        //    // Plucker coordinates are used to calculate the ray's intersection in the floor plane, as derived from Foundations of Game Engine Development [Lengyel]
+        //    const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
+        //    const camera* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
 
-            auto camera_pos = glm::vec3(glm::vec4(cam->position[0], cam->position[1], cam->position[2], 1.f));
+        //    auto camera_pos = glm::vec3(glm::vec4(cam->position[0], cam->position[1], cam->position[2], 1.f));
 
-            // Get the values used to transform the screen coordinates to view space.
-            const float a = static_cast<float>(cam->s);
-            const float w = cam->viewport_width;
-            const float h = cam->viewport_height;
-            const float fov = static_cast<float>(cam->fov) / 100.f;
-            const float x_s = c_pos->screen_x / w;
-            const float y_s = c_pos->screen_y / h;
-            const float g = static_cast<float>(cam->g);
+        //    // Get the values used to transform the screen coordinates to view space.
+        //    const float a = static_cast<float>(cam->s);
+        //    const float w = cam->viewport_width;
+        //    const float h = cam->viewport_height;
+        //    const float fov = static_cast<float>(cam->fov) / 100.f;
+        //    const float x_s = c_pos->screen_x / w;
+        //    const float y_s = c_pos->screen_y / h;
+        //    const float g = static_cast<float>(cam->g);
 
-            // This uses NDC + accounts for field of view and perspective to put x and y into view space.
-            const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
-            const float y_v = (2.f * y_s - 1.f) * fov;
+        //    // This uses NDC + accounts for field of view and perspective to put x and y into view space.
+        //    const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
+        //    const float y_v = (2.f * y_s - 1.f) * fov;
 
-            // This is the click at actually twice the value of the projection plane distance.
-            const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
-            // This transforms the view click into world space using the inverse the view matrix.
-            const auto world_ray = glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(view_click, 0.f));
+        //    // This is the click at actually twice the value of the projection plane distance.
+        //    const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
+        //    // This transforms the view click into world space using the inverse the view matrix.
+        //    const auto world_ray = glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(view_click, 0.f));
 
-            // Create the pucker coordinates v and m;
-            const glm::vec3 plucker_v = world_ray;
-            const glm::vec3 plucker_m = cross(camera_pos, world_ray);
+        //    // Create the pucker coordinates v and m;
+        //    const glm::vec3 plucker_v = world_ray;
+        //    const glm::vec3 plucker_m = cross(camera_pos, world_ray);
 
-            // Create the parameterized plane values for the floor in world space.
-            constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
-            constexpr float plane_distance = 0.f;
+        //    // Create the parameterized plane values for the floor in world space.
+        //    constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
+        //    constexpr float plane_distance = 0.f;
 
-            // Calculate the intersection using the homogenous plane intersection formula
-            const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
-            const glm::vec3 d_v = plucker_v * plane_distance;
-            const glm::vec3 intersection = m_x_n + d_v;
-            const float intersection_w = glm::dot(-normal, plucker_v);
+        //    // Calculate the intersection using the homogenous plane intersection formula
+        //    const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
+        //    const glm::vec3 d_v = plucker_v * plane_distance;
+        //    const glm::vec3 intersection = m_x_n + d_v;
+        //    const float intersection_w = glm::dot(-normal, plucker_v);
 
-            ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+        //    ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
-            // Set rosy to target that intersection.
-            auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+        //    // Set rosy to target that intersection.
+        //    auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
 
-            // This is all taking place in world space. It used to be in object space and that was incorrect because this is about moving rosy in world space.
-            // Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
-            const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
-            const node* floor_node = ctx->get_static()[floor_index->index];
-            auto world_space_floor_bounds = floor_node->get_world_space_bounds();
-            for (int j{0}; j < 3; j++)
-            {
-                if (rosy_target[j] < world_space_floor_bounds.min[j])
-                {
-                    rosy_target[j] = world_space_floor_bounds.min[j];
-                }
-                if (rosy_target[j] > world_space_floor_bounds.max[j])
-                {
-                    rosy_target[j] = world_space_floor_bounds.max[j];
-                }
-            }
+        //    // This is all taking place in world space. It used to be in object space and that was incorrect because this is about moving rosy in world space.
+        //    // Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
+        //    const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
+        //    const node* floor_node = ctx->get_static()[floor_index->index];
+        //    auto world_space_floor_bounds = floor_node->get_world_space_bounds();
+        //    for (int j{0}; j < 3; j++)
+        //    {
+        //        if (rosy_target[j] < world_space_floor_bounds.min[j])
+        //        {
+        //            rosy_target[j] = world_space_floor_bounds.min[j];
+        //        }
+        //        if (rosy_target[j] > world_space_floor_bounds.max[j])
+        //        {
+        //            rosy_target[j] = world_space_floor_bounds.max[j];
+        //        }
+        //    }
 
-            c_target target{.x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z};
-            ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target), sizeof(c_target), &target);
+        //    c_target target{.x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z};
+        //    ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target), sizeof(c_target), &target);
 
-            // Draw some debugging UI to display picking performance.
-            if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
-            {
-                const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
-                glm::mat4 m;
-                std::array<float, 4> color;
-                if (pick_debugging->space & debug_object_flag_screen_space)
-                {
-                    // Draw a green circle to indicate screen space coordinate system is being used.
-                    color = {0.f, 1.f, 0.f, 1.f};
-                    m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
-                }
-                else
-                {
-                    // Else we're in view space and want to make sure our circle is in the correct location for view space to show we're tracking the mouse cursor in view space correctly.
-                    color = {1.f, 1.f, 0.f, 1.f};
-                    m = glm::translate(glm::mat4(1.f), view_click);
-                }
-                m = glm::scale(m, glm::vec3(0.01f));
-                // This will draw a little green ir yellow circle depending on which space we are drawing the circle on the screen.
-                ctx->rls->pick_debugging.picking = {
-                    .type = debug_object_type::circle,
-                    .transform = mat4_to_array(m),
-                    .color = color,
-                    .flags = pick_debugging->space,
-                };
-                // Record the ray as a debug line to display:
-                if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_record)))
-                {
-                    float distance{1000.f}; // It's a long ray.
-                    glm::vec3 draw_location = world_ray * distance;
-                    distance += 2.f;
-                    // We use the transform matrix as the actual points to render the line to via a flag.
-                    auto m2 = glm::mat4(
-                        glm::vec4(camera_pos, 1.f),
-                        glm::vec4(draw_location, 1.f),
-                        glm::vec4(1.f),
-                        glm::vec4(1.f)
-                    );
-                    ctx->rls->pick_debugging.circles.push_back({
-                        .type = debug_object_type::line,
-                        .transform = mat4_to_array(m2),
-                        .color = {0.f, 1.f, 0.f, 1.f},
-                        .flags = debug_object_flag_transform_is_points,
-                    });
-                    ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
-                }
-            }
-            else
-            {
-                // In this case, if we're in edit mode we will draw nice little cursor on the actual floor where rosy is targeting.
-                glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, (intersection[1] / intersection_w) + 0.1f, intersection[2] / intersection_w));
-                circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
-                circle_m = glm::scale(circle_m, glm::vec3(0.25f));
+        //    // Draw some debugging UI to display picking performance.
+        //    if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
+        //    {
+        //        const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
+        //        glm::mat4 m;
+        //        std::array<float, 4> color;
+        //        if (pick_debugging->space & debug_object_flag_screen_space)
+        //        {
+        //            // Draw a green circle to indicate screen space coordinate system is being used.
+        //            color = {0.f, 1.f, 0.f, 1.f};
+        //            m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
+        //        }
+        //        else
+        //        {
+        //            // Else we're in view space and want to make sure our circle is in the correct location for view space to show we're tracking the mouse cursor in view space correctly.
+        //            color = {1.f, 1.f, 0.f, 1.f};
+        //            m = glm::translate(glm::mat4(1.f), view_click);
+        //        }
+        //        m = glm::scale(m, glm::vec3(0.01f));
+        //        // This will draw a little green ir yellow circle depending on which space we are drawing the circle on the screen.
+        //        ctx->rls->pick_debugging.picking = {
+        //            .type = debug_object_type::circle,
+        //            .transform = mat4_to_array(m),
+        //            .color = color,
+        //            .flags = pick_debugging->space,
+        //        };
+        //        // Record the ray as a debug line to display:
+        //        if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_record)))
+        //        {
+        //            float distance{1000.f}; // It's a long ray.
+        //            glm::vec3 draw_location = world_ray * distance;
+        //            distance += 2.f;
+        //            // We use the transform matrix as the actual points to render the line to via a flag.
+        //            auto m2 = glm::mat4(
+        //                glm::vec4(camera_pos, 1.f),
+        //                glm::vec4(draw_location, 1.f),
+        //                glm::vec4(1.f),
+        //                glm::vec4(1.f)
+        //            );
+        //            ctx->rls->pick_debugging.circles.push_back({
+        //                .type = debug_object_type::line,
+        //                .transform = mat4_to_array(m2),
+        //                .color = {0.f, 1.f, 0.f, 1.f},
+        //                .flags = debug_object_flag_transform_is_points,
+        //            });
+        //            ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
+        //        }
+        //    }
+        //    else
+        //    {
+        //        // In this case, if we're in edit mode we will draw nice little cursor on the actual floor where rosy is targeting.
+        //        glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, (intersection[1] / intersection_w) + 0.1f, intersection[2] / intersection_w));
+        //        circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
+        //        circle_m = glm::scale(circle_m, glm::vec3(0.25f));
 
-                ctx->rls->pick_debugging.picking = {
-                    .type = debug_object_type::circle,
-                    .transform = mat4_to_array(circle_m),
-                    .color = {0.f, 1.f, 0.f, 1.f},
-                    .flags = 0,
-                };
-            }
-            // If rosy is targeting orient rosy and move her toward the target.
-            if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target)))
-            {
-                const std::array<float, 3> node_world_space_position = ctx->rosy_reference.node->get_world_space_position();
-                const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
-                constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
+        //        ctx->rls->pick_debugging.picking = {
+        //            .type = debug_object_type::circle,
+        //            .transform = mat4_to_array(circle_m),
+        //            .color = {0.f, 1.f, 0.f, 1.f},
+        //            .flags = 0,
+        //        };
+        //    }
+        //    // If rosy is targeting orient rosy and move her toward the target.
+        //    if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target)))
+        //    {
+        //        const std::array<float, 3> node_world_space_position = ctx->rosy_reference.node->get_world_space_position();
+        //        const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
+        //        constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
 
-                // Convert rosy target translation to world position if rosy's position was world origin.
-                // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
-                // This is not rosy's asset-origin space, this just translating world origin to get a world yaw for rosy.
-                glm::mat4 transform_world_origin_to_rosy_position = glm::translate(glm::mat4(1.f), {-rosy_pos[0], -rosy_pos[1], -rosy_pos[2]});
-                // Verify that the rosy_space target isn't the null vector, if it is she's already there.
-                if (glm::vec4 rosy_target_if_rosy_is_world_origin = transform_world_origin_to_rosy_position * glm::vec4(rosy_target, 1.f); rosy_target_if_rosy_is_world_origin != glm::zero<glm::vec4>())
-                {
-                    // Calculate the difference between rosy's orientation and her target position
-                    const float sign = rosy_target_if_rosy_is_world_origin.x > 0 ? -1.f : 1.f;
-                    // This offset's rosy's orientation based on her orientation around the x-axis.
-                    const float target_game_cos_theta = glm::dot(glm::normalize(glm::vec3(rosy_target_if_rosy_is_world_origin)), game_forward);
-                    // This dot product is used to get the angle of the target with respect to rosy's position.
-                    const float target_yaw = sign * std::acos(target_game_cos_theta);
+        //        // Convert rosy target translation to world position if rosy's position was world origin.
+        //        // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
+        //        // This is not rosy's asset-origin space, this just translating world origin to get a world yaw for rosy.
+        //        glm::mat4 transform_world_origin_to_rosy_position = glm::translate(glm::mat4(1.f), {-rosy_pos[0], -rosy_pos[1], -rosy_pos[2]});
+        //        // Verify that the rosy_space target isn't the null vector, if it is she's already there.
+        //        if (glm::vec4 rosy_target_if_rosy_is_world_origin = transform_world_origin_to_rosy_position * glm::vec4(rosy_target, 1.f); rosy_target_if_rosy_is_world_origin != glm::zero<glm::vec4>())
+        //        {
+        //            // Calculate the difference between rosy's orientation and her target position
+        //            const float sign = rosy_target_if_rosy_is_world_origin.x > 0 ? -1.f : 1.f;
+        //            // This offset's rosy's orientation based on her orientation around the x-axis.
+        //            const float target_game_cos_theta = glm::dot(glm::normalize(glm::vec3(rosy_target_if_rosy_is_world_origin)), game_forward);
+        //            // This dot product is used to get the angle of the target with respect to rosy's position.
+        //            const float target_yaw = sign * std::acos(target_game_cos_theta);
 
-                    ctx->l->debug(std::format(
-                        "rosy_target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) target_yaw: {:.3f}) sign: {:.3f}",
-                        rosy_target_if_rosy_is_world_origin[0],
-                        rosy_target_if_rosy_is_world_origin[1],
-                        rosy_target_if_rosy_is_world_origin[2],
-                        target_game_cos_theta,
-                        target_yaw,
-                        sign
-                    ));
+        //            ctx->l->debug(std::format(
+        //                "rosy_target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) target_yaw: {:.3f}) sign: {:.3f}",
+        //                rosy_target_if_rosy_is_world_origin[0],
+        //                rosy_target_if_rosy_is_world_origin[1],
+        //                rosy_target_if_rosy_is_world_origin[2],
+        //                target_game_cos_theta,
+        //                target_yaw,
+        //                sign
+        //            ));
 
-                    c_forward nf{.yaw = target_yaw};
-                    ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
+        //            c_forward nf{.yaw = target_yaw};
+        //            ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
 
-                    // Linearly interpolate rosy's position toward the target
-                    const float t = 1.f * it->delta_time;
-                    glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
+        //            // Linearly interpolate rosy's position toward the target
+        //            const float t = 1.f * it->delta_time;
+        //            glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
 
-                    // Update rosy's world space orientation and position
-                    ctx->rosy_reference.node->set_world_space_translate(vec3_to_array(new_rosy_pos));
-                    // Set rosy's orientation to face target
-                    ctx->rosy_reference.node->set_world_space_yaw(target_yaw);
+        //            // Update rosy's world space orientation and position
+        //            ctx->rosy_reference.node->set_world_space_translate(vec3_to_array(new_rosy_pos));
+        //            // Set rosy's orientation to face target
+        //            ctx->rosy_reference.node->set_world_space_yaw(target_yaw);
 
-                    ctx->game_cam->set_game_cam_position({new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
-                }
-            }
-        }
+        //            ctx->game_cam->set_game_cam_position({new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
+        //        }
+        //    }
+        //}
     }
 
     // ReSharper disable once CppParameterMayBeConstPtrOrRef
-    void init_level_state(ecs_iter_t* it)
+    void init_level_state([[maybe_unused]] ecs_iter_t* it)
     {
-        const auto ctx = static_cast<level_state*>(it->param);
-        {
-            // Write active camera values
-            if (std::abs(ctx->game_cam->yaw - ctx->wls->game_camera_yaw) >= 0.2)
-            {
-                ctx->game_cam->set_yaw_around_position(ctx->wls->game_camera_yaw, ctx->rosy_reference.node->get_world_space_position());
-            }
-            const camera* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
-            ctx->rls->cam.p = cam->p;
-            ctx->rls->cam.v = cam->v;
-            ctx->rls->cam.vp = cam->vp;
-            ctx->rls->cam.position = cam->position;
-            ctx->rls->cam.pitch = cam->pitch;
-            ctx->rls->cam.yaw = cam->yaw;
-            ctx->rls->game_camera_yaw = ctx->game_cam->yaw;
-        }
-        {
-            // Configure draw options based on writable level state
-            ctx->rls->debug_enabled = ctx->wls->enable_edit;
-            ctx->rls->draw_config = ctx->wls->draw_config;
-            ctx->rls->light = ctx->wls->light;
-        }
-        {
-            // Fragment config
-            ctx->rls->fragment_config = ctx->wls->fragment_config;
-        }
-        {
-            // Mob state
-            const std::vector<node*> mobs = ctx->get_mobs();
-            if (ctx->wls->mob_edit.submitted)
-            {
-                ctx->rls->mob_read.clear_edits = true;
-                if (mobs.size() > ctx->wls->mob_edit.edit_index) mobs[0]->set_world_space_translate(ctx->wls->mob_edit.position);
-            }
-            else
-            {
-                ctx->rls->mob_read.clear_edits = false;
-            }
-            ctx->rls->mob_read.mob_states.clear();
-            for (const game_node_reference& nr : ctx->game_nodes)
-            {
-                const std::array<float, 3> node_world_space_pos = nr.node->get_world_space_position();
+        //const auto ctx = static_cast<level_state*>(it->param);
+        //{
+        //    // Write active camera values
+        //    if (std::abs(ctx->game_cam->yaw - ctx->wls->game_camera_yaw) >= 0.2)
+        //    {
+        //        ctx->game_cam->set_yaw_around_position(ctx->wls->game_camera_yaw, ctx->rosy_reference.node->get_world_space_position());
+        //    }
+        //    const camera* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
+        //    ctx->rls->cam.p = cam->p;
+        //    ctx->rls->cam.v = cam->v;
+        //    ctx->rls->cam.vp = cam->vp;
+        //    ctx->rls->cam.position = cam->position;
+        //    ctx->rls->cam.pitch = cam->pitch;
+        //    ctx->rls->cam.yaw = cam->yaw;
+        //    ctx->rls->game_camera_yaw = ctx->game_cam->yaw;
+        //}
+        //{
+        //    // Configure draw options based on writable level state
+        //    ctx->rls->debug_enabled = ctx->wls->enable_edit;
+        //    ctx->rls->draw_config = ctx->wls->draw_config;
+        //    ctx->rls->light = ctx->wls->light;
+        //}
+        //{
+        //    // Fragment config
+        //    ctx->rls->fragment_config = ctx->wls->fragment_config;
+        //}
+        //{
+        //    // Mob state
+        //    const std::vector<node*> mobs = ctx->get_mobs();
+        //    if (ctx->wls->mob_edit.submitted)
+        //    {
+        //        ctx->rls->mob_read.clear_edits = true;
+        //        if (mobs.size() > ctx->wls->mob_edit.edit_index) mobs[0]->set_world_space_translate(ctx->wls->mob_edit.position);
+        //    }
+        //    else
+        //    {
+        //        ctx->rls->mob_read.clear_edits = false;
+        //    }
+        //    ctx->rls->mob_read.mob_states.clear();
+        //    for (const game_node_reference& nr : ctx->game_nodes)
+        //    {
+        //        const std::array<float, 3> node_world_space_pos = nr.node->get_world_space_position();
 
-                std::array<float, 3> target = {0.f, 0.f, 0.f};
-                float yaw = 0.f;
-                if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_target)))
-                {
-                    const auto tc = static_cast<const c_target*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_target)));
-                    target = {tc->x, tc->y, tc->z};
-                }
-                if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_forward)))
-                {
-                    const auto fc = static_cast<const c_forward*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_forward)));
-                    ctx->l->debug(std::format("setting rls yaw: ({:.3f}", fc->yaw));
-                    yaw = fc->yaw;
-                }
-                ctx->rls->mob_read.mob_states.push_back({
-                    .name = nr.node->name,
-                    .position = node_world_space_pos,
-                    .yaw = yaw,
-                    .target = target,
-                });
-            }
-        }
-        ctx->rls->debug_objects.clear();
-        if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_clear)))
-        {
-            ctx->rls->pick_debugging.circles.clear();
-            ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_clear);
-        }
-        if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
-        {
-            const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(
-                ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
-            ctx->rls->debug_objects.insert(ctx->rls->debug_objects.end(), ctx->rls->pick_debugging.circles.begin(),
-                                           ctx->rls->pick_debugging.circles.end());
-            if (ctx->rls->pick_debugging.picking.has_value())
-            {
-                ctx->rls->debug_objects.push_back(ctx->rls->pick_debugging.picking.value());
-                ctx->rls->pick_debugging.picking = std::nullopt;
-            }
-            ctx->rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space
-                                                 ? pick_debug_read_state::picking_space::screen
-                                                 : pick_debug_read_state::picking_space::view;
-        }
-        else if (ctx->rosy_reference.node != nullptr && ecs_has_id(ctx->world, ctx->rosy_reference.entity,
-                                                                   ecs_id(t_rosy_action)))
-        {
-            if (ctx->rls->pick_debugging.picking.has_value())
-            {
-                ctx->rls->debug_objects.push_back(ctx->rls->pick_debugging.picking.value());
-            }
-        }
-        else
-        {
-            ctx->rls->pick_debugging.space = pick_debug_read_state::picking_space::disabled;
-        }
-        {
-            // Light & Shadow logic
-            glm::mat4 light_sun_view;
-            glm::mat4 debug_light_sun_view;
-            glm::mat4 debug_light_translate;
-            glm::mat4 light_line_rot;
-            {
-                // Lighting math
+        //        std::array<float, 3> target = {0.f, 0.f, 0.f};
+        //        float yaw = 0.f;
+        //        if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_target)))
+        //        {
+        //            const auto tc = static_cast<const c_target*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_target)));
+        //            target = {tc->x, tc->y, tc->z};
+        //        }
+        //        if (ecs_has_id(ctx->world, nr.entity, ecs_id(c_forward)))
+        //        {
+        //            const auto fc = static_cast<const c_forward*>(ecs_get_id(ctx->world, nr.entity, ecs_id(c_forward)));
+        //            ctx->l->debug(std::format("setting rls yaw: ({:.3f}", fc->yaw));
+        //            yaw = fc->yaw;
+        //        }
+        //        ctx->rls->mob_read.mob_states.push_back({
+        //            .name = nr.node->name,
+        //            .position = node_world_space_pos,
+        //            .yaw = yaw,
+        //            .target = target,
+        //        });
+        //    }
+        //}
+        //ctx->rls->debug_objects.clear();
+        //if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_clear)))
+        //{
+        //    ctx->rls->pick_debugging.circles.clear();
+        //    ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_clear);
+        //}
+        //if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
+        //{
+        //    const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(
+        //        ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
+        //    ctx->rls->debug_objects.insert(ctx->rls->debug_objects.end(), ctx->rls->pick_debugging.circles.begin(),
+        //                                   ctx->rls->pick_debugging.circles.end());
+        //    if (ctx->rls->pick_debugging.picking.has_value())
+        //    {
+        //        ctx->rls->debug_objects.push_back(ctx->rls->pick_debugging.picking.value());
+        //        ctx->rls->pick_debugging.picking = std::nullopt;
+        //    }
+        //    ctx->rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space
+        //                                         ? pick_debug_read_state::picking_space::screen
+        //                                         : pick_debug_read_state::picking_space::view;
+        //}
+        //else if (ctx->rosy_reference.node != nullptr && ecs_has_id(ctx->world, ctx->rosy_reference.entity,
+        //                                                           ecs_id(t_rosy_action)))
+        //{
+        //    if (ctx->rls->pick_debugging.picking.has_value())
+        //    {
+        //        ctx->rls->debug_objects.push_back(ctx->rls->pick_debugging.picking.value());
+        //    }
+        //}
+        //else
+        //{
+        //    ctx->rls->pick_debugging.space = pick_debug_read_state::picking_space::disabled;
+        //}
+        //{
+        //    // Light & Shadow logic
+        //    glm::mat4 light_sun_view;
+        //    glm::mat4 debug_light_sun_view;
+        //    glm::mat4 debug_light_translate;
+        //    glm::mat4 light_line_rot;
+        //    {
+        //        // Lighting math
 
-                {
-                    const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * ctx->wls->light_debug.sun_distance});
-                    debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * ctx->wls->light_debug.sun_distance});
-                    const glm::quat pitch_rotation = angleAxis(-ctx->wls->light_debug.sun_pitch, glm::vec3{1.f, 0.f, 0.f});
-                    const glm::quat yaw_rotation = angleAxis(ctx->wls->light_debug.sun_yaw, glm::vec3{0.f, -1.f, 0.f});
-                    light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
+        //        {
+        //            const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * ctx->wls->light_debug.sun_distance});
+        //            debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * ctx->wls->light_debug.sun_distance});
+        //            const glm::quat pitch_rotation = angleAxis(-ctx->wls->light_debug.sun_pitch, glm::vec3{1.f, 0.f, 0.f});
+        //            const glm::quat yaw_rotation = angleAxis(ctx->wls->light_debug.sun_yaw, glm::vec3{0.f, -1.f, 0.f});
+        //            light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
 
-                    const auto camera_position = glm::vec3(light_line_rot * glm::vec4(0.f, 0.f, -ctx->wls->light_debug.sun_distance, 0.f));
-                    auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
-                    light_sun_view = light_line_rot * light_translate;
-                    debug_light_sun_view = light_line_rot * (ctx->wls->light_debug.enable_light_perspective ? light_translate : debug_light_translate);
+        //            const auto camera_position = glm::vec3(light_line_rot * glm::vec4(0.f, 0.f, -ctx->wls->light_debug.sun_distance, 0.f));
+        //            auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
+        //            light_sun_view = light_line_rot * light_translate;
+        //            debug_light_sun_view = light_line_rot * (ctx->wls->light_debug.enable_light_perspective ? light_translate : debug_light_translate);
 
-                    ctx->rls->light.sunlight = {sunlight[0], sunlight[1], sunlight[2], sunlight[3]};
-                };
-            }
+        //            ctx->rls->light.sunlight = {sunlight[0], sunlight[1], sunlight[2], sunlight[3]};
+        //        };
+        //    }
 
-            if (ctx->wls->light_debug.enable_sun_debug)
-            {
-                // Generate debug lines for light and shadow debugging
-                const glm::mat4 debug_draw_view = light_line_rot * debug_light_translate;
-                const glm::mat4 debug_light_line = glm::scale(debug_draw_view, {ctx->wls->light_debug.sun_distance, ctx->wls->light_debug.sun_distance, ctx->wls->light_debug.sun_distance});
+        //    if (ctx->wls->light_debug.enable_sun_debug)
+        //    {
+        //        // Generate debug lines for light and shadow debugging
+        //        const glm::mat4 debug_draw_view = light_line_rot * debug_light_translate;
+        //        const glm::mat4 debug_light_line = glm::scale(debug_draw_view, {ctx->wls->light_debug.sun_distance, ctx->wls->light_debug.sun_distance, ctx->wls->light_debug.sun_distance});
 
-                debug_object line;
-                line.type = debug_object_type::line;
-                line.transform = mat4_to_array(debug_light_line);
-                line.color = {1.f, 0.f, 0.f, 1.f};
-                if (ctx->wls->light_debug.enable_sun_debug) ctx->rls->debug_objects.push_back(line);
-                {
-                    // Two circles to represent a sun
-                    constexpr float angle_step{glm::pi<float>() / 4.f};
-                    for (size_t i{0}; i < 4; i++)
-                    {
-                        debug_object sun_circle;
-                        glm::mat4 m{1.f};
-                        m = glm::rotate(m, angle_step * static_cast<float>(i), {1.f, 0.f, 0.f});
-                        sun_circle.type = debug_object_type::circle;
-                        sun_circle.transform = mat4_to_array(debug_draw_view * m);
-                        sun_circle.color = {0.976f, 0.912f, 0.609f, 1.f};
-                        ctx->rls->debug_objects.push_back(sun_circle);
-                    }
-                }
-            }
+        //        debug_object line;
+        //        line.type = debug_object_type::line;
+        //        line.transform = mat4_to_array(debug_light_line);
+        //        line.color = {1.f, 0.f, 0.f, 1.f};
+        //        if (ctx->wls->light_debug.enable_sun_debug) ctx->rls->debug_objects.push_back(line);
+        //        {
+        //            // Two circles to represent a sun
+        //            constexpr float angle_step{glm::pi<float>() / 4.f};
+        //            for (size_t i{0}; i < 4; i++)
+        //            {
+        //                debug_object sun_circle;
+        //                glm::mat4 m{1.f};
+        //                m = glm::rotate(m, angle_step * static_cast<float>(i), {1.f, 0.f, 0.f});
+        //                sun_circle.type = debug_object_type::circle;
+        //                sun_circle.transform = mat4_to_array(debug_draw_view * m);
+        //                sun_circle.color = {0.976f, 0.912f, 0.609f, 1.f};
+        //                ctx->rls->debug_objects.push_back(sun_circle);
+        //            }
+        //        }
+        //    }
 
-            glm::mat4 cam_lv;
-            glm::mat4 cam_lp;
-            {
-                // Create Light view and projection
+        //    glm::mat4 cam_lv;
+        //    glm::mat4 cam_lp;
+        //    {
+        //        // Create Light view and projection
 
-                const float cascade_level = ctx->wls->light_debug.cascade_level;
-                auto light_projections = glm::mat4(
-                    glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
-                    glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
-                    glm::vec4(0.f, 0.f, -1.f / ctx->wls->light_debug.orthographic_depth, 0.f),
-                    glm::vec4(0.f, 0.f, 0.f, 1.f)
-                );
+        //        const float cascade_level = ctx->wls->light_debug.cascade_level;
+        //        auto light_projections = glm::mat4(
+        //            glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
+        //            glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
+        //            glm::vec4(0.f, 0.f, -1.f / ctx->wls->light_debug.orthographic_depth, 0.f),
+        //            glm::vec4(0.f, 0.f, 0.f, 1.f)
+        //        );
 
-                const glm::mat4 lv = light_sun_view;
-                const glm::mat4 lp = light_projections;
-                cam_lv = glm::inverse(debug_light_sun_view);
-                cam_lp = ctx->wls->light_debug.enable_light_perspective
-                             ? light_projections
-                             : array_to_mat4((ctx->rls->cam.p));
-                ctx->rls->cam.shadow_projection_near = mat4_to_array(lp * glm::inverse(lv));
-            }
+        //        const glm::mat4 lv = light_sun_view;
+        //        const glm::mat4 lp = light_projections;
+        //        cam_lv = glm::inverse(debug_light_sun_view);
+        //        cam_lp = ctx->wls->light_debug.enable_light_perspective
+        //                     ? light_projections
+        //                     : array_to_mat4((ctx->rls->cam.p));
+        //        ctx->rls->cam.shadow_projection_near = mat4_to_array(lp * glm::inverse(lv));
+        //    }
 
-            if (ctx->wls->light_debug.enable_light_cam)
-            {
-                // Set debug lighting options on
-                ctx->rls->debug_enabled = false;
-                ctx->rls->cam.v = mat4_to_array(cam_lv);
-                ctx->rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
-            }
-        }
+        //    if (ctx->wls->light_debug.enable_light_cam)
+        //    {
+        //        // Set debug lighting options on
+        //        ctx->rls->debug_enabled = false;
+        //        ctx->rls->cam.v = mat4_to_array(cam_lv);
+        //        ctx->rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
+        //    }
+        //}
     }
 
     // ReSharper disable once CppParameterMayBeConstPtrOrRef
-    void detect_mob(ecs_iter_t* it)
+    void detect_mob([[maybe_unused]] ecs_iter_t* it)
     {
-        const auto ctx = static_cast<level_state*>(it->param);
+        /*const auto ctx = static_cast<level_state*>(it->param);
         const c_mob* p = ecs_field(it, c_mob, 0);
 
         for (int i = 0; i < it->count; i++)
@@ -1377,11 +1358,11 @@ namespace
             {
                 ctx->l->debug(std::format("Rosy detected!"));
             }
-        }
+        }*/
     }
 
     // ReSharper disable once CppParameterMayBeConstPtrOrRef
-    void detect_floor(ecs_iter_t* it)
+    void detect_floor([[maybe_unused]] ecs_iter_t* it)
     {
         const auto ctx = static_cast<level_state*>(it->param);
 
