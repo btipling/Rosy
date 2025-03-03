@@ -39,6 +39,10 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         lightDir = lightDir * float3(1, 1, -1);
     }
 
+    // ignore asset tangent sign
+    if (sd.ignoreAssetTangentSign == 1) {
+        new_tangent.w = 1.f;
+    }
     // flip tangents
     if (sd.flipTangents[0] == 1)
     {
@@ -72,10 +76,22 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float3 normal = normalize(mul(normalMat, v.normal));
     float3 tangent = normalize(mul(normalMat, new_tangent.xyz));
+    float3 bitangent = cross(normal, tangent) * new_tangent.w;
+    if (sd.reverseCrossBitangent == 1) {
+        bitangent = cross(tangent, normal) * new_tangent.w;
+    }
+
+    if (sd.ensureOrthogonalBitangent == 1) {
+        float3 normal_projection = dot(normal, bitangent) * bitangent;
+        float3 ortho_n = normalize(normal - normal_projection);
+        float3 tangent_projection = dot(tangent, bitangent) * bitangent;
+        float3 ortho_t = normalize(tangent - tangent_projection);
+        bitangent = cross(ortho_n, ortho_t) * new_tangent.w;
+    }
 
     if (tangentSpaceEnabled)
     {
-        float3 bitangent = cross(normal, tangent) * new_tangent.w;
+
         float3x3 toObjectLocal = float3x3(tangent, bitangent, normal);
         if (sd.inverseBNT > 0) {
             toObjectLocal = float3x3(
@@ -100,6 +116,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.worldNormal = mul(gd.normalTransform, v.normal);
     output.basicVertex.color = v.color;
     output.basicVertex.tangent = new_tangent;
+    output.basicVertex.bitangent = bitangent;
     output.basicVertex.viewDir = viewDir;
     output.basicVertex.lightDir = lightDir;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
@@ -151,6 +168,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     float3 lightNormal = normalize(basicVertex.normal);
     float3 lightDir = normalize(basicVertex.lightDir);
+    float3 bitangent = basicVertex.bitangent;
 
     if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
     {
@@ -160,7 +178,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
         lightNormal = normalize(normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1);
         if (sd.tangentSpaceEnabled == 0) {
-            float3 bitangent = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.tangent.w;
+            bitangent = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.tangent.w;
             lightNormal = normalize(lightNormal.x * basicVertex.tangent.xyz + lightNormal.y * bitangent + lightNormal.z * basicVertex.normal);
         }
     }
@@ -194,6 +212,9 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         break;
     case 6:
         outFragColor = float4(lightNormal * 0.5 + 0.5, 1.f);
+        break;
+    case 7:
+        outFragColor = float4(bitangent * 0.5 + 0.5, 1.f);
         break;
     default:
         break;

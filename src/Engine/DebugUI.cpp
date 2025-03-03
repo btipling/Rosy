@@ -152,7 +152,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor,  -50.f, 50.f);
+                ImGui::SliderFloat("Depth bias slope factor", &wls->light.depth_bias_slope_factor, -50.f, 50.f);
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
@@ -206,7 +206,13 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Inverse BNT", &wls->light.inverse_bnt);
                 ImGui::TableNextColumn();
-                ImGui::Text("");
+                ImGui::Checkbox("Ignore asset tangent sign", &wls->light.ignore_asset_tangent_sign);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Ensure Orthogonal bitangent", &wls->light.ensure_orthogonal_bitangent);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Reverse cross bitangent", &wls->light.reverse_cross_bitangent);
 
                 ImGui::EndTable();
             }
@@ -255,6 +261,8 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
             ImGui::SameLine();
             ImGui::RadioButton("vertex colors", &wls->fragment_config.output, 5);
             ImGui::RadioButton("tangent space normals", &wls->fragment_config.output, 6);
+            ImGui::SameLine();
+            ImGui::RadioButton("bitangent", &wls->fragment_config.output, 7);
             if (ImGui::BeginTable("##ToggleFragmentOptions", 2,
                                   ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
             {
@@ -273,11 +281,12 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::EndTable();
             }
         }
-        if (!rls->mob_read.mob_states.empty()) {
+        if (!rls->mob_read.mob_states.empty())
+        {
             if (ImGui::CollapsingHeader("Mobs"))
             {
                 if (ImGui::BeginTable("##Mob states", 2,
-                    ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+                                      ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
                 {
                     for (const auto& mob_states : rls->mob_read.mob_states)
                     {
@@ -292,7 +301,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                         ImGui::Text("position");
                         ImGui::TableNextColumn();
                         ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.position[0], mob_states.position[1],
-                            mob_states.position[2]);
+                                    mob_states.position[2]);
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
@@ -305,7 +314,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                         ImGui::Text("target");
                         ImGui::TableNextColumn();
                         ImGui::Text("(%.2f,  %.2f,  %.2f)", mob_states.target[0], mob_states.target[1],
-                            mob_states.target[2]);
+                                    mob_states.target[2]);
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
@@ -317,7 +326,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 }
 
                 if (ImGui::BeginCombo("Select mob",
-                    rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
+                                      rls->mob_read.mob_states[wls->mob_edit.edit_index].name.c_str()))
                 {
                     for (size_t i = 0; i < rls->mob_read.mob_states.size(); ++i)
                     {
@@ -336,10 +345,10 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 }
                 if (!wls->mob_edit.updated)
                     wls->mob_edit.position = rls->mob_read.mob_states[wls->mob_edit.
-                    edit_index].position;
+                                                                           edit_index].position;
                 if (ImGui::InputFloat3("position", wls->mob_edit.position.data()))
                     wls->mob_edit.updated =
-                    true;
+                        true;
                 if (ImGui::Button("Update", button_dims)) wls->mob_edit.submitted = true;
             }
         }
