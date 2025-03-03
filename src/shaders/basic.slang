@@ -76,6 +76,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float3 normal = normalize(mul(normalMat, v.normal));
     float3 tangent = normalize(mul(normalMat, new_tangent.xyz));
+    tangent = normalize(tangent - normal * dot(normal, tangent));
+
     float3 bitangent = cross(normal, tangent) * new_tangent.w;
     if (sd.reverseCrossBitangent == 1) {
         bitangent = cross(tangent, normal) * new_tangent.w;
@@ -84,7 +86,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     if (sd.ensureOrthogonalBitangent == 1) {
         float3 normal_projection = dot(normal, bitangent) * bitangent;
         float3 ortho_n = normalize(normal - normal_projection);
-        float3 tangent_projection = dot(tangent, bitangent) * bitangent;
+        float3 tangent_projection = normal_projection - dot(tangent, bitangent) * bitangent;
         float3 ortho_t = normalize(tangent - tangent_projection);
         bitangent = cross(ortho_n, ortho_t) * new_tangent.w;
     }
