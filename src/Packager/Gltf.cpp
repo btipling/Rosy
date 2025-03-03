@@ -117,7 +117,8 @@ size_t t_space_get_asset_position_data(const SMikkTSpaceContext* p_context, cons
 void t_space_get_position(const SMikkTSpaceContext* p_context, float* fv_pos_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
 {
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    if (requested_triangle % 1000 == 0) {
+    if (requested_triangle % 1000 == 0)
+    {
         ctx->l->info(std::format("t_space_get_position progress is {}/{} in surface {} for mesh {}", requested_triangle, ctx->triangle_surface_map.size(), ctx->surface_index, ctx->mesh_index));
     }
     const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
@@ -576,7 +577,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 
                 for (int mip = 0; mip < num_mipmaps; mip++)
                 {
-                    // image.normalizeNormalMap();
+                    image.normalizeNormalMap();
                     nvtt::Surface temp = image;
                     temp.transformNormals(nvtt::NormalTransform_Orthographic);
                     // Compress this image and write its data.
