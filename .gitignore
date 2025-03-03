@@ -384,3 +384,4 @@ imgui.ini
 *.vcxproj.user
 *.sln
 .vscode
+*.cap
