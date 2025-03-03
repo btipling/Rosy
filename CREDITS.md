@@ -73,3 +73,15 @@ Apache License  2.0, January 2004
 <https://github.com/nlohmann/json>\
 MIT License\
 Copyright (c) 2013-2025 Niels Lohmann
+
+### MikkTSpace
+
+<https://github.com/mmikk/MikkTSpace>\
+No License\
+Copyright (c) 2025 Morten S. Mikkelsen
+
+### nvpro-samples
+
+<https://github.com/nvpro-samples/vk_gltf_renderer>\
+Apache License\
+Copyright (C) 2015 THL A29 Limited, a Tencent company, and Milo Yip.
