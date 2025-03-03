@@ -206,7 +206,13 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Inverse BNT", &wls->light.inverse_bnt);
                 ImGui::TableNextColumn();
-                ImGui::Text("");
+                ImGui::Checkbox("Ignore asset tangent sign", &wls->light.ignore_asset_tangent_sign);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Ensure Orthogonal bitangent", &wls->light.ensure_orthogonal_bitangent);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Reverse cross bitangent", &wls->light.reverse_cross_bitangent);
 
                 ImGui::EndTable();
             }
@@ -255,6 +261,8 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
             ImGui::SameLine();
             ImGui::RadioButton("vertex colors", &wls->fragment_config.output, 5);
             ImGui::RadioButton("tangent space normals", &wls->fragment_config.output, 6);
+            ImGui::SameLine();
+            ImGui::RadioButton("bitangent", &wls->fragment_config.output, 7);
             if (ImGui::BeginTable("##ToggleFragmentOptions", 2,
                                   ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
             {

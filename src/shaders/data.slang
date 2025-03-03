@@ -15,6 +15,7 @@ public struct BasicVertex
     public float3 viewDir;
     public float3 lightDir;
     public float4 tangent;
+    public float3 bitangent;
     public float4 color;
     public float2 textureCoordinates;
 };
@@ -61,6 +62,9 @@ public struct SceneData
     public uint shadowsEnabled;
     public uint normalMapsEnabled;
     public uint inverseBNT;
+    public uint ingoreAssetTangentSign;
+    public uint ensureOrthogonalBitangent;
+    public uint reveseCrossBitangent;
 };
 
 public struct Fragment

@@ -137,6 +137,9 @@ namespace rosy
         bool flip_tangent_z{false};
         bool flip_tangent_w{false};
         bool inverse_bnt{false};
+        bool ignore_asset_tangent_sign{false};
+        bool ensure_orthogonal_bitangent{false};
+        bool reverse_cross_bitangent{false};
     };
 
     struct light_debug_state
@@ -161,7 +164,7 @@ namespace rosy
 
     struct fragment_config_state
     {
-        int output{0}; // 0 default, 1 normals, 2 tangent, 3 light, 4 view 5 vertex colors, 6 normal map
+        int output{0}; // 0 default, 1 normals, 2 tangent, 3 light, 4 view 5 vertex colors, 6 normal map, 7 bitangent
         bool light_enabled{false};
         bool tangent_space_enabled{false};
         bool shadows_enabled{false};

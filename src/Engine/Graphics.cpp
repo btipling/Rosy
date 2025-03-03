@@ -304,6 +304,9 @@ namespace
         [[maybe_unused]] uint32_t shadows_enabled{0};
         [[maybe_unused]] uint32_t normal_maps_enabled{0};
         [[maybe_unused]] uint32_t inverse_bnt{0};
+        [[maybe_unused]] uint32_t ignore_asset_tangent_sign{0};
+        [[maybe_unused]] uint32_t ensure_orthogonal_bitangent{0};
+        [[maybe_unused]] uint32_t reverse_cross_bitangent{ 0 };
     };
 
     struct allocated_image
@@ -6002,6 +6005,9 @@ namespace
             const uint32_t flip_tangent_z = new_rls.light.flip_tangent_z ? 1 : 0;
             const uint32_t flip_tangent_w = new_rls.light.flip_tangent_w ? 1 : 0;
             const uint32_t inverse_bnt = new_rls.light.inverse_bnt ? 1 : 0;
+            const uint32_t ignore_asset_tangent_sign = new_rls.light.ignore_asset_tangent_sign ? 1 : 0;
+            const uint32_t ensure_orthogonal_bitangent = new_rls.light.ensure_orthogonal_bitangent ? 1 : 0;
+            const uint32_t reverse_cross_bitangent = new_rls.light.reverse_cross_bitangent ? 1 : 0;
             gpu_scene_data sd;
             sd.view = new_rls.cam.v;
             sd.proj = new_rls.cam.p;
@@ -6022,6 +6028,9 @@ namespace
             sd.shadows_enabled = shadows_enabled;
             sd.normal_maps_enabled = normal_maps_enabled;
             sd.inverse_bnt = inverse_bnt;
+            sd.ignore_asset_tangent_sign = ignore_asset_tangent_sign;
+            sd.ensure_orthogonal_bitangent = ensure_orthogonal_bitangent;
+            sd.reverse_cross_bitangent = reverse_cross_bitangent;
 
             rls = &new_rls;
             scene_data = sd;

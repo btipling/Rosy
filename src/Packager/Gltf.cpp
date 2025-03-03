@@ -576,7 +576,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 
                 for (int mip = 0; mip < num_mipmaps; mip++)
                 {
-                    image.normalizeNormalMap();
+                    // image.normalizeNormalMap();
                     nvtt::Surface temp = image;
                     temp.transformNormals(nvtt::NormalTransform_Orthographic);
                     // Compress this image and write its data.
