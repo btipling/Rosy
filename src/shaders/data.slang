@@ -62,7 +62,7 @@ public struct SceneData
     public uint shadowsEnabled;
     public uint normalMapsEnabled;
     public uint inverseBNT;
-    public uint ingoreAssetTangentSign;
+    public uint ignoreAssetTangentSign;
     public uint ensureOrthogonalBitangent;
     public uint reverseCrossBitangent;
 };

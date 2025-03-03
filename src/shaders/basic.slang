@@ -40,7 +40,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     }
 
     // ignore asset tangent sign
-    if (sd.ingoreAssetTangentSign == 1) {
+    if (sd.ignoreAssetTangentSign == 1) {
         new_tangent.w = 1.f;
     }
     // flip tangents
