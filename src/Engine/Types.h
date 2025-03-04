@@ -164,7 +164,18 @@ namespace rosy
 
     struct fragment_config_state
     {
-        int output{0}; // 0 default, 1 normals, 2 tangent, 3 light, 4 view 5 vertex colors, 6 normal map, 7 bitangent
+        // output enables debug color output in the fragment shader.
+        // 0 default
+        // 1 normals
+        // 2 tangent
+        // 3 light
+        // 4 view
+        // 5 vertex colors
+        // 6 normal map
+        // 7 bitangent
+        // 8 cosTheta
+        // 9 cosPhi
+        int output{0};
         bool light_enabled{false};
         bool tangent_space_enabled{false};
         bool shadows_enabled{false};

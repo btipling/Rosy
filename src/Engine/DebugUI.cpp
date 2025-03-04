@@ -255,14 +255,21 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
             ImGui::RadioButton("normal", &wls->fragment_config.output, 1);
             ImGui::SameLine();
             ImGui::RadioButton("tangent", &wls->fragment_config.output, 2);
-            ImGui::RadioButton("light", &wls->fragment_config.output, 3);
             ImGui::SameLine();
+            ImGui::RadioButton("light", &wls->fragment_config.output, 3);
+
             ImGui::RadioButton("view", &wls->fragment_config.output, 4);
             ImGui::SameLine();
             ImGui::RadioButton("vertex colors", &wls->fragment_config.output, 5);
+            ImGui::SameLine();
             ImGui::RadioButton("tangent space normals", &wls->fragment_config.output, 6);
             ImGui::SameLine();
             ImGui::RadioButton("bitangent", &wls->fragment_config.output, 7);
+
+            ImGui::RadioButton("cosTheta", &wls->fragment_config.output, 8);
+            ImGui::SameLine();
+            ImGui::RadioButton("cosPhi", &wls->fragment_config.output, 9);
+
             if (ImGui::BeginTable("##ToggleFragmentOptions", 2,
                                   ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
             {

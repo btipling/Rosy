@@ -1219,6 +1219,7 @@ result level::init(log* new_log, const config new_cfg)
             wls.light.depth_bias_constant = -21.882f;
             wls.light.depth_bias_clamp = -20.937f;
             wls.light.depth_bias_slope_factor = -3.922f;
+            wls.light.flip_tangent_w = true;
             wls.draw_config.cull_enabled = true;
             wls.light.sunlight_color = {0.55f, 0.55f, 0.55f, 1.f};
             wls.light.ambient_light = 0.04f;
