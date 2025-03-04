@@ -342,7 +342,7 @@ namespace
 
         // **** ECS SYSTEM DEFINITIONS ****/
 
-        void init_system_init_level_state()
+        void init_system_init_level_state() const
         {
             worldz.system("init_level_state")
                   .kind(flecs::OnLoad)
@@ -524,263 +524,196 @@ namespace
                   });
         }
 
-
-        void init_system_detect_mob()
-        {
-            //{
-            //    // Detect mob
-            //    ecs_system_desc_t desc{};
-            //    {
-            //        ecs_entity_desc_t e_desc{};
-            //        e_desc.id = 0;
-            //        e_desc.name = "detect_mob";
-            //        {
-            //            ecs_id_t add_ids[3]{};
-            //            add_ids[0] = {ecs_dependson(EcsOnUpdate)};
-            //            add_ids[1] = EcsOnUpdate;
-            //            add_ids[2] = 0;
-            //            e_desc.add = add_ids;
-            //        }
-            //        desc.entity = ecs_entity_init(world, &e_desc);
-            //    }
-            //    desc.query.expr = "c_mob";
-            //    desc.ctx = static_cast<void*>(this);
-            //    desc.callback = detect_mob;
-            //    ecs_system_init(world, &desc);
-            //}
-            worldz.system().run([&, this]([[maybe_unused]] flecs::iter& it)
-            {
-                /*const auto ctx = static_cast<level_state*>(it->param);
-                const c_mob* p = ecs_field(it, c_mob, 0);
-
-                for (int i = 0; i < it->count; i++)
-                {
-                    const ecs_entity_t e = it->entities[i];
-
-                    const game_node_reference ref = ctx->game_nodes[p[i].index];
-                    ctx->l->debug(std::format("mob detected @ index {} with name: '{}'", static_cast<int>(p[i].index),
-                                              ref.node->name));
-                    if (ecs_has_id(ctx->world, e, ecs_id(t_rosy)))
-                    {
-                        ctx->l->debug(std::format("Rosy detected!"));
-                    }
-                }*/
-            });
-        }
-
         void init_system_move_rosy()
         {
-            //{
-            //    // Move rosy
-            //    ecs_system_desc_t desc{};
-            //    {
-            //        ecs_entity_desc_t e_desc{};
-            //        e_desc.id = 0;
-            //        e_desc.name = "move_rosy";
-            //        {
-            //            ecs_id_t add_ids[3]{};
-            //            add_ids[0] = {ecs_dependson(EcsOnUpdate)};
-            //            add_ids[1] = EcsOnUpdate;
-            //            add_ids[2] = 0;
-            //            e_desc.add = add_ids;
-            //        }
-            //        desc.entity = ecs_entity_init(world, &e_desc);
-            //    }
-            //    desc.query.expr = "t_rosy_action";
-            //    desc.ctx = static_cast<void*>(this);
-            //    desc.callback = move_rosy;
-            //    ecs_system_init(world, &desc);
-            //}
-            worldz.system().run([&, this]([[maybe_unused]] flecs::iter& it)
-            {
-                //// This function moves rosy to where the screen cursor is when the left mouse button is pushed.
-                //const auto ctx = static_cast<level_state*>(it->param);
-                //for (int i = 0; i < it->count; i++)
-                //{
-                //    if (!ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position))) continue;
+            worldz.system<t_rosy_action>("move_rosy")
+                  .kind(flecs::OnUpdate)
+                  .each([&, this](flecs::iter& it, size_t, t_rosy_action)
+                  {
+                      // This function moves rosy to where the screen cursor is when the left mouse button is pushed.
+                      if (!level_entity.has<c_cursor_position>()) return;
 
-                //    // Start picking. Picking here works by converting the 2D screen space cursor position to Vulkan NDC coordinates and then converts them
-                //    // to clip space. From clip space their position is on the projection plane in view space. A ray is created from the click position on the projection plane from
-                //    // the view space camera position, which is just origin. The ray is transformed to world space, the floor's origin is the same as the world space origin.
-                //    // Plucker coordinates are used to calculate the ray's intersection in the floor plane, as derived from Foundations of Game Engine Development [Lengyel]
-                //    const auto c_pos = static_cast<const c_cursor_position*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_cursor_position)));
-                //    const camera* cam = ctx->active_cam == level_state::camera_choice::game ? ctx->game_cam : ctx->free_cam;
+                      // Start picking. Picking here works by converting the 2D screen space cursor position to Vulkan NDC coordinates and then converts them
+                      // to clip space. From clip space their position is on the projection plane in view space. A ray is created from the click position on the projection plane from
+                      // the view space camera position, which is just origin. The ray is transformed to world space, the floor's origin is the same as the world space origin.
+                      // Plucker coordinates are used to calculate the ray's intersection in the floor plane, as derived from Foundations of Game Engine Development [Lengyel]
+                      const auto c_pos = level_entity.get<c_cursor_position>();
+                      const camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
 
-                //    auto camera_pos = glm::vec3(glm::vec4(cam->position[0], cam->position[1], cam->position[2], 1.f));
+                      auto camera_pos = glm::vec3(glm::vec4(cam->position[0], cam->position[1], cam->position[2], 1.f));
 
-                //    // Get the values used to transform the screen coordinates to view space.
-                //    const float a = static_cast<float>(cam->s);
-                //    const float w = cam->viewport_width;
-                //    const float h = cam->viewport_height;
-                //    const float fov = static_cast<float>(cam->fov) / 100.f;
-                //    const float x_s = c_pos->screen_x / w;
-                //    const float y_s = c_pos->screen_y / h;
-                //    const float g = static_cast<float>(cam->g);
+                      // Get the values used to transform the screen coordinates to view space.
+                      const float a = static_cast<float>(cam->s);
+                      const float w = cam->viewport_width;
+                      const float h = cam->viewport_height;
+                      const float fov = static_cast<float>(cam->fov) / 100.f;
+                      const float x_s = c_pos->screen_x / w;
+                      const float y_s = c_pos->screen_y / h;
+                      const float g = static_cast<float>(cam->g);
 
-                //    // This uses NDC + accounts for field of view and perspective to put x and y into view space.
-                //    const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
-                //    const float y_v = (2.f * y_s - 1.f) * fov;
+                      // This uses NDC + accounts for field of view and perspective to put x and y into view space.
+                      const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
+                      const float y_v = (2.f * y_s - 1.f) * fov;
 
-                //    // This is the click at actually twice the value of the projection plane distance.
-                //    const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
-                //    // This transforms the view click into world space using the inverse the view matrix.
-                //    const auto world_ray = glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(view_click, 0.f));
+                      // This is the click at actually twice the value of the projection plane distance.
+                      const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
+                      // This transforms the view click into world space using the inverse the view matrix.
+                      const auto world_ray = glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(view_click, 0.f));
 
-                //    // Create the pucker coordinates v and m;
-                //    const glm::vec3 plucker_v = world_ray;
-                //    const glm::vec3 plucker_m = cross(camera_pos, world_ray);
+                      // Create the pucker coordinates v and m;
+                      const glm::vec3 plucker_v = world_ray;
+                      const glm::vec3 plucker_m = cross(camera_pos, world_ray);
 
-                //    // Create the parameterized plane values for the floor in world space.
-                //    constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
-                //    constexpr float plane_distance = 0.f;
+                      // Create the parameterized plane values for the floor in world space.
+                      constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
+                      constexpr float plane_distance = 0.f;
 
-                //    // Calculate the intersection using the homogenous plane intersection formula
-                //    const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
-                //    const glm::vec3 d_v = plucker_v * plane_distance;
-                //    const glm::vec3 intersection = m_x_n + d_v;
-                //    const float intersection_w = glm::dot(-normal, plucker_v);
+                      // Calculate the intersection using the homogenous plane intersection formula
+                      const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
+                      const glm::vec3 d_v = plucker_v * plane_distance;
+                      const glm::vec3 intersection = m_x_n + d_v;
+                      const float intersection_w = glm::dot(-normal, plucker_v);
 
-                //    ctx->l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+                      l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
-                //    // Set rosy to target that intersection.
-                //    auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+                      // Set rosy to target that intersection.
+                      auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
 
-                //    // This is all taking place in world space. It used to be in object space and that was incorrect because this is about moving rosy in world space.
-                //    // Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
-                //    const auto floor_index = static_cast<const c_static*>(ecs_get_id(ctx->world, ctx->floor_entity, ecs_id(c_static)));
-                //    const node* floor_node = ctx->get_static()[floor_index->index];
-                //    auto world_space_floor_bounds = floor_node->get_world_space_bounds();
-                //    for (int j{0}; j < 3; j++)
-                //    {
-                //        if (rosy_target[j] < world_space_floor_bounds.min[j])
-                //        {
-                //            rosy_target[j] = world_space_floor_bounds.min[j];
-                //        }
-                //        if (rosy_target[j] > world_space_floor_bounds.max[j])
-                //        {
-                //            rosy_target[j] = world_space_floor_bounds.max[j];
-                //        }
-                //    }
+                      // This is all taking place in world space. It used to be in object space and that was incorrect because this is about moving rosy in world space.
+                      // Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
+                      const auto floor_index = floor_entity.get<c_static>();
+                      const node* floor_node = get_static()[floor_index->index];
+                      auto world_space_floor_bounds = floor_node->get_world_space_bounds();
+                      for (int j{0}; j < 3; j++)
+                      {
+                          if (rosy_target[j] < world_space_floor_bounds.min[j])
+                          {
+                              rosy_target[j] = world_space_floor_bounds.min[j];
+                          }
+                          if (rosy_target[j] > world_space_floor_bounds.max[j])
+                          {
+                              rosy_target[j] = world_space_floor_bounds.max[j];
+                          }
+                      }
 
-                //    c_target target{.x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z};
-                //    ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target), sizeof(c_target), &target);
+                      c_target target{.x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z};
+                      rosy_reference.entity.add<c_target>().set<c_target>(target);
 
-                //    // Draw some debugging UI to display picking performance.
-                //    if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)))
-                //    {
-                //        const auto pick_debugging = static_cast<const c_pick_debugging_enabled*>(ecs_get_id(ctx->world, ctx->level_entity, ecs_id(c_pick_debugging_enabled)));
-                //        glm::mat4 m;
-                //        std::array<float, 4> color;
-                //        if (pick_debugging->space & debug_object_flag_screen_space)
-                //        {
-                //            // Draw a green circle to indicate screen space coordinate system is being used.
-                //            color = {0.f, 1.f, 0.f, 1.f};
-                //            m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
-                //        }
-                //        else
-                //        {
-                //            // Else we're in view space and want to make sure our circle is in the correct location for view space to show we're tracking the mouse cursor in view space correctly.
-                //            color = {1.f, 1.f, 0.f, 1.f};
-                //            m = glm::translate(glm::mat4(1.f), view_click);
-                //        }
-                //        m = glm::scale(m, glm::vec3(0.01f));
-                //        // This will draw a little green ir yellow circle depending on which space we are drawing the circle on the screen.
-                //        ctx->rls->pick_debugging.picking = {
-                //            .type = debug_object_type::circle,
-                //            .transform = mat4_to_array(m),
-                //            .color = color,
-                //            .flags = pick_debugging->space,
-                //        };
-                //        // Record the ray as a debug line to display:
-                //        if (ecs_has_id(ctx->world, ctx->level_entity, ecs_id(t_pick_debugging_record)))
-                //        {
-                //            float distance{1000.f}; // It's a long ray.
-                //            glm::vec3 draw_location = world_ray * distance;
-                //            distance += 2.f;
-                //            // We use the transform matrix as the actual points to render the line to via a flag.
-                //            auto m2 = glm::mat4(
-                //                glm::vec4(camera_pos, 1.f),
-                //                glm::vec4(draw_location, 1.f),
-                //                glm::vec4(1.f),
-                //                glm::vec4(1.f)
-                //            );
-                //            ctx->rls->pick_debugging.circles.push_back({
-                //                .type = debug_object_type::line,
-                //                .transform = mat4_to_array(m2),
-                //                .color = {0.f, 1.f, 0.f, 1.f},
-                //                .flags = debug_object_flag_transform_is_points,
-                //            });
-                //            ecs_remove(ctx->world, ctx->level_entity, t_pick_debugging_record);
-                //        }
-                //    }
-                //    else
-                //    {
-                //        // In this case, if we're in edit mode we will draw nice little cursor on the actual floor where rosy is targeting.
-                //        glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, (intersection[1] / intersection_w) + 0.1f, intersection[2] / intersection_w));
-                //        circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
-                //        circle_m = glm::scale(circle_m, glm::vec3(0.25f));
+                      // Draw some debugging UI to display picking performance.
+                      if (level_entity.has<c_pick_debugging_enabled>())
+                      {
+                          const auto pick_debugging = level_entity.get<c_pick_debugging_enabled>();
+                          glm::mat4 m;
+                          std::array<float, 4> color;
+                          if (pick_debugging->space & debug_object_flag_screen_space)
+                          {
+                              // Draw a green circle to indicate screen space coordinate system is being used.
+                              color = {0.f, 1.f, 0.f, 1.f};
+                              m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
+                          }
+                          else
+                          {
+                              // Else we're in view space and want to make sure our circle is in the correct location for view space to show we're tracking the mouse cursor in view space correctly.
+                              color = {1.f, 1.f, 0.f, 1.f};
+                              m = glm::translate(glm::mat4(1.f), view_click);
+                          }
+                          m = glm::scale(m, glm::vec3(0.01f));
+                          // This will draw a little green ir yellow circle depending on which space we are drawing the circle on the screen.
+                          rls->pick_debugging.picking = {
+                              .type = debug_object_type::circle,
+                              .transform = mat4_to_array(m),
+                              .color = color,
+                              .flags = pick_debugging->space,
+                          };
+                          // Record the ray as a debug line to display:
+                          if (level_entity.has<t_pick_debugging_record>())
+                          {
+                              float distance{1000.f}; // It's a long ray.
+                              glm::vec3 draw_location = world_ray * distance;
+                              distance += 2.f;
+                              // We use the transform matrix as the actual points to render the line to via a flag.
+                              auto m2 = glm::mat4(
+                                  glm::vec4(camera_pos, 1.f),
+                                  glm::vec4(draw_location, 1.f),
+                                  glm::vec4(1.f),
+                                  glm::vec4(1.f)
+                              );
+                              rls->pick_debugging.circles.push_back({
+                                  .type = debug_object_type::line,
+                                  .transform = mat4_to_array(m2),
+                                  .color = {0.f, 1.f, 0.f, 1.f},
+                                  .flags = debug_object_flag_transform_is_points,
+                              });
+                              level_entity.remove<t_pick_debugging_record>();
+                          }
+                      }
+                      else
+                      {
+                          // In this case, if we're in edit mode we will draw nice little cursor on the actual floor where rosy is targeting.
+                          glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, (intersection[1] / intersection_w) + 0.1f, intersection[2] / intersection_w));
+                          circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
+                          circle_m = glm::scale(circle_m, glm::vec3(0.25f));
 
-                //        ctx->rls->pick_debugging.picking = {
-                //            .type = debug_object_type::circle,
-                //            .transform = mat4_to_array(circle_m),
-                //            .color = {0.f, 1.f, 0.f, 1.f},
-                //            .flags = 0,
-                //        };
-                //    }
-                //    // If rosy is targeting orient rosy and move her toward the target.
-                //    if (ecs_has_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_target)))
-                //    {
-                //        const std::array<float, 3> node_world_space_position = ctx->rosy_reference.node->get_world_space_position();
-                //        const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
-                //        constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
+                          rls->pick_debugging.picking = {
+                              .type = debug_object_type::circle,
+                              .transform = mat4_to_array(circle_m),
+                              .color = {0.f, 1.f, 0.f, 1.f},
+                              .flags = 0,
+                          };
+                      }
+                      // If rosy is targeting orient rosy and move her toward the target.
+                      if (rosy_reference.entity.has<c_target>())
+                      {
+                          const std::array<float, 3> node_world_space_position = rosy_reference.node->get_world_space_position();
+                          const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
+                          constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
 
-                //        // Convert rosy target translation to world position if rosy's position was world origin.
-                //        // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
-                //        // This is not rosy's asset-origin space, this just translating world origin to get a world yaw for rosy.
-                //        glm::mat4 transform_world_origin_to_rosy_position = glm::translate(glm::mat4(1.f), {-rosy_pos[0], -rosy_pos[1], -rosy_pos[2]});
-                //        // Verify that the rosy_space target isn't the null vector, if it is she's already there.
-                //        if (glm::vec4 rosy_target_if_rosy_is_world_origin = transform_world_origin_to_rosy_position * glm::vec4(rosy_target, 1.f); rosy_target_if_rosy_is_world_origin != glm::zero<glm::vec4>())
-                //        {
-                //            // Calculate the difference between rosy's orientation and her target position
-                //            const float sign = rosy_target_if_rosy_is_world_origin.x > 0 ? -1.f : 1.f;
-                //            // This offset's rosy's orientation based on her orientation around the x-axis.
-                //            const float target_game_cos_theta = glm::dot(glm::normalize(glm::vec3(rosy_target_if_rosy_is_world_origin)), game_forward);
-                //            // This dot product is used to get the angle of the target with respect to rosy's position.
-                //            const float target_yaw = sign * std::acos(target_game_cos_theta);
+                          // Convert rosy target translation to world position if rosy's position was world origin.
+                          // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
+                          // This is not rosy's asset-origin space, this just translating world origin to get a world yaw for rosy.
+                          glm::mat4 transform_world_origin_to_rosy_position = glm::translate(glm::mat4(1.f), {-rosy_pos[0], -rosy_pos[1], -rosy_pos[2]});
+                          // Verify that the rosy_space target isn't the null vector, if it is she's already there.
+                          if (glm::vec4 rosy_target_if_rosy_is_world_origin = transform_world_origin_to_rosy_position * glm::vec4(rosy_target, 1.f); rosy_target_if_rosy_is_world_origin != glm::zero<
+                              glm::vec4>())
+                          {
+                              // Calculate the difference between rosy's orientation and her target position
+                              const float sign = rosy_target_if_rosy_is_world_origin.x > 0 ? -1.f : 1.f;
+                              // This offset's rosy's orientation based on her orientation around the x-axis.
+                              const float target_game_cos_theta = glm::dot(glm::normalize(glm::vec3(rosy_target_if_rosy_is_world_origin)), game_forward);
+                              // This dot product is used to get the angle of the target with respect to rosy's position.
+                              const float target_yaw = sign * std::acos(target_game_cos_theta);
 
-                //            ctx->l->debug(std::format(
-                //                "rosy_target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) target_yaw: {:.3f}) sign: {:.3f}",
-                //                rosy_target_if_rosy_is_world_origin[0],
-                //                rosy_target_if_rosy_is_world_origin[1],
-                //                rosy_target_if_rosy_is_world_origin[2],
-                //                target_game_cos_theta,
-                //                target_yaw,
-                //                sign
-                //            ));
+                              l->debug(std::format(
+                                  "rosy_target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) target_yaw: {:.3f}) sign: {:.3f}",
+                                  rosy_target_if_rosy_is_world_origin[0],
+                                  rosy_target_if_rosy_is_world_origin[1],
+                                  rosy_target_if_rosy_is_world_origin[2],
+                                  target_game_cos_theta,
+                                  target_yaw,
+                                  sign
+                              ));
 
-                //            c_forward nf{.yaw = target_yaw};
-                //            ecs_set_id(ctx->world, ctx->rosy_reference.entity, ecs_id(c_forward), sizeof(c_forward), &nf);
+                              c_forward nf{.yaw = target_yaw};
+                              rosy_reference.entity.add<c_forward>().set<c_forward>(nf);
 
-                //            // Linearly interpolate rosy's position toward the target
-                //            const float t = 1.f * it->delta_time;
-                //            glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
+                              // Linearly interpolate rosy's position toward the target
+                              const float t = 1.f * it.delta_time();
+                              glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
 
-                //            // Update rosy's world space orientation and position
-                //            ctx->rosy_reference.node->set_world_space_translate(vec3_to_array(new_rosy_pos));
-                //            // Set rosy's orientation to face target
-                //            ctx->rosy_reference.node->set_world_space_yaw(target_yaw);
+                              // Update rosy's world space orientation and position
+                              rosy_reference.node->set_world_space_translate(vec3_to_array(new_rosy_pos));
+                              // Set rosy's orientation to face target
+                              rosy_reference.node->set_world_space_yaw(target_yaw);
 
-                //            ctx->game_cam->set_game_cam_position({new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
-                //        }
-                //    }
-                //}
-            });
+                              game_cam->set_game_cam_position({new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
+                          }
+                      }
+                  });
         }
 
         void init_systems()
         {
             init_system_init_level_state();
-            init_system_detect_mob();
             init_system_move_rosy();
         }
 
