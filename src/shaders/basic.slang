@@ -189,6 +189,14 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         }
     }
 
+    float3 V = normalize(basicVertex.viewDir);
+    float3 L = lightDir;
+    float3 N = lightNormal;
+    float3 H = L + V;
+
+    float cosTheta = dot(L, N);
+    float cosPhi = dot(H, N);
+
     float4 outFragColor = md.color;
     switch (sd.fragmentOutput)
     {
@@ -222,20 +230,18 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     case 7:
         outFragColor = float4(bitangent * 0.5 + 0.5, 1.f);
         break;
+    case 8:
+        outFragColor = float4(float3(cosTheta, cosTheta, cosTheta) * 0.5 + 0.5, 1.f);
+        break;
+    case 9:
+        outFragColor = float4(float3(cosPhi, cosPhi, cosPhi) * 0.5 + 0.5, 1.f);
+        break;
     default:
         break;
     }
 
     if (sd.lightEnabled > 0)
     {
-        float3 V = normalize(basicVertex.viewDir);
-        float3 L = lightDir;
-        float3 N = lightNormal;
-        float3 H = L + V;
-
-        float cosTheta = dot(L, N);
-        float cosPhi = dot(H, N);
-
         float3 ambientLight = sd.ambientColor.xyz;
         float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
