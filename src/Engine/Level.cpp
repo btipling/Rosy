@@ -867,54 +867,53 @@ namespace
                 level_game_node->debug();
             }
             {
-                //// Initialize ECS game nodes
-                //{
-                //    // Track mobs
-                //    std::vector<node*> mobs = get_mobs();
-                //    game_nodes.resize(mobs.size());
-                //    for (size_t i{0}; i < mobs.size(); i++)
-                //    {
-                //        node* n = mobs[i];
-                //        ecs_entity_t node_entity = ecs_new(world);
+                // Initialize ECS game nodes
+                {
+                    // Track mobs
+                    std::vector<node*> mobs = get_mobs();
+                    game_nodes.resize(mobs.size());
+                    for (size_t i{0}; i < mobs.size(); i++)
+                    {
+                        node* n = mobs[i];
+                        flecs::entity node_entity = worldz.entity();
 
-                //        game_node_reference ref = {
-                //            .entity = node_entity,
-                //            .index = i,
-                //            .node = n,
-                //        };
-                //        game_nodes[i] = ref;
+                        game_node_reference ref = {
+                            .entity = node_entity,
+                            .index = i,
+                            .node = n,
+                        };
+                        game_nodes[i] = ref;
 
-                //        c_mob m{i};
-                //        ecs_set_id(world, node_entity, ecs_id(c_mob), sizeof(c_mob), &m);
-                //        c_forward forward{.yaw = 0.f};
-                //        ecs_set_id(world, node_entity, ecs_id(c_forward), sizeof(c_forward), &forward);
+                        c_mob m{i};
+                        node_entity.add<c_mob>().set(m);
+                        c_forward forward{.yaw = 0.f};
+                        node_entity.add<c_forward>().set(forward);
 
-                //        if (n->name == "rosy")
-                //        {
-                //            rosy_reference = ref;
-                //            ecs_add(world, node_entity, t_rosy);
-                //            game_cam->set_game_cam_position(rosy_reference.node->get_world_space_position());
-                //        }
-                //    }
-                //}
-                //{
-                //    // Track special static objects
-                //    std::vector<node*> static_objects = get_static();
-                //    for (size_t i{0}; i < static_objects.size(); i++)
-                //    {
-                //        node* n = static_objects[i];
-                //        ecs_entity_t node_entity = ecs_new(world);
+                        if (n->name == "rosy")
+                        {
+                            rosy_reference = ref;
+                            node_entity.add<t_rosy>();
+                            game_cam->set_game_cam_position(rosy_reference.node->get_world_space_position());
+                        }
+                    }
+                }
+                {
+                    // Track special static objects
+                    std::vector<node*> static_objects = get_static();
+                    for (size_t i{0}; i < static_objects.size(); i++)
+                    {
+                        node* n = static_objects[i];
+                        flecs::entity node_entity = worldz.entity();
 
-                //        if (n->name == "floor")
-                //        {
-                //            floor_entity = node_entity;
-                //            ecs_add(world, node_entity, t_floor);
-                //            c_static m{i};
-                //            ecs_set_id(world, node_entity, ecs_id(c_static), sizeof(c_static), &m);
-                //            break;
-                //        }
-                //    }
-                //}
+                        if (n->name == "floor")
+                        {
+                            floor_entity = node_entity;
+                            c_static m{i};
+                            node_entity.add<t_floor>().set(m);
+                            break;
+                        }
+                    }
+                }
             }
             return result::ok;
         }
