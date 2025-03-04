@@ -192,10 +192,10 @@ namespace
         std::vector<game_node_reference> game_nodes;
 
         // ECS
-        flecs::world worldz;
-        flecs::entity level_entity = worldz.entity("level");
+        flecs::world world;
+        flecs::entity level_entity = world.entity("level");
         game_node_reference rosy_reference{};
-        flecs::entity floor_entity = worldz.entity("floor");
+        flecs::entity floor_entity = world.entity("floor");
 
         result init(rosy::log* new_log, const config new_cfg)
         {
@@ -266,9 +266,9 @@ namespace
                 };
             }
 
-            assert(worldz.is_alive(level_entity));
+            assert(world.is_alive(level_entity));
 
-            worldz.set_target_fps(initial_fps_target);
+            world.set_target_fps(initial_fps_target);
 
             init_systems();
 
@@ -287,10 +287,10 @@ namespace
                 delete level_game_node;
                 level_game_node = nullptr;
             }
-            if (worldz.is_alive(level_entity))
+            if (world.is_alive(level_entity))
             {
                 level_entity.destruct();
-                assert(!worldz.is_alive(level_entity));
+                assert(!world.is_alive(level_entity));
             }
             if (level_editor)
             {
@@ -324,18 +324,18 @@ namespace
                 for (node* n : level_game_node->children) n->deinit();
                 level_game_node->children.clear();
             }
-            if (worldz.is_alive(level_entity))
+            if (world.is_alive(level_entity))
             {
                 level_entity.destruct();
-                assert(!worldz.is_alive(level_entity));
+                assert(!world.is_alive(level_entity));
             }
-            worldz = flecs::world{};
-            level_entity = worldz.entity("level");
-            assert(worldz.is_alive(level_entity));
+            world = flecs::world{};
+            level_entity = world.entity("level");
+            assert(world.is_alive(level_entity));
 
             init_systems();
 
-            worldz.set_target_fps(initial_fps_target);
+            world.set_target_fps(initial_fps_target);
 
             return result::ok;
         }
@@ -344,7 +344,7 @@ namespace
 
         void init_system_init_level_state() const
         {
-            worldz.system("init_level_state")
+            world.system("init_level_state")
                   .kind(flecs::OnLoad)
                   .run([&, this]([[maybe_unused]] flecs::iter& it)
                   {
@@ -379,7 +379,10 @@ namespace
                           if (wls->mob_edit.submitted)
                           {
                               rls->mob_read.clear_edits = true;
-                              if (mobs.size() > wls->mob_edit.edit_index) mobs[0]->set_world_space_translate(wls->mob_edit.position);
+                              if (mobs.size() > wls->mob_edit.edit_index)
+                              {
+                                  mobs[wls->mob_edit.edit_index]->set_world_space_translate(wls->mob_edit.position);
+                              }
                           }
                           else
                           {
@@ -526,7 +529,7 @@ namespace
 
         void init_system_move_rosy()
         {
-            worldz.system<t_rosy_action>("move_rosy")
+            world.system<t_rosy_action>("move_rosy")
                   .kind(flecs::OnUpdate)
                   .each([&, this](flecs::iter& it, size_t, t_rosy_action)
                   {
@@ -750,7 +753,7 @@ namespace
             rls->go_update.graphic_objects.clear();
             if (rls->target_fps != wls->target_fps)
             {
-                worldz.set_target_fps(wls->target_fps);
+                world.set_target_fps(wls->target_fps);
                 rls->target_fps = wls->target_fps;
             }
             return result::ok;
@@ -780,7 +783,7 @@ namespace
                 l->error("Error updating camera");
                 return res;
             }
-            worldz.progress(static_cast<float>(dt));
+            world.progress(static_cast<float>(dt));
             return result::ok;
         }
 
@@ -1156,7 +1159,7 @@ namespace
                     for (size_t i{0}; i < mobs.size(); i++)
                     {
                         node* n = mobs[i];
-                        flecs::entity node_entity = worldz.entity();
+                        flecs::entity node_entity = world.entity(n->name.c_str());
 
                         game_node_reference ref = {
                             .entity = node_entity,
@@ -1184,7 +1187,7 @@ namespace
                     for (size_t i{0}; i < static_objects.size(); i++)
                     {
                         node* n = static_objects[i];
-                        flecs::entity node_entity = worldz.entity();
+                        flecs::entity node_entity = world.entity();
 
                         if (n->name == "floor")
                         {
