@@ -346,12 +346,8 @@ namespace
             return result::ok;
         }
 
-        void init_systems()
+        void init_system_init_level_state()
         {
-            auto hello_world_sys = worldz.system().run([&, this]([[maybe_unused]] flecs::iter& it)
-            {
-                l->info("hello world!");
-            });
             //{
             //    // Load initial writable state from renderer
             //    ecs_system_desc_t desc{};
@@ -372,6 +368,11 @@ namespace
             //    desc.callback = init_level_state;
             //    ecs_system_init(world, &desc);
             //}
+        }
+
+
+        void init_system_detect_mob()
+        {
             //{
             //    // Detect mob
             //    ecs_system_desc_t desc{};
@@ -393,6 +394,14 @@ namespace
             //    desc.callback = detect_mob;
             //    ecs_system_init(world, &desc);
             //}
+            auto hello_world_sys = worldz.system().run([&, this]([[maybe_unused]] flecs::iter& it)
+                {
+                    l->info("hello world!");
+                });
+        }
+
+        void init_system_detect_floor()
+        {
             //{
             //    // Detect floor
             //    ecs_system_desc_t desc{};
@@ -414,6 +423,10 @@ namespace
             //    desc.callback = detect_floor;
             //    ecs_system_init(world, &desc);
             //}
+        }
+
+        void init_system_move_rosy()
+        {
             //{
             //    // Move rosy
             //    ecs_system_desc_t desc{};
@@ -435,6 +448,14 @@ namespace
             //    desc.callback = move_rosy;
             //    ecs_system_init(world, &desc);
             //}
+        }
+
+        void init_systems()
+        {
+            init_system_init_level_state();
+            init_system_detect_mob();
+            init_system_detect_floor();
+            init_system_move_rosy();
         }
 
         [[nodiscard]] std::vector<node*> get_mobs() const
