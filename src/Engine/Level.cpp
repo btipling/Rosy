@@ -29,7 +29,7 @@ namespace
     /**** ECS DEFINITIONS ****/
 
     // Components
-    struct c_position
+    struct [[maybe_unused]] c_position
     {
         [[maybe_unused]] float x{0.f};
         [[maybe_unused]] float y{0.f};
@@ -38,7 +38,7 @@ namespace
 
     struct c_mob
     {
-        size_t index{0};
+        size_t [[maybe_unused]] index{0};
     };
 
     struct c_static
