@@ -74,9 +74,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float3 viewDir;
 
-    float3 normal = normalize(mul(normalMat, v.normal));
-    float3 tangent = normalize(mul(normalMat, new_tangent.xyz));
-    tangent = normalize(tangent - normal * dot(normal, tangent));
+    float3 normal = v.normal;
+    float3 tangent = new_tangent.xyz;
 
     float3 bitangent = cross(normal, tangent) * new_tangent.w;
     if (sd.reverseCrossBitangent == 1) {
@@ -93,20 +92,16 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     if (tangentSpaceEnabled)
     {
-        float3x3 toObjectLocal = float3x3(tangent, bitangent, normal);
-        if (sd.inverseBNT > 0) {
-            toObjectLocal = float3x3(
-                float3(tangent.x, bitangent.x, normal.x),
-                float3(tangent.y, bitangent.y, normal.y),
-                float3(tangent.z, bitangent.z, normal.z),
-            );
-        }
-        float3 pos = mul(mul(sd.view, worldMat), float4(v.position, 1.0)).xyz;
+        viewDir = mul(gd.toObjectSpaceTransform, sd.cameraPosition).xyz;
+        viewDir = float3(dot(tangent, viewDir), dot(bitangent, viewDir), dot(normal, viewDir));
 
-        lightDir = mul(toObjectLocal, lightDir);
-        viewDir = mul(toObjectLocal, normalize(-pos));
+        lightDir = mul(gd.toObjectSpaceTransform, float4(lightDir, 0.f)).xyz;
+        lightDir = float3(dot(tangent, lightDir), dot(bitangent, lightDir), dot(normal, lightDir));
     } else {
-        viewDir = mul(mul(sd.view, worldMat), float4(v.position, 1.0)).xyz;
+        normal = normalize(mul(normalMat, v.normal));
+        tangent = normalize(mul(normalMat, new_tangent.xyz));
+        tangent = normalize(tangent - normal * dot(normal, tangent));
+        viewDir = mul(mul(sd.view, gd.toObjectSpaceTransform), float4(v.position, 1.0)).xyz;
     }
 
     float4 vertPos = float4(v.position, 1.0);
