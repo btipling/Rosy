@@ -23,7 +23,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float4x4 ndc_to_tc = { 0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1 };
 
     float3 lightDir = sd.sunlight.xyz;
-    float4 new_tangent = -v.tangent;
+    float4 new_tangent = v.tangent;
 
     // flip lights
     if (sd.flipLights[0] == 1)
@@ -93,7 +93,6 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     if (tangentSpaceEnabled)
     {
-
         float3x3 toObjectLocal = float3x3(tangent, bitangent, normal);
         if (sd.inverseBNT > 0) {
             toObjectLocal = float3x3(
@@ -174,11 +173,16 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
     {
-        lightDir = normalize(-basicVertex.lightDir);
+        lightDir = normalize(basicVertex.lightDir);
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-        lightNormal = normalize(normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1);
+        float4 normals2D = normalMap.Sample(normalSampler, basicVertex.textureCoordinates);
+        // The normal map is stored in BC5 which stores 3D normals in 2D, using an Orthographic projection, this reconstructs the z
+        float nx = normals2D.x;
+        float ny = normals2D.y;
+        float nz = sqrt(1 - nx * nx + ny * ny);
+        lightNormal =  normalize(float3(nx, ny, nz) * 2 - 1);
         if (sd.tangentSpaceEnabled == 0) {
             bitangent = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.tangent.w;
             lightNormal = normalize(lightNormal.x * basicVertex.tangent.xyz + lightNormal.y * bitangent + lightNormal.z * basicVertex.normal);
