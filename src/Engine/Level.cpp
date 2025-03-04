@@ -1,3 +1,4 @@
+// ReSharper disable CppExpressionWithoutSideEffects
 #include "Level.h"
 #include "Node.h"
 #include "Camera.h"
@@ -35,29 +36,21 @@ namespace
         [[maybe_unused]] float z{0.f};
     };
 
-    ECS_COMPONENT_DECLARE(c_position);
-
     struct c_mob
     {
         size_t index{0};
     };
-
-    ECS_COMPONENT_DECLARE(c_mob);
 
     struct c_static
     {
         [[maybe_unused]] size_t index{0};
     };
 
-    ECS_COMPONENT_DECLARE(c_static);
-
     struct c_cursor_position
     {
         float screen_x{0.f};
         float screen_y{0.f};
     };
-
-    ECS_COMPONENT_DECLARE(c_cursor_position);
 
     struct c_target
     {
@@ -67,52 +60,36 @@ namespace
         [[maybe_unused]] float t{0.f};
     };
 
-    ECS_COMPONENT_DECLARE(c_target);
-
     struct c_forward
     {
         float yaw{0.f};
     };
-
-    ECS_COMPONENT_DECLARE(c_forward);
 
     struct c_pick_debugging_enabled
     {
         uint32_t space{debug_object_flag_screen_space};
     };
 
-    ECS_COMPONENT_DECLARE(c_pick_debugging_enabled);
-
     // Tags
     struct [[maybe_unused]] t_rosy
     {
     };
 
-    ECS_TAG_DECLARE(t_rosy);
-
     struct [[maybe_unused]] t_floor
     {
     };
-
-    ECS_TAG_DECLARE(t_floor);
 
     struct [[maybe_unused]] t_rosy_action
     {
     };
 
-    ECS_TAG_DECLARE(t_rosy_action);
-
     struct [[maybe_unused]] t_pick_debugging_record
     {
     };
 
-    ECS_TAG_DECLARE(t_pick_debugging_record);
-
     struct [[maybe_unused]] t_pick_debugging_clear
     {
     };
-
-    ECS_TAG_DECLARE(t_pick_debugging_clear);
 
     // System definitions are forward declared and defined at the end.
     void detect_mob(ecs_iter_t* it);
@@ -221,10 +198,10 @@ namespace
         std::vector<game_node_reference> game_nodes;
 
         // ECS
-        flecs::world world;
-        flecs::entity level_entity = world.entity("level");
+        flecs::world worldz;
+        flecs::entity level_entity = worldz.entity("level");
         game_node_reference rosy_reference{};
-        flecs::entity floor_entity = world.entity("floor");
+        flecs::entity floor_entity = worldz.entity("floor");
 
         result init(rosy::log* new_log, const config new_cfg)
         {
@@ -295,12 +272,10 @@ namespace
                 };
             }
 
-            assert(world.is_alive(level_entity));
+            assert(worldz.is_alive(level_entity));
 
-            world.set_target_fps(initial_fps_target);
+            worldz.set_target_fps(initial_fps_target);
 
-            init_components();
-            init_tags();
             init_systems();
 
             return result::ok;
@@ -318,10 +293,10 @@ namespace
                 delete level_game_node;
                 level_game_node = nullptr;
             }
-            if (world.is_alive(level_entity))
+            if (worldz.is_alive(level_entity))
             {
                 level_entity.destruct();
-                assert(!world.is_alive(level_entity));
+                assert(!worldz.is_alive(level_entity));
             }
             if (level_editor)
             {
@@ -355,47 +330,28 @@ namespace
                 for (node* n : level_game_node->children) n->deinit();
                 level_game_node->children.clear();
             }
-            if (world.is_alive(level_entity))
+            if (worldz.is_alive(level_entity))
             {
                 level_entity.destruct();
-                assert(!world.is_alive(level_entity));
+                assert(!worldz.is_alive(level_entity));
             }
-            world = flecs::world{};
-            level_entity = world.entity("level");
-            assert(world.is_alive(level_entity));
+            worldz = flecs::world{};
+            level_entity = worldz.entity("level");
+            assert(worldz.is_alive(level_entity));
 
-            world.set_target_fps(initial_fps_target);
-
-            init_components();
-            init_tags();
             init_systems();
+
+            worldz.set_target_fps(initial_fps_target);
 
             return result::ok;
         }
 
-        void init_components() const
-        {
-         /*   ECS_COMPONENT_DEFINE(world, c_position);
-            ECS_COMPONENT_DEFINE(world, c_mob);
-            ECS_COMPONENT_DEFINE(world, c_static);
-            ECS_COMPONENT_DEFINE(world, c_cursor_position);
-            ECS_COMPONENT_DEFINE(world, c_target);
-            ECS_COMPONENT_DEFINE(world, c_forward);
-            ECS_COMPONENT_DEFINE(world, c_pick_debugging_enabled);*/
-        }
-
-        void init_tags() const
-        {
-          /*  ECS_TAG_DEFINE(world, t_rosy);
-            ECS_TAG_DEFINE(world, t_floor);
-            ECS_TAG_DEFINE(world, t_rosy_action);
-            ECS_TAG_DEFINE(world, t_pick_debugging_record);
-            ECS_TAG_DEFINE(world, t_pick_debugging_clear);*/
-        }
-
         void init_systems()
         {
-            //auto hello_world_sys = 
+            auto hello_world_sys = worldz.system().run([&, this]([[maybe_unused]] flecs::iter& it)
+            {
+                l->info("hello world!");
+            });
             //{
             //    // Load initial writable state from renderer
             //    ecs_system_desc_t desc{};
@@ -511,12 +467,12 @@ namespace
 
         [[nodiscard]] result setup_frame() const
         {
-          /*  rls->go_update.graphic_objects.clear();
+            rls->go_update.graphic_objects.clear();
             if (rls->target_fps != wls->target_fps)
             {
-                ecs_set_target_fps(world, wls->target_fps);
+                worldz.set_target_fps(wls->target_fps);
                 rls->target_fps = wls->target_fps;
-            }*/
+            }
             return result::ok;
         }
 
@@ -544,7 +500,7 @@ namespace
                 l->error("Error updating camera");
                 return res;
             }
-            world.progress(static_cast<float>(dt));
+            worldz.progress(static_cast<float>(dt));
             return result::ok;
         }
 
@@ -606,43 +562,40 @@ namespace
                 }
             }
 
-           /* constexpr Uint8 rosy_attention_btn{1};
+            constexpr Uint8 rosy_attention_btn{1};
             constexpr Uint8 pick_debug_toggle_btn{2};
             constexpr Uint8 pick_debug_record_btn{3};
-            const ecs_entity_t rosy_entity = rosy_reference.entity;
+            const flecs::entity rosy_entity = rosy_reference.entity;
             if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type ==
                 SDL_EVENT_MOUSE_BUTTON_UP)
             {
                 const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event);
                 if (std::isnan(mbe.x) || (std::isnan(mbe.y))) return result::ok;
                 const c_cursor_position c_pos{.screen_x = mbe.x, .screen_y = mbe.y};
-                ecs_set_id(world, level_entity, ecs_id(c_cursor_position), sizeof(c_cursor_position), &c_pos);
+                level_entity.add<c_cursor_position>().set(c_pos);
             }
             if (rosy_reference.node != nullptr && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
             {
                 switch (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button)
                 {
                 case rosy_attention_btn:
-                    ecs_add(world, rosy_entity, t_rosy_action);
+                    rosy_entity.add<t_rosy_action>();
                     break;
                 case pick_debug_toggle_btn:
-                    if (mbe.clicks == 1 && ecs_has_id(world, level_entity, ecs_id(c_pick_debugging_enabled)))
+                    if (mbe.clicks == 1 && level_entity.has<c_pick_debugging_enabled>())
                     {
-                        ecs_remove(world, level_entity, c_pick_debugging_enabled);
-                        ecs_add(world, level_entity, t_pick_debugging_clear);
+                        level_entity.remove<c_pick_debugging_enabled>();
+                        level_entity.add<t_pick_debugging_clear>();
                     }
                     else
                     {
-                        const uint32_t space = mbe.clicks > 2
-                                                   ? debug_object_flag_view_space
-                                                   : debug_object_flag_screen_space;
+                        const uint32_t space = mbe.clicks > 2 ? debug_object_flag_view_space : debug_object_flag_screen_space;
                         const c_pick_debugging_enabled pick{.space = space};
-                        ecs_set_id(world, level_entity, ecs_id(c_pick_debugging_enabled),
-                                   sizeof(c_pick_debugging_enabled), &pick);
+                        level_entity.add<c_pick_debugging_enabled>().set(pick);
                     }
                     break;
                 case pick_debug_record_btn:
-                    ecs_add(world, level_entity, t_pick_debugging_record);
+                    level_entity.add<t_pick_debugging_record>();
                     break;
                 default:
                     break;
@@ -650,10 +603,10 @@ namespace
             }
             if (rosy_reference.node != nullptr && event.type == SDL_EVENT_MOUSE_BUTTON_UP)
             {
-                if (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button ==
-                    rosy_attention_btn)
-                    ecs_remove(world, rosy_entity, t_rosy_action);
-            }*/
+                if (const auto mbe = reinterpret_cast<const SDL_MouseButtonEvent&>(event); mbe.button == rosy_attention_btn) {
+                    rosy_entity.remove<t_rosy_action>();
+                }
+            }
             return result::ok;
         }
 
