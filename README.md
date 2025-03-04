@@ -9,6 +9,9 @@ This is a hobby project to build a game engine and eventually a game in my spare
 
 ![Rosy and a shadow casting dragon](https://github.com/user-attachments/assets/92573443-0900-4f11-807f-ab386c76bb5b)
 
+![cosTheta debug colors in sponza look cool](https://github.com/user-attachments/assets/cf4171fd-d414-4110-a729-c0ed0bfeac64)
+
+
 ## Building
 
 This project will likely not build for anyone else at this time. See assets and hardware section below.
