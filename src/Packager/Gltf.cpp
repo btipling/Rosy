@@ -179,16 +179,20 @@ void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float new_ta
     {
         tangent = {new_tangent[0], new_tangent[1], new_tangent[2]};
         sign = -sign;
+        m.positions[position_index].tangents[0] = tangent[0];
+        m.positions[position_index].tangents[1] = tangent[1];
+        m.positions[position_index].tangents[2] = tangent[2];
+        m.positions[position_index].tangents[3] = sign;
     }
     else
     {
-        tangent = make_fast_space_fast_tangent(normal);
+        fastgltf::math::fvec4 fast_tangent = make_fast_space_fast_tangent(normal);
+        m.positions[position_index].tangents[0] = fast_tangent[0];
+        m.positions[position_index].tangents[1] = fast_tangent[1];
+        m.positions[position_index].tangents[2] = fast_tangent[2];
+        m.positions[position_index].tangents[3] = fast_tangent[3];
     }
 
-    m.positions[position_index].tangents[0] = tangent[0];
-    m.positions[position_index].tangents[1] = tangent[1];
-    m.positions[position_index].tangents[2] = tangent[2];
-    m.positions[position_index].tangents[3] = sign;
 }
 
 SMikkTSpaceInterface t_space_generator = { // NOLINT(misc-use-internal-linkage)
