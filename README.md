@@ -11,6 +11,7 @@ This is a hobby project to build a game engine and eventually a game in my spare
 
 ![cosTheta debug colors in sponza look cool](https://github.com/user-attachments/assets/cf4171fd-d414-4110-a729-c0ed0bfeac64)
 
+![A beautiful game](https://github.com/user-attachments/assets/c49452dd-95f1-475c-95f3-2e5f0af3101f)
 
 ## Building
 
