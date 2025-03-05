@@ -71,6 +71,30 @@
             "name": "Cube",
             "scale": 0.10000000149011612,
             "yaw": 0.0
+        },
+        {
+            "id": "..\\assets\\ABeautifulGame\\ABeautifulGame.rsy:Queen_B",
+            "location": [
+                -3.0,
+                -0.17499999701976776,
+                -2.0
+            ],
+            "model_type": 2,
+            "name": "Queen_B",
+            "scale": 10.000001907348633,
+            "yaw": 0.0
+        },
+        {
+            "id": "..\\assets\\ABeautifulGame\\ABeautifulGame.rsy:Castle_W2",
+            "location": [
+                1.0,
+                -0.17499999701976776,
+                2.0
+            ],
+            "model_type": 2,
+            "name": "Castle_W2",
+            "scale": 10.0,
+            "yaw": 0.0
         }
     ]
 }

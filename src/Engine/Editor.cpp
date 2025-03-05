@@ -926,12 +926,13 @@ namespace
 
         result load_asset([[maybe_unused]] level_editor_state* state)
         {
-            std::array<std::string, 5> asset_paths{
+            std::array<std::string, 6> asset_paths{
                 R"(..\assets\houdini\exports\Box_002\Box_002.rsy)",
                 R"(..\assets\sponza\sponza.rsy)",
                 R"(..\assets\cornell_dragons\cornell_dragons.rsy)",
                 R"(..\assets\two_cubes\two_cubes.rsy)",
                 R"(..\assets\deccer_cubes\SM_Deccer_Cubes_Textured_Complex.rsy)",
+                R"(..\assets\ABeautifulGame\ABeautifulGame.rsy)",
             };
             for (std::string& path : asset_paths)
             {
