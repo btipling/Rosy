@@ -7,6 +7,7 @@ workspace "Rosy"
 
 vk_sdk = os.getenv("VULKAN_SDK")
 nvtt_path = os.getenv("NVTT_PATH")
+fbx_sdk = os.getenv("FBX_SDK")
 
 project "Engine"
     kind "ConsoleApp"
@@ -22,7 +23,6 @@ project "Engine"
 
     links { "SDL3" }
     links { "flecs" }
-    links { "nvtt30205" }
 
     includedirs { "libs/SDL/include/" }
     includedirs { vk_sdk .. "/Include/" }
@@ -30,11 +30,9 @@ project "Engine"
     includedirs { "libs/tracy/" }
     includedirs { "libs/" }
     includedirs { "libs/json/single_include/" }
-    includedirs { "\"" .. nvtt_path .. "/include/\"" }
     includedirs { "libs/flecs/include/" }
 
     libdirs { vk_sdk .. "/Lib/" }
-    libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
 
     defines { "SIMDJSON_EXCEPTIONS=OFF" }
     filter "configurations:RenderDoc"
@@ -83,10 +81,12 @@ project "Packager"
 
     links { "fastgltf" }
     links { "nvtt30205" }
+    links { "libfbxsdk" }
 
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
     includedirs { "\"" .. nvtt_path .. "/include/\"" }
+    includedirs { "\"" .. fbx_sdk .. "/include/\"" }
     includedirs { "libs/stb/" }
     includedirs { "libs/MikkTSpace/" }
 
@@ -100,11 +100,13 @@ project "Packager"
     defines { "KHRONOS_STATIC" }
     filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
         libdirs { "libs/fastgltf/build/Debug" }
+        libdirs { "\"" .. fbx_sdk .. "/lib/x64/debug/\"" }
         defines { "DEBUG" }
         symbols "On"
 
     filter "configurations:Release"
         libdirs { "libs/fastgltf/build/Release" }
+        libdirs { "\"" .. fbx_sdk .. "/lib/x64/release/\"" }
         defines { "NDEBUG" }
         optimize "On"
 

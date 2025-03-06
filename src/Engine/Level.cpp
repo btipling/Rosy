@@ -501,7 +501,7 @@ namespace
 
                               const float cascade_level = wls->light_debug.cascade_level;
                               auto light_projections = glm::mat4(
-                                  glm::vec4(2.f / cascade_level, 0.f, 0.f, 0.f),
+                                  glm::vec4(-2.f / cascade_level, 0.f, 0.f, 0.f),
                                   glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
                                   glm::vec4(0.f, 0.f, -1.f / wls->light_debug.orthographic_depth, 0.f),
                                   glm::vec4(0.f, 0.f, 0.f, 1.f)
@@ -555,7 +555,7 @@ namespace
                       const float g = static_cast<float>(cam->g);
 
                       // This uses NDC + accounts for field of view and perspective to put x and y into view space.
-                      const float x_v = (((2.f * x_s) - 1.f) * a) * fov;
+                      const float x_v = -(((2.f * x_s) - 1.f) * a) * fov;
                       const float y_v = (2.f * y_s - 1.f) * fov;
 
                       // This is the click at actually twice the value of the projection plane distance.
@@ -809,8 +809,8 @@ namespace
                     if (event.key.key == SDLK_C) rls->cursor_enabled = !rls->cursor_enabled;
                     if (event.key.key == SDLK_W) free_cam->move(camera::direction::z_pos, 1.f);
                     if (event.key.key == SDLK_S) free_cam->move(camera::direction::z_neg, 1.f);
-                    if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_neg, 1.f);
-                    if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_pos, 1.f);
+                    if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_pos, 1.f);
+                    if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_neg, 1.f);
                     if (event.key.key == SDLK_SPACE) free_cam->move(camera::direction::y_pos, 1.f);
                     if (event.key.key == SDLK_Z) free_cam->move(camera::direction::y_neg, 1.f);
                     if (event.key.mod & SDL_KMOD_SHIFT) free_cam->go_fast();
@@ -819,8 +819,8 @@ namespace
                 {
                     if (event.key.key == SDLK_W) free_cam->move(camera::direction::z_pos, 0.f);
                     if (event.key.key == SDLK_S) free_cam->move(camera::direction::z_neg, 0.f);
-                    if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_neg, 0.f);
-                    if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_pos, 0.f);
+                    if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_pos, 0.f);
+                    if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_neg, 0.f);
                     if (event.key.key == SDLK_SPACE) free_cam->move(camera::direction::y_pos, 0.f);
                     if (event.key.key == SDLK_Z) free_cam->move(camera::direction::y_neg, 0.f);
                     if (!(event.key.mod & SDL_KMOD_SHIFT)) free_cam->go_slow();
@@ -1218,9 +1218,9 @@ result level::init(log* new_log, const config new_cfg)
             wls.light_debug.cascade_level = 36.f;
             wls.light.depth_bias_constant = -21.882f;
             wls.light.depth_bias_clamp = -20.937f;
-            wls.light.depth_bias_slope_factor = -3.922f;
+            wls.light.depth_bias_slope_factor = -17.f;
             wls.draw_config.cull_enabled = true;
-            wls.draw_config.reverse_winding_order_enabled = true;
+            wls.draw_config.reverse_winding_order_enabled = false;
             wls.light.sunlight_color = {0.55f, 0.55f, 0.55f, 1.f};
             wls.light.ambient_light = 0.04f;
             wls.light.depth_bias_enabled = true;

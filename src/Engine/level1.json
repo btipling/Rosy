@@ -27,73 +27,73 @@
         {
             "id": "..\\assets\\cornell_dragons\\cornell_dragons.rsy:dragon_vrip",
             "location": [
+                2.0,
                 0.0,
-                0.0,
-                0.0
+                2.0
             ],
             "model_type": 2,
             "name": "dragon_vrip",
-            "scale": 0.10000000149011612,
+            "scale": 0.20000000298023224,
             "yaw": -2.0
         },
         {
             "id": "..\\assets\\sponza\\sponza.rsy:Mesh_0",
             "location": [
+                8.0,
                 0.0,
-                0.0,
-                0.0
+                8.0
             ],
             "model_type": 2,
             "name": "Mesh_0",
-            "scale": 1.0,
-            "yaw": 0.0
+            "scale": 0.25,
+            "yaw": 2.0
         },
         {
             "id": "..\\assets\\cornell_dragons\\cornell_dragons.rsy:dragon_vrip.001",
             "location": [
+                -10.0,
                 0.0,
-                11.0,
-                0.0
+                10.0
             ],
             "model_type": 2,
             "name": "dragon_vrip.001",
             "scale": 1.0,
-            "yaw": 0.0
+            "yaw": -3.0
         },
         {
             "id": "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.rsy:Cube",
             "location": [
-                2.0,
-                2.0,
-                0.0
+                -10.0,
+                5.0,
+                -10.0
             ],
             "model_type": 2,
             "name": "Cube",
-            "scale": 0.10000000149011612,
+            "scale": 0.5,
             "yaw": 0.0
         },
         {
             "id": "..\\assets\\ABeautifulGame\\ABeautifulGame.rsy:Queen_B",
             "location": [
-                -3.0,
-                -0.17499999701976776,
-                -2.0
+                8.0,
+                -0.5,
+                -25.0
             ],
             "model_type": 2,
             "name": "Queen_B",
-            "scale": 10.000001907348633,
+            "scale": 50.0,
             "yaw": 0.0
         },
         {
             "id": "..\\assets\\ABeautifulGame\\ABeautifulGame.rsy:Castle_W2",
             "location": [
-                1.0,
-                -0.17499999701976776,
-                2.0
+                14.0,
+                -0.5,
+                -4.0
             ],
             "model_type": 2,
             "name": "Castle_W2",
-            "scale": 10.0,
+            "scale": 35.0,
             "yaw": 0.0
         }
     ]

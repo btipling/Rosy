@@ -63,7 +63,7 @@ struct synthetic_camera
     {
         // Assuming VK NDC in camera for now.
         constexpr auto ndc = glm::mat4(
-            glm::vec4(1.f, 0.f, 0.f, 0.f),
+            glm::vec4(-1.f, 0.f, 0.f, 0.f),
             glm::vec4(0.f, -1.f, 0.f, 0.f),
             glm::vec4(0.f, 0.f, 1.f, 0.f),
             glm::vec4(0.f, 0.f, 0.f, 1.f)
@@ -94,7 +94,7 @@ struct synthetic_camera
     [[nodiscard]] glm::mat4 get_rotation_matrix() const
     {
         const glm::quat pitch_rotation = angleAxis(pitch, glm::vec3{1.f, 0.f, 0.f});
-        const glm::quat yaw_rotation = angleAxis(yaw, glm::vec3{0.f, -1.f, 0.f});
+        const glm::quat yaw_rotation = angleAxis(yaw, glm::vec3{0.f, 1.f, 0.f});
 
         return toMat4(yaw_rotation) * toMat4(pitch_rotation);
     }
