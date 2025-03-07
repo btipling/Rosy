@@ -22,22 +22,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float4x4 ndc_to_tc = { 0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1 };
 
-    float3 lightDir = sd.sun_position.xyz;
     float4 new_tangent = v.tangent;
-
-    // flip lights
-    if (sd.flipLights[0] == 1)
-    {
-        lightDir = lightDir * float3(-1, 1, 1);
-    }
-    if (sd.flipLights[1] == 1)
-    {
-        lightDir = lightDir * float3(1, -1, 1);
-    }
-    if (sd.flipLights[2] == 1)
-    {
-        lightDir = lightDir * float3(1, 1, -1);
-    }
 
     // ignore asset tangent sign
     if (sd.ignoreAssetTangentSign == 1) {
@@ -90,18 +75,33 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         bitangent = cross(ortho_n, ortho_t) * new_tangent.w;
     }
 
+    float3 lightDir = sd.sun_position.xyz - v.position;
     if (tangentSpaceEnabled)
     {
         viewDir = mul(gd.toObjectSpaceTransform, sd.cameraPosition).xyz;
         viewDir = float3(dot(tangent, viewDir), dot(bitangent, viewDir), dot(normal, viewDir));
 
-        lightDir = mul(gd.toObjectSpaceTransform, float4(lightDir, 0.f)).xyz;
+        lightDir = mul(gd.toObjectSpaceTransform, sd.sun_position).xyz - v.position.xyz;
         lightDir = float3(dot(tangent, lightDir), dot(bitangent, lightDir), dot(normal, lightDir));
     } else {
         normal = normalize(mul(normalMat, v.normal));
         tangent = normalize(mul(normalMat, new_tangent.xyz));
         tangent = normalize(tangent - normal * dot(normal, tangent));
         viewDir = mul(mul(sd.view, gd.toObjectSpaceTransform), float4(v.position, 1.0)).xyz;
+    }
+
+    // flip lights
+    if (sd.flipLights[0] == 1)
+    {
+        lightDir = lightDir * float3(-1, 1, 1);
+    }
+    if (sd.flipLights[1] == 1)
+    {
+        lightDir = lightDir * float3(1, -1, 1);
+    }
+    if (sd.flipLights[2] == 1)
+    {
+        lightDir = lightDir * float3(1, 1, -1);
     }
 
     float4 vertPos = float4(v.position, 1.0);
