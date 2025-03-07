@@ -461,15 +461,19 @@ namespace
                               {
                                   const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * wls->light_debug.sun_distance});
                                   debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * wls->light_debug.sun_distance});
+
                                   const glm::quat pitch_rotation = angleAxis(-wls->light_debug.sun_pitch, glm::vec3{1.f, 0.f, 0.f});
                                   const glm::quat yaw_rotation = angleAxis(wls->light_debug.sun_yaw, glm::vec3{0.f, -1.f, 0.f});
                                   light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
 
+                                  const glm::quat regular_cam_light_view_pitch_rotation = angleAxis(wls->light_debug.sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
+                                  const glm::quat regular_cam_light_view_yaw_rotation = angleAxis(wls->light_debug.sun_yaw + glm::pi<float>(), glm::vec3{0.f, -1.f, 0.f});
+                                  const glm::mat4 regular_cam_light_view = toMat4(regular_cam_light_view_yaw_rotation) * toMat4(regular_cam_light_view_pitch_rotation);
+
                                   rls->light.sun_position = vec4_to_array(light_line_rot * glm::vec4(0.f, 0.f, -wls->light_debug.sun_distance, 1.f));
 
-
                                   light_sun_view = light_line_rot * light_translate;
-                                  debug_light_sun_view = light_line_rot * (wls->light_debug.enable_light_perspective ? light_translate : debug_light_translate);
+                                  debug_light_sun_view = (wls->light_debug.enable_light_perspective ? light_sun_view : regular_cam_light_view * light_translate);;
                               };
                           }
 
