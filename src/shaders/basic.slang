@@ -121,6 +121,15 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     return output;
 }
 
+float srgbToLinear(float srgbValue)
+{
+    float linearValue = srgbValue / 12.92;
+    if (srgbValue > 0.04045) {
+        linearValue = pow((srgbValue + 0.055) / 1.055, 2.4);
+    }
+    return linearValue;
+}
+
 [shader("fragment")]
 Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4 fragCoord: SV_Position) : SV_Target
 {
@@ -170,12 +179,14 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-        float4 normals2D = normalMap.Sample(normalSampler, basicVertex.textureCoordinates);
+
+            float2 normals2D = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xy * 2 - 1;
         // The normal map is stored in BC5 which stores 3D normals in 2D, using an Orthographic projection, this reconstructs the z
-        float nx = normals2D.x;
-        float ny = normals2D.y;
-        float nz = sqrt(1 - nx * nx + ny * ny);
-        float3 m = normalize(float3(nx, ny, nz) * 2 - 1);
+        float nx = srgbToLinear(normals2D.x);
+        float ny = srgbToLinear(normals2D.y);
+        float nz = srgbToLinear(sqrt(clamp(1.0f - dot(normals2D, normals2D), 0.0, 1.0)));
+
+        float3 m = float3(nx, ny, nz);
         float3 n = normalize(basicVertex.normal);
         float3 t = normalize(basicVertex.tangent.xyz - n * dot(basicVertex.tangent.xyz, n));
         float3 b = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma;

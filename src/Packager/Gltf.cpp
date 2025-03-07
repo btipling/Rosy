@@ -575,10 +575,12 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 
                 nvtt::CompressionOptions compression_options;
                 compression_options.setFormat(nvtt::Format_BC5);
+                compression_options.setQuality(nvtt::Quality_Highest);
 
                 img_path.replace_filename(std::format("{}.dds", gltf_img_name));
                 std::string output_filename = img_path.string();
                 nvtt::OutputOptions output_options;
+                output_options.setSrgbFlag(false);
                 output_options.setFileName(output_filename.c_str());
 
                 int num_mipmaps = image.countMipmaps();
