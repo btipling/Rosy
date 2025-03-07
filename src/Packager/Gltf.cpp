@@ -606,7 +606,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
                     {
                         break;
                     }
-                    image.buildNextMipmap(nvtt::MipmapFilter_Box);
+                    image.buildNextMipmap(nvtt::MipmapFilter_Kaiser);
                 }
             }
         }
