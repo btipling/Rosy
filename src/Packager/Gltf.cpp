@@ -99,7 +99,6 @@ void t_space_gen_num_faces(t_space_generator_context& ctx) // NOLINT(misc-use-in
         ctx.triangle_surface_map.emplace_back(sm);
     }
     num_triangles += num_triangles_in_surface;
-    ctx.l->info(std::format("num triangles {} in surface {} for mesh {}", num_triangles, surface_index, ctx.mesh_index));
     ctx.num_triangles = num_triangles;
 }
 
@@ -134,10 +133,6 @@ size_t t_space_get_asset_position_data(const SMikkTSpaceContext* p_context, cons
 void t_space_get_position(const SMikkTSpaceContext* p_context, float* fv_pos_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
 {
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    if (requested_triangle % 1000 == 0)
-    {
-        ctx->l->info(std::format("t_space_get_position progress is {}/{} in surface {} for mesh {}", requested_triangle, ctx->triangle_surface_map.size(), ctx->surface_index, ctx->mesh_index));
-    }
     const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
     const position& p = m.positions[position_index];
@@ -808,12 +803,11 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 
     if (cfg.use_mikktspace)
     {
-        l->info(std::format("generating tangents for {} meshes", gltf_asset.meshes.size()));
+        l->info("generating tangents...");
         for (size_t mesh_index{0}; mesh_index < gltf_asset.meshes.size(); mesh_index++)
         {
             for (size_t surface_index{0}; surface_index < gltf_asset.meshes[mesh_index].surfaces.size(); surface_index++)
             {
-                l->info(std::format("generating tangent for mesh at index {}", mesh_index));
                 t_space_generator_context t_ctx{
                     .gltf_asset = &gltf_asset,
                     .triangle_surface_map = {},

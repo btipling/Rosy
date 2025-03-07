@@ -85,7 +85,6 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         normal = normalize(mul(normalMat, v.normal));
         tangent = normalize(mul(normalMat, new_tangent.xyz));
         tangent = normalize(tangent - normal * dot(normal, tangent));
-        viewDir = mul(mul(sd.view, gd.toObjectSpaceTransform), float4(v.position, 1.0)).xyz;
     }
 
     // flip lights
@@ -168,7 +167,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
     {
-        lightDir = normalize(basicVertex.lightDir);
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
