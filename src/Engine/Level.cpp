@@ -463,7 +463,7 @@ namespace
                                   light_sun_view = light_line_rot * light_translate;
                                   debug_light_sun_view = light_line_rot * (wls->light_debug.enable_light_perspective ? light_translate : debug_light_translate);
 
-                                  rls->light.sunlight = {sunlight[0], sunlight[1], sunlight[2], sunlight[3]};
+                                  rls->light.sun_position = {sunlight[0], sunlight[1], sunlight[2], sunlight[3]};
                               };
                           }
 

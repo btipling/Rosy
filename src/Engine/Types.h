@@ -122,7 +122,7 @@ namespace rosy
 
     struct light_read_write_state
     {
-        std::array<float, 4> sunlight{};
+        std::array<float, 4> sun_position{};
         std::array<float, 4> sunlight_color{};
         bool depth_bias_enabled{false};
         float ambient_light{0.f};

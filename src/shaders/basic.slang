@@ -22,7 +22,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float4x4 ndc_to_tc = { 0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1 };
 
-    float3 lightDir = sd.sunlight.xyz;
+    float3 lightDir = sd.sun_position.xyz;
     float4 new_tangent = v.tangent;
 
     // flip lights

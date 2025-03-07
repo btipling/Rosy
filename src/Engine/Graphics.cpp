@@ -289,7 +289,7 @@ namespace
         [[maybe_unused]] std::array<float, 16> proj{};
         [[maybe_unused]] std::array<float, 16> view_projection{};
         [[maybe_unused]] std::array<float, 16> shadow_projection_near{};
-        [[maybe_unused]] std::array<float, 4> sunlight{};
+        [[maybe_unused]] std::array<float, 4> sun_position{};
         [[maybe_unused]] std::array<float, 4> camera_position{};
         [[maybe_unused]] std::array<float, 4> ambient_color{};
         [[maybe_unused]] std::array<float, 4> sunlight_color{};
@@ -6013,7 +6013,7 @@ namespace
             sd.proj = new_rls.cam.p;
             sd.view_projection = new_rls.cam.vp;
             sd.shadow_projection_near = new_rls.cam.shadow_projection_near;
-            sd.sunlight = new_rls.light.sunlight;
+            sd.sun_position = new_rls.light.sun_position;
             sd.camera_position = new_rls.cam.position;
             sd.ambient_color = {new_rls.light.ambient_light, new_rls.light.ambient_light, new_rls.light.ambient_light, 1.f};
             sd.sunlight_color = new_rls.light.sunlight_color;
@@ -6059,7 +6059,7 @@ namespace
                 {
                     graphics_data gd;
                     gd.camera_position = scene_data.camera_position;
-                    gd.sunlight = scene_data.sunlight;
+                    gd.sun_position = scene_data.sun_position;
                     gd.shadow_map_img_id = reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near);
                     du->graphics_debug_ui(eng_stats, stats, gd, rls);
                     du->assets_debug_ui(rls);
