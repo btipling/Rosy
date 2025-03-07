@@ -149,6 +149,13 @@ namespace
         return a;
     }
 
+    std::array<float, 4> vec4_to_array(glm::vec4 v)
+    {
+        std::array<float, 4> a{};
+        for (size_t i{ 0 }; i < 4; i++) a[i] = v[static_cast<glm::length_t>(i)];
+        return a;
+    }
+
     struct stack_item
     {
         node* game_node{nullptr};
@@ -458,12 +465,11 @@ namespace
                                   const glm::quat yaw_rotation = angleAxis(wls->light_debug.sun_yaw, glm::vec3{0.f, -1.f, 0.f});
                                   light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
 
-                                  const auto camera_position = glm::vec3(light_line_rot * glm::vec4(0.f, 0.f, -wls->light_debug.sun_distance, 0.f));
-                                  auto sunlight = glm::vec4(glm::normalize(camera_position), 1.f);
+                                  rls->light.sun_position = vec4_to_array(light_line_rot * glm::vec4(0.f, 0.f, -wls->light_debug.sun_distance, 1.f));
+
+
                                   light_sun_view = light_line_rot * light_translate;
                                   debug_light_sun_view = light_line_rot * (wls->light_debug.enable_light_perspective ? light_translate : debug_light_translate);
-
-                                  rls->light.sun_position = {sunlight[0], sunlight[1], sunlight[2], sunlight[3]};
                               };
                           }
 
@@ -510,9 +516,7 @@ namespace
                               const glm::mat4 lv = light_sun_view;
                               const glm::mat4 lp = light_projections;
                               cam_lv = glm::inverse(debug_light_sun_view);
-                              cam_lp = wls->light_debug.enable_light_perspective
-                                           ? light_projections
-                                           : array_to_mat4((rls->cam.p));
+                              cam_lp = wls->light_debug.enable_light_perspective  ? light_projections : array_to_mat4((rls->cam.p));
                               rls->cam.shadow_projection_near = mat4_to_array(lp * glm::inverse(lv));
                           }
 
