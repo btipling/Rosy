@@ -2,14 +2,31 @@
 #include <algorithm>
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 #include <iostream>
 #include <nvtt/nvtt.h>
 #include <mikktspace.h>
+#include <glm/gtc/type_ptr.inl>
 
 using namespace rosy_packager;
 
 namespace
 {
+    std::array<float, 16> mat4_to_array(glm::mat4 m)
+    {
+        std::array<float, 16> a{
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f,
+        };
+        const auto pos_r = glm::value_ptr(m);
+        for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
+        return a;
+    }
+
     uint16_t filter_to_val(const fastgltf::Filter filter)
     {
         switch (filter)
@@ -153,15 +170,15 @@ void t_space_get_texture_coordinates(const SMikkTSpaceContext* p_context, float*
 // when operating on a sphere (due to the hairy ball theorem); this has a
 // small ring-shaped discontinuity at normal.z == -0.99998796.
 // via https://github.com/nvpro-samples/nvpro_core
-static fastgltf::math::fvec4 make_fast_space_fast_tangent(const fastgltf::math::fvec3& n)
+static glm::vec4 make_fast_space_fast_tangent(const glm::vec3& n)
 {
     if (n[2] < -0.99998796f) // Handle the singularity
     {
-        return fastgltf::math::fvec4(0.f, -1.f, 0.f, 1.f);
+        return glm::vec4(0.f, -1.f, 0.f, 1.f);
     }
     const float a = 1.f / (1.f + n[2]);
     const float b = -n[0] * n[1] * a;
-    return fastgltf::math::fvec4(1.f - n[0] * n[0] * a, b, -n[0], 1.f);
+    return glm::vec4(1.f - n[0] * n[0] * a, b, -n[0], 1.f);
 }
 
 void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float new_tangent[], const float new_sign, const int requested_triangle, const int requested_triangle_vertex)
@@ -173,9 +190,9 @@ void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float new_ta
 
     std::array<float, 3> n = m.positions[position_index].normal;
     float sign = new_sign;
-    const auto normal = fastgltf::math::fvec3{n[0], n[1], n[2]};
-    fastgltf::math::fvec3 tangent = {new_tangent[0], new_tangent[1], new_tangent[2]};
-    if (std::abs(fastgltf::math::dot(tangent, normal)) < 0.9f)
+    const auto normal = glm::vec3{n[0], n[1], n[2]};
+    glm::vec3 tangent = {new_tangent[0], new_tangent[1], new_tangent[2]};
+    if (std::abs(glm::dot(tangent, normal)) < 0.9f)
     {
         tangent = {new_tangent[0], new_tangent[1], new_tangent[2]};
         sign = -sign;
@@ -186,7 +203,7 @@ void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float new_ta
     }
     else
     {
-        fastgltf::math::fvec4 fast_tangent = make_fast_space_fast_tangent(normal);
+        glm::vec4 fast_tangent = make_fast_space_fast_tangent(normal);
         m.positions[position_index].tangents[0] = fast_tangent[0];
         m.positions[position_index].tangents[1] = fast_tangent[1];
         m.positions[position_index].tangents[2] = fast_tangent[2];
@@ -208,12 +225,11 @@ SMikkTSpaceInterface t_space_generator = { // NOLINT(misc-use-internal-linkage)
 rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 {
     const std::filesystem::path file_path{source_path};
-    gltf_asset.asset_coordinate_system = {
-        1.f, 0.f, 0.f, 0.f,
-        0.f, 1.f, 0.f, 0.f,
-        0.f, 0.f, 1.f, 0.f,
-        0.f, 0.f, 0.f, 1.f,
-    };
+    {
+        const glm::mat4 m{ 1.f };
+        //const glm::mat4 rotate_gltf_y = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, -1.0f, 1.0f));
+        gltf_asset.asset_coordinate_system = mat4_to_array(m);
+    }
     constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
         fastgltf::Options::LoadExternalBuffers | fastgltf::Options::DecomposeNodeMatrices;
 
@@ -333,7 +349,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
                 m.normal_sampler_index = UINT32_MAX;
             }
             {
-                fastgltf::math::nvec4 c = mat.pbrData.baseColorFactor;
+                const auto c = mat.pbrData.baseColorFactor;
                 m.base_color_factor = {c[0], c[1], c[2], c[3]};
                 m.double_sided = mat.doubleSided;
                 m.metallic_factor = mat.pbrData.metallicFactor;

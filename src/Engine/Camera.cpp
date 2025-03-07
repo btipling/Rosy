@@ -63,9 +63,9 @@ struct synthetic_camera
     {
         // Assuming VK NDC in camera for now.
         constexpr auto ndc = glm::mat4(
-            glm::vec4(-1.f, 0.f, 0.f, 0.f),
+            glm::vec4(1.f, 0.f, 0.f, 0.f),
             glm::vec4(0.f, -1.f, 0.f, 0.f),
-            glm::vec4(0.f, 0.f, 1.f, 0.f),
+            glm::vec4(0.f, 0.f, -1.f, 0.f),
             glm::vec4(0.f, 0.f, 0.f, 1.f)
         );
 
@@ -74,11 +74,11 @@ struct synthetic_camera
         const double a = -n / (f - n);
         const double b = (n * f) / (f - n);
 
-        return ndc * glm::mat4(
+        return glm::mat4(
             glm::vec4(w, 0, 0, 0),
             glm::vec4(0, h, 0, 0),
             glm::vec4(0, 0, a, 1.f),
-            glm::vec4(0, 0, b, 0));
+            glm::vec4(0, 0, b, 0)) * ndc;
     }
 
     [[nodiscard]] glm::mat4 get_view_matrix() const
@@ -93,7 +93,7 @@ struct synthetic_camera
 
     [[nodiscard]] glm::mat4 get_rotation_matrix() const
     {
-        const glm::quat pitch_rotation = angleAxis(pitch, glm::vec3{1.f, 0.f, 0.f});
+        const glm::quat pitch_rotation = angleAxis(pitch, glm::vec3{-1.f, 0.f, 0.f});
         const glm::quat yaw_rotation = angleAxis(yaw, glm::vec3{0.f, 1.f, 0.f});
 
         return toMat4(yaw_rotation) * toMat4(pitch_rotation);
@@ -191,7 +191,7 @@ struct synthetic_camera
         const float max_y_view_space = 2.f * fov;
         position = glm::vec3(new_position[0], new_position[1], new_position[2]);
         const auto max_view_in_world_space = glm::vec3(
-            glm::inverse(get_view_matrix()) * glm::vec4(0.f, max_y_view_space, 0.f, 0.f));
+            glm::inverse(get_view_matrix()) * glm::vec4(0.f, -max_y_view_space, 0.f, 0.f));
         position += glm::vec3(get_rotation_matrix() * glm::vec4{0.f, 0.f, -max_view_in_world_space.y / 7.5f, 0.f});
         position[1] = y;
     }
@@ -205,7 +205,7 @@ struct synthetic_camera
         yaw = new_yaw;
         const float max_y_view_space = 2.f * fov;
         const auto max_view_in_world_space = glm::vec3(
-            glm::inverse(get_view_matrix()) * glm::vec4(0.f, max_y_view_space, 0.f, 0.f));
+            glm::inverse(get_view_matrix()) * glm::vec4(0.f, -max_y_view_space, 0.f, 0.f));
         position += glm::vec3(get_rotation_matrix() * glm::vec4{0.f, 0.f, -max_view_in_world_space.y / 7.5f, 0.f});
         position[1] = y;
     }

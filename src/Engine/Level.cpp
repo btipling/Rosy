@@ -556,7 +556,7 @@ namespace
 
                       // This uses NDC + accounts for field of view and perspective to put x and y into view space.
                       const float x_v = -(((2.f * x_s) - 1.f) * a) * fov;
-                      const float y_v = (2.f * y_s - 1.f) * fov;
+                      const float y_v = -(2.f * y_s - 1.f) * fov;
 
                       // This is the click at actually twice the value of the projection plane distance.
                       const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
@@ -807,20 +807,20 @@ namespace
                 if (event.type == SDL_EVENT_KEY_DOWN)
                 {
                     if (event.key.key == SDLK_C) rls->cursor_enabled = !rls->cursor_enabled;
-                    if (event.key.key == SDLK_W) free_cam->move(camera::direction::z_pos, 1.f);
-                    if (event.key.key == SDLK_S) free_cam->move(camera::direction::z_neg, 1.f);
-                    if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_pos, 1.f);
-                    if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_neg, 1.f);
+                    if (event.key.key == SDLK_W) free_cam->move(camera::direction::z_neg, 1.f);
+                    if (event.key.key == SDLK_S) free_cam->move(camera::direction::z_pos, 1.f);
+                    if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_neg, 1.f);
+                    if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_pos, 1.f);
                     if (event.key.key == SDLK_SPACE) free_cam->move(camera::direction::y_pos, 1.f);
                     if (event.key.key == SDLK_Z) free_cam->move(camera::direction::y_neg, 1.f);
                     if (event.key.mod & SDL_KMOD_SHIFT) free_cam->go_fast();
                 }
                 if (event.type == SDL_EVENT_KEY_UP)
                 {
-                    if (event.key.key == SDLK_W) free_cam->move(camera::direction::z_pos, 0.f);
-                    if (event.key.key == SDLK_S) free_cam->move(camera::direction::z_neg, 0.f);
-                    if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_pos, 0.f);
-                    if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_neg, 0.f);
+                    if (event.key.key == SDLK_W) free_cam->move(camera::direction::z_neg, 0.f);
+                    if (event.key.key == SDLK_S) free_cam->move(camera::direction::z_pos, 0.f);
+                    if (event.key.key == SDLK_A) free_cam->move(camera::direction::x_neg, 0.f);
+                    if (event.key.key == SDLK_D) free_cam->move(camera::direction::x_pos, 0.f);
                     if (event.key.key == SDLK_SPACE) free_cam->move(camera::direction::y_pos, 0.f);
                     if (event.key.key == SDLK_Z) free_cam->move(camera::direction::y_neg, 0.f);
                     if (!(event.key.mod & SDL_KMOD_SHIFT)) free_cam->go_slow();
