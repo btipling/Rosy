@@ -76,7 +76,11 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float3 viewDir = sd.cameraPosition.xyz - mul(worldMat, float4(v.position, 1.f)).xyz;
     float3 lightDir = sd.sun_position.xyz - mul(worldMat, float4(v.position, 1.f)).xyz;
-    if (!tangentSpaceEnabled)
+    if (tangentSpaceEnabled) {
+        viewDir = mul(gd.toObjectSpaceTransform, sd.cameraPosition).xyz - v.position;
+        lightDir = mul(gd.toObjectSpaceTransform, sd.sun_position).xyz - v.position;
+    }
+    else
     {
         normal = normalize(mul(normalMat, v.normal));
         tangent = normalize(mul(normalMat, new_tangent.xyz));
@@ -121,6 +125,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4 fragCoord: SV_Position) : SV_Target
 {
     SceneData sd = *BasicPushConstants.sd;
+    BasicGraphicsData gd = *BasicPushConstants.gd;
 
     if (sd.fragmentOutput == 5 || BasicPushConstants.md == nullptr)
     {
@@ -171,7 +176,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         float nx = normals2D.x;
         float ny = normals2D.y;
         float nz = sqrt(1 - nx * nx + ny * ny);
-        float3 m = float3(nx, ny, nz) * 2 - 1;
+        float3 m = normalize(float3(nx, ny, nz) * 2 - 1);
         float3 n = normalize(basicVertex.normal);
         float3 t = normalize(basicVertex.tangent.xyz - n * dot(basicVertex.tangent.xyz, n));
         float3 b = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.tangent.w;
