@@ -109,10 +109,11 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.normal = normal;
     output.basicVertex.worldNormal = mul(gd.normalTransform, v.normal);
     output.basicVertex.color = v.color;
-    output.basicVertex.tangent = new_tangent;
+    output.basicVertex.tangent = new_tangent.xyz;
     output.basicVertex.bitangent = bitangent;
     output.basicVertex.viewDir = viewDir;
     output.basicVertex.lightDir = lightDir;
+    output.basicVertex.sigma = new_tangent.w;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(mul(mul(ndc_to_tc, sd.shadowProjNear), worldMat), vertPos);
 
@@ -179,9 +180,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         float3 m = normalize(float3(nx, ny, nz) * 2 - 1);
         float3 n = normalize(basicVertex.normal);
         float3 t = normalize(basicVertex.tangent.xyz - n * dot(basicVertex.tangent.xyz, n));
-        float3 b = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.tangent.w;
-
-        bitangent = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.tangent.w;
+        float3 b = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma;
         lightNormal = normalize(t * m.x + b * m.y + n * m.z);
     }
 
