@@ -37,7 +37,7 @@ namespace rosy
         void set_world_space_translate(const std::array<float, 3>& new_world_space_translate) const;
         void set_world_space_scale(const float new_world_space_scale) const;
         void set_world_space_yaw(float new_world_space_yaw) const;
-        void set_object_space_bounds(node_bounds new_object_space_bounds) const;
+        void set_object_space_bounds(const node_bounds& new_object_space_bounds) const;
 
         // get_object_space_transform does not return any world space transforms and does not escape the node's asset inherited coordinate system!
         // The only purpose this function can serve is within **the same** mesh's object space derived from the same asset! Cannot be used with other nodes!
