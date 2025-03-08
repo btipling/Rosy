@@ -1,10 +1,6 @@
+#include "pch.h"
 #include "Graphics.h"
 #include "DebugUI.h"
-#include <format>
-#include <numbers>
-#include <vector>
-#include <stack>
-#include <algorithm>
 
 #include "Volk/volk.h"
 #include "vma/vk_mem_alloc.h"
@@ -14,9 +10,6 @@
 //#include <tracy/Tracy.hpp>
 #include <tracy/TracyVulkan.hpp>
 #pragma warning(default: 4100 4459)
-#include <filesystem>
-#include <fstream>
-
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"

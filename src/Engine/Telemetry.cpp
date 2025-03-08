@@ -1,7 +1,5 @@
+#include "pch.h"
 #include "Telemetry.h"
-
-#include <chrono>
-#include <iostream>
 
 using namespace rosy;
 

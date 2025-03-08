@@ -4,6 +4,18 @@ workspace "Rosy"
         warnings "Extra"
         fatalwarnings "All"
     filter {}
+    filter { "files:libs/**.cpp" }
+        flags {"NoPCH"}
+    filter {}
+    filter { "files:libs/**.cpp" }
+        warnings "Off"
+    filter {}
+    filter { "files:libs/**.c" }
+        flags {"NoPCH"}
+    filter {}
+    filter { "files:libs/**.c" }
+        warnings "Off"
+    filter {}
 
 vk_sdk = os.getenv("VULKAN_SDK")
 nvtt_path = os.getenv("NVTT_PATH")
@@ -24,6 +36,9 @@ project "Engine"
     links { "SDL3" }
     links { "flecs" }
 
+    pchheader "pch.h"
+    pchsource "pch.cpp"
+    includedirs { "." }
     includedirs { "libs/SDL/include/" }
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/imgui/" }
@@ -39,6 +54,7 @@ project "Engine"
         defines { "RENDERDOC" }
     filter {}
 
+    files { "pch.h", "pch.cpp" }
     files { "Engine/**.h", "Engine/**.cpp" }
     files { "Packager/Asset.h", "Packager/Asset.cpp" }
     files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
@@ -83,6 +99,9 @@ project "Packager"
     links { "nvtt30205" }
     links { "libfbxsdk" }
 
+    pchheader "pch.h"
+    pchsource "pch.cpp"
+    includedirs { "." }
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
     includedirs { "\"" .. nvtt_path .. "/include/\"" }
@@ -92,7 +111,7 @@ project "Packager"
 
     libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
 
-    files { "libs/stb_image.cpp" }
+    files { "pch.h", "pch.cpp" }
     files { "libs/MikkTSpace/mikktspace.c" }
     files { "Packager/**.h", "Packager/**.cpp" }
     files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
@@ -109,7 +128,3 @@ project "Packager"
         libdirs { "\"" .. fbx_sdk .. "/lib/x64/release/\"" }
         defines { "NDEBUG" }
         optimize "On"
-
-    filter "files:libs/MikkTSpace/mikktspace.c"
-        warnings "Off"
-    filter {}

@@ -1,9 +1,7 @@
+#include "pch.h"
 #include "Engine.h"
 
-#include <chrono>
-#include <format>
 #include <thread>
-#include <numbers>
 #include <SDL3/SDL.h>
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"

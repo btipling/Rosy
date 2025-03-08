@@ -1,7 +1,5 @@
+#include "pch.h"
 #include "Asset.h"
-#include <cassert>
-#include <filesystem>
-#include <fstream>
 
 using namespace rosy_packager;
 

@@ -1,6 +1,6 @@
+#include "pch.h"
 #include "Gltf.h"
 #include "FBX.h"
-#include <filesystem>
 
 using namespace rosy_packager;
 
