@@ -1226,7 +1226,7 @@ result level::init(log* new_log, const config new_cfg)
             wls.light_debug.cascade_level = 36.f;
             wls.light.depth_bias_constant = -21.882f;
             wls.light.depth_bias_clamp = -20.937f;
-            wls.light.depth_bias_slope_factor = -17.f;
+            wls.light.depth_bias_slope_factor = -3.f;
             wls.draw_config.cull_enabled = true;
             wls.draw_config.reverse_winding_order_enabled = false;
             wls.light.sunlight_color = {0.55f, 0.55f, 0.55f, 1.f};
