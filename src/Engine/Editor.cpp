@@ -1,9 +1,6 @@
+#include "pch.h"
 #include "Editor.h"
 
-#include <cassert>
-#include <filesystem>
-#include <queue>
-#include <fstream>
 #include <nlohmann/json.hpp>
 #include "../Packager/Asset.h"
 

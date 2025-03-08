@@ -1,4 +1,5 @@
 // ReSharper disable CppExpressionWithoutSideEffects
+#include "pch.h"
 #include "Level.h"
 #include "Node.h"
 #include "Camera.h"
@@ -6,8 +7,6 @@
 #include "../Packager/Asset.h"
 #include <queue>
 #define GLM_ENABLE_EXPERIMENTAL
-#include <algorithm>
-#include <format>
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.inl>
@@ -15,7 +14,6 @@
 #pragma warning(disable: 4127)
 #include <flecs.h>
 #pragma warning(default: 4127)
-#include <numbers>
 
 using namespace rosy;
 

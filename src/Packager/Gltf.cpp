@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Gltf.h"
 #include <algorithm>
 #include <fastgltf/core.hpp>

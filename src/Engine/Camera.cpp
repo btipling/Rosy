@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Camera.h"
 #include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
