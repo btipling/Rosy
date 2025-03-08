@@ -1,9 +1,27 @@
 workspace "Rosy"
     configurations { "Debug", "Release", "RenderDoc", "Clang" }
+    language "C++"
+    cppdialect "C++23"
+    targetdir "bin/%{cfg.buildcfg}"
+    architecture("x86_64")
+    flags { "MultiProcessorCompile" }
+
+    -- clang related specific options
+    filter "configurations:Clang"
+        toolset("clang")
+    filter {}
     filter "not configurations:Clang"
         warnings "Extra"
         fatalwarnings "All"
     filter {}
+
+    -- Precompiled headers
+    pchheader "pch.h"
+    pchsource "pch.cpp"
+    includedirs { "." }
+    files { "pch.h", "pch.cpp" }
+
+    -- Ignore library code for warnings and PCH
     filter { "files:libs/**.cpp" }
         flags {"NoPCH"}
     filter {}
@@ -23,22 +41,11 @@ fbx_sdk = os.getenv("FBX_SDK")
 
 project "Engine"
     kind "ConsoleApp"
-    language "C++"
-    cppdialect "C++23"
-    targetdir "bin/%{cfg.buildcfg}"
-    architecture("x86_64")
-    filter "configurations:Clang"
-        toolset("clang")
-    filter {}
     debugdir "./Engine/"
-    flags { "MultiProcessorCompile" }
 
     links { "SDL3" }
     links { "flecs" }
 
-    pchheader "pch.h"
-    pchsource "pch.cpp"
-    includedirs { "." }
     includedirs { "libs/SDL/include/" }
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/imgui/" }
@@ -54,7 +61,6 @@ project "Engine"
         defines { "RENDERDOC" }
     filter {}
 
-    files { "pch.h", "pch.cpp" }
     files { "Engine/**.h", "Engine/**.cpp" }
     files { "Packager/Asset.h", "Packager/Asset.cpp" }
     files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
@@ -85,23 +91,12 @@ project "Engine"
 
 project "Packager"
     kind "ConsoleApp"
-    language "C++"
-    cppdialect "C++23"
-    targetdir "bin/%{cfg.buildcfg}"
-    architecture("x86_64")
-    filter "configurations:Clang"
-        toolset("clang")
-    filter {}
     debugdir "./Packager/"
-    flags { "MultiProcessorCompile" }
 
     links { "fastgltf" }
     links { "nvtt30205" }
     links { "libfbxsdk" }
 
-    pchheader "pch.h"
-    pchsource "pch.cpp"
-    includedirs { "." }
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
     includedirs { "\"" .. nvtt_path .. "/include/\"" }
@@ -111,7 +106,6 @@ project "Packager"
 
     libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
 
-    files { "pch.h", "pch.cpp" }
     files { "libs/MikkTSpace/mikktspace.c" }
     files { "Packager/**.h", "Packager/**.cpp" }
     files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
