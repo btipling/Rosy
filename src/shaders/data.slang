@@ -9,15 +9,16 @@ public struct BasicVertexStageOutput
 
 public struct BasicVertex
 {
-    public float4 vertex;
+    public float3 vertex;
     public float3 normal;
     public float3 worldNormal;
     public float3 viewDir;
     public float3 lightDir;
-    public float4 tangent;
+    public float3 tangent;
     public float3 bitangent;
     public float4 color;
     public float2 textureCoordinates;
+    public float sigma;
 };
 
 public struct BasicInputVertex {
@@ -47,7 +48,7 @@ public struct SceneData
     public float4x4 proj;
     public float4x4 viewproj;
     public float4x4 shadowProjNear;
-    public float4 sunlight;
+    public float4 sun_position;
     public float4 cameraPosition;
     public float4 ambientColor;
     public float4 sunlightColor;

@@ -39,10 +39,10 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::Text("Pitch: %.2f Yaw: %.2f)", rls->cam.pitch, rls->cam.yaw);
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::Text("Light direction");
+                ImGui::Text("Sun position");
                 ImGui::TableNextColumn();
-                ImGui::Text("(%.2f,  %.2f,  %.2f)", data.sunlight[0], data.sunlight[1],
-                            data.sunlight[2]);
+                ImGui::Text("(%.2f,  %.2f,  %.2f)", data.sun_position[0], data.sun_position[1],
+                            data.sun_position[2]);
                 ImGui::EndTable();
             }
         }

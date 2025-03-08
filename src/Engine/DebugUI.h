@@ -14,7 +14,7 @@ namespace rosy
 
     struct graphics_data
     {
-        std::array<float, 4> sunlight{};
+        std::array<float, 4> sun_position{};
         std::array<float, 4> camera_position{};
         ImTextureID shadow_map_img_id{};
     };

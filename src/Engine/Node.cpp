@@ -162,7 +162,7 @@ void node::set_world_space_yaw(const float new_world_space_yaw) const
     ns->world_space_yaw = new_world_space_yaw;
 }
 
-void node::set_object_space_bounds(node_bounds new_object_space_bounds) const
+void node::set_object_space_bounds(const node_bounds& new_object_space_bounds) const
 {
     ns->object_space_bounds = new_object_space_bounds;
 }

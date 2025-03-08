@@ -85,10 +85,7 @@ struct synthetic_camera
     {
         const glm::mat4 camera_translation = translate(glm::mat4(1.f), position);
         const glm::mat4 camera_rotation = get_rotation_matrix();
-        glm::mat4 m = camera_translation * glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, 10.f)) * camera_rotation *
-            glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -10.f));
-        m = camera_translation * camera_rotation;
-        return inverse(m);
+        return inverse(camera_translation * camera_rotation);
     }
 
     [[nodiscard]] glm::mat4 get_rotation_matrix() const

@@ -22,22 +22,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
 
     float4x4 ndc_to_tc = { 0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1 };
 
-    float3 lightDir = sd.sunlight.xyz;
     float4 new_tangent = v.tangent;
-
-    // flip lights
-    if (sd.flipLights[0] == 1)
-    {
-        lightDir = lightDir * float3(-1, 1, 1);
-    }
-    if (sd.flipLights[1] == 1)
-    {
-        lightDir = lightDir * float3(1, -1, 1);
-    }
-    if (sd.flipLights[2] == 1)
-    {
-        lightDir = lightDir * float3(1, 1, -1);
-    }
 
     // ignore asset tangent sign
     if (sd.ignoreAssetTangentSign == 1) {
@@ -72,7 +57,6 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         }
     }
 
-    float3 viewDir;
 
     float3 normal = v.normal;
     float3 tangent = new_tangent.xyz;
@@ -90,31 +74,46 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         bitangent = cross(ortho_n, ortho_t) * new_tangent.w;
     }
 
-    if (tangentSpaceEnabled)
+    float3 viewDir = sd.cameraPosition.xyz - mul(worldMat, float4(v.position, 1.f)).xyz;
+    float3 lightDir = sd.sun_position.xyz - mul(worldMat, float4(v.position, 1.f)).xyz;
+    if (tangentSpaceEnabled) {
+        viewDir = mul(gd.toObjectSpaceTransform, sd.cameraPosition).xyz - v.position;
+        lightDir = mul(gd.toObjectSpaceTransform, sd.sun_position).xyz - v.position;
+    }
+    else
     {
-        viewDir = mul(gd.toObjectSpaceTransform, sd.cameraPosition).xyz;
-        viewDir = float3(dot(tangent, viewDir), dot(bitangent, viewDir), dot(normal, viewDir));
-
-        lightDir = mul(gd.toObjectSpaceTransform, float4(lightDir, 0.f)).xyz;
-        lightDir = float3(dot(tangent, lightDir), dot(bitangent, lightDir), dot(normal, lightDir));
-    } else {
         normal = normalize(mul(normalMat, v.normal));
         tangent = normalize(mul(normalMat, new_tangent.xyz));
         tangent = normalize(tangent - normal * dot(normal, tangent));
-        viewDir = mul(mul(sd.view, gd.toObjectSpaceTransform), float4(v.position, 1.0)).xyz;
+    }
+
+    // flip lights
+    if (sd.flipLights[0] == 1)
+    {
+        lightDir = lightDir * float3(-1, 1, 1);
+    }
+    if (sd.flipLights[1] == 1)
+    {
+        lightDir = lightDir * float3(1, -1, 1);
+    }
+    if (sd.flipLights[2] == 1)
+    {
+        lightDir = lightDir * float3(1, 1, -1);
     }
 
     float4 vertPos = float4(v.position, 1.0);
+    float4 outVertex = mul(worldMat, vertPos);
 
     BasicVertexStageOutput output;
-    output.basicVertex.vertex = float4(v.position, 1.f);
+    output.basicVertex.vertex = outVertex.xyz / outVertex.w;
     output.basicVertex.normal = normal;
     output.basicVertex.worldNormal = mul(gd.normalTransform, v.normal);
     output.basicVertex.color = v.color;
-    output.basicVertex.tangent = new_tangent;
+    output.basicVertex.tangent = new_tangent.xyz;
     output.basicVertex.bitangent = bitangent;
     output.basicVertex.viewDir = viewDir;
     output.basicVertex.lightDir = lightDir;
+    output.basicVertex.sigma = new_tangent.w;
     output.basicVertex.textureCoordinates = v.textureCoordinates;
     output.csm.near = mul(mul(mul(ndc_to_tc, sd.shadowProjNear), worldMat), vertPos);
 
@@ -123,10 +122,20 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     return output;
 }
 
+float srgbToLinear(float srgbValue)
+{
+    float linearValue = srgbValue / 12.92;
+    if (srgbValue > 0.04045) {
+        linearValue = pow((srgbValue + 0.055) / 1.055, 2.4);
+    }
+    return linearValue;
+}
+
 [shader("fragment")]
 Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4 fragCoord: SV_Position) : SV_Target
 {
     SceneData sd = *BasicPushConstants.sd;
+    BasicGraphicsData gd = *BasicPushConstants.gd;
 
     if (sd.fragmentOutput == 5 || BasicPushConstants.md == nullptr)
     {
@@ -168,20 +177,26 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
     {
-        lightDir = normalize(basicVertex.lightDir);
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-        float4 normals2D = normalMap.Sample(normalSampler, basicVertex.textureCoordinates);
+        float2 normals2D = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xy * 2 - 1;
         // The normal map is stored in BC5 which stores 3D normals in 2D, using an Orthographic projection, this reconstructs the z
         float nx = normals2D.x;
         float ny = normals2D.y;
         float nz = sqrt(1 - nx * nx + ny * ny);
-        lightNormal =  normalize(float3(nx, ny, nz) * 2 - 1);
-        if (sd.tangentSpaceEnabled == 0) {
-            bitangent = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.tangent.w;
-            lightNormal = normalize(lightNormal.x * basicVertex.tangent.xyz + lightNormal.y * bitangent + lightNormal.z * basicVertex.normal);
-        }
+
+        float3 q1 = ddx(basicVertex.vertex);
+        float3 q2 = ddy(basicVertex.vertex);
+        float2 st1 = ddx(basicVertex.textureCoordinates);
+        float2 st2 = ddy(basicVertex.textureCoordinates);
+        float3 gen_t = float3(q1 * st2.y - q2 * st1.y);
+         
+        float3 m = float3(nx, ny, nz);
+        float3 n = normalize(basicVertex.normal);
+        float3 t = normalize(basicVertex.tangent - n * dot(basicVertex.tangent, n));
+        float3 b = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma;
+        lightNormal = (t * m.x + b * m.y + n * m.z);
     }
 
     float3 V = normalize(basicVertex.viewDir);
