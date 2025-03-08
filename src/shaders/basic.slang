@@ -102,9 +102,10 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     }
 
     float4 vertPos = float4(v.position, 1.0);
+    float4 outVertex = mul(worldMat, vertPos);
 
     BasicVertexStageOutput output;
-    output.basicVertex.vertex = float4(v.position, 1.f);
+    output.basicVertex.vertex = outVertex.xyz / outVertex.w;
     output.basicVertex.normal = normal;
     output.basicVertex.worldNormal = mul(gd.normalTransform, v.normal);
     output.basicVertex.color = v.color;
@@ -179,18 +180,23 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-
-            float2 normals2D = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xy * 2 - 1;
+        float2 normals2D = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xy * 2 - 1;
         // The normal map is stored in BC5 which stores 3D normals in 2D, using an Orthographic projection, this reconstructs the z
-        float nx = srgbToLinear(normals2D.x);
-        float ny = srgbToLinear(normals2D.y);
-        float nz = srgbToLinear(sqrt(clamp(1.0f - dot(normals2D, normals2D), 0.0, 1.0)));
+        float nx = normals2D.x;
+        float ny = normals2D.y;
+        float nz = sqrt(1 - nx * nx + ny * ny);
 
+        float3 q1 = ddx(basicVertex.vertex);
+        float3 q2 = ddy(basicVertex.vertex);
+        float2 st1 = ddx(basicVertex.textureCoordinates);
+        float2 st2 = ddy(basicVertex.textureCoordinates);
+        float3 gen_t = float3(q1 * st2.y - q2 * st1.y);
+         
         float3 m = float3(nx, ny, nz);
         float3 n = normalize(basicVertex.normal);
-        float3 t = normalize(basicVertex.tangent.xyz - n * dot(basicVertex.tangent.xyz, n));
+        float3 t = normalize(basicVertex.tangent - n * dot(basicVertex.tangent, n));
         float3 b = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma;
-        lightNormal = normalize(t * m.x + b * m.y + n * m.z);
+        lightNormal = (t * m.x + b * m.y + n * m.z);
     }
 
     float3 V = normalize(basicVertex.viewDir);

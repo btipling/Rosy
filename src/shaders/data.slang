@@ -9,7 +9,7 @@ public struct BasicVertexStageOutput
 
 public struct BasicVertex
 {
-    public float4 vertex;
+    public float3 vertex;
     public float3 normal;
     public float3 worldNormal;
     public float3 viewDir;

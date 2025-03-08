@@ -575,7 +575,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 
                 nvtt::CompressionOptions compression_options;
                 compression_options.setFormat(nvtt::Format_BC5);
-                compression_options.setQuality(nvtt::Quality_Highest);
+                compression_options.setQuality(nvtt::Quality_Normal);
 
                 img_path.replace_filename(std::format("{}.dds", gltf_img_name));
                 std::string output_filename = img_path.string();
@@ -608,7 +608,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
                     {
                         break;
                     }
-                    image.buildNextMipmap(nvtt::MipmapFilter_Kaiser);
+                    image.buildNextMipmap(nvtt::MipmapFilter_Box);
                 }
             }
         }
@@ -823,7 +823,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
                     .m_pInterface = &t_space_generator,
                     .m_pUserData = static_cast<void*>(&t_ctx),
                 };
-                if (!genTangSpaceDefault(&s_mikktspace_ctx))
+                if (!genTangSpace(&s_mikktspace_ctx, 0.5f))
                 {
                     l->error(std::format("Error generating tangents for mesh at index {}", mesh_index));
                     return rosy::result::error;
