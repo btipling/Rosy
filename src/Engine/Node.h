@@ -18,14 +18,14 @@ namespace rosy
 
     struct node
     {
-        log* l{nullptr};
+        std::shared_ptr<log> l{nullptr};
         node_state* ns{nullptr};
         std::vector<graphics_object> graphics_objects;
         std::string name{};
         std::vector<node*> children;
 
         [[nodiscard]] result init(
-            log* new_log,
+            const std::shared_ptr<log>& new_log,
             bool is_world_node,
             const std::array<float, 16>& coordinate_space,
             const std::array<float, 16>& new_object_space_parent_transform,

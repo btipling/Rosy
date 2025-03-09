@@ -17,7 +17,7 @@ using namespace rosy;
 //// Engine
 
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
-static bool event_handler(void* userdata, SDL_Event* event)
+static bool event_handler(void* userdata, SDL_Event* event)  // NOLINT(misc-use-anonymous-namespace)
 {
     // NOLINT(misc-use-anonymous-namespace)
     const auto eng = static_cast<engine*>(userdata);
@@ -43,8 +43,8 @@ static bool event_handler(void* userdata, SDL_Event* event)
 
 result engine::init()
 {
-    if (l = new(std::nothrow) log{ log_level::info }; l == nullptr)
-    {
+    try { l = std::make_shared<log>(); }
+    catch (const std::bad_alloc&) {
         return result::allocation_failure;
     }
 #ifdef ROSY_LOG_LEVEL_DEBUG
@@ -168,12 +168,8 @@ void engine::deinit()
 
     SDL_Quit();
 
-    if (l)
-    {
-        l->info("Engine deinit end");
-        delete l;
-        l = nullptr;
-    }
+    l->info("Engine deinit end");
+    l = nullptr;
 }
 
 result engine::run()

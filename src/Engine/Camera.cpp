@@ -37,7 +37,7 @@ namespace
 
 struct synthetic_camera
 {
-    const rosy::log* l{nullptr};
+    std::shared_ptr<rosy::log> l{nullptr};
     config cfg{};
 
     glm::vec3 velocity{0.f};
@@ -209,7 +209,7 @@ struct synthetic_camera
     }
 };
 
-result camera::init(const log* new_log, const config cfg)
+result camera::init(const std::shared_ptr<log>& new_log, const config cfg)
 {
     if (new_log == nullptr)
     {

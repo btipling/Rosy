@@ -835,7 +835,7 @@ rosy::result asset::read(rosy::log* l)
     return rosy::result::ok;
 }
 
-rosy::result asset::read_shaders(const rosy::log* l)
+rosy::result asset::read_shaders(const std::shared_ptr<rosy::log>& l)
 {
     // ReSharper disable once CppUseStructuredBinding
     for (shader& s : shaders)

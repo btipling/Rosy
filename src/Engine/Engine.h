@@ -13,7 +13,7 @@ namespace rosy
     struct engine
     {
         // Owned resources
-        log* l{nullptr};
+        std::shared_ptr<log> l{nullptr};
         SDL_Window* window{nullptr};
         level* lvl{nullptr};
         graphics* gfx{nullptr};

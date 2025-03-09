@@ -11,7 +11,7 @@ namespace rosy
     {
         enum class direction: uint8_t { x_neg, x_pos, y_neg, y_pos, z_neg, z_pos };
 
-        const log* l{nullptr};
+        std::shared_ptr<log> l{nullptr};
 
         synthetic_camera* sc{nullptr};
         float starting_x{0.f};
@@ -35,7 +35,7 @@ namespace rosy
         float pitch{0.f};
         float yaw{0.f};
 
-        result init(const log* new_log, config cfg);
+        result init(const std::shared_ptr<log>& new_log, config cfg);
         void deinit();
         result update(uint32_t new_viewport_width, uint32_t new_viewport_height, const double dt);
         void move(direction dir, float speed) const;
