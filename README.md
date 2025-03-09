@@ -13,37 +13,59 @@ This is a hobby project to build a game engine and eventually a game in my spare
 
 ![A beautiful game](https://github.com/user-attachments/assets/c49452dd-95f1-475c-95f3-2e5f0af3101f)
 
+## Modern Vulkan
+
+This project uses modern Vulkan features including:
+
+* Buffer device address
+* Dynamic rendering
+* Bindless
+* Shader Objects
+* One global descriptor set for all images and samplers
+
 ## Building
 
-This project will likely not build for anyone else at this time. See assets and hardware section below.
+### Git submodules
+
+Git submodules are used for some dependencies, they are not built automatically. They must be built with the same version of msbuild.
+
+```txt
+git submodule init
+git submodule update
+```
 
 ### Premake
 
 This project uses [Premake](https://premake.github.io/) to build. Premake is required to build the project.
 
-I initialize the project by running `premake5 vs2022` on the command line in the `src` directory and then I open up the generated sln file in VIsual Studio.
+```txt
+cd ./src
+premake5 vs2022
+```
 
-### Vulkan SDK
+On Windows this will generate a .sln file that can be opened in Visual Studio 2022.
+
+The premake5.lua script serves as the most up to date documentation for what is required to build this project. 
+
+### Properietary Dependencies
+
+The project is open source but it depends on non-free depdencies.
+
+#### Vulkan SDK
 
 The most recent version of the Vulkan SDK should be on the system. The Vulkan SDK can be downloaded from the [LunarG's Vulkan SDK website](https://www.lunarg.com/vulkan-sdk/).
 
-### NVTT
+#### FBX SDK
+
+The most recent version of the FBX SDK should be on the system. The FBX SDK can be downloaded from the [Autodesk's FBX SDK website](https://aps.autodesk.com/developer/overview/fbx-sdk).
+
+#### NVTT
 
 Using the Packager program to create assets requires the NVIDIA Texture Tool library which defaults to CPU on non-NVIDIA hardware. The game itself uses this library to read DDS files and builds and should eventually be able to run fine on NVIDIA hardware I hope.
 In order to use the Packager tool the `NVTT_PATH` env variable must be set to where the header files are and the shipped DLL must be in the same directory as Packager.exe. The
 path is likely `C:\Program Files\NVIDIA Corporation\NVIDIA Texture Tools` on Windows. NVTT can be downloaded at the [NVIDIA Texture Tools 3 website](https://developer.nvidia.com/gpu-accelerated-texture-compression).
 
 NVTT is used to compress and generate mipmaps for asset textures. It does so using a better API than libktx and uses available GPU hardware to compress images faster than libktx can. This makes a big difference when you are compressing many images as part of an asset pipeline. The compression speeds are multiple orders of magnitudes faster when using NVTT on an NVIDIA GPU. Every model ships with a slew of PBR textures, normal maps, albedo, metallic, etc and with libkts running on the CPU it can take tens of seconds to compress each large image. It adds up.
-
-### Git submodules
-
-KTX, SDL3, Fastgltf and flecs are now gitsubmodules
-SDL3 and flecs are dynamically linked, build the dlls and include next to binary, add lib files after building
-
-```txt
-git submodule init
-git submodule update
-```
 
 #### FastGLTF
 
@@ -70,19 +92,21 @@ cmake . -B out
 cmake --build out
 ```
 
-### Assets
+## Running
 
-Assets are not included in the repository and the application will immediately halt without them. I don't currently have a good solution
-for distributing assets, it's all very manual. I could zip my asset directory on request.
+Windows requires the needed .dll files be in the same directory as the executable, this isn't done automatically.
+
+Rosy has its own asset format, a gltf file can be converted to the .rsy format with the Packeger.exe which is built when the solution is built.
+
+Assuming there's an sponza.gltf on the system in an assets directory the packager can be run as so and it will add a sponza.rsy and generate *.dds images in the same directory as the sponza.gltf.
+
+```txt
+ .\bin\Debug\Packager.exe .\assets\sponza\sponza.gltf
+ ```
+
+There are currently some hard coded asset paths in the level JSON file and in Editor.cpp that I need to clean up. The project will halt immediately if those assets are not there. They must be removed and replaced with other rsy assets present on the system.
 
 ### Hardware
 
 I have only tested this on Nvidia 3070 and 3060 gpus. I don't know if this application works on AMD or other GPUs at this time.
 
-## Modern Vulkan
-
-* Buffer device address
-* Dynamic rendering
-* Bindless
-* Shader Objects
-* One global descriptor set for all images and samplers
