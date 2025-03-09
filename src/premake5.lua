@@ -1,18 +1,37 @@
+vk_sdk = os.getenv("VULKAN_SDK")
+nvtt_path = os.getenv("NVTT_PATH")
+fbx_sdk = os.getenv("FBX_SDK")
+
+debug_configurations = "configurations:Debug or configurations:RenderDoc or configurations:Clang or configurations:Sanitize"
+release_configurations = "configurations:Release"
+-- warnings disabled for third party code
+-- warnings disabled for clang as they conflict with msbuild
+warnings_disabled = "files:libs/**.c or files:libs/**.cpp or configurations:Clang"
+warnings_enabled = "not configurations:Clang"
+    -- precompiled headers disabled for third party code
+pch_disabled = "files:libs/**.c or files:libs/**.cpp"
+
 workspace "Rosy"
-    configurations { "Debug", "Release", "RenderDoc", "Clang" }
+    configurations { "Debug", "Release", "RenderDoc", "Clang", "Sanitize" }
+
+    -- shared configurations
+    kind "ConsoleApp"
     language "C++"
     cppdialect "C++23"
     targetdir "bin/%{cfg.buildcfg}"
     architecture("x86_64")
     flags { "MultiProcessorCompile" }
 
-    -- clang related specific options
-    filter "configurations:Clang"
-        toolset("clang")
+    -- debug configurations
+    filter(debug_configurations)
+        defines { "DEBUG" }
+        symbols "On"
     filter {}
-    filter "not configurations:Clang"
-        warnings "Extra"
-        fatalwarnings "All"
+
+    -- release configurations
+    filter(release_configurations)
+        defines { "NDEBUG" }
+        optimize "On"
     filter {}
 
     -- Precompiled headers
@@ -21,31 +40,46 @@ workspace "Rosy"
     includedirs { "." }
     files { "pch.h", "pch.cpp" }
 
-    -- Ignore library code for warnings and PCH
-    filter { "files:libs/**.cpp" }
+    -- clang related specific options
+    filter "configurations:Clang"
+        toolset("clang")
+    filter {}
+
+    -- precompiled headers
+    filter(pch_disabled)
         flags {"NoPCH"}
     filter {}
-    filter { "files:libs/**.cpp" }
-        warnings "Off"
+
+    -- warnings
+    filter(warnings_enabled)
+        warnings "Extra"
+        fatalwarnings "All"
     filter {}
-    filter { "files:libs/**.c" }
-        flags {"NoPCH"}
-    filter {}
-    filter { "files:libs/**.c" }
+    filter(warnings_disabled)
         warnings "Off"
     filter {}
 
-vk_sdk = os.getenv("VULKAN_SDK")
-nvtt_path = os.getenv("NVTT_PATH")
-fbx_sdk = os.getenv("FBX_SDK")
+    -- Sanitize
+    filter "configurations:Sanitize"
+        sanitize { "Address" }
+        editandcontinue "Off"
+    filter {}
 
 project "Engine"
-    kind "ConsoleApp"
     debugdir "./Engine/"
 
-    links { "SDL3" }
-    links { "flecs" }
+    -- source files
+    files { "Engine/**.h", "Engine/**.cpp" }
+    files { "Packager/Asset.h", "Packager/Asset.cpp" }
+    files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
+    files { "libs/json/single_include/nlohmann/json.hpp" }
+    -- shader files and scripts
+    files { "shaders/*.slang", "shaders/*.ps1" }
+    -- libraries included as files
+    files { "libs/Volk.cpp" }
+    files { "libs/VMA.cpp" }
 
+    -- include directories
     includedirs { "libs/SDL/include/" }
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/imgui/" }
@@ -54,49 +88,42 @@ project "Engine"
     includedirs { "libs/json/single_include/" }
     includedirs { "libs/flecs/include/" }
 
-    libdirs { vk_sdk .. "/Lib/" }
+    -- linking
+    links { "SDL3" }
+    links { "flecs" }
 
+    -- library directories
+    libdirs { vk_sdk .. "/Lib/" }
+    filter(debug_configurations)
+        libdirs { "libs/SDL/build/Debug" }
+        libdirs { "libs/flecs/out/Debug" }
+    filter {}
+    filter(release_configurations)
+        libdirs { "libs/SDL/build/Release" }
+        libdirs { "libs/flecs/out/Release" }
+    filter {}
+
+    -- defines
     defines { "SIMDJSON_EXCEPTIONS=OFF" }
     filter "configurations:RenderDoc"
         defines { "RENDERDOC" }
     filter {}
 
-    files { "Engine/**.h", "Engine/**.cpp" }
-    files { "Packager/Asset.h", "Packager/Asset.cpp" }
-    files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
-    files { "libs/Volk.cpp" }
-    files { "libs/VMA.cpp" }
-    files { "libs/json/single_include/nlohmann/json.hpp" }
-    files { "shaders/*.slang", "shaders/*.ps1" }
-
-    defines { "KHRONOS_STATIC" }
-    filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
-        libdirs { "libs/SDL/build/Debug" }
-        libdirs { "libs/flecs/out/Debug" }
-        defines { "DEBUG" }
-        symbols "On"
-    filter {}
-
-    filter "configurations:Release"
-        libdirs { "libs/SDL/build/Release" }
-        libdirs { "libs/flecs/out/Release" }
-        defines { "NDEBUG" }
-        optimize "On"
-    filter {}
-
-    buildmessage "Compiling shaders?"
+    -- build hooks
+    buildmessage "Compiling shaders"
     prebuildcommands {
         "Powershell -File %{prj.location}/shaders/script_compile.ps1 ./shaders/"
     }
 
 project "Packager"
-    kind "ConsoleApp"
     debugdir "./Packager/"
 
-    links { "fastgltf" }
-    links { "nvtt30205" }
-    links { "libfbxsdk" }
+    -- source files
+    files { "libs/MikkTSpace/mikktspace.c" }
+    files { "Packager/**.h", "Packager/**.cpp" }
+    files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
 
+    -- include directories
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
     includedirs { "\"" .. nvtt_path .. "/include/\"" }
@@ -104,21 +131,17 @@ project "Packager"
     includedirs { "libs/stb/" }
     includedirs { "libs/MikkTSpace/" }
 
+    -- linking
+    links { "fastgltf" }
+    links { "nvtt30205" }
+    links { "libfbxsdk" }
+
+    -- library directories
     libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
-
-    files { "libs/MikkTSpace/mikktspace.c" }
-    files { "Packager/**.h", "Packager/**.cpp" }
-    files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
-
-    defines { "KHRONOS_STATIC" }
-    filter { "configurations:Debug or configurations:RenderDoc or configurations:Clang" }
+    filter(debug_configurations)
         libdirs { "libs/fastgltf/build/Debug" }
         libdirs { "\"" .. fbx_sdk .. "/lib/x64/debug/\"" }
-        defines { "DEBUG" }
-        symbols "On"
-
-    filter "configurations:Release"
+    filter(release_configurations)
         libdirs { "libs/fastgltf/build/Release" }
         libdirs { "\"" .. fbx_sdk .. "/lib/x64/release/\"" }
-        defines { "NDEBUG" }
-        optimize "On"
+
