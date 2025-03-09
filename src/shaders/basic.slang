@@ -77,9 +77,8 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     float3 viewDir = sd.cameraPosition.xyz - mul(worldMat, float4(v.position, 1.f)).xyz;
     float3 lightDir = sd.sun_position.xyz - mul(worldMat, float4(v.position, 1.f)).xyz;
     if (tangentSpaceEnabled) {
-        float distance_to_sun = 10000.f;
         viewDir = mul(gd.toObjectSpaceTransform, sd.cameraPosition).xyz - v.position;
-        lightDir = mul(gd.toObjectSpaceTransform, sd.sun_position * distance_to_sun).xyz - v.position;
+        lightDir = mul(gd.toObjectSpaceTransform, sd.sun_position).xyz - v.position;
     }
     else
     {
