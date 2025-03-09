@@ -47,9 +47,9 @@ On Windows this will generate a .sln file that can be opened in Visual Studio 20
 
 The premake5.lua script serves as the most up to date documentation for what is required to build this project. 
 
-### Properietary Dependencies
+### Proprietary Dependencies
 
-The project is open source but it depends on non-free depdencies.
+The project is open source, but it depends on non-free dependencies.
 
 #### Vulkan SDK
 
@@ -96,7 +96,7 @@ cmake --build out
 
 Windows requires the needed .dll files be in the same directory as the executable, this isn't done automatically.
 
-Rosy has its own asset format, a gltf file can be converted to the .rsy format with the Packeger.exe which is built when the solution is built.
+Rosy has its own asset format. A glTF file can be converted to the .rsy format using Packager.exe, which is built when the solution is compiled.
 
 Assuming there's an sponza.gltf on the system in an assets directory the packager can be run as so and it will add a sponza.rsy and generate *.dds images in the same directory as the sponza.gltf.
 
