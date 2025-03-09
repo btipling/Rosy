@@ -104,7 +104,7 @@ Assuming there's an sponza.gltf on the system in an assets directory the package
  .\bin\Debug\Packager.exe .\assets\sponza\sponza.gltf
  ```
 
-There are currently some hard coded asset paths in the level JSON file and in Editor.cpp that I need to clean up. The project will halt immediately if those assets are not there. They must be removed and replaced with other formats.
+There are currently some hard coded asset paths in the level JSON file and in Editor.cpp that I need to clean up. The project will halt immediately if those assets are not there. They must be removed and replaced with other rsy assets present on the system.
 
 ### Hardware
 
