@@ -249,7 +249,7 @@ namespace
                 game_cam->starting_y = 10.f;
                 game_cam->starting_z = -10.f;
                 game_cam->starting_pitch = glm::pi<float>() / 4.f;
-                game_cam->starting_yaw = 0.f;
+                game_cam->starting_yaw = glm::pi<float>();
                 if (const auto res = game_cam->init(l, new_cfg); res != result::ok)
                 {
                     l->error(std::format("Game camera initialization failed: {}", static_cast<uint8_t>(res)));
@@ -1216,6 +1216,16 @@ result level::init(log* new_log, const config new_cfg)
 {
     {
         // Init level state
+        if (ls = new(std::nothrow) level_state; ls == nullptr)
+        {
+            new_log->error("level_state allocation failed");
+            return result::allocation_failure;
+        }
+        if (const auto res = ls->init(new_log, new_cfg); res != result::ok)
+        {
+            new_log->error("level_state init failed");
+            return res;
+        }
         {
             wls.light_debug.sun_distance = 23.776f;
             wls.light_debug.sun_pitch = 5.538f;
@@ -1227,7 +1237,7 @@ result level::init(log* new_log, const config new_cfg)
             wls.light.depth_bias_slope_factor = -3.f;
             wls.draw_config.cull_enabled = true;
             wls.draw_config.reverse_winding_order_enabled = false;
-            wls.light.sunlight_color = {0.55f, 0.55f, 0.55f, 1.f};
+            wls.light.sunlight_color = { 1.f, 1.f, 1.f, 1.f };
             wls.light.ambient_light = 0.04f;
             wls.light.depth_bias_enabled = true;
             wls.draw_config.thick_wire_lines = false;
@@ -1237,17 +1247,8 @@ result level::init(log* new_log, const config new_cfg)
             wls.fragment_config.shadows_enabled = true;
             wls.fragment_config.normal_maps_enabled = true;
             wls.target_fps = initial_fps_target;
+            rls.game_camera_yaw = ls->game_cam->starting_yaw;
             rls.ui_enabled = true;
-        }
-        if (ls = new(std::nothrow) level_state; ls == nullptr)
-        {
-            new_log->error("level_state allocation failed");
-            return result::allocation_failure;
-        }
-        if (const auto res = ls->init(new_log, new_cfg); res != result::ok)
-        {
-            new_log->error("level_state init failed");
-            return res;
         }
 
         ls->rls = &rls;

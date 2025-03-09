@@ -285,26 +285,33 @@ void camera::move(const direction dir, const float speed) const
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-void camera::pitch_in_dir(const float vel) const
+void camera::pitch_in_dir(const float vel)
 {
     sc->pitch += vel;
+    pitch = sc->pitch;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-void camera::yaw_in_dir(const float vel) const
+void camera::yaw_in_dir(const float vel)
 {
     sc->yaw -= vel;
+    yaw = sc->yaw;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-void camera::set_yaw_around_position(const float new_yaw, const std::array<float, 3> new_position) const
+void camera::set_yaw_around_position(const float new_yaw, const std::array<float, 3> new_position)
 {
     sc->set_yaw_around_position(new_yaw, new_position, static_cast<float>(fov));
+    yaw = sc->yaw;
+    const auto pos_r = glm::value_ptr(sc->position);
+    for (uint64_t i{ 0 }; i < 3; i += 1) position[i] = pos_r[i];
 }
 
-void camera::set_game_cam_position(const std::array<float, 3> new_position) const
+void camera::set_game_cam_position(const std::array<float, 3> new_position)
 {
     sc->set_position(new_position, static_cast<float>(fov));
+    const auto pos_r = glm::value_ptr(sc->position);
+    for (uint64_t i{ 0 }; i < 3; i += 1) position[i] = pos_r[i];
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic

@@ -39,10 +39,10 @@ namespace rosy
         void deinit();
         result update(uint32_t new_viewport_width, uint32_t new_viewport_height, const double dt);
         void move(direction dir, float speed) const;
-        void pitch_in_dir(float vel) const;
-        void yaw_in_dir(float vel) const;
-        void set_yaw_around_position(const float new_yaw, const std::array<float, 3> new_position) const;
-        void set_game_cam_position(std::array<float, 3> new_position) const;
+        void pitch_in_dir(float vel);
+        void yaw_in_dir(float vel);
+        void set_yaw_around_position(const float new_yaw, const std::array<float, 3> new_position);
+        void set_game_cam_position(std::array<float, 3> new_position);
         void go_fast() const;
         void go_slow() const;
     };
