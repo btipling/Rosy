@@ -181,23 +181,11 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
         SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-        float2 normals2D = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xy * 2 - 1;
-        // The normal map is stored in BC5 which stores 3D normals in 2D, using an Orthographic projection, this reconstructs the z
-        float nx = normals2D.x;
-        float ny = normals2D.y;
-        float nz = sqrt(1 - nx * nx + ny * ny);
-
-        float3 q1 = ddx(basicVertex.vertex);
-        float3 q2 = ddy(basicVertex.vertex);
-        float2 st1 = ddx(basicVertex.textureCoordinates);
-        float2 st2 = ddy(basicVertex.textureCoordinates);
-        float3 gen_t = float3(q1 * st2.y - q2 * st1.y);
-         
-        float3 m = float3(nx, ny, nz);
+        float3 m = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1;
         float3 n = normalize(basicVertex.normal);
         float3 t = normalize(basicVertex.tangent - n * dot(basicVertex.tangent, n));
-        float3 b = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma;
-        lightNormal = (t * m.x + b * m.y + n * m.z);
+        float3 b = normalize(cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma);
+        lightNormal = normalize(t * m.x + b * m.y + n * m.z);
     }
 
     float3 V = normalize(basicVertex.viewDir);

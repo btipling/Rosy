@@ -3633,7 +3633,7 @@ namespace
                     }
                     else if (img.image_type == rosy_packager::image_type_normal_map)
                     {
-                        new_dds_img.image_format = VK_FORMAT_BC5_UNORM_BLOCK;
+                        new_dds_img.image_format = VK_FORMAT_BC7_UNORM_BLOCK;
                     }
                     else if (img.image_type == rosy_packager::image_type_metallic_roughness)
                     {
