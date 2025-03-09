@@ -96,7 +96,13 @@ cmake --build out
 
 Windows requires the needed .dll files be in the same directory as the executable, this isn't done automatically.
 
-Rosy has its own asset format, a gltf file can be converted to the .rsy format with the Packeer.exe which is built when the solution is built.
+Rosy has its own asset format, a gltf file can be converted to the .rsy format with the Packeger.exe which is built when the solution is built.
+
+Assuming there's an sponza.gltf on the system in an assets directory the packager can be run as so and it will add a sponza.rsy and generate *.dds images in the same directory as the sponza.gltf.
+
+```txt
+ .\bin\Debug\Packager.exe .\assets\sponza\sponza.gltf
+ ```
 
 There are currently some hard coded asset paths in the level JSON file and in Editor.cpp that I need to clean up. The project will halt immediately if those assets are not there. They must be removed and replaced with other formats.
 
