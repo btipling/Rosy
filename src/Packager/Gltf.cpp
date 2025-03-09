@@ -575,7 +575,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
                 nvtt::Context context(true); // Enable CUDA
 
                 nvtt::CompressionOptions compression_options;
-                compression_options.setFormat(nvtt::Format_BC5);
+                compression_options.setFormat(nvtt::Format_BC7);
                 compression_options.setQuality(nvtt::Quality_Normal);
 
                 img_path.replace_filename(std::format("{}.dds", gltf_img_name));
@@ -595,9 +595,8 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 
                 for (int mip = 0; mip < num_mipmaps; mip++)
                 {
-                    image.normalizeNormalMap();
                     nvtt::Surface temp = image;
-                    temp.transformNormals(nvtt::NormalTransform_Orthographic);
+                    temp.normalizeNormalMap();
                     // Compress this image and write its data.
                     if (!context.compress(temp, 0 /* face */, mip, compression_options, output_options))
                     {
