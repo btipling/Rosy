@@ -184,7 +184,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         float3 m = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1;
         float3 n = normalize(basicVertex.normal);
         float3 t = normalize(basicVertex.tangent - n * dot(basicVertex.tangent, n));
-        float3 b = cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma;
+        float3 b = normalize(cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma);
         lightNormal = normalize(t * m.x + b * m.y + n * m.z);
     }
 
