@@ -92,13 +92,13 @@ namespace
 
     struct editor_manager
     {
-        rosy::log* l{nullptr};
+        std::shared_ptr<rosy::log> l{nullptr};
         rosy_packager::asset level_asset;
         std::vector<rosy_packager::asset*> origin_assets;
         std::vector<asset_description> asset_descriptions;
         rosy_editor::level_data ld;
 
-        result init(rosy::log* new_log)
+        result init(const std::shared_ptr<rosy::log>& new_log)
         {
             l = new_log;
             return result::ok;
@@ -942,7 +942,7 @@ namespace
                 {
                     a->asset_path = path;
                     {
-                        if (const auto res = a->read(l); res != result::ok)
+                        if (const auto res = a->read(l.get()); res != result::ok)
                         {
                             l->error(std::format("Failed to read the assets for {}!", path));
                             return result::error;
@@ -1026,7 +1026,7 @@ namespace
 
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result editor::init(log* new_log, [[maybe_unused]] config new_cfg)
+result editor::init(const std::shared_ptr<log>& new_log, [[maybe_unused]] config new_cfg)
 {
     if (em)
     {

@@ -138,6 +138,6 @@ namespace rosy_packager
 
         rosy::result write(const rosy::log* l);
         rosy::result read(rosy::log* l);
-        rosy::result read_shaders(const rosy::log* l);
+        rosy::result read_shaders(const std::shared_ptr<rosy::log>& l);
     };
 }

@@ -174,19 +174,20 @@ namespace
     };
 
     constexpr uint8_t max_frames_in_flight = 3;
+    struct graphics_device;
 
-    const rosy::log* debug_callback_logger = nullptr;
     // Exists only for the purpose of the callback, this is also not thread safe.
     VkBool32 VKAPI_CALL debug_callback(
         [[maybe_unused]] const VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
         [[maybe_unused]] const VkDebugUtilsMessageSeverityFlagsEXT message_type,
         const VkDebugUtilsMessengerCallbackDataEXT* p_callback_data,
-        [[maybe_unused]] void* p_user_data)
+        void* p_user_data)
     {
-        if (!debug_callback_logger) return VK_FALSE;
+        const auto l = static_cast<rosy::log*>(p_user_data);
+        if (!l) return VK_FALSE;
         if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
-            debug_callback_logger->error(std::format("[{}] {}",
+            l->error(std::format("[{}] {}",
                                                      message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                                                          ? "Validation"
                                                          : "Performance",
@@ -194,7 +195,7 @@ namespace
         }
         else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
-            debug_callback_logger->warn(std::format("[{}] {}",
+            l->warn(std::format("[{}] {}",
                                                     message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                                                         ? "Validation"
                                                         : "Performance",
@@ -202,7 +203,7 @@ namespace
         }
         else
         {
-            debug_callback_logger->debug(std::format("[{}] {}",
+            l->debug(std::format("[{}] {}",
                                                      message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                                                          ? "Validation"
                                                          : "Performance",
@@ -436,7 +437,7 @@ namespace
 
     struct graphics_device
     {
-        const rosy::log* l{nullptr};
+        std::shared_ptr<rosy::log> l{nullptr};
         debug_ui* du{nullptr};
         config cfg{};
         uint64_t graphics_created_bitmask{0};
@@ -1122,7 +1123,7 @@ namespace
                 .apiVersion = VK_API_VERSION_1_3,
             };
 
-            constexpr VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info_ext = {
+            const VkDebugUtilsMessengerCreateInfoEXT create_debug_callback_info_ext = {
                 .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
                 .pNext = nullptr,
                 .flags = 0,
@@ -1135,7 +1136,7 @@ namespace
                 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
                 .pfnUserCallback = debug_callback,
-                .pUserData = nullptr,
+                .pUserData = static_cast<void*>(l.get()),
             };
 
             const auto vvl_layer_name = "VK_LAYER_KHRONOS_validation";
@@ -1192,7 +1193,6 @@ namespace
             volkLoadInstance(instance);
 
             // Set the debug callback logger to use the graphics device logger.
-            debug_callback_logger = l;
             graphics_created_bitmask |= graphics_created_bit_instance;
             return VK_SUCCESS;
         }
@@ -6079,7 +6079,7 @@ namespace
 
 //// Graphics
 
-result graphics::init(SDL_Window* new_window, const log* new_log, config cfg)
+result graphics::init(SDL_Window* new_window, const std::shared_ptr<log>& new_log, const config cfg)
 {
     if (new_window == nullptr)
     {

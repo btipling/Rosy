@@ -176,7 +176,7 @@ namespace
     {
         enum class camera_choice : uint8_t { game, free };
 
-        rosy::log* l{nullptr};
+        std::shared_ptr<rosy::log> l{nullptr};
         camera* game_cam{nullptr};
         camera* free_cam{nullptr};
         camera_choice active_cam{camera_choice::game};
@@ -202,7 +202,7 @@ namespace
         game_node_reference rosy_reference{};
         flecs::entity floor_entity = world.entity("floor");
 
-        result init(rosy::log* new_log, const config new_cfg)
+        result init(const std::shared_ptr<rosy::log>& new_log, const config new_cfg)
         {
             l = new_log;
             if (level_game_node = new(std::nothrow) node; level_game_node == nullptr)
@@ -1212,7 +1212,7 @@ namespace
     level_state* ls{nullptr};
 }
 
-result level::init(log* new_log, const config new_cfg)
+result level::init(std::shared_ptr<log> new_log, const config new_cfg)
 {
     {
         // Init level state
