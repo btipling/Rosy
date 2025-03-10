@@ -49,5 +49,16 @@ rosy::result fbx::import(const rosy::log* l, [[maybe_unused]] fbx_config& cfg)
     }
     l->info("importing fbx success?");
 
+    FbxScene* l_scene = FbxScene::Create(l_sdk_manager, "myScene");
+
+    if (const bool l_import_status = l_importer->Import(l_scene); !l_import_status)
+    {
+        l->error("Call to FbxImporter::Import() failed.");
+        l->error(std::format("Error returned: {}", l_importer->GetStatus().GetErrorString()));
+        return rosy::result::read_failed;
+    }
+    l_importer->Destroy();
+    l->info("importing fbx scene success?");
+
     return rosy::result::ok;
 }
