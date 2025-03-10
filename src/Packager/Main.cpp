@@ -87,6 +87,11 @@ int main(const int argc, char* argv[])
         l.error("Need to provide a path to gltf file with the gltf extension, glb is not supported.");
         return EXIT_FAILURE;
     }
+    if (source_path.extension() == ".fbx")
+    {
+        l.info("importing an fbx file");
+        return 0;
+    }
     if (source_path.extension() != ".gltf")
     {
         l.error(std::format("Received a path without a gltf extension, glb is not supported. Found {}",
