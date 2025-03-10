@@ -2,16 +2,12 @@
 
 This is a hobby project to build a game engine and eventually a game in my spare time.
 
-![image](https://github.com/user-attachments/assets/7202b428-e495-4829-a679-1d1473247b19)
+![Rosy and friends](https://github.com/user-attachments/assets/0e09dc48-a8da-47cd-8413-076e53ad0923)
 
+![Sponza](https://github.com/user-attachments/assets/b324bc38-58ab-484e-bde1-7bbbd491a06f)
 
-![Rosy and friends](https://github.com/user-attachments/assets/1109c417-88a5-40d2-aa83-c1ff4296b977)
+![A beautiful game](https://github.com/user-attachments/assets/f2f699e2-9690-4b93-83fd-6401dab71bf1)
 
-![Rosy and a shadow casting dragon](https://github.com/user-attachments/assets/92573443-0900-4f11-807f-ab386c76bb5b)
-
-![cosTheta debug colors in sponza look cool](https://github.com/user-attachments/assets/cf4171fd-d414-4110-a729-c0ed0bfeac64)
-
-![A beautiful game](https://github.com/user-attachments/assets/c49452dd-95f1-475c-95f3-2e5f0af3101f)
 
 ## Modern Vulkan
 
