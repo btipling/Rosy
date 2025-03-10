@@ -222,8 +222,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
 {
     const std::filesystem::path file_path{source_path};
     {
-        const glm::mat4 m{ 1.f };
-        //const glm::mat4 rotate_gltf_y = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, -1.0f, 1.0f));
+        constexpr glm::mat4 m{ 1.f };
         gltf_asset.asset_coordinate_system = mat4_to_array(m);
     }
     constexpr auto gltf_options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |

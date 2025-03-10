@@ -377,6 +377,7 @@ imgui.ini
 *.dll
 *.spv
 *.gltf
+*.fbx
 *.rsy
 *.bin
 *.vcxproj
