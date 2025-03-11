@@ -53,40 +53,45 @@ namespace
         }
     }
 
-    /**
-     * Print an attribute.
-     */
-    void PrintAttribute(const rosy::log* l, FbxNodeAttribute* pAttribute) {
-        if (!pAttribute) return;
+    void print_attribute(const rosy::log* l, const FbxNodeAttribute* p_attribute) {
+        if (!p_attribute) return;
 
-        FbxString typeName = GetAttributeTypeName(pAttribute->GetAttributeType());
-        FbxString attrName = pAttribute->GetName();
+        FbxString type_name = GetAttributeTypeName(p_attribute->GetAttributeType());
+        FbxString attr_name = p_attribute->GetName();
         // Note: to retrieve the character array of a FbxString, use its Buffer() method.
-        l->info(std::format("<attribute type='{}' name='{}'/>\n", typeName.Buffer(), attrName.Buffer()));
+        l->info(std::format("<attribute type='{}' name='{}'/>\n", type_name.Buffer(), attr_name.Buffer()));
     }
 
-    rosy::result print_node(const rosy::log* l, fbx_config& cfg, FbxNode* pNode)
+    rosy::result print_node(const rosy::log* l, fbx_config& cfg, FbxNode* p_node)
     {
-        const char* nodeName = pNode->GetName();
-        FbxDouble3 translation = pNode->LclTranslation.Get();
-        FbxDouble3 rotation = pNode->LclRotation.Get();
-        FbxDouble3 scaling = pNode->LclScaling.Get();
+        const char* node_name = p_node->GetName();
+        FbxDouble3 translation = p_node->LclTranslation.Get();
+        FbxDouble3 rotation = p_node->LclRotation.Get();
+        FbxDouble3 scaling = p_node->LclScaling.Get();
 
         // Print the contents of the node.
         l->info(std::format("<node name='{}' translation='({}, {}, {})' rotation='({}, {}, {})' scaling='({}, {}, {})'>",
-            nodeName,
+            node_name,
             translation[0], translation[1], translation[2],
             rotation[0], rotation[1], rotation[2],
             scaling[0], scaling[1], scaling[2]
         ));
 
         // Print the node's attributes.
-        for (int i = 0; i < pNode->GetNodeAttributeCount(); i++)
-            PrintAttribute(l, pNode->GetNodeAttributeByIndex(i));
+        for (int i = 0; i < p_node->GetNodeAttributeCount(); i++) {
+            const FbxNodeAttribute* attr = p_node->GetNodeAttributeByIndex(i);
+            print_attribute(l, attr);
+            if (attr->GetAttributeType() == FbxNodeAttribute::EType::eMesh)
+            {
+                const FbxMesh* l_mesh = p_node->GetMesh();
+                l->info(std::format("we got ourselves a mesh folks, is all triangles IT BETTER BE: {}", l_mesh->IsTriangleMesh()));
+            }
+
+        }
 
         // Recursively print the children.
-        for (int j = 0; j < pNode->GetChildCount(); j++)
-            print_node(l, cfg, pNode->GetChild(j));
+        for (int j = 0; j < p_node->GetChildCount(); j++)
+            print_node(l, cfg, p_node->GetChild(j));
 
         l->info("</node>\n");
         return rosy::result::ok;
