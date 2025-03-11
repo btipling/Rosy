@@ -66,7 +66,7 @@ namespace
         l->info(std::format("<attribute type='{}' name='{}'/>\n", type_name.Buffer(), attr_name.Buffer()));
     }
 
-    rosy::result print_node(const rosy::log* l, fbx_config& cfg, FbxNode* p_node)
+    rosy::result traverse_node(const rosy::log* l, fbx_config& cfg, FbxNode* p_node, asset& fbx_asset)
     {
         const char* node_name = p_node->GetName();
         FbxDouble3 translation = p_node->LclTranslation.Get();
@@ -88,6 +88,7 @@ namespace
             print_attribute(l, attr);
             if (attr->GetAttributeType() == FbxNodeAttribute::EType::eMesh)
             {
+                mesh new_mesh{};
                 const FbxMesh* l_mesh = p_node->GetMesh();
                 l->info(std::format("we got ourselves a mesh folks, is all triangles IT BETTER BE: {}", l_mesh->IsTriangleMesh()));
                 const auto pg_count = l_mesh->GetPolygonCount();
@@ -155,6 +156,12 @@ namespace
                 FbxVector2 l_current_uv;
                 const char* l_uv_name{nullptr};
                 int l_vertex_count{0};
+                // Traversing the triangles
+
+                // TODO figure out indices vs vertices, I think this below should just capture the indexes list and
+                // for actually saving vertices to the mesh I need to use l_mesh->GetControlPointsCount(), starting at 0 and until > control point counts
+                // and index into l_mesh->GetControlPoints()[i]; that gives me unrepeated vertices, which is not what's happening below
+
                 for (int l_polygon_index{ 0 }; l_polygon_index < pg_count; l_polygon_index++)
                 {
                     int l_mat_index = l_mat_indices.GetAt(l_polygon_index);
@@ -264,7 +271,7 @@ namespace
         // Recursively print the children.
         for (int j = 0; j < p_node->GetChildCount(); j++)
         {
-            print_node(l, cfg, p_node->GetChild(j));
+            traverse_node(l, cfg, p_node->GetChild(j), fbx_asset);
         }
 
         l->info("</node>\n");
@@ -311,7 +318,7 @@ rosy::result fbx::import(const rosy::log* l, [[maybe_unused]] fbx_config& cfg)
     if (FbxNode* l_root_node = l_scene->GetRootNode())
     {
         for (int i = 0; i < l_root_node->GetChildCount(); i++)
-            print_node(l, cfg, l_root_node->GetChild(i));
+            traverse_node(l, cfg, l_root_node->GetChild(i), fbx_asset);
     }
     else
     {
