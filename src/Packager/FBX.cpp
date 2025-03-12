@@ -318,7 +318,7 @@ namespace
                 // TODO: support child nodes.
                 //const size_t current_asset_node_index = fbx_asset.nodes.size();
                 node new_asset_node{};
-                //new_asset_node.name = std::vector<char>(node_name, node_name + strlen(node_name));
+                new_asset_node.name = std::vector(node_name, node_name + strlen(node_name));
                 new_asset_node.mesh_id = static_cast<uint32_t>(current_asset_mesh_index);
                 //fbx_asset.scenes[0].nodes.emplace_back(current_asset_node_index);
                 //fbx_asset.nodes.emplace_back(new_asset_node);
