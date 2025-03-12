@@ -63,7 +63,7 @@ namespace {
     }
 
 
-    int load_fbx(rosy::log* l, const std::filesystem::path& source_path)
+    int load_fbx(const rosy::log* l, const std::filesystem::path& source_path)
     {
         const auto start = std::chrono::system_clock::now();
         std::filesystem::path output_path{ source_path };
@@ -90,13 +90,13 @@ namespace {
             return EXIT_FAILURE;
         }
         int mi{ 0 };
-        constexpr int max_pos{ 1 };
+        constexpr int max_pos{ 1000 };
         for (const auto& m : f.fbx_asset.meshes)
         {
             int pi{ 0 };
             for (const auto& p : m.positions)
             {
-                l->debug(std::format(
+                l->info(std::format(
                     "mesh: {: 3d} vertex: {: 6d}: ({:+.3f}, {:+.3f}, {:+.3f}) | normal: ({:+.3f}, {:+.3f}, {:+.3f}) | tangent:  ({:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}) | color: ({:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}) | texture coordinates: ({:+.3f}, {:+.3f})",
                     mi, pi,
                     p.vertex[0], p.vertex[1], p.vertex[2],

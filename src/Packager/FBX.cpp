@@ -110,7 +110,7 @@ namespace
             print_attribute(l, attr);
             if (attr->GetAttributeType() == FbxNodeAttribute::EType::eMesh)
             {
-                mesh new_mesh{};
+                mesh new_asset_mesh{};
                 const FbxMesh* mesh = p_node->GetMesh();
                 if (!mesh->IsTriangleMesh())
                 {
@@ -178,8 +178,8 @@ namespace
                 // Iterating over the triangles in the mesh and will generate the final list of positions for the mesh and indices for the mesh.
                 // This will also need to figure out the surfaces for the mesh.
                 constexpr int num_vertices_in_triangle{ 3 };
-                std::vector<position> positions;
-                positions.reserve(vertices_count); // Need at least vertex count space + probably more.
+                
+                new_asset_mesh.positions.reserve(vertices_count); // Need at least vertex count space + probably more.
                 for (int triangle_index{ 0 }; triangle_index < triangle_count; triangle_index++)
                 {
                     // material_index is how we build our list of lists for the index buffer, this triangles vertex indices will be added to this material's list
@@ -287,15 +287,32 @@ namespace
                             l->info("no vertex colors");
                         }
 
-
                         asset_mat_indices.push_back(asset_vertex_index);
                         asset_vertex_index += 1;
-                        
+                        new_asset_mesh.positions.emplace_back(p);
                     }
                     l->info(std::format("num indices in material {} asset_vertex_index {}", asset_mat_indices.size(), asset_vertex_index));
                 }
-                positions.shrink_to_fit();
+                new_asset_mesh.positions.shrink_to_fit();
                 l->info(std::format("rsy_vertex_count {} ", asset_vertex_index));
+
+                // Build surfaces and index list from list of lists
+                size_t offset{ 0 };
+                new_asset_mesh.surfaces.reserve(asset_materials_index_list.size());
+                new_asset_mesh.indices.reserve(new_asset_mesh.surfaces.size() * num_vertices_in_triangle); // the indices buffer is at the very least this big.
+                for (const auto& mat_indices: asset_materials_index_list)
+                {
+                    size_t count = mat_indices.size();
+                    surface s{};
+                    s.start_index = static_cast<uint32_t>(offset);
+                    s.count = static_cast<uint32_t>(count);
+                    new_asset_mesh.indices.insert(new_asset_mesh.indices.end(), mat_indices.begin(), mat_indices.end());
+                    offset += count;
+                    new_asset_mesh.surfaces.emplace_back(s);
+                }
+
+                fbx_asset.meshes.emplace_back(new_asset_mesh);
+                l->info("done with mesh");
             }
         }
 
