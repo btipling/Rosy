@@ -129,7 +129,12 @@ namespace
                 // material_indices lets us look up the index of the material for a triangle, which lets us create surfaces for each material
                 // triangles get assigned to surfaces, each surface has a unique material
                 const FbxLayerElementArrayTemplate<int>& material_indices = materials->GetIndexArray();
-                l->info(std::format("rsy_mat_indices count: {}", material_indices.GetCount()));
+                const int num_materials = material_indices.GetCount();
+
+                std::vector<std::vector<uint32_t>> asset_materials_index_list; // The list of lists that builds the asset's index buffer for this mesh.
+                asset_materials_index_list.resize(num_materials);
+
+                l->info(std::format("rsy_mat_indices count: {}", num_materials));
                 switch (materials->GetMappingMode())
                 {
                 case FbxLayerElement::EMappingMode::eByControlPoint:
@@ -162,30 +167,31 @@ namespace
                 }
                 for (int ni{0}; ni < num_uv_elements; ni++)
                 {
-                    const FbxGeometryElementUV* uv = mesh->GetElementUV(ni);
+                    const FbxGeometryElementUV* uv = mesh->GetElementUV(ni);    
                     l->info(std::format("uvs mapped by vertex? {}", uv->GetMappingMode() != FbxLayerElement::EMappingMode::eByControlPoint));
                 }
 
                 const FbxVector4* mesh_vertices = mesh->GetControlPoints();
 
-                int rsy_vertex_count{ 0 };
+                int asset_vertex_index{ 0 }; // This is going to be the indices that index into the resulting vertex list built by iterating over triangle vertices.
+
                 // Iterating over the triangles in the mesh and will generate the final list of positions for the mesh and indices for the mesh.
                 // This will also need to figure out the surfaces for the mesh.
                 constexpr int num_vertices_in_triangle{ 3 };
-                std::vector<rosy_packager::position> positions;
+                std::vector<position> positions;
                 positions.reserve(vertices_count); // Need at least vertex count space + probably more.
                 for (int triangle_index{ 0 }; triangle_index < triangle_count; triangle_index++)
                 {
                     // material_index is how we build our list of lists for the index buffer, this triangles vertex indices will be added to this material's list
                     // which will create the resulting index buffer.
                     int material_index = material_indices.GetAt(triangle_index);
+                    std::vector<uint32_t>& asset_mat_indices = asset_materials_index_list[material_index];
                     l->info(std::format("rsy_mat_index {}", material_index));
-                    int index_offset{ 0 };
-                    int index_count{ 0 };
                     for (int triangle_vertex = 0; triangle_vertex < num_vertices_in_triangle; triangle_vertex++) {
                         const int mesh_vertex_index = mesh->GetPolygonVertex(triangle_index, triangle_vertex);
                         l->info(std::format("mesh_vertex_index {}", mesh_vertex_index));
 
+                        position p{};
 
                         FbxVector4 current_vertex = mesh_vertices[mesh_vertex_index];
 
@@ -194,6 +200,7 @@ namespace
                             float y = static_cast<float>(current_vertex[1]);
                             float z = static_cast<float>(current_vertex[2]);
                             l->info(std::format("position: ({}, {}, {})", x, y, z));
+                            p.vertex = { x, y, z };
                         }
 
                         {
@@ -203,6 +210,7 @@ namespace
                             float y = static_cast<float>(current_normal[1]);
                             float z = static_cast<float>(current_normal[2]);
                             l->info(std::format("normal: ({}, {}, {})", x, y, z));
+                            p.normal = { x, y, z };
                         }
 
                         {
@@ -213,12 +221,14 @@ namespace
                             float s = static_cast<float>(current_uv[0]);
                             float t = static_cast<float>(current_uv[1]);
                             l->info(std::format("uv: ({}, {})", s, t));
+                            p.texture_coordinates = { s, t };
                         }
+                        FbxColor vertex_color{};
+                        bool has_color{ false };
                         if (mesh->GetElementVertexColorCount())
                         {
                             for (int lc{ 0 }; lc < mesh->GetElementVertexColorCount(); lc++)
                             {
-                                FbxColor vertex_color{};
                                 switch (const FbxGeometryElementVertexColor* color = mesh->GetElementVertexColor(lc); color->GetMappingMode())
                                 {
                                 case FbxGeometryElement::eByControlPoint:
@@ -227,13 +237,13 @@ namespace
                                     {
                                     case FbxGeometryElement::eDirect:
                                         vertex_color = color->GetDirectArray().GetAt(mesh_vertex_index);
-                                        l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
+                                        has_color = true;
                                         break;
                                     case FbxGeometryElement::eIndexToDirect:
                                     {
                                         const int id = color->GetIndexArray().GetAt(mesh_vertex_index);
                                         vertex_color = color->GetDirectArray().GetAt(id);
-                                        l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
+                                        has_color = true;
                                     }
                                     break;
                                     case FbxLayerElement::eIndex:
@@ -246,13 +256,13 @@ namespace
                                     {
                                     case FbxGeometryElement::eDirect:
                                         vertex_color = color->GetDirectArray().GetAt(mesh_vertex_index);
-                                        l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
+                                        has_color = true;
                                         break;
                                     case FbxGeometryElement::eIndexToDirect:
                                     {
                                         const int id = color->GetIndexArray().GetAt(mesh_vertex_index);
                                         vertex_color = color->GetDirectArray().GetAt(id);
-                                        l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
+                                        has_color = true;
                                     }
                                     break;
                                     case FbxLayerElement::eIndex:
@@ -267,18 +277,25 @@ namespace
                                 }
                             }
                         }
+                        if (has_color)
+                        {
+                            l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
+                            p.color = { static_cast<float>(vertex_color.mRed), static_cast<float>(vertex_color.mGreen), static_cast<float>(vertex_color.mBlue), static_cast<float>(vertex_color.mAlpha) };
+                        }
                         else
                         {
                             l->info("no vertex colors");
                         }
 
 
-                        rsy_vertex_count += 1;
+                        asset_mat_indices.push_back(asset_vertex_index);
+                        asset_vertex_index += 1;
                         
                     }
-                    l->info(std::format("rsy_index_offset {} rsy_index_count {}", index_offset, index_count));
+                    l->info(std::format("num indices in material {} asset_vertex_index {}", asset_mat_indices.size(), asset_vertex_index));
                 }
-                l->info(std::format("rsy_vertex_count {} ", rsy_vertex_count));
+                positions.shrink_to_fit();
+                l->info(std::format("rsy_vertex_count {} ", asset_vertex_index));
             }
         }
 
