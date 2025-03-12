@@ -9,6 +9,28 @@
 
 using namespace rosy_packager;
 
+// A "Control Point" is an FBX term for what everyone else in the world calls a vertex or vertex attribute data, were it not for the fact that we aren't guaranteed to get all the vertices
+// we need to render in a graphics API like Vulkan or OpenGL via these control points. The control points are the unique set of positions in a mesh, but non-trivial meshes reuse vertices with
+// a different combination of normals and texture coordinates. A format like GLTF just gives you these, but FBX we need to create a vector of number of triangles * number of vertices in a triangle
+// and then build our own index array from that will definitely duplicate vertices/normal/uv values and needs to be run through a mesh optimizer. Once we have the actual index list we need to
+// build the actual index buffer which is basically a list of lists. Each material has a list of indices. The index buffer for each mesh is that list of those lists.
+// There is a by control point mapped mode that does this the standard way also, I am just going to try and ignore that?
+//
+// So we assume we have:
+// 1. A unique list of vertices
+// 2. A list of triangles where for each of the three vertices of the triangle we can get a position, normal, uvs and a vertex color and the triangle's material index
+// 3. A list of materials
+//
+// What needs to happen is we build a list of vertices, build a list of indices, and add the index matching a material into a material index list, the eventual material index list is the sum of those.
+// Then we maintain a list of surfaces which map to their respective list within the overall index list with an offset and a count.
+//
+// Then we run it all through a mesh optimizer and map any removed/moved indices for the surfaces.
+//
+// for the purpose of animation we have to consider the same vertex with different weights/links to bones each as unique vertices as well and not remove any of those once we have them.
+//
+// A "Polygon" is a triangle. In FBX and Maya it can also be a quad but this is not supported by Rosy.
+// There is a property called "unmapped" uvs (texture coordinates) and is a thing that is possible in FBX and Maya, I don't understand its implications in Rosy.
+// as I seem to be able to get one for each vertex via the GetPolygonVertexUV call.
 
 namespace
 {
@@ -89,21 +111,26 @@ namespace
             if (attr->GetAttributeType() == FbxNodeAttribute::EType::eMesh)
             {
                 mesh new_mesh{};
-                const FbxMesh* l_mesh = p_node->GetMesh();
-                l->info(std::format("we got ourselves a mesh folks, is all triangles IT BETTER BE: {}", l_mesh->IsTriangleMesh()));
-                const auto pg_count = l_mesh->GetPolygonCount();
-                l->info(std::format("polygon count: {}", pg_count));
-                const FbxGeometryElementMaterial* l_mat = l_mesh->GetElementMaterial();
-                if (l_mat == nullptr)
+                const FbxMesh* mesh = p_node->GetMesh();
+                if (!mesh->IsTriangleMesh())
+                {
+                    l->info("Not a triangle mesh.");
+                }
+                const auto triangle_count = mesh->GetPolygonCount();
+                const auto vertices_count = mesh->GetControlPointsCount();
+                l->info(std::format("triangle count: {}", triangle_count));
+                const FbxGeometryElementMaterial* materials = mesh->GetElementMaterial();
+                if (materials == nullptr)
                 {
                     l->info("no material");
                     continue;
                 }
 
-                const FbxLayerElementArrayTemplate<int>& l_mat_indices = l_mat->GetIndexArray();
-                l->info(std::format("l_mat_indices count: {}", l_mat_indices.GetCount()));
-                const FbxLayerElement::EMappingMode l_mat_mapping_mode = l_mat->GetMappingMode();
-                switch (l_mat_mapping_mode)
+                // material_indices lets us look up the index of the material for a triangle, which lets us create surfaces for each material
+                // triangles get assigned to surfaces, each surface has a unique material
+                const FbxLayerElementArrayTemplate<int>& material_indices = materials->GetIndexArray();
+                l->info(std::format("rsy_mat_indices count: {}", material_indices.GetCount()));
+                switch (materials->GetMappingMode())
                 {
                 case FbxLayerElement::EMappingMode::eByControlPoint:
                     l->info("eByControlPoint mesh mapping mode");
@@ -125,102 +152,87 @@ namespace
                     break;
                 }
 
-                const auto num_normals = l_mesh->GetElementNormalCount();
-                const auto num_uvs = l_mesh->GetElementUVCount();
-                l->info(std::format("l_mesh num normals: {} num uvs: {}", num_normals, num_uvs));
-                bool l_by_control_point{true};
-                for (int ni{0}; ni < num_normals; ni++)
+                const auto num_normal_elements = mesh->GetElementNormalCount();
+                const auto num_uv_elements = mesh->GetElementUVCount();
+                l->info(std::format("rsy_mesh num normals: {} num uvs: {}", num_normal_elements, num_uv_elements));
+                for (int ni{0}; ni < num_normal_elements; ni++)
                 {
-                    const FbxGeometryElementNormal* n = l_mesh->GetElementNormal(ni);
-                    l->info(std::format("normal mapping mode: {}", static_cast<uint8_t>(n->GetMappingMode())));
-                    if (n->GetMappingMode() != FbxLayerElement::EMappingMode::eByControlPoint)
-                    {
-                        l_by_control_point = false;
-                    }
+                    const FbxGeometryElementNormal* n = mesh->GetElementNormal(ni);
+                    l->info(std::format("normals mapped by vertex? {}", n->GetMappingMode() != FbxLayerElement::EMappingMode::eByControlPoint));
                 }
-                for (int ni{0}; ni < num_uvs; ni++)
+                for (int ni{0}; ni < num_uv_elements; ni++)
                 {
-                    const FbxGeometryElementUV* uv = l_mesh->GetElementUV(ni);
-                    l->info(std::format("uv mapping mode: {}", static_cast<uint8_t>(uv->GetMappingMode())));
-                    if (uv->GetMappingMode() != FbxLayerElement::EMappingMode::eByControlPoint)
-                    {
-                        l_by_control_point = false;
-                    }
+                    const FbxGeometryElementUV* uv = mesh->GetElementUV(ni);
+                    l->info(std::format("uvs mapped by vertex? {}", uv->GetMappingMode() != FbxLayerElement::EMappingMode::eByControlPoint));
                 }
-                l->info(std::format("mapping mode by control point? {}", l_by_control_point));
 
-                const FbxVector4* l_control_points = l_mesh->GetControlPoints();
-                FbxVector4 l_current_vertex;
-                FbxVector4 l_current_normal;
-                FbxVector4 l_current_color;
-                FbxVector2 l_current_uv;
-                const char* l_uv_name{nullptr};
-                int l_vertex_count{0};
-                // Traversing the triangles
+                const FbxVector4* mesh_vertices = mesh->GetControlPoints();
 
-                // TODO figure out indices vs vertices, I think this below should just capture the indexes list and
-                // for actually saving vertices to the mesh I need to use l_mesh->GetControlPointsCount(), starting at 0 and until > control point counts
-                // and index into l_mesh->GetControlPoints()[i]; that gives me unrepeated vertices, which is not what's happening below
-
-                for (int l_polygon_index{ 0 }; l_polygon_index < pg_count; l_polygon_index++)
+                int rsy_vertex_count{ 0 };
+                // Iterating over the triangles in the mesh and will generate the final list of positions for the mesh and indices for the mesh.
+                // This will also need to figure out the surfaces for the mesh.
+                constexpr int num_vertices_in_triangle{ 3 };
+                std::vector<rosy_packager::position> positions;
+                positions.reserve(vertices_count); // Need at least vertex count space + probably more.
+                for (int triangle_index{ 0 }; triangle_index < triangle_count; triangle_index++)
                 {
-                    int l_mat_index = l_mat_indices.GetAt(l_polygon_index);
-                    l->info(std::format("l_mat_index {}", l_mat_index));
-                    int l_index_offset{ 0 };
-                    int l_index_count{ 0 };
-                    constexpr int num_vertices_in_triangle{ 3 };
-                    for (int l_vertex_index = 0; l_vertex_index < num_vertices_in_triangle; l_vertex_index++) {
+                    // material_index is how we build our list of lists for the index buffer, this triangles vertex indices will be added to this material's list
+                    // which will create the resulting index buffer.
+                    int material_index = material_indices.GetAt(triangle_index);
+                    l->info(std::format("rsy_mat_index {}", material_index));
+                    int index_offset{ 0 };
+                    int index_count{ 0 };
+                    for (int triangle_vertex = 0; triangle_vertex < num_vertices_in_triangle; triangle_vertex++) {
+                        const int mesh_vertex_index = mesh->GetPolygonVertex(triangle_index, triangle_vertex);
+                        l->info(std::format("mesh_vertex_index {}", mesh_vertex_index));
 
-                        const int l_control_point_index = l_mesh->GetPolygonVertex(l_polygon_index, l_vertex_index);
-                        l_current_vertex = l_control_points[l_control_point_index];
+
+                        FbxVector4 current_vertex = mesh_vertices[mesh_vertex_index];
 
                         {
-                            float x = static_cast<float>(l_current_vertex[0]);
-                            float y = static_cast<float>(l_current_vertex[1]);
-                            float z = static_cast<float>(l_current_vertex[2]);
+                            float x = static_cast<float>(current_vertex[0]);
+                            float y = static_cast<float>(current_vertex[1]);
+                            float z = static_cast<float>(current_vertex[2]);
                             l->info(std::format("position: ({}, {}, {})", x, y, z));
                         }
+
                         {
-                            l_mesh->GetPolygonVertexNormal(l_polygon_index, l_vertex_index, l_current_normal);
-                            float x = static_cast<float>(l_current_normal[0]);
-                            float y = static_cast<float>(l_current_normal[1]);
-                            float z = static_cast<float>(l_current_normal[2]);
+                             FbxVector4 current_normal{};
+                             mesh->GetPolygonVertexNormal(triangle_index, triangle_vertex, current_normal);
+                            float x = static_cast<float>(current_normal[0]);
+                            float y = static_cast<float>(current_normal[1]);
+                            float z = static_cast<float>(current_normal[2]);
                             l->info(std::format("normal: ({}, {}, {})", x, y, z));
                         }
 
                         {
-                            bool l_unmapped_uv;
-                            l_mesh->GetPolygonVertexUV(l_polygon_index, l_vertex_index, l_uv_name, l_current_uv, l_unmapped_uv);
-                            float s = static_cast<float>(l_current_normal[0]);
-                            float t = static_cast<float>(l_current_normal[1]);
-                            l->info(std::format("uv: ({}, {}) mapped: {}", s, t, l_unmapped_uv));
-                            if (l_uv_name != nullptr)
-                            {
-                                l->info(std::format("l_uv_name: {}", l_uv_name));
-                            } else
-                            {
-                                l->info("no uv name");
-                            }
+                            FbxVector2 current_uv{};
+                            const char* uv_name{ nullptr };
+                            bool uv_unmapped;
+                            mesh->GetPolygonVertexUV(triangle_index, triangle_vertex, uv_name, current_uv, uv_unmapped);
+                            float s = static_cast<float>(current_uv[0]);
+                            float t = static_cast<float>(current_uv[1]);
+                            l->info(std::format("uv: ({}, {})", s, t));
                         }
-                        if (l_mesh->GetElementVertexColorCount())
+                        if (mesh->GetElementVertexColorCount())
                         {
-                            for (int lc{0}; lc < l_mesh->GetElementVertexColorCount(); lc++)
+                            for (int lc{ 0 }; lc < mesh->GetElementVertexColorCount(); lc++)
                             {
                                 FbxColor vertex_color{};
-                                switch (const FbxGeometryElementVertexColor* l_color = l_mesh->GetElementVertexColor(lc); l_color->GetMappingMode())
+                                switch (const FbxGeometryElementVertexColor* color = mesh->GetElementVertexColor(lc); color->GetMappingMode())
                                 {
                                 case FbxGeometryElement::eByControlPoint:
                                     l->info("color by control point");
-                                    switch (l_color->GetReferenceMode())
+                                    switch (color->GetReferenceMode())
                                     {
                                     case FbxGeometryElement::eDirect:
-                                        vertex_color = l_color->GetDirectArray().GetAt(l_control_point_index);
+                                        vertex_color = color->GetDirectArray().GetAt(mesh_vertex_index);
                                         l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
                                         break;
                                     case FbxGeometryElement::eIndexToDirect:
                                     {
-                                        const int id = l_color->GetIndexArray().GetAt(l_control_point_index);
-                                        vertex_color = l_color->GetDirectArray().GetAt(id);
+                                        const int id = color->GetIndexArray().GetAt(mesh_vertex_index);
+                                        vertex_color = color->GetDirectArray().GetAt(id);
                                         l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
                                     }
                                     break;
@@ -230,16 +242,16 @@ namespace
                                     break;
                                 case FbxGeometryElement::eByPolygonVertex:
                                     l->info("color by polygon vertex");
-                                    switch (l_color->GetReferenceMode())
+                                    switch (color->GetReferenceMode())
                                     {
                                     case FbxGeometryElement::eDirect:
-                                        vertex_color = l_color->GetDirectArray().GetAt(l_control_point_index);
+                                        vertex_color = color->GetDirectArray().GetAt(mesh_vertex_index);
                                         l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
                                         break;
                                     case FbxGeometryElement::eIndexToDirect:
                                     {
-                                        const int id = l_color->GetIndexArray().GetAt(l_control_point_index);
-                                        vertex_color = l_color->GetDirectArray().GetAt(id);
+                                        const int id = color->GetIndexArray().GetAt(mesh_vertex_index);
+                                        vertex_color = color->GetDirectArray().GetAt(id);
                                         l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
                                     }
                                     break;
@@ -254,17 +266,19 @@ namespace
                                     break;
                                 }
                             }
-                        } else
+                        }
+                        else
                         {
                             l->info("no vertex colors");
                         }
 
 
-                        l_vertex_count += 1;
+                        rsy_vertex_count += 1;
+                        
                     }
-                    l->info(std::format("l_index_offset {} l_index_count {}", l_index_offset, l_index_count));
+                    l->info(std::format("rsy_index_offset {} rsy_index_count {}", index_offset, index_count));
                 }
-                l->info(std::format("l_vertex_count {} ", l_vertex_count));
+                l->info(std::format("rsy_vertex_count {} ", rsy_vertex_count));
             }
         }
 
@@ -289,43 +303,43 @@ rosy::result fbx::import(const rosy::log* l, [[maybe_unused]] fbx_config& cfg)
     }
     l->info("importing fbx starting");
 
-    FbxManager* l_sdk_manager = FbxManager::Create();
+    FbxManager* rsy_sdk_manager = FbxManager::Create();
 
-    FbxIOSettings* ios = FbxIOSettings::Create(l_sdk_manager, IOSROOT);
-    l_sdk_manager->SetIOSettings(ios);
+    FbxIOSettings* ios = FbxIOSettings::Create(rsy_sdk_manager, IOSROOT);
+    rsy_sdk_manager->SetIOSettings(ios);
 
-    FbxImporter* l_importer = FbxImporter::Create(l_sdk_manager, "");
+    FbxImporter* rsy_importer = FbxImporter::Create(rsy_sdk_manager, "");
 
-    if (const bool l_import_status = l_importer->Initialize(file_path.string().c_str(), -1, l_sdk_manager->GetIOSettings()); !l_import_status)
+    if (const bool rsy_import_status = rsy_importer->Initialize(file_path.string().c_str(), -1, rsy_sdk_manager->GetIOSettings()); !rsy_import_status)
     {
         l->error("Call to FbxImporter::Initialize() failed.");
-        l->error(std::format("Error returned: {}", l_importer->GetStatus().GetErrorString()));
+        l->error(std::format("Error returned: {}", rsy_importer->GetStatus().GetErrorString()));
         return rosy::result::read_failed;
     }
     l->info("importing fbx success?");
 
-    FbxScene* l_scene = FbxScene::Create(l_sdk_manager, "myScene");
+    FbxScene* rsy_scene = FbxScene::Create(rsy_sdk_manager, "myScene");
 
-    if (const bool l_import_status = l_importer->Import(l_scene); !l_import_status)
+    if (const bool rsy_import_status = rsy_importer->Import(rsy_scene); !rsy_import_status)
     {
         l->error("Call to FbxImporter::Import() failed.");
-        l->error(std::format("Error returned: {}", l_importer->GetStatus().GetErrorString()));
+        l->error(std::format("Error returned: {}", rsy_importer->GetStatus().GetErrorString()));
         return rosy::result::read_failed;
     }
-    l_importer->Destroy();
+    rsy_importer->Destroy();
     l->info("importing fbx scene success?");
 
-    if (FbxNode* l_root_node = l_scene->GetRootNode())
+    if (FbxNode* rsy_root_node = rsy_scene->GetRootNode())
     {
-        for (int i = 0; i < l_root_node->GetChildCount(); i++)
-            traverse_node(l, cfg, l_root_node->GetChild(i), fbx_asset);
+        for (int i = 0; i < rsy_root_node->GetChildCount(); i++)
+            traverse_node(l, cfg, rsy_root_node->GetChild(i), fbx_asset);
     }
     else
     {
         l->info("no fbx root node?");
     }
 
-    l_sdk_manager->Destroy();
+    rsy_sdk_manager->Destroy();
     l->info("all done importing fbx asset");
     return rosy::result::ok;
 }
