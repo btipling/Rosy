@@ -169,27 +169,28 @@ namespace
                 }
                 for (int ni{0}; ni < num_uv_elements; ni++)
                 {
-                    const FbxGeometryElementUV* uv = mesh->GetElementUV(ni);    
+                    const FbxGeometryElementUV* uv = mesh->GetElementUV(ni);
                     l->info(std::format("uvs mapped by vertex? {}", uv->GetMappingMode() != FbxLayerElement::EMappingMode::eByControlPoint));
                 }
 
                 const FbxVector4* mesh_vertices = mesh->GetControlPoints();
 
-                int asset_vertex_index{ 0 }; // This is going to be the indices that index into the resulting vertex list built by iterating over triangle vertices.
+                int asset_vertex_index{0}; // This is going to be the indices that index into the resulting vertex list built by iterating over triangle vertices.
 
                 // Iterating over the triangles in the mesh and will generate the final list of positions for the mesh and indices for the mesh.
                 // This will also need to figure out the surfaces for the mesh.
-                constexpr int num_vertices_in_triangle{ 3 };
-                
+                constexpr int num_vertices_in_triangle{3};
+
                 new_asset_mesh.positions.reserve(vertices_count); // Need at least vertex count space + probably more.
-                for (int triangle_index{ 0 }; triangle_index < triangle_count; triangle_index++)
+                for (int triangle_index{0}; triangle_index < triangle_count; triangle_index++)
                 {
                     // material_index is how we build our list of lists for the index buffer, this triangles vertex indices will be added to this material's list
                     // which will create the resulting index buffer.
                     int material_index = material_indices.GetAt(triangle_index);
                     std::vector<uint32_t>& asset_mat_indices = asset_materials_index_list[material_index];
                     l->info(std::format("rsy_mat_index {}", material_index));
-                    for (int triangle_vertex = 0; triangle_vertex < num_vertices_in_triangle; triangle_vertex++) {
+                    for (int triangle_vertex = 0; triangle_vertex < num_vertices_in_triangle; triangle_vertex++)
+                    {
                         const int mesh_vertex_index = mesh->GetPolygonVertex(triangle_index, triangle_vertex);
                         l->info(std::format("mesh_vertex_index {}", mesh_vertex_index));
 
@@ -202,34 +203,34 @@ namespace
                             float y = static_cast<float>(current_vertex[1]);
                             float z = static_cast<float>(current_vertex[2]);
                             l->info(std::format("position: ({}, {}, {})", x, y, z));
-                            p.vertex = { x, y, z };
+                            p.vertex = {x, y, z};
                         }
 
                         {
-                             FbxVector4 current_normal{};
-                             mesh->GetPolygonVertexNormal(triangle_index, triangle_vertex, current_normal);
+                            FbxVector4 current_normal{};
+                            mesh->GetPolygonVertexNormal(triangle_index, triangle_vertex, current_normal);
                             float x = static_cast<float>(current_normal[0]);
                             float y = static_cast<float>(current_normal[1]);
                             float z = static_cast<float>(current_normal[2]);
                             l->info(std::format("normal: ({}, {}, {})", x, y, z));
-                            p.normal = { x, y, z };
+                            p.normal = {x, y, z};
                         }
 
                         {
                             FbxVector2 current_uv{};
-                            const char* uv_name{ nullptr };
+                            const char* uv_name{nullptr};
                             bool uv_unmapped;
                             mesh->GetPolygonVertexUV(triangle_index, triangle_vertex, uv_name, current_uv, uv_unmapped);
                             float s = static_cast<float>(current_uv[0]);
                             float t = static_cast<float>(current_uv[1]);
                             l->info(std::format("uv: ({}, {})", s, t));
-                            p.texture_coordinates = { s, t };
+                            p.texture_coordinates = {s, t};
                         }
                         FbxColor vertex_color{};
-                        bool has_color{ false };
+                        bool has_color{false};
                         if (mesh->GetElementVertexColorCount())
                         {
-                            for (int lc{ 0 }; lc < mesh->GetElementVertexColorCount(); lc++)
+                            for (int lc{0}; lc < mesh->GetElementVertexColorCount(); lc++)
                             {
                                 switch (const FbxGeometryElementVertexColor* color = mesh->GetElementVertexColor(lc); color->GetMappingMode())
                                 {
@@ -242,12 +243,12 @@ namespace
                                         has_color = true;
                                         break;
                                     case FbxGeometryElement::eIndexToDirect:
-                                    {
-                                        const int id = color->GetIndexArray().GetAt(mesh_vertex_index);
-                                        vertex_color = color->GetDirectArray().GetAt(id);
-                                        has_color = true;
-                                    }
-                                    break;
+                                        {
+                                            const int id = color->GetIndexArray().GetAt(mesh_vertex_index);
+                                            vertex_color = color->GetDirectArray().GetAt(id);
+                                            has_color = true;
+                                        }
+                                        break;
                                     case FbxLayerElement::eIndex:
                                         break;
                                     }
@@ -261,12 +262,12 @@ namespace
                                         has_color = true;
                                         break;
                                     case FbxGeometryElement::eIndexToDirect:
-                                    {
-                                        const int id = color->GetIndexArray().GetAt(mesh_vertex_index);
-                                        vertex_color = color->GetDirectArray().GetAt(id);
-                                        has_color = true;
-                                    }
-                                    break;
+                                        {
+                                            const int id = color->GetIndexArray().GetAt(mesh_vertex_index);
+                                            vertex_color = color->GetDirectArray().GetAt(id);
+                                            has_color = true;
+                                        }
+                                        break;
                                     case FbxLayerElement::eIndex:
                                         break;
                                     }
@@ -282,7 +283,7 @@ namespace
                         if (has_color)
                         {
                             l->info(std::format("vertex color: ({}, {}, {}, {})", vertex_color.mRed, vertex_color.mGreen, vertex_color.mBlue, vertex_color.mAlpha));
-                            p.color = { static_cast<float>(vertex_color.mRed), static_cast<float>(vertex_color.mGreen), static_cast<float>(vertex_color.mBlue), static_cast<float>(vertex_color.mAlpha) };
+                            p.color = {static_cast<float>(vertex_color.mRed), static_cast<float>(vertex_color.mGreen), static_cast<float>(vertex_color.mBlue), static_cast<float>(vertex_color.mAlpha)};
                         }
                         else
                         {
@@ -299,10 +300,10 @@ namespace
                 l->info(std::format("rsy_vertex_count {} ", asset_vertex_index));
 
                 // Build surfaces and index list from list of lists
-                size_t offset{ 0 };
+                size_t offset{0};
                 new_asset_mesh.surfaces.reserve(asset_materials_index_list.size());
                 new_asset_mesh.indices.reserve(new_asset_mesh.surfaces.size() * num_vertices_in_triangle); // the indices buffer is at the very least this big.
-                for (const auto& mat_indices: asset_materials_index_list)
+                for (const auto& mat_indices : asset_materials_index_list)
                 {
                     size_t count = mat_indices.size();
                     surface s{};
@@ -337,7 +338,7 @@ namespace
             l->error("no meshes found in fbx asset.");
             return rosy::result::error;
         }
-        
+
 
         l->info("</node>\n");
         return rosy::result::ok;

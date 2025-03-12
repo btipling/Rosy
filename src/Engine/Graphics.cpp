@@ -188,26 +188,26 @@ namespace
         if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
             l->error(std::format("[{}] {}",
-                                                     message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                                                         ? "Validation"
-                                                         : "Performance",
-                                                     p_callback_data->pMessage));
+                                 message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                                     ? "Validation"
+                                     : "Performance",
+                                 p_callback_data->pMessage));
         }
         else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
             l->warn(std::format("[{}] {}",
-                                                    message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                                                        ? "Validation"
-                                                        : "Performance",
-                                                    p_callback_data->pMessage));
+                                message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                                    ? "Validation"
+                                    : "Performance",
+                                p_callback_data->pMessage));
         }
         else
         {
             l->debug(std::format("[{}] {}",
-                                                     message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                                                         ? "Validation"
-                                                         : "Performance",
-                                                     p_callback_data->pMessage));
+                                 message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                                     ? "Validation"
+                                     : "Performance",
+                                 p_callback_data->pMessage));
         }
         return VK_FALSE;
     }
@@ -357,6 +357,7 @@ namespace
 
     struct gpu_material_buffer
     {
+        bool has_material{false};
         allocated_buffer material_buffer;
         VkDeviceAddress material_buffer_address;
     };
@@ -3531,7 +3532,7 @@ namespace
                         return result::error;
                     }
                 }
-
+                material_buffer.has_material = false;
                 for (const VkSampler& sampler : samplers)
                 {
                     vkDestroySampler(device, sampler, nullptr);
@@ -4164,6 +4165,7 @@ namespace
                         device_address_info.buffer = material_buffer.material_buffer.buffer;
 
                         // *** SETTING MATERIAL BUFFER ADDRESS *** //
+                        material_buffer.has_material = true;
                         material_buffer.material_buffer_address = vkGetBufferDeviceAddress(device, &device_address_info);
                     }
 
@@ -4233,13 +4235,11 @@ namespace
                         vertex_copy.srcOffset = 0;
                         vertex_copy.size = material_buffer_size;
 
-                        vkCmdCopyBuffer(immediate_command_buffer, staging.buffer,
-                                        material_buffer.material_buffer.buffer, 1, &vertex_copy);
+                        vkCmdCopyBuffer(immediate_command_buffer, staging.buffer, material_buffer.material_buffer.buffer, 1, &vertex_copy);
 
                         if (VkResult res = vkEndCommandBuffer(immediate_command_buffer); res != VK_SUCCESS)
                         {
-                            l->error(std::format("Error ending immediate command buffer for materials buffer: {}",
-                                                 static_cast<uint8_t>(res)));
+                            l->error(std::format("Error ending immediate command buffer for materials buffer: {}", static_cast<uint8_t>(res)));
                             return result::error;
                         }
 
@@ -5615,7 +5615,7 @@ namespace
                                         .scene_buffer = cf.scene_buffer.scene_buffer_address,
                                         .vertex_buffer = vertex_buffer_address + gpu_mesh.vertex_buffer_offset,
                                         .go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
-                                        .material_buffer = material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index),
+                                        .material_buffer = material_buffer.has_material ? material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index) : 0,
                                     };
                                     vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
                                     vkCmdDrawIndexed(cf.command_buffer, index_count, 1, gpu_mesh.index_offset + start_index, 0, 0);
