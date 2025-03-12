@@ -31,6 +31,8 @@ using namespace rosy_packager;
 // A "Polygon" is a triangle. In FBX and Maya it can also be a quad but this is not supported by Rosy.
 // There is a property called "unmapped" uvs (texture coordinates) and is a thing that is possible in FBX and Maya, I don't understand its implications in Rosy.
 // as I seem to be able to get one for each vertex via the GetPolygonVertexUV call.
+//
+// A thing I haven't determined yet, but am maybe incorrectly assuming is that nodes do not share meshes. I saw some code about instancing somewhere so that may be incorrect.
 
 namespace
 {
@@ -310,8 +312,17 @@ namespace
                     offset += count;
                     new_asset_mesh.surfaces.emplace_back(s);
                 }
-
+                const size_t current_asset_mesh_index = fbx_asset.meshes.size();
                 fbx_asset.meshes.emplace_back(new_asset_mesh);
+                // As this node has a mesh add it to nodes list on the asset.
+                // TODO: support child nodes.
+                //const size_t current_asset_node_index = fbx_asset.nodes.size();
+                node new_asset_node{};
+                //new_asset_node.name = std::vector<char>(node_name, node_name + strlen(node_name));
+                new_asset_node.mesh_id = static_cast<uint32_t>(current_asset_mesh_index);
+                //fbx_asset.scenes[0].nodes.emplace_back(current_asset_node_index);
+                //fbx_asset.nodes.emplace_back(new_asset_node);
+
                 l->info("done with mesh");
             }
         }
@@ -321,6 +332,12 @@ namespace
         {
             traverse_node(l, cfg, p_node->GetChild(j), fbx_asset);
         }
+        if (fbx_asset.meshes.empty())
+        {
+            l->error("no meshes found in fbx asset.");
+            return rosy::result::error;
+        }
+        
 
         l->info("</node>\n");
         return rosy::result::ok;
@@ -362,6 +379,10 @@ rosy::result fbx::import(const rosy::log* l, [[maybe_unused]] fbx_config& cfg)
     }
     rsy_importer->Destroy();
     l->info("importing fbx scene success?");
+
+    scene default_scene{};
+    fbx_asset.scenes.emplace_back(default_scene);
+    fbx_asset.root_scene = 0;
 
     if (FbxNode* rsy_root_node = rsy_scene->GetRootNode())
     {
