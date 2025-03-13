@@ -13,43 +13,35 @@ pch_disabled = "files:libs/**.c or files:libs/**.cpp"
 
 workspace "Rosy"
     configurations { "Debug", "Release", "RenderDoc", "Clang", "Sanitize" }
-
     -- shared configurations
-    kind "ConsoleApp"
     language "C++"
     cppdialect "C++23"
     targetdir "bin/%{cfg.buildcfg}"
     architecture("x86_64")
     flags { "MultiProcessorCompile" }
-
     -- debug configurations
     filter(debug_configurations)
         defines { "DEBUG" }
         symbols "On"
     filter {}
-
     -- release configurations
     filter(release_configurations)
         defines { "NDEBUG" }
         optimize "On"
     filter {}
-
     -- Precompiled headers
     pchheader "pch.h"
     pchsource "pch.cpp"
     includedirs { "." }
     files { "pch.h", "pch.cpp" }
-
     -- clang related specific options
     filter "configurations:Clang"
         toolset("clang")
     filter {}
-
     -- precompiled headers
     filter(pch_disabled)
         flags {"NoPCH"}
     filter {}
-
     -- warnings
     filter(warnings_enabled)
         warnings "Extra"
@@ -58,7 +50,6 @@ workspace "Rosy"
     filter(warnings_disabled)
         warnings "Off"
     filter {}
-
     -- Sanitize
     filter "configurations:Sanitize"
         sanitize { "Address" }
@@ -66,11 +57,11 @@ workspace "Rosy"
     filter {}
 
 project "Engine"
+    kind "ConsoleApp"
+    dependson { "Asset", "Logger" }
     debugdir "./Engine/"
-
     -- source files
     files { "Engine/**.h", "Engine/**.cpp" }
-    files { "Packager/Asset.h", "Packager/Asset.cpp" }
     files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
     files { "libs/json/single_include/nlohmann/json.hpp" }
     -- shader files and scripts
@@ -78,7 +69,6 @@ project "Engine"
     -- libraries included as files
     files { "libs/Volk.cpp" }
     files { "libs/VMA.cpp" }
-
     -- include directories
     includedirs { "libs/SDL/include/" }
     includedirs { vk_sdk .. "/Include/" }
@@ -87,12 +77,13 @@ project "Engine"
     includedirs { "libs/" }
     includedirs { "libs/json/single_include/" }
     includedirs { "libs/flecs/include/" }
-
     -- linking
     links { "SDL3" }
     links { "flecs" }
-
+    links { "Asset" }
+    links { "Logger" }
     -- library directories
+    libdirs { "bin/%{cfg.buildcfg}" }
     libdirs { vk_sdk .. "/Lib/" }
     filter(debug_configurations)
         libdirs { "libs/SDL/build/Debug" }
@@ -102,27 +93,24 @@ project "Engine"
         libdirs { "libs/SDL/build/Release" }
         libdirs { "libs/flecs/out/Release" }
     filter {}
-
     -- defines
     defines { "SIMDJSON_EXCEPTIONS=OFF" }
     filter "configurations:RenderDoc"
         defines { "RENDERDOC" }
     filter {}
-
     -- build hooks
     buildmessage "Compiling shaders"
     prebuildcommands {
         "Powershell -File %{prj.location}/shaders/script_compile.ps1 ./shaders/"
     }
 
-project "Packager"
-    debugdir "./Packager/"
-
+project "Asset"
+    kind "StaticLib"
+    dependson { "Logger" }
+    debugdir "./Asset/"
     -- source files
     files { "libs/MikkTSpace/mikktspace.c" }
-    files { "Packager/**.h", "Packager/**.cpp" }
-    files { "Engine/Types.h", "Engine/Telemetry.h", "Engine/Telemetry.cpp" }
-
+    files { "Asset/**.h", "Asset/**.cpp" }
     -- include directories
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
@@ -132,14 +120,14 @@ project "Packager"
     includedirs { "libs/MikkTSpace/" }
     includedirs { "libs/MikkTSpace/" }
     includedirs { "libs/meshoptimizer/src" }
-
     -- linking
     links { "fastgltf" }
     links { "nvtt30205" }
     links { "libfbxsdk" }
     links ( "meshoptimizer" )
-
+    links ( "Logger" )
     -- library directories
+    libdirs { "bin/%{cfg.buildcfg}" }
     libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
     filter(debug_configurations)
         libdirs { "libs/fastgltf/build/Debug" }
@@ -149,4 +137,21 @@ project "Packager"
         libdirs { "libs/fastgltf/build/Release" }
         libdirs { "\"" .. fbx_sdk .. "/lib/x64/release/\"" }
         libdirs { "libs/meshoptimizer/build/Release" }
+
+project "Logger"
+    kind "StaticLib"
+    debugdir "./Logger/"
+    -- source files
+    files { "Logger/**.h", "Logger/**.cpp" }
+
+project "Packager"
+    kind "ConsoleApp"
+    dependson { "Asset" }
+    debugdir "./Packager/"
+    -- source files
+    files { "Packager/Main.h", "Packager/Main.cpp" }
+    -- linking
+    links { "Asset" }
+    -- library directories
+    libdirs { "bin/%{cfg.buildcfg}" }
 

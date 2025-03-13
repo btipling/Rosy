@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Telemetry.h"
+#include "Logger.h"
 
-using namespace rosy;
+using namespace rosy_logger;
 
 ///// Log
 

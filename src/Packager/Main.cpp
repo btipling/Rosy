@@ -1,11 +1,12 @@
 #include "pch.h"
-#include "Gltf.h"
-#include "FBX.h"
+#include "Logger/Logger.h"
+#include "Asset/Gltf.h"
+#include "Asset/FBX.h"
 
 using namespace rosy_packager;
 
 namespace {
-    int load_gltf(rosy::log* l, const std::filesystem::path& source_path)
+    int load_gltf(std::shared_ptr<rosy_logger::log> l, const std::filesystem::path& source_path)
     {
         const auto start = std::chrono::system_clock::now();
         std::filesystem::path output_path{ source_path };
@@ -63,7 +64,7 @@ namespace {
     }
 
 
-    int load_fbx(const rosy::log* l, const std::filesystem::path& source_path)
+    int load_fbx(const std::shared_ptr<rosy_logger::log> l, const std::filesystem::path& source_path)
     {
         const auto start = std::chrono::system_clock::now();
         std::filesystem::path output_path{ source_path };
@@ -123,40 +124,44 @@ namespace {
 
 int main(const int argc, char* argv[])
 {
-    rosy::log l{};
+    std::shared_ptr<rosy_logger::log> l{};
+    try { l =  std::make_shared<rosy_logger::log>(); }
+    catch (const std::bad_alloc&) {
+        return EXIT_FAILURE;
+    }
 #ifdef ROSY_LOG_LEVEL_DEBUG
     l.level = rosy::log_level::debug;
 #endif
-    l.info("Starting packager");
-    l.debug(std::format("Received {} args.", argc));
+    l->info("Starting packager");
+    l->debug(std::format("Received {} args.", argc));
     const auto cwd = std::filesystem::current_path();
     for (int i = 0; i < argc; i++)
     {
-        l.debug(std::format("arg {}: {}", i, argv[i]));
+        l->debug(std::format("arg {}: {}", i, argv[i]));
     }
     if (argc <= 1)
     {
-        l.error("Need to provide a relative or absolute path to a gltf file");
+        l->error("Need to provide a relative or absolute path to a gltf file");
         return EXIT_FAILURE;
     }
     std::filesystem::path source_path{ argv[1] };
     if (!source_path.has_extension())
     {
-        l.error("Need to provide a path to gltf file with the gltf extension, glb is not supported.");
+        l->error("Need to provide a path to gltf file with the gltf extension, glb is not supported.");
         return EXIT_FAILURE;
     }
     if (source_path.extension() == ".fbx")
     {
-        l.info("importing an fbx file");
+        l->info("importing an fbx file");
         if (!source_path.is_absolute())
         {
             source_path = std::filesystem::path{ std::format("{}\\{}", cwd.string(), source_path.string()) };
         }
-        return load_fbx(&l, source_path);
+        return load_fbx(l, source_path);
     }
     if (source_path.extension() != ".gltf")
     {
-        l.error(std::format("Received a path without a gltf extension, glb is not supported. Found {}",
+        l->error(std::format("Received a path without a gltf extension, glb is not supported. Found {}",
             source_path.extension().string()));
         return EXIT_FAILURE;
     }
@@ -164,5 +169,5 @@ int main(const int argc, char* argv[])
     {
         source_path = std::filesystem::path{ std::format("{}\\{}", cwd.string(), source_path.string()) };
     }
-    return load_gltf(&l, source_path);
+    return load_gltf(l, source_path);
 };
