@@ -114,15 +114,15 @@ namespace
             if (attr->GetAttributeType() == FbxNodeAttribute::EType::eMesh)
             {
                 mesh new_asset_mesh{};
-                const FbxMesh* mesh = p_node->GetMesh();
-                if (!mesh->IsTriangleMesh())
+                const FbxMesh* fbx_mesh = p_node->GetMesh();
+                if (!fbx_mesh->IsTriangleMesh())
                 {
                     l->info("Not a triangle mesh.");
                 }
-                const auto triangle_count = mesh->GetPolygonCount();
-                const auto vertices_count = mesh->GetControlPointsCount();
+                const auto triangle_count = fbx_mesh->GetPolygonCount();
+                const auto vertices_count = fbx_mesh->GetControlPointsCount();
                 l->info(std::format("triangle count: {}", triangle_count));
-                const FbxGeometryElementMaterial* materials = mesh->GetElementMaterial();
+                const FbxGeometryElementMaterial* materials = fbx_mesh->GetElementMaterial();
                 if (materials == nullptr)
                 {
                     l->info("no material");
@@ -160,21 +160,21 @@ namespace
                     break;
                 }
 
-                const auto num_normal_elements = mesh->GetElementNormalCount();
-                const auto num_uv_elements = mesh->GetElementUVCount();
+                const auto num_normal_elements = fbx_mesh->GetElementNormalCount();
+                const auto num_uv_elements = fbx_mesh->GetElementUVCount();
                 l->info(std::format("rsy_mesh num normals: {} num uvs: {}", num_normal_elements, num_uv_elements));
                 for (int ni{0}; ni < num_normal_elements; ni++)
                 {
-                    const FbxGeometryElementNormal* n = mesh->GetElementNormal(ni);
+                    const FbxGeometryElementNormal* n = fbx_mesh->GetElementNormal(ni);
                     l->info(std::format("normals mapped by vertex? {}", n->GetMappingMode() != FbxLayerElement::EMappingMode::eByControlPoint));
                 }
                 for (int ni{0}; ni < num_uv_elements; ni++)
                 {
-                    const FbxGeometryElementUV* uv = mesh->GetElementUV(ni);
+                    const FbxGeometryElementUV* uv = fbx_mesh->GetElementUV(ni);
                     l->info(std::format("uvs mapped by vertex? {}", uv->GetMappingMode() != FbxLayerElement::EMappingMode::eByControlPoint));
                 }
 
-                const FbxVector4* mesh_vertices = mesh->GetControlPoints();
+                const FbxVector4* mesh_vertices = fbx_mesh->GetControlPoints();
 
                 int asset_vertex_index{0}; // This is going to be the indices that index into the resulting vertex list built by iterating over triangle vertices.
 
@@ -192,7 +192,7 @@ namespace
                     l->info(std::format("rsy_mat_index {}", material_index));
                     for (int triangle_vertex = 0; triangle_vertex < num_vertices_in_triangle; triangle_vertex++)
                     {
-                        const int mesh_vertex_index = mesh->GetPolygonVertex(triangle_index, triangle_vertex);
+                        const int mesh_vertex_index = fbx_mesh->GetPolygonVertex(triangle_index, triangle_vertex);
                         l->info(std::format("mesh_vertex_index {}", mesh_vertex_index));
 
                         position p{};
@@ -209,7 +209,7 @@ namespace
 
                         {
                             FbxVector4 current_normal{};
-                            mesh->GetPolygonVertexNormal(triangle_index, triangle_vertex, current_normal);
+                            fbx_mesh->GetPolygonVertexNormal(triangle_index, triangle_vertex, current_normal);
                             float x = static_cast<float>(current_normal[0]);
                             float y = static_cast<float>(current_normal[1]);
                             float z = static_cast<float>(current_normal[2]);
@@ -221,7 +221,7 @@ namespace
                             FbxVector2 current_uv{};
                             const char* uv_name{nullptr};
                             bool uv_unmapped;
-                            mesh->GetPolygonVertexUV(triangle_index, triangle_vertex, uv_name, current_uv, uv_unmapped);
+                            fbx_mesh->GetPolygonVertexUV(triangle_index, triangle_vertex, uv_name, current_uv, uv_unmapped);
                             float s = static_cast<float>(current_uv[0]);
                             float t = static_cast<float>(current_uv[1]);
                             l->info(std::format("uv: ({}, {})", s, t));
@@ -229,11 +229,11 @@ namespace
                         }
                         FbxColor vertex_color{};
                         bool has_color{false};
-                        if (mesh->GetElementVertexColorCount())
+                        if (fbx_mesh->GetElementVertexColorCount())
                         {
-                            for (int lc{0}; lc < mesh->GetElementVertexColorCount(); lc++)
+                            for (int lc{0}; lc < fbx_mesh->GetElementVertexColorCount(); lc++)
                             {
-                                switch (const FbxGeometryElementVertexColor* color = mesh->GetElementVertexColor(lc); color->GetMappingMode())
+                                switch (const FbxGeometryElementVertexColor* color = fbx_mesh->GetElementVertexColor(lc); color->GetMappingMode())
                                 {
                                 case FbxGeometryElement::eByControlPoint:
                                     l->info("color by control point");
@@ -318,7 +318,18 @@ namespace
 
 
                 // TODO: Optimize mesh
-                l->info(std::format("optimize-mesh: starting vertices count: {}", new_asset_mesh.positions.size()));
+                size_t total_vertices =  new_asset_mesh.positions.size();
+                size_t total_indices = total_vertices;
+                l->info(std::format("optimize-mesh: starting vertices count: {}", total_vertices));
+                std::vector<unsigned int> remap(total_indices);
+                total_vertices = meshopt_generateVertexRemap(remap.data(), new_asset_mesh.indices.data(), total_indices, new_asset_mesh.positions.data(), total_vertices, sizeof(position));
+                l->info(std::format("optimize-mesh: new vertices count: {}", total_vertices));
+
+                meshopt_remapIndexBuffer(new_asset_mesh.indices.data(), nullptr, total_indices, remap.data());
+
+                std::vector<position> optimized_positions(total_vertices);
+                meshopt_remapVertexBuffer(optimized_positions.data(), new_asset_mesh.positions.data(), total_indices, sizeof(position),remap.data());
+                new_asset_mesh.positions = std::move(optimized_positions);
 
                 // TODO: generate tangents
 
