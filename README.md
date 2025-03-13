@@ -70,7 +70,7 @@ cd .\libs\fastgltf\
 cmake . -B build
 ```
 
-Add fastgltf project to VS if it's not already there and build it
+Open fastgltf sln in VS and build it for debug and release.
 
 #### SDL
 
@@ -80,6 +80,8 @@ cmake . -B build
 cmake --build build
 ```
 
+Open SDL sln in VS and build it for debug and release.
+
 #### flecs
 
 ```txt
@@ -87,6 +89,18 @@ cd .\libs\flecs\
 cmake . -B out
 cmake --build out
 ```
+
+Open flecs sln in VS and build it for debug and release.
+
+#### meshoptimizer
+
+```txt
+cd .\libs\meshoptimizer\
+cmake . -B out
+cmake --build out
+```
+
+mesh optimizer needs to be built for release and debug in Visual Studio.
 
 ## Running
 
