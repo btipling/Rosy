@@ -314,25 +314,28 @@ namespace
                     offset += count;
                     new_asset_mesh.surfaces.emplace_back(s);
                 }
-                const size_t current_asset_mesh_index = fbx_asset.meshes.size();
 
+                {
+                    // Optimize vertices
+                    size_t total_vertices =  new_asset_mesh.positions.size();
+                    size_t total_indices = total_vertices;
+                    l->info(std::format("fbx-optimize-mesh: starting vertices count: {}", total_vertices));
+                    std::vector<unsigned int> remap(total_indices);
+                    total_vertices = meshopt_generateVertexRemap(remap.data(), new_asset_mesh.indices.data(), total_indices, new_asset_mesh.positions.data(), total_vertices, sizeof(position));
+                    l->info(std::format("fbx-optimize-mesh: new vertices count: {}", total_vertices));
 
-                // TODO: Optimize mesh
-                size_t total_vertices =  new_asset_mesh.positions.size();
-                size_t total_indices = total_vertices;
-                l->info(std::format("optimize-mesh: starting vertices count: {}", total_vertices));
-                std::vector<unsigned int> remap(total_indices);
-                total_vertices = meshopt_generateVertexRemap(remap.data(), new_asset_mesh.indices.data(), total_indices, new_asset_mesh.positions.data(), total_vertices, sizeof(position));
-                l->info(std::format("optimize-mesh: new vertices count: {}", total_vertices));
+                    std::vector<uint32_t> optimized_indices(total_indices);
+                    meshopt_remapIndexBuffer(optimized_indices.data(), new_asset_mesh.indices.data(), total_indices, remap.data());
+                    new_asset_mesh.indices = std::move(optimized_indices);
 
-                meshopt_remapIndexBuffer(new_asset_mesh.indices.data(), nullptr, total_indices, remap.data());
-
-                std::vector<position> optimized_positions(total_vertices);
-                meshopt_remapVertexBuffer(optimized_positions.data(), new_asset_mesh.positions.data(), total_indices, sizeof(position),remap.data());
-                new_asset_mesh.positions = std::move(optimized_positions);
+                    std::vector<position> optimized_positions(total_vertices);
+                    meshopt_remapVertexBuffer(optimized_positions.data(), new_asset_mesh.positions.data(), total_vertices, sizeof(position), remap.data());
+                    new_asset_mesh.positions = std::move(optimized_positions);
+                }
 
                 // TODO: generate tangents
 
+                const size_t current_asset_mesh_index = fbx_asset.meshes.size();
                 fbx_asset.meshes.emplace_back(new_asset_mesh);
 
                 // As this node has a mesh add it to nodes list on the asset.
