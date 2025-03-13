@@ -4,6 +4,7 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
+#include <meshoptimizer.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <nvtt/nvtt.h>
@@ -691,16 +692,13 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
                 position new_position{};
                 for (size_t i{0}; i < 3; i++)
                 {
-                    min_bounds[i] = std::min(
-                        v[i], min_bounds[i]);
-                    max_bounds[i] = std::max(
-                        v[i], max_bounds[i]);
+                    min_bounds[i] = std::min(v[i], min_bounds[i]);
+                    max_bounds[i] = std::max( v[i], max_bounds[i]);
                 }
                 new_position.vertex = {v[0], v[1], v[2]};
                 new_position.normal = {1.0f, 0.0f, 0.0f};
                 new_position.tangents = {1.0f, 0.0f, 0.0f};
-                new_mesh.positions[initial_vtx + index] =
-                    new_position;
+                new_mesh.positions[initial_vtx + index] = new_position;
             });
 
             // PRIMITIVE NORMAL
@@ -708,8 +706,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             {
                 fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, gltf.accessors[normals->accessorIndex], [&](const fastgltf::math::fvec3& n, const size_t index)
                 {
-                    new_mesh.positions[initial_vtx + index].
-                        normal = {n[0], n[1], n[2]};
+                    new_mesh.positions[initial_vtx + index].normal = {n[0], n[1], n[2]};
                 });
             }
 
@@ -718,8 +715,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             {
                 fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(gltf, gltf.accessors[uv->accessorIndex], [&](const fastgltf::math::fvec2& tc, const size_t index)
                 {
-                    new_mesh.positions[initial_vtx + index].
-                        texture_coordinates = {tc[0], tc[1]};
+                    new_mesh.positions[initial_vtx + index].texture_coordinates = {tc[0], tc[1]};
                 });
             }
 
@@ -728,8 +724,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             {
                 fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[colors->accessorIndex], [&](const fastgltf::math::fvec4& c, const size_t index)
                 {
-                    new_mesh.positions[initial_vtx + index].
-                        color = {c[0], c[1], c[2], c[3]};
+                    new_mesh.positions[initial_vtx + index].color = {c[0], c[1], c[2], c[3]};
                 });
             }
 
@@ -738,8 +733,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             {
                 fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(gltf, gltf.accessors[tangents->accessorIndex], [&](const fastgltf::math::fvec4& t, const size_t index)
                 {
-                    new_mesh.positions[initial_vtx + index].
-                        tangents = {t[0], t[1], t[2], t[3]};
+                    new_mesh.positions[initial_vtx + index].tangents = {t[0], t[1], t[2], t[3]};
                 });
             }
 
@@ -756,6 +750,25 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             new_surface.max_bounds = max_bounds;
             new_mesh.surfaces.push_back(new_surface);
         }
+
+        {
+            // Optimize vertices
+            size_t total_vertices = new_mesh.positions.size();
+            size_t total_indices = new_mesh.indices.size();
+            l->info(std::format("gltf-optimize-mesh: starting vertices count: {}", total_vertices));
+            std::vector<unsigned int> remap(total_indices);
+            total_vertices = meshopt_generateVertexRemap(remap.data(), new_mesh.indices.data(), total_indices, new_mesh.positions.data(), total_vertices, sizeof(position));
+            l->info(std::format("gltf-optimize-mesh: new vertices count: {}", total_vertices));
+
+            std::vector<uint32_t> optimized_indices(total_indices);
+            meshopt_remapIndexBuffer(optimized_indices.data(), new_mesh.indices.data(), total_indices, remap.data());
+            new_mesh.indices = std::move(optimized_indices);
+
+            std::vector<position> optimized_positions(total_vertices);
+            meshopt_remapVertexBuffer(optimized_positions.data(), new_mesh.positions.data(), total_vertices, sizeof(position), remap.data());
+            new_mesh.positions = std::move(optimized_positions);
+        }
+
         gltf_asset.meshes.push_back(new_mesh);
     }
 
@@ -799,6 +812,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
         }
         gltf_asset.nodes.push_back(n);
     }
+
 
     if (cfg.use_mikktspace)
     {

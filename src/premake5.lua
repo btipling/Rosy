@@ -130,18 +130,23 @@ project "Packager"
     includedirs { "\"" .. fbx_sdk .. "/include/\"" }
     includedirs { "libs/stb/" }
     includedirs { "libs/MikkTSpace/" }
+    includedirs { "libs/MikkTSpace/" }
+    includedirs { "libs/meshoptimizer/src" }
 
     -- linking
     links { "fastgltf" }
     links { "nvtt30205" }
     links { "libfbxsdk" }
+    links ( "meshoptimizer" )
 
     -- library directories
     libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
     filter(debug_configurations)
         libdirs { "libs/fastgltf/build/Debug" }
         libdirs { "\"" .. fbx_sdk .. "/lib/x64/debug/\"" }
+        libdirs { "libs/meshoptimizer/build/Debug" }
     filter(release_configurations)
         libdirs { "libs/fastgltf/build/Release" }
         libdirs { "\"" .. fbx_sdk .. "/lib/x64/release/\"" }
+        libdirs { "libs/meshoptimizer/build/Release" }
 
