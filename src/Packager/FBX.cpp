@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.inl>
+#include <meshoptimizer.h>
 
 using namespace rosy_packager;
 
@@ -314,7 +315,15 @@ namespace
                     new_asset_mesh.surfaces.emplace_back(s);
                 }
                 const size_t current_asset_mesh_index = fbx_asset.meshes.size();
+
+
+                // TODO: Optimize mesh
+                l->info(std::format("optimize-mesh: starting vertices count: {}", new_asset_mesh.positions.size()));
+
+                // TODO: generate tangents
+
                 fbx_asset.meshes.emplace_back(new_asset_mesh);
+
                 // As this node has a mesh add it to nodes list on the asset.
                 // TODO: support child nodes.
                 const size_t current_asset_node_index = fbx_asset.nodes.size();
