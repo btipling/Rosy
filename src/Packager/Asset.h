@@ -52,7 +52,7 @@ namespace rosy_packager
     {
         uint32_t start_index{0};
         uint32_t count{0};
-        uint32_t material{0};
+        uint32_t material{UINT32_MAX};
         std::array<float, 3> min_bounds{0.f, 0.f, 0.f};
         std::array<float, 3> max_bounds{0.f, 0.f, 0.f};
     };

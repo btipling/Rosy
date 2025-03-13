@@ -673,198 +673,200 @@ namespace
                                         level_asset.meshes.push_back(new_destination_mesh);
                                     }
 
-                                    // Map all the materials images sand samplers
-                                    for (rosy_packager::surface& surface : level_asset.meshes[destination_mesh_index].surfaces)
-                                    {
-                                        const uint32_t current_mat_index = surface.material;
-                                        uint32_t destination_mat_index{0};
-
-                                        bool material_mapped{false};
-                                        for (const auto& mat_m : asset_helper.material_mappings)
+                                    if (!a->materials.empty()) {
+                                        // Map all the materials images sand samplers
+                                        for (rosy_packager::surface& surface : level_asset.meshes[destination_mesh_index].surfaces)
                                         {
-                                            if (mat_m.source_index == current_mat_index)
+                                            const uint32_t current_mat_index = surface.material;
+                                            uint32_t destination_mat_index{ 0 };
+
+                                            bool material_mapped{ false };
+                                            for (const auto& mat_m : asset_helper.material_mappings)
                                             {
-                                                material_mapped = true;
-                                                // This mesh has been previously mapped, so update the destination's node's mesh id to track that.
-                                                destination_mat_index = mat_m.destination_index;
+                                                if (mat_m.source_index == current_mat_index)
+                                                {
+                                                    material_mapped = true;
+                                                    // This mesh has been previously mapped, so update the destination's node's mesh id to track that.
+                                                    destination_mat_index = mat_m.destination_index;
+                                                    surface.material = destination_mat_index;
+                                                    break;
+                                                }
+                                            }
+                                            if (material_mapped)
+                                            {
+                                                // Material was previously mapped, no need to remap.
+                                                continue;
+                                            }
+                                            rosy_packager::material source_mat = a->materials[current_mat_index];
+                                            {
+                                                destination_mat_index = static_cast<uint32_t>(level_asset.materials.size());
+                                                level_asset_builder_index_map mat_m{
+                                                    .source_index = current_mat_index,
+                                                    .destination_index = destination_mat_index,
+                                                };
                                                 surface.material = destination_mat_index;
-                                                break;
+                                                l->info(std::format("current_mat_index mapped to {} destination_mat_index {} in {}", current_mat_index, destination_mat_index, md.id));
+                                                asset_helper.material_mappings.push_back(mat_m);
+                                                // Add the new destination mat
+                                                rosy_packager::material destination_mat{};
+                                                destination_mat.double_sided = source_mat.double_sided;
+                                                destination_mat.base_color_factor = source_mat.base_color_factor;
+                                                destination_mat.metallic_factor = source_mat.metallic_factor;
+                                                destination_mat.roughness_factor = source_mat.roughness_factor;
+                                                destination_mat.color_image_index = UINT32_MAX;
+                                                destination_mat.color_sampler_index = UINT32_MAX;
+                                                destination_mat.alpha_mode = source_mat.alpha_mode;
+                                                destination_mat.alpha_cutoff = source_mat.alpha_cutoff;
+                                                destination_mat.normal_image_index = UINT32_MAX;
+                                                destination_mat.normal_sampler_index = UINT32_MAX;
+                                                level_asset.materials.push_back(destination_mat);
                                             }
-                                        }
-                                        if (material_mapped)
-                                        {
-                                            // Material was previously mapped, no need to remap.
-                                            continue;
-                                        }
-                                        rosy_packager::material source_mat = a->materials[current_mat_index];
-                                        {
-                                            destination_mat_index = static_cast<uint32_t>(level_asset.materials.size());
-                                            level_asset_builder_index_map mat_m{
-                                                .source_index = current_mat_index,
-                                                .destination_index = destination_mat_index,
-                                            };
-                                            surface.material = destination_mat_index;
-                                            l->info(std::format("current_mat_index mapped to {} destination_mat_index {} in {}", current_mat_index, destination_mat_index, md.id));
-                                            asset_helper.material_mappings.push_back(mat_m);
-                                            // Add the new destination mat
-                                            rosy_packager::material destination_mat{};
-                                            destination_mat.double_sided = source_mat.double_sided;
-                                            destination_mat.base_color_factor = source_mat.base_color_factor;
-                                            destination_mat.metallic_factor = source_mat.metallic_factor;
-                                            destination_mat.roughness_factor = source_mat.roughness_factor;
-                                            destination_mat.color_image_index = UINT32_MAX;
-                                            destination_mat.color_sampler_index = UINT32_MAX;
-                                            destination_mat.alpha_mode = source_mat.alpha_mode;
-                                            destination_mat.alpha_cutoff = source_mat.alpha_cutoff;
-                                            destination_mat.normal_image_index = UINT32_MAX;
-                                            destination_mat.normal_sampler_index = UINT32_MAX;
-                                            level_asset.materials.push_back(destination_mat);
-                                        }
-                                        rosy_packager::material& destination_map = level_asset.materials[destination_mat_index];
-                                        // map the color_image_index
-                                        if (source_mat.color_image_index != UINT32_MAX)
-                                        {
-                                            const uint32_t current_image_index = source_mat.color_image_index;
-                                            uint32_t destination_image_index{0};
-
-                                            bool image_mapped{false};
-                                            for (const auto& im : asset_helper.image_mappings)
+                                            rosy_packager::material& destination_map = level_asset.materials[destination_mat_index];
+                                            // map the color_image_index
+                                            if (source_mat.color_image_index != UINT32_MAX)
                                             {
-                                                if (im.source_index == current_image_index)
+                                                const uint32_t current_image_index = source_mat.color_image_index;
+                                                uint32_t destination_image_index{ 0 };
+
+                                                bool image_mapped{ false };
+                                                for (const auto& im : asset_helper.image_mappings)
                                                 {
-                                                    image_mapped = true;
-                                                    destination_image_index = im.destination_index;
+                                                    if (im.source_index == current_image_index)
+                                                    {
+                                                        image_mapped = true;
+                                                        destination_image_index = im.destination_index;
+                                                        destination_map.color_image_index = destination_image_index;
+                                                        l->info(std::format("color_image_index previously mapped to {} destination_image_index {} in {} in asset_helper_index {}",
+                                                            current_image_index, destination_image_index, md.id, asset_helper_index));
+                                                        break;
+                                                    }
+                                                }
+                                                if (!image_mapped)
+                                                {
+                                                    destination_image_index = static_cast<uint32_t>(level_asset.images.size());
+                                                    level_asset_builder_index_map img_m{
+                                                        .source_index = current_image_index,
+                                                        .destination_index = destination_image_index,
+                                                    };
                                                     destination_map.color_image_index = destination_image_index;
-                                                    l->info(std::format("color_image_index previously mapped to {} destination_image_index {} in {} in asset_helper_index {}",
-                                                                        current_image_index, destination_image_index, md.id, asset_helper_index));
-                                                    break;
+                                                    l->info(std::format("color_image_index mapped to {} destination_image_index {} in {} in asset_helper_index {}", current_image_index,
+                                                        destination_image_index, md.id, asset_helper_index));
+                                                    asset_helper.image_mappings.push_back(img_m);
+                                                    rosy_packager::image source_image = a->images[current_image_index];
+                                                    rosy_packager::image destination_image{};
+                                                    destination_image.name = source_image.name;
+                                                    destination_image.image_type = source_image.image_type;
+                                                    level_asset.images.push_back(destination_image);
                                                 }
                                             }
-                                            if (!image_mapped)
+                                            // map the color_sampler_index
+                                            if (source_mat.color_sampler_index != UINT32_MAX)
                                             {
-                                                destination_image_index = static_cast<uint32_t>(level_asset.images.size());
-                                                level_asset_builder_index_map img_m{
-                                                    .source_index = current_image_index,
-                                                    .destination_index = destination_image_index,
-                                                };
-                                                destination_map.color_image_index = destination_image_index;
-                                                l->info(std::format("color_image_index mapped to {} destination_image_index {} in {} in asset_helper_index {}", current_image_index,
-                                                                    destination_image_index, md.id, asset_helper_index));
-                                                asset_helper.image_mappings.push_back(img_m);
-                                                rosy_packager::image source_image = a->images[current_image_index];
-                                                rosy_packager::image destination_image{};
-                                                destination_image.name = source_image.name;
-                                                destination_image.image_type = source_image.image_type;
-                                                level_asset.images.push_back(destination_image);
-                                            }
-                                        }
-                                        // map the color_sampler_index
-                                        if (source_mat.color_sampler_index != UINT32_MAX)
-                                        {
-                                            const uint32_t current_sampler_index = source_mat.color_sampler_index;
-                                            uint32_t destination_sampler_index{0};
+                                                const uint32_t current_sampler_index = source_mat.color_sampler_index;
+                                                uint32_t destination_sampler_index{ 0 };
 
-                                            bool sampler_mapped{false};
-                                            for (const auto& sm : asset_helper.sampler_mappings)
-                                            {
-                                                if (sm.source_index == current_sampler_index)
+                                                bool sampler_mapped{ false };
+                                                for (const auto& sm : asset_helper.sampler_mappings)
                                                 {
-                                                    sampler_mapped = true;
-                                                    destination_sampler_index = sm.destination_index;
+                                                    if (sm.source_index == current_sampler_index)
+                                                    {
+                                                        sampler_mapped = true;
+                                                        destination_sampler_index = sm.destination_index;
+                                                        destination_map.color_sampler_index = destination_sampler_index;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!sampler_mapped)
+                                                {
+                                                    destination_sampler_index = static_cast<uint32_t>(level_asset.images.size());
+                                                    level_asset_builder_index_map img_m{
+                                                        .source_index = current_sampler_index,
+                                                        .destination_index = destination_sampler_index,
+                                                    };
                                                     destination_map.color_sampler_index = destination_sampler_index;
-                                                    break;
+                                                    l->info(std::format("color_sampler_index mapped to {} destination_sampler_index {} in {} in asset_helper_index {}",
+                                                        current_sampler_index, destination_sampler_index, md.id, asset_helper_index));
+                                                    asset_helper.sampler_mappings.push_back(img_m);
+                                                    rosy_packager::sampler source_sampler = a->samplers[current_sampler_index];
+                                                    rosy_packager::sampler destination_sampler{};
+                                                    destination_sampler.min_filter = source_sampler.min_filter;
+                                                    destination_sampler.mag_filter = source_sampler.mag_filter;
+                                                    destination_sampler.wrap_s = source_sampler.wrap_s;
+                                                    destination_sampler.wrap_t = source_sampler.wrap_t;
+                                                    level_asset.samplers.push_back(destination_sampler);
                                                 }
                                             }
-                                            if (!sampler_mapped)
+                                            // map the normal_image_index
+                                            if (source_mat.normal_image_index != UINT32_MAX)
                                             {
-                                                destination_sampler_index = static_cast<uint32_t>(level_asset.images.size());
-                                                level_asset_builder_index_map img_m{
-                                                    .source_index = current_sampler_index,
-                                                    .destination_index = destination_sampler_index,
-                                                };
-                                                destination_map.color_sampler_index = destination_sampler_index;
-                                                l->info(std::format("color_sampler_index mapped to {} destination_sampler_index {} in {} in asset_helper_index {}",
-                                                                    current_sampler_index, destination_sampler_index, md.id, asset_helper_index));
-                                                asset_helper.sampler_mappings.push_back(img_m);
-                                                rosy_packager::sampler source_sampler = a->samplers[current_sampler_index];
-                                                rosy_packager::sampler destination_sampler{};
-                                                destination_sampler.min_filter = source_sampler.min_filter;
-                                                destination_sampler.mag_filter = source_sampler.mag_filter;
-                                                destination_sampler.wrap_s = source_sampler.wrap_s;
-                                                destination_sampler.wrap_t = source_sampler.wrap_t;
-                                                level_asset.samplers.push_back(destination_sampler);
-                                            }
-                                        }
-                                        // map the normal_image_index
-                                        if (source_mat.normal_image_index != UINT32_MAX)
-                                        {
-                                            const uint32_t current_image_index = source_mat.normal_image_index;
-                                            uint32_t destination_image_index{0};
+                                                const uint32_t current_image_index = source_mat.normal_image_index;
+                                                uint32_t destination_image_index{ 0 };
 
-                                            bool image_mapped{false};
-                                            for (const auto& im : asset_helper.image_mappings)
-                                            {
-                                                if (im.source_index == current_image_index)
+                                                bool image_mapped{ false };
+                                                for (const auto& im : asset_helper.image_mappings)
                                                 {
-                                                    image_mapped = true;
-                                                    destination_image_index = im.destination_index;
+                                                    if (im.source_index == current_image_index)
+                                                    {
+                                                        image_mapped = true;
+                                                        destination_image_index = im.destination_index;
+                                                        destination_map.normal_image_index = destination_image_index;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!image_mapped)
+                                                {
+                                                    destination_image_index = static_cast<uint32_t>(level_asset.images.size());
+                                                    level_asset_builder_index_map img_m{
+                                                        .source_index = current_image_index,
+                                                        .destination_index = destination_image_index,
+                                                    };
                                                     destination_map.normal_image_index = destination_image_index;
-                                                    break;
+                                                    l->info(std::format("normal_image_index mapped to {} destination_image_index {} in {} in asset_helper_index {}",
+                                                        current_image_index, destination_image_index, md.id, asset_helper_index));
+                                                    asset_helper.image_mappings.push_back(img_m);
+                                                    rosy_packager::image source_image = a->images[current_image_index];
+                                                    rosy_packager::image destination_image{};
+                                                    destination_image.name = source_image.name;
+                                                    destination_image.image_type = source_image.image_type;
+                                                    level_asset.images.push_back(destination_image);
                                                 }
                                             }
-                                            if (!image_mapped)
+                                            // map the normal_sampler_index
+                                            if (source_mat.normal_sampler_index != UINT32_MAX)
                                             {
-                                                destination_image_index = static_cast<uint32_t>(level_asset.images.size());
-                                                level_asset_builder_index_map img_m{
-                                                    .source_index = current_image_index,
-                                                    .destination_index = destination_image_index,
-                                                };
-                                                destination_map.normal_image_index = destination_image_index;
-                                                l->info(std::format("normal_image_index mapped to {} destination_image_index {} in {} in asset_helper_index {}",
-                                                                    current_image_index, destination_image_index, md.id, asset_helper_index));
-                                                asset_helper.image_mappings.push_back(img_m);
-                                                rosy_packager::image source_image = a->images[current_image_index];
-                                                rosy_packager::image destination_image{};
-                                                destination_image.name = source_image.name;
-                                                destination_image.image_type = source_image.image_type;
-                                                level_asset.images.push_back(destination_image);
-                                            }
-                                        }
-                                        // map the normal_sampler_index
-                                        if (source_mat.normal_sampler_index != UINT32_MAX)
-                                        {
-                                            const uint32_t current_sampler_index = source_mat.normal_sampler_index;
-                                            uint32_t destination_sampler_index{0};
+                                                const uint32_t current_sampler_index = source_mat.normal_sampler_index;
+                                                uint32_t destination_sampler_index{ 0 };
 
-                                            bool sampler_mapped{false};
-                                            for (const auto& sm : asset_helper.sampler_mappings)
-                                            {
-                                                if (sm.source_index == current_sampler_index)
+                                                bool sampler_mapped{ false };
+                                                for (const auto& sm : asset_helper.sampler_mappings)
                                                 {
-                                                    sampler_mapped = true;
-                                                    destination_sampler_index = sm.destination_index;
-                                                    destination_map.normal_sampler_index = destination_sampler_index;
-                                                    break;
+                                                    if (sm.source_index == current_sampler_index)
+                                                    {
+                                                        sampler_mapped = true;
+                                                        destination_sampler_index = sm.destination_index;
+                                                        destination_map.normal_sampler_index = destination_sampler_index;
+                                                        break;
+                                                    }
                                                 }
-                                            }
-                                            if (!sampler_mapped)
-                                            {
-                                                destination_sampler_index = static_cast<uint32_t>(level_asset.images.size());
-                                                level_asset_builder_index_map img_m{
-                                                    .source_index = current_sampler_index,
-                                                    .destination_index = destination_sampler_index,
-                                                };
-                                                destination_map.normal_sampler_index = destination_sampler_index;
-                                                l->info(std::format("normal_sampler_index mapped to {} destination_sampler_index {} in {} in asset_helper_index {}",
-                                                                    current_sampler_index, destination_sampler_index, md.id, asset_helper_index));
-                                                asset_helper.sampler_mappings.push_back(img_m);
-                                                rosy_packager::sampler source_sampler = a->samplers[current_sampler_index];
-                                                rosy_packager::sampler destination_sampler{};
-                                                destination_sampler.min_filter = source_sampler.min_filter;
-                                                destination_sampler.mag_filter = source_sampler.mag_filter;
-                                                destination_sampler.wrap_s = source_sampler.wrap_s;
-                                                destination_sampler.wrap_t = source_sampler.wrap_t;
-                                                level_asset.samplers.push_back(destination_sampler);
+                                                if (!sampler_mapped)
+                                                {
+                                                    destination_sampler_index = static_cast<uint32_t>(level_asset.images.size());
+                                                    level_asset_builder_index_map img_m{
+                                                        .source_index = current_sampler_index,
+                                                        .destination_index = destination_sampler_index,
+                                                    };
+                                                    destination_map.normal_sampler_index = destination_sampler_index;
+                                                    l->info(std::format("normal_sampler_index mapped to {} destination_sampler_index {} in {} in asset_helper_index {}",
+                                                        current_sampler_index, destination_sampler_index, md.id, asset_helper_index));
+                                                    asset_helper.sampler_mappings.push_back(img_m);
+                                                    rosy_packager::sampler source_sampler = a->samplers[current_sampler_index];
+                                                    rosy_packager::sampler destination_sampler{};
+                                                    destination_sampler.min_filter = source_sampler.min_filter;
+                                                    destination_sampler.mag_filter = source_sampler.mag_filter;
+                                                    destination_sampler.wrap_s = source_sampler.wrap_s;
+                                                    destination_sampler.wrap_t = source_sampler.wrap_t;
+                                                    level_asset.samplers.push_back(destination_sampler);
+                                                }
                                             }
                                         }
                                     }

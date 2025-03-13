@@ -153,7 +153,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             float3 ambientLight = sd.ambientColor.xyz;
             float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
-            float4 outFragColor = basicVertex.color * float4(ambientLight * sunLight, 1.0);
+            float4 outFragColor = basicVertex.color * float4(max(ambientLight, sunLight), 1.f);
 
             Fragment output;
             output.color = outFragColor;
@@ -253,7 +253,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
         }
 
-        outFragColor = outFragColor * float4(ambientLight, 1.f) + outFragColor * float4(sunLight * shadowFactor, 1.0);
+        outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), 1.0);
     }
 
     Fragment output;
