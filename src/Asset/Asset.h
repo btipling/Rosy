@@ -1,6 +1,6 @@
 #pragma once
-#include "../Engine/Types.h"
-#include "../Engine/Telemetry.h"
+#include "Engine/Types.h"
+#include "Logger/Logger.h"
 #include <array>
 #include <string>
 #include <vector>
@@ -136,8 +136,8 @@ namespace rosy_packager
         };
         uint32_t root_scene{0};
 
-        rosy::result write(const rosy::log* l);
-        rosy::result read(rosy::log* l);
-        rosy::result read_shaders(const std::shared_ptr<rosy::log>& l);
+        rosy::result write(const std::shared_ptr<rosy_logger::log> l);
+        rosy::result read(std::shared_ptr<rosy_logger::log> l);
+        rosy::result read_shaders(const std::shared_ptr<rosy_logger::log>& l);
     };
 }

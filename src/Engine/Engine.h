@@ -1,6 +1,6 @@
 #pragma once
 #include "Types.h"
-#include "Telemetry.h"
+#include "Logger/Logger.h"
 #include "Graphics.h"
 #include "Level.h"
 
@@ -13,7 +13,7 @@ namespace rosy
     struct engine
     {
         // Owned resources
-        std::shared_ptr<log> l{nullptr};
+        std::shared_ptr<rosy_logger::log> l{nullptr};
         SDL_Window* window{nullptr};
         level* lvl{nullptr};
         graphics* gfx{nullptr};

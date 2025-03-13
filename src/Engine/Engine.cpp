@@ -43,7 +43,7 @@ static bool event_handler(void* userdata, SDL_Event* event)  // NOLINT(misc-use-
 
 result engine::init()
 {
-    try { l = std::make_shared<log>(); }
+    try { l =  std::make_shared<rosy_logger::log>(); }
     catch (const std::bad_alloc&) {
         return result::allocation_failure;
     }

@@ -1,6 +1,6 @@
 #pragma once
 #include "Asset.h"
-#include "../Engine/Telemetry.h"
+#include "Logger/Logger.h"
 #include <string>
 
 namespace rosy_packager
@@ -16,6 +16,6 @@ namespace rosy_packager
         std::string source_path{};
         asset fbx_asset{};
 
-        rosy::result import(const rosy::log* l, fbx_config& cfg);
+        rosy::result import(const std::shared_ptr<rosy_logger::log> l, fbx_config& cfg);
     };
 }

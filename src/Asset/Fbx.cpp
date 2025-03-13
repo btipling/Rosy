@@ -81,7 +81,7 @@ namespace
         return "unknown";
     }
 
-    void print_attribute(const rosy::log* l, const FbxNodeAttribute* p_attribute)
+    void print_attribute(const std::shared_ptr<rosy_logger::log> l, const FbxNodeAttribute* p_attribute)
     {
         if (!p_attribute) return;
 
@@ -91,7 +91,7 @@ namespace
         l->info(std::format("<attribute type='{}' name='{}'/>\n", type_name.Buffer(), attr_name.Buffer()));
     }
 
-    rosy::result traverse_node(const rosy::log* l, fbx_config& cfg, FbxNode* p_node, asset& fbx_asset)
+    rosy::result traverse_node(const std::shared_ptr<rosy_logger::log> l, fbx_config& cfg, FbxNode* p_node, asset& fbx_asset)
     {
         const char* node_name = p_node->GetName();
         FbxDouble3 translation = p_node->LclTranslation.Get();
@@ -369,7 +369,7 @@ namespace
 }
 
 
-rosy::result fbx::import(const rosy::log* l, [[maybe_unused]] fbx_config& cfg)
+rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unused]] fbx_config& cfg)
 {
     const std::filesystem::path file_path{source_path};
     {

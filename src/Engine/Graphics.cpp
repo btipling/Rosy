@@ -14,6 +14,7 @@
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_vulkan.h"
 #include <dds.hpp>
+#include "Asset/Asset.h"
 
 using namespace rosy;
 
@@ -183,7 +184,7 @@ namespace
         const VkDebugUtilsMessengerCallbackDataEXT* p_callback_data,
         void* p_user_data)
     {
-        const auto l = static_cast<rosy::log*>(p_user_data);
+        const auto l = static_cast<rosy_logger::log*>(p_user_data);
         if (!l) return VK_FALSE;
         if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
@@ -438,7 +439,7 @@ namespace
 
     struct graphics_device
     {
-        std::shared_ptr<rosy::log> l{nullptr};
+        std::shared_ptr<rosy_logger::log> l{nullptr};
         debug_ui* du{nullptr};
         config cfg{};
         uint64_t graphics_created_bitmask{0};
@@ -6080,7 +6081,7 @@ namespace
 
 //// Graphics
 
-result graphics::init(SDL_Window* new_window, const std::shared_ptr<log>& new_log, const config cfg)
+result graphics::init(SDL_Window* new_window, const std::shared_ptr<rosy_logger::log>& new_log, const config cfg)
 {
     if (new_window == nullptr)
     {

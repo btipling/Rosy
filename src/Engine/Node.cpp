@@ -62,7 +62,7 @@ namespace
 
 struct node_state
 {
-    std::shared_ptr<rosy::log> l{nullptr};
+    std::shared_ptr<rosy_logger::log> l{nullptr};
     bool is_world_node{false};
     glm::mat4 object_to_world_transform{};
     glm::mat4 object_space_parent_transform{};
@@ -73,7 +73,7 @@ struct node_state
     float world_space_yaw{0.f};
 
     void init(
-        const std::shared_ptr<rosy::log>& new_log,
+        const std::shared_ptr<rosy_logger::log>& new_log,
         const bool new_is_world_node,
         const std::array<float, 16>& coordinate_space_transform,
         const std::array<float, 16>& new_object_space_parent_transform,
@@ -109,7 +109,7 @@ struct node_state
 };
 
 result node::init(
-    const std::shared_ptr<rosy::log>& new_log,
+    const std::shared_ptr<rosy_logger::log>& new_log,
     const bool is_world_node,
     const std::array<float, 16>& coordinate_space,
     const std::array<float, 16>& new_object_space_parent_transform,

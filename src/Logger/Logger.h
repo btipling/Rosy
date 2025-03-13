@@ -1,7 +1,7 @@
 #pragma once
 #include <string_view>
 
-namespace rosy
+namespace rosy_logger
 {
 
     enum class log_level : uint8_t

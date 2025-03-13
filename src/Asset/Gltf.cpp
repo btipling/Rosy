@@ -77,7 +77,7 @@ struct t_space_generator_context
     size_t mesh_index{0};
     size_t surface_index{0};
     int num_triangles{0};
-    rosy::log* l;
+   std::shared_ptr<rosy_logger::log> l;
 };
 
 // All faces are triangles below and are referred to as triangles instead of faces unless it is a mikktspace header field name.
@@ -217,7 +217,7 @@ SMikkTSpaceInterface t_space_generator = { // NOLINT(misc-use-internal-linkage)
     .m_setTSpace = nullptr,
 };
 
-rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
+rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
 {
     const std::filesystem::path file_path{source_path};
     {

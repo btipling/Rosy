@@ -36,7 +36,7 @@ using namespace rosy_packager;
 // index 1 - num indices -> a std::vector<uint32_t> of indices size given
 // index 2 - num surfaces -> a std::vector<surface> of surfaces size given
 
-rosy::result asset::write(const rosy::log* l)
+rosy::result asset::write(const std::shared_ptr<rosy_logger::log> l)
 {
     // OPEN FILE FOR WRITING BINARY
 
@@ -406,7 +406,7 @@ rosy::result asset::write(const rosy::log* l)
     return rosy::result::ok;
 }
 
-rosy::result asset::read(rosy::log* l)
+rosy::result asset::read(std::shared_ptr<rosy_logger::log> l)
 {
     // OPEN FILE FOR READING BINARY
 
@@ -835,7 +835,7 @@ rosy::result asset::read(rosy::log* l)
     return rosy::result::ok;
 }
 
-rosy::result asset::read_shaders(const std::shared_ptr<rosy::log>& l)
+rosy::result asset::read_shaders(const std::shared_ptr<rosy_logger::log>& l)
 {
     // ReSharper disable once CppUseStructuredBinding
     for (shader& s : shaders)
