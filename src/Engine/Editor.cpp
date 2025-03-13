@@ -674,9 +674,14 @@ namespace
                                     }
 
                                     if (!a->materials.empty()) {
-                                        // Map all the materials images sand samplers
+                                        // Map all the materials images and samplers
                                         for (rosy_packager::surface& surface : level_asset.meshes[destination_mesh_index].surfaces)
                                         {
+                                            if (surface.material == UINT32_MAX)
+                                            {
+                                                // No material.
+                                                continue;
+                                            }
                                             const uint32_t current_mat_index = surface.material;
                                             uint32_t destination_mat_index{ 0 };
 
@@ -778,7 +783,7 @@ namespace
                                                 }
                                                 if (!sampler_mapped)
                                                 {
-                                                    destination_sampler_index = static_cast<uint32_t>(level_asset.images.size());
+                                                    destination_sampler_index = static_cast<uint32_t>(level_asset.samplers.size());
                                                     level_asset_builder_index_map img_m{
                                                         .source_index = current_sampler_index,
                                                         .destination_index = destination_sampler_index,
@@ -850,7 +855,7 @@ namespace
                                                 }
                                                 if (!sampler_mapped)
                                                 {
-                                                    destination_sampler_index = static_cast<uint32_t>(level_asset.images.size());
+                                                    destination_sampler_index = static_cast<uint32_t>(level_asset.samplers.size());
                                                     level_asset_builder_index_map img_m{
                                                         .source_index = current_sampler_index,
                                                         .destination_index = destination_sampler_index,
