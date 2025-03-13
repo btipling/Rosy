@@ -95,6 +95,18 @@
             "name": "Castle_W2",
             "scale": 35.0,
             "yaw": 0.0
+        },
+        {
+            "id": "..\\assets\\maya\\cubelly\\cubelly.rsy:pCube1",
+            "location": [
+                0.0,
+                1.0,
+                9.0
+            ],
+            "model_type": 2,
+            "name": "pCube1",
+            "scale": 1.0,
+            "yaw": 0.0
         }
     ]
 }

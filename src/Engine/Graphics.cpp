@@ -5611,11 +5611,12 @@ namespace
                                     {
                                         current_mesh_index = mesh_index;
                                     }
+                                    const bool has_material = material_buffer.has_material && material_index != UINT32_MAX;
                                     gpu_draw_push_constants pc{
                                         .scene_buffer = cf.scene_buffer.scene_buffer_address,
                                         .vertex_buffer = vertex_buffer_address + gpu_mesh.vertex_buffer_offset,
                                         .go_buffer = cf.graphic_objects_buffer.go_buffer_address + (sizeof(graphic_object_data) * (graphic_objects_offset + graphics_object_index)),
-                                        .material_buffer = material_buffer.has_material ? material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index) : 0,
+                                        .material_buffer = has_material ? material_buffer.material_buffer_address + (sizeof(gpu_material) * material_index) : 0,
                                     };
                                     vkCmdPushConstants(cf.command_buffer, scene_layout, VK_SHADER_STAGE_ALL, 0, sizeof(gpu_draw_push_constants), &pc);
                                     vkCmdDrawIndexed(cf.command_buffer, index_count, 1, gpu_mesh.index_offset + start_index, 0, 0);

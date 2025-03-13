@@ -750,7 +750,7 @@ rosy::result gltf::import(rosy::log* l, gltf_config& cfg)
             }
             else
             {
-                new_surface.material = 0;
+                new_surface.material = UINT32_MAX;
             }
             new_surface.min_bounds = min_bounds;
             new_surface.max_bounds = max_bounds;

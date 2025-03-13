@@ -19,3 +19,6 @@
 [submodule "src/libs/MikkTSpace"]
 	path = src/libs/MikkTSpace
 	url = git@github.com:btipling/MikkTSpace.git
+[submodule "src/libs/meshoptimizer"]
+	path = src/libs/meshoptimizer
+	url = git@github.com:zeux/meshoptimizer.git
