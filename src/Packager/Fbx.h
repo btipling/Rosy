@@ -1,7 +1,8 @@
 #pragma once
-#include "Asset.h"
+#include "Asset/Asset.h"
 #include "Logger/Logger.h"
 #include <string>
+
 
 namespace rosy_packager
 {

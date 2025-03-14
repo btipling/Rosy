@@ -14,6 +14,7 @@ pch_disabled = "files:libs/**.c or files:libs/**.cpp"
 workspace "Rosy"
     configurations { "Debug", "Release", "RenderDoc", "Clang", "Sanitize" }
     -- shared configurations
+    kind "ConsoleApp"
     language "C++"
     cppdialect "C++23"
     targetdir "bin/%{cfg.buildcfg}"
@@ -57,11 +58,11 @@ workspace "Rosy"
     filter {}
 
 project "Engine"
-    kind "ConsoleApp"
-    dependson { "Asset", "Logger" }
     debugdir "./Engine/"
     -- source files
     files { "Engine/**.h", "Engine/**.cpp" }
+    files { "Asset/**.h", "Asset/**.cpp" }
+    files { "Logger/**.h", "Logger/**.cpp" }
     files { "libs/imgui/**.h", "libs/imgui/**.cpp" }
     files { "libs/json/single_include/nlohmann/json.hpp" }
     -- shader files and scripts
@@ -80,10 +81,7 @@ project "Engine"
     -- linking
     links { "SDL3" }
     links { "flecs" }
-    links { "Asset" }
-    links { "Logger" }
     -- library directories
-    libdirs { "bin/%{cfg.buildcfg}" }
     libdirs { vk_sdk .. "/Lib/" }
     filter(debug_configurations)
         libdirs { "libs/SDL/build/Debug" }
@@ -104,13 +102,13 @@ project "Engine"
         "Powershell -File %{prj.location}/shaders/script_compile.ps1 ./shaders/"
     }
 
-project "Asset"
-    kind "StaticLib"
-    dependson { "Logger" }
-    debugdir "./Asset/"
+project "Packager"
+    debugdir "./Packager/"
     -- source files
-    files { "libs/MikkTSpace/mikktspace.c" }
+    files { "Packager/**.h", "Packager/**.cpp" }
     files { "Asset/**.h", "Asset/**.cpp" }
+    files { "Logger/**.h", "Logger/**.cpp" }
+    files { "libs/MikkTSpace/mikktspace.c" }
     -- include directories
     includedirs { vk_sdk .. "/Include/" }
     includedirs { "libs/fastgltf/include/" }
@@ -125,9 +123,7 @@ project "Asset"
     links { "nvtt30205" }
     links { "libfbxsdk" }
     links ( "meshoptimizer" )
-    links ( "Logger" )
     -- library directories
-    libdirs { "bin/%{cfg.buildcfg}" }
     libdirs { "\"" .. nvtt_path .. "/lib/x64-v142/\"" }
     filter(debug_configurations)
         libdirs { "libs/fastgltf/build/Debug" }
@@ -137,21 +133,3 @@ project "Asset"
         libdirs { "libs/fastgltf/build/Release" }
         libdirs { "\"" .. fbx_sdk .. "/lib/x64/release/\"" }
         libdirs { "libs/meshoptimizer/build/Release" }
-
-project "Logger"
-    kind "StaticLib"
-    debugdir "./Logger/"
-    -- source files
-    files { "Logger/**.h", "Logger/**.cpp" }
-
-project "Packager"
-    kind "ConsoleApp"
-    dependson { "Asset" }
-    debugdir "./Packager/"
-    -- source files
-    files { "Packager/Main.h", "Packager/Main.cpp" }
-    -- linking
-    links { "Asset" }
-    -- library directories
-    libdirs { "bin/%{cfg.buildcfg}" }
-

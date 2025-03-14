@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "Logger/Logger.h"
-#include "Asset/Gltf.h"
-#include "Asset/FBX.h"
+#include "Asset/Asset.h"
+#include "Gltf.h"
+#include "FBX.h"
 
 using namespace rosy_packager;
 
