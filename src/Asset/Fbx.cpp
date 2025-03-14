@@ -321,14 +321,14 @@ namespace
                     size_t total_indices = total_vertices;
                     l->info(std::format("fbx-optimize-mesh: starting vertices count: {}", total_vertices));
                     std::vector<unsigned int> remap(total_indices);
-                    total_vertices = meshopt_generateVertexRemap(remap.data(), new_asset_mesh.indices.data(), total_indices, new_asset_mesh.positions.data(), total_vertices, sizeof(position));
-                    l->info(std::format("fbx-optimize-mesh: new vertices count: {}", total_vertices));
+                    size_t new_vertices_count = meshopt_generateVertexRemap(remap.data(), new_asset_mesh.indices.data(), total_indices, new_asset_mesh.positions.data(), total_vertices, sizeof(position));
+                    l->info(std::format("fbx-optimize-mesh: new vertices count: {}", new_vertices_count));
 
                     std::vector<uint32_t> optimized_indices(total_indices);
-                    meshopt_remapIndexBuffer(optimized_indices.data(), new_asset_mesh.indices.data(), total_indices, remap.data());
+                    meshopt_remapIndexBuffer(optimized_indices.data(), nullptr, total_indices, remap.data());
                     new_asset_mesh.indices = std::move(optimized_indices);
 
-                    std::vector<position> optimized_positions(total_vertices);
+                    std::vector<position> optimized_positions(new_vertices_count);
                     meshopt_remapVertexBuffer(optimized_positions.data(), new_asset_mesh.positions.data(), total_vertices, sizeof(position), remap.data());
                     new_asset_mesh.positions = std::move(optimized_positions);
                 }

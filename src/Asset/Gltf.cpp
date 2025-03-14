@@ -757,10 +757,10 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
             size_t total_indices = new_mesh.indices.size();
             l->info(std::format("gltf-optimize-mesh: starting vertices count: {}", total_vertices));
             std::vector<unsigned int> remap(total_indices);
-            total_vertices = meshopt_generateVertexRemap(remap.data(), new_mesh.indices.data(), total_indices, new_mesh.positions.data(), total_vertices, sizeof(position));
-            l->info(std::format("gltf-optimize-mesh: new vertices count: {}", total_vertices));
+            size_t new_vertices_count = meshopt_generateVertexRemap(remap.data(), new_mesh.indices.data(), total_indices, new_mesh.positions.data(), total_vertices, sizeof(position));
+            l->info(std::format("gltf-optimize-mesh: new vertices count: {}", new_vertices_count));
 
-            std::vector<uint32_t> optimized_indices(total_indices);
+            std::vector<uint32_t> optimized_indices(new_vertices_count);
             meshopt_remapIndexBuffer(optimized_indices.data(), new_mesh.indices.data(), total_indices, remap.data());
             new_mesh.indices = std::move(optimized_indices);
 
