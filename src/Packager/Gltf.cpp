@@ -11,6 +11,8 @@
 #include <mikktspace.h>
 #include <glm/gtc/type_ptr.inl>
 
+#include "Packager.h"
+
 using namespace rosy_packager;
 
 namespace
@@ -752,21 +754,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         }
 
         {
-            // Optimize vertices
-            size_t total_vertices = new_mesh.positions.size();
-            size_t total_indices = new_mesh.indices.size();
-            l->info(std::format("gltf-optimize-mesh: starting vertices count: {}", total_vertices));
-            std::vector<unsigned int> remap(total_indices);
-            size_t new_vertices_count = meshopt_generateVertexRemap(remap.data(), new_mesh.indices.data(), total_indices, new_mesh.positions.data(), total_vertices, sizeof(rosy_asset::position));
-            l->info(std::format("gltf-optimize-mesh: new vertices count: {}", new_vertices_count));
-
-            std::vector<uint32_t> optimized_indices(new_vertices_count);
-            meshopt_remapIndexBuffer(optimized_indices.data(), new_mesh.indices.data(), total_indices, remap.data());
-            new_mesh.indices = std::move(optimized_indices);
-
-            std::vector<rosy_asset::position> optimized_positions(total_vertices);
-            meshopt_remapVertexBuffer(optimized_positions.data(), new_mesh.positions.data(), total_vertices, sizeof(rosy_asset::position), remap.data());
-            new_mesh.positions = std::move(optimized_positions);
+            optimize_mesh(l, new_mesh);
         }
 
         gltf_asset.meshes.push_back(new_mesh);

@@ -8,6 +8,8 @@
 #include <glm/gtc/type_ptr.inl>
 #include <meshoptimizer.h>
 
+#include "Packager.h"
+
 using namespace rosy_packager;
 
 // A "Control Point" is an FBX term for what everyone else in the world calls a vertex or vertex attribute data, were it not for the fact that we aren't guaranteed to get all the vertices
@@ -316,21 +318,7 @@ namespace
                 }
 
                 {
-                    // Optimize vertices
-                    size_t total_vertices =  new_asset_mesh.positions.size();
-                    size_t total_indices = total_vertices;
-                    l->info(std::format("fbx-optimize-mesh: starting vertices count: {}", total_vertices));
-                    std::vector<unsigned int> remap(total_indices);
-                    size_t new_vertices_count = meshopt_generateVertexRemap(remap.data(), new_asset_mesh.indices.data(), total_indices, new_asset_mesh.positions.data(), total_vertices, sizeof(rosy_asset::position));
-                    l->info(std::format("fbx-optimize-mesh: new vertices count: {}", new_vertices_count));
-
-                    std::vector<uint32_t> optimized_indices(total_indices);
-                    meshopt_remapIndexBuffer(optimized_indices.data(), nullptr, total_indices, remap.data());
-                    new_asset_mesh.indices = std::move(optimized_indices);
-
-                    std::vector<rosy_asset::position> optimized_positions(new_vertices_count);
-                    meshopt_remapVertexBuffer(optimized_positions.data(), new_asset_mesh.positions.data(), total_vertices, sizeof(rosy_asset::position), remap.data());
-                    new_asset_mesh.positions = std::move(optimized_positions);
+                    optimize_mesh(l, new_asset_mesh);
                 }
 
                 // TODO: generate tangents

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Editor.h"
-
 #include <nlohmann/json.hpp>
 #include "Asset/Asset.h"
 
