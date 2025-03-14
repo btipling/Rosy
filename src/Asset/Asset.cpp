@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Asset.h"
 
-using namespace rosy_packager;
+using namespace rosy_asset;
 
 // Rosy File Format:
 // 1. Header

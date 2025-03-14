@@ -72,21 +72,21 @@ struct t_space_surface_map
 
 struct t_space_generator_context
 {
-    asset* gltf_asset{nullptr};
+    rosy_asset::asset* gltf_asset{nullptr};
     std::vector<t_space_surface_map> triangle_surface_map;
     size_t mesh_index{0};
     size_t surface_index{0};
     int num_triangles{0};
-   std::shared_ptr<rosy_logger::log> l;
+    std::shared_ptr<rosy_logger::log> l;
 };
 
 // All faces are triangles below and are referred to as triangles instead of faces unless it is a mikktspace header field name.
 
 void t_space_gen_num_faces(t_space_generator_context& ctx) // NOLINT(misc-use-internal-linkage)
 {
-    const mesh& m = ctx.gltf_asset->meshes[ctx.mesh_index];
+    const rosy_asset::mesh& m = ctx.gltf_asset->meshes[ctx.mesh_index];
     const size_t surface_index = ctx.surface_index;
-    const surface& s = m.surfaces[surface_index];
+    const rosy_asset::surface& s = m.surfaces[surface_index];
     int num_triangles{0};
     const int num_triangles_in_surface = static_cast<int>(s.count) / 3;
     ctx.triangle_surface_map.reserve(ctx.triangle_surface_map.size() + num_triangles_in_surface);
@@ -118,11 +118,11 @@ int t_space_get_num_vertices_of_face([[maybe_unused]] const SMikkTSpaceContext* 
 size_t t_space_get_asset_position_data(const SMikkTSpaceContext* p_context, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage))
 {
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const rosy_asset::mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
 
     const t_space_surface_map& sm = ctx->triangle_surface_map[static_cast<size_t>(requested_triangle)];
 
-    const surface& s = m.surfaces[sm.surface_index];
+    const rosy_asset::surface& s = m.surfaces[sm.surface_index];
 
     const int surface_triangle = sm.current_triangle;
 
@@ -135,8 +135,8 @@ void t_space_get_position(const SMikkTSpaceContext* p_context, float* fv_pos_out
 {
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
     const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
-    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
-    const position& p = m.positions[position_index];
+    const rosy_asset::mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const rosy_asset::position& p = m.positions[position_index];
     std::memcpy(fv_pos_out, p.vertex.data(), sizeof(std::array<float, 3>));
 }
 
@@ -144,8 +144,8 @@ void t_space_get_normal(const SMikkTSpaceContext* p_context, float* fv_normal_ou
 {
     const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
-    const position& p = m.positions[position_index];
+    const rosy_asset::mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const rosy_asset::position& p = m.positions[position_index];
     std::memcpy(fv_normal_out, p.normal.data(), sizeof(std::array<float, 3>));
 }
 
@@ -153,8 +153,8 @@ void t_space_get_texture_coordinates(const SMikkTSpaceContext* p_context, float*
 {
     const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
-    const position& p = m.positions[position_index];
+    const rosy_asset::mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    const rosy_asset::position& p = m.positions[position_index];
     std::memcpy(fv_text_coords_out, p.texture_coordinates.data(), sizeof(std::array<float, 2>));
 }
 
@@ -182,7 +182,7 @@ void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float new_ta
 {
     const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
+    rosy_asset::mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
 
     std::array<float, 3> n = m.positions[position_index].normal;
     float sign = new_sign;
@@ -256,7 +256,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         const std::string gltf_img_name{uri_ds.uri.string().substr(0, uri_ds.uri.string().find('.'))};
 
         l->info(std::format("Adding image: {}", gltf_img_name));
-        image img{};
+        rosy_asset::image img{};
 
         std::filesystem::path img_path{gltf_asset.asset_path};
         pre_rename_image_paths.emplace_back(img_path);
@@ -276,7 +276,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
     {
         for (fastgltf::Material& mat : gltf.materials)
         {
-            material m{};
+            rosy_asset::material m{};
             if (mat.pbrData.baseColorTexture.has_value())
             {
                 if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.has_value())
@@ -363,7 +363,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         for (const auto& [gltf_index, rosy_index] : color_images)
         {
             // Declare it as a color image
-            gltf_asset.images[gltf_index].image_type = image_type_color;
+            gltf_asset.images[gltf_index].image_type = rosy_asset::image_type_color;
             const auto& gltf_img = gltf.images[gltf_index];
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
             {
@@ -449,7 +449,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         for (const auto& [gltf_index, rosy_index] : metallic_images)
         {
             // Declare it as a metallic image
-            gltf_asset.images[gltf_index].image_type = image_type_metallic_roughness;
+            gltf_asset.images[gltf_index].image_type = rosy_asset::image_type_metallic_roughness;
             const auto& gltf_img = gltf.images[gltf_index];
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
             {
@@ -537,7 +537,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         for (const auto& [gltf_index, rosy_index] : normal_map_images)
         {
             // Declare it as a normal map image
-            gltf_asset.images[gltf_index].image_type = image_type_normal_map;
+            gltf_asset.images[gltf_index].image_type = rosy_asset::image_type_normal_map;
             const auto& gltf_img = gltf.images[gltf_index];
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
             {
@@ -617,7 +617,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
     {
         for (fastgltf::Sampler& gltf_sampler : gltf.samplers)
         {
-            sampler smp{};
+            rosy_asset::sampler smp{};
             if (gltf_sampler.magFilter.has_value())
             {
                 smp.mag_filter = filter_to_val(gltf_sampler.magFilter.value());
@@ -645,7 +645,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
 
     for (fastgltf::Mesh& fast_gltf_mesh : gltf.meshes)
     {
-        mesh new_mesh{};
+        rosy_asset::mesh new_mesh{};
         for (auto& primitive : fast_gltf_mesh.primitives)
         {
             // PRIMITIVE SURFACE
@@ -653,7 +653,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
             float max = std::numeric_limits<float>::max();
             std::array<float, 3> min_bounds{max, max, max};
             std::array<float, 3> max_bounds{min, min, min};
-            surface new_surface{};
+            rosy_asset::surface new_surface{};
             new_surface.start_index = static_cast<uint32_t>(new_mesh.indices.size());
             new_surface.count = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
 
@@ -689,11 +689,11 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
             // PRIMITIVE VERTEX
             fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, pos_accessor, [&](const fastgltf::math::fvec3& v, const size_t index)
             {
-                position new_position{};
+                rosy_asset::position new_position{};
                 for (size_t i{0}; i < 3; i++)
                 {
                     min_bounds[i] = std::min(v[i], min_bounds[i]);
-                    max_bounds[i] = std::max( v[i], max_bounds[i]);
+                    max_bounds[i] = std::max(v[i], max_bounds[i]);
                 }
                 new_position.vertex = {v[0], v[1], v[2]};
                 new_position.normal = {1.0f, 0.0f, 0.0f};
@@ -757,15 +757,15 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
             size_t total_indices = new_mesh.indices.size();
             l->info(std::format("gltf-optimize-mesh: starting vertices count: {}", total_vertices));
             std::vector<unsigned int> remap(total_indices);
-            size_t new_vertices_count = meshopt_generateVertexRemap(remap.data(), new_mesh.indices.data(), total_indices, new_mesh.positions.data(), total_vertices, sizeof(position));
+            size_t new_vertices_count = meshopt_generateVertexRemap(remap.data(), new_mesh.indices.data(), total_indices, new_mesh.positions.data(), total_vertices, sizeof(rosy_asset::position));
             l->info(std::format("gltf-optimize-mesh: new vertices count: {}", new_vertices_count));
 
             std::vector<uint32_t> optimized_indices(new_vertices_count);
             meshopt_remapIndexBuffer(optimized_indices.data(), new_mesh.indices.data(), total_indices, remap.data());
             new_mesh.indices = std::move(optimized_indices);
 
-            std::vector<position> optimized_positions(total_vertices);
-            meshopt_remapVertexBuffer(optimized_positions.data(), new_mesh.positions.data(), total_vertices, sizeof(position), remap.data());
+            std::vector<rosy_asset::position> optimized_positions(total_vertices);
+            meshopt_remapVertexBuffer(optimized_positions.data(), new_mesh.positions.data(), total_vertices, sizeof(rosy_asset::position), remap.data());
             new_mesh.positions = std::move(optimized_positions);
         }
 
@@ -775,7 +775,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
     gltf_asset.scenes.reserve(gltf.scenes.size());
     for (auto& [nodeIndices, name] : gltf.scenes)
     {
-        scene s{};
+        rosy_asset::scene s{};
         s.nodes.reserve(nodeIndices.size());
         for (size_t node_index : nodeIndices)
         {
@@ -787,7 +787,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
     gltf_asset.nodes.reserve(gltf.nodes.size());
     for (auto& gltf_node : gltf.nodes)
     {
-        node n{};
+        rosy_asset::node n{};
         n.mesh_id = static_cast<uint32_t>(gltf_node.meshIndex.value_or(SIZE_MAX));
         std::ranges::copy(gltf_node.name, std::back_inserter(n.name));
 

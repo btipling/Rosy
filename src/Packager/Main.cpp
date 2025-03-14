@@ -15,7 +15,7 @@ namespace {
         l->info(std::format("Parsing {} as {}", source_path.string(), output_path.string()));
         gltf g{};
         {
-            asset a{};
+            rosy_asset::asset a{};
             a.asset_path = output_path.string();
             g.source_path = source_path.string();
             g.gltf_asset = a;
@@ -73,7 +73,7 @@ namespace {
         l->info(std::format("Parsing {} as {}", source_path.string(), output_path.string()));
         fbx f{};
         {
-            asset a{};
+            rosy_asset::asset a{};
             a.asset_path = output_path.string();
             f.source_path = source_path.string();
             f.fbx_asset = a;
