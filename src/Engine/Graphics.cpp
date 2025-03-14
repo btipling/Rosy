@@ -2917,8 +2917,8 @@ namespace
             // ******** DEBUG SHADERS ******** //
 
             {
-                rosy_packager::asset dba{};
-                rosy_packager::shader debug_shader{};
+                rosy_asset::asset dba{};
+                rosy_asset::shader debug_shader{};
                 debug_shader.path = R"(..\shaders\out\debug.spv)";
                 dba.shaders.push_back(debug_shader);
                 dba.read_shaders(l);
@@ -3053,8 +3053,8 @@ namespace
             // ******** SHADOW SHADERS ******** //
 
             {
-                rosy_packager::asset sba{};
-                rosy_packager::shader shadow_shader{};
+                rosy_asset::asset sba{};
+                rosy_asset::shader shadow_shader{};
                 shadow_shader.path = R"(..\shaders\out\shadow.spv)";
                 sba.shaders.push_back(shadow_shader);
                 sba.read_shaders(l);
@@ -3519,7 +3519,7 @@ namespace
             return details;
         }
 
-        result set_asset(const rosy_packager::asset& a)
+        result set_asset(const rosy_asset::asset& a)
         {
             {
                 // Clear any existing asset resources
@@ -3629,15 +3629,15 @@ namespace
                     new_dds_img.image_extent = dds_image_size;
 
                     new_dds_img.image_format = dds::getVulkanFormat(dds_lib_image.format, dds_lib_image.supportsAlpha);
-                    if (img.image_type == rosy_packager::image_type_color)
+                    if (img.image_type == rosy_asset::image_type_color)
                     {
                         new_dds_img.image_format = VK_FORMAT_BC7_SRGB_BLOCK;
                     }
-                    else if (img.image_type == rosy_packager::image_type_normal_map)
+                    else if (img.image_type == rosy_asset::image_type_normal_map)
                     {
                         new_dds_img.image_format = VK_FORMAT_BC7_UNORM_BLOCK;
                     }
-                    else if (img.image_type == rosy_packager::image_type_metallic_roughness)
+                    else if (img.image_type == rosy_asset::image_type_metallic_roughness)
                     {
                         new_dds_img.image_format = VK_FORMAT_BC7_SRGB_BLOCK;
                     }
@@ -4068,7 +4068,7 @@ namespace
             {
                 std::vector<gpu_material> materials{};
                 materials.reserve(a.materials.size());
-                for (const rosy_packager::material& m : a.materials)
+                for (const rosy_asset::material& m : a.materials)
                 {
                     uint32_t color_image_sampler_index = UINT32_MAX;
                     uint32_t color_sampler_index = default_sampler_index;
@@ -4292,7 +4292,7 @@ namespace
                 {
                     gpu_mesh_buffers gpu_mesh{};
 
-                    const size_t vertex_buffer_size = mesh.positions.size() * sizeof(rosy_packager::position);
+                    const size_t vertex_buffer_size = mesh.positions.size() * sizeof(rosy_asset::position);
                     gpu_mesh.vertex_buffer_offset = total_vertex_buffer_size;
 
                     total_vertex_buffer_size += vertex_buffer_size;
@@ -4432,7 +4432,7 @@ namespace
                     size_t current_vertex_offset{0};
                     for (const auto& mesh : a.meshes)
                     {
-                        const size_t vertex_buffer_size = mesh.positions.size() * sizeof(rosy_packager::position);
+                        const size_t vertex_buffer_size = mesh.positions.size() * sizeof(rosy_asset::position);
 
                         if (staging.info.pMappedData != nullptr)
                             memcpy(
@@ -6138,7 +6138,7 @@ result graphics::update(const read_level_state& rls, write_level_state* wls) con
 {
     if (rls.editor_state.new_asset != nullptr)
     {
-        const auto a = static_cast<const rosy_packager::asset*>(rls.editor_state.new_asset);
+        const auto a = static_cast<const rosy_asset::asset*>(rls.editor_state.new_asset);
         l->debug(std::format("Setting asset with {} graphic objects.", rls.go_update.graphic_objects.size()));
         gd->set_wls(wls); // Set writable state, this is a pointer to level data that the UI can write to.
         if (const auto res = gd->set_asset(*a); res != result::ok)

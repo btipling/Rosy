@@ -1,7 +1,8 @@
 #pragma once
-#include "Asset.h"
+#include "Asset/Asset.h"
 #include "Logger/Logger.h"
 #include <string>
+
 
 namespace rosy_packager
 {
@@ -14,7 +15,7 @@ namespace rosy_packager
     struct fbx
     {
         std::string source_path{};
-        asset fbx_asset{};
+        rosy_asset::asset fbx_asset{};
 
         rosy::result import(const std::shared_ptr<rosy_logger::log> l, fbx_config& cfg);
     };

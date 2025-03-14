@@ -157,7 +157,7 @@ namespace
     struct stack_item
     {
         node* game_node{nullptr};
-        rosy_packager::node asset_node;
+        rosy_asset::node asset_node;
         glm::mat4 parent_transform{glm::mat4{1.f}};
         bool is_mob{false};
     };
@@ -775,7 +775,7 @@ namespace
             }
             if (rls->editor_state.new_asset != nullptr)
             {
-                const auto a = static_cast<const rosy_packager::asset*>(rls->editor_state.new_asset);
+                const auto a = static_cast<const rosy_asset::asset*>(rls->editor_state.new_asset);
                 const result res = set_asset(*a);
                 if (res != result::ok)
                 {
@@ -901,7 +901,7 @@ namespace
         }
 
 
-        result set_asset(const rosy_packager::asset& new_asset)
+        result set_asset(const rosy_asset::asset& new_asset)
         {
             if (const result res = reset_world(); res != result::ok)
             {
@@ -934,7 +934,7 @@ namespace
             // Prepopulate the node queue with the root scenes nodes
             for (const auto& node_index : scene.nodes)
             {
-                const rosy_packager::node new_node = new_asset.nodes[node_index];
+                const rosy_asset::node new_node = new_asset.nodes[node_index];
 
                 // Game nodes are a game play representation of a graphics object, and can be static or a mob.
                 auto new_game_node = new(std::nothrow) node;
@@ -999,7 +999,7 @@ namespace
                     const auto current_mesh_index = queue_item.asset_node.mesh_id;
 
                     // Get the mesh from the asset using the mesh index
-                    const rosy_packager::mesh current_mesh = new_asset.meshes[current_mesh_index];
+                    const rosy_asset::mesh current_mesh = new_asset.meshes[current_mesh_index];
 
                     // Declare a new graphics object.
                     graphics_object go{};
@@ -1074,7 +1074,7 @@ namespace
                 for (const size_t child_index : queue_item.asset_node.child_nodes)
                 {
                     // This is the same node initialization sequence from the root's scenes logic above.
-                    const rosy_packager::node new_asset_node = new_asset.nodes[child_index];
+                    const rosy_asset::node new_asset_node = new_asset.nodes[child_index];
 
                     // Create the pointer
                     auto new_game_node = new(std::nothrow) node;

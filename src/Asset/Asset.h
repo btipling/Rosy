@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace rosy_packager
+namespace rosy_asset
 {
     constexpr uint32_t rosy_format{0x52535946}; // "RSYF"
     constexpr uint32_t current_version{1};

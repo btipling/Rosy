@@ -8,6 +8,8 @@
 #include <glm/gtc/type_ptr.inl>
 #include <meshoptimizer.h>
 
+#include "Packager.h"
+
 using namespace rosy_packager;
 
 // A "Control Point" is an FBX term for what everyone else in the world calls a vertex or vertex attribute data, were it not for the fact that we aren't guaranteed to get all the vertices
@@ -91,7 +93,7 @@ namespace
         l->info(std::format("<attribute type='{}' name='{}'/>\n", type_name.Buffer(), attr_name.Buffer()));
     }
 
-    rosy::result traverse_node(const std::shared_ptr<rosy_logger::log> l, fbx_config& cfg, FbxNode* p_node, asset& fbx_asset)
+    rosy::result traverse_node(const std::shared_ptr<rosy_logger::log> l, fbx_config& cfg, FbxNode* p_node, rosy_asset::asset& fbx_asset)
     {
         const char* node_name = p_node->GetName();
         FbxDouble3 translation = p_node->LclTranslation.Get();
@@ -113,7 +115,7 @@ namespace
             print_attribute(l, attr);
             if (attr->GetAttributeType() == FbxNodeAttribute::EType::eMesh)
             {
-                mesh new_asset_mesh{};
+                rosy_asset::mesh new_asset_mesh{};
                 const FbxMesh* fbx_mesh = p_node->GetMesh();
                 if (!fbx_mesh->IsTriangleMesh())
                 {
@@ -195,7 +197,7 @@ namespace
                         const int mesh_vertex_index = fbx_mesh->GetPolygonVertex(triangle_index, triangle_vertex);
                         l->info(std::format("mesh_vertex_index {}", mesh_vertex_index));
 
-                        position p{};
+                        rosy_asset::position p{};
 
                         FbxVector4 current_vertex = mesh_vertices[mesh_vertex_index];
 
@@ -307,7 +309,7 @@ namespace
                 for (const auto& mat_indices : asset_materials_index_list)
                 {
                     size_t count = mat_indices.size();
-                    surface s{};
+                    rosy_asset::surface s{};
                     s.start_index = static_cast<uint32_t>(offset);
                     s.count = static_cast<uint32_t>(count);
                     new_asset_mesh.indices.insert(new_asset_mesh.indices.end(), mat_indices.begin(), mat_indices.end());
@@ -316,21 +318,7 @@ namespace
                 }
 
                 {
-                    // Optimize vertices
-                    size_t total_vertices =  new_asset_mesh.positions.size();
-                    size_t total_indices = total_vertices;
-                    l->info(std::format("fbx-optimize-mesh: starting vertices count: {}", total_vertices));
-                    std::vector<unsigned int> remap(total_indices);
-                    total_vertices = meshopt_generateVertexRemap(remap.data(), new_asset_mesh.indices.data(), total_indices, new_asset_mesh.positions.data(), total_vertices, sizeof(position));
-                    l->info(std::format("fbx-optimize-mesh: new vertices count: {}", total_vertices));
-
-                    std::vector<uint32_t> optimized_indices(total_indices);
-                    meshopt_remapIndexBuffer(optimized_indices.data(), new_asset_mesh.indices.data(), total_indices, remap.data());
-                    new_asset_mesh.indices = std::move(optimized_indices);
-
-                    std::vector<position> optimized_positions(total_vertices);
-                    meshopt_remapVertexBuffer(optimized_positions.data(), new_asset_mesh.positions.data(), total_vertices, sizeof(position), remap.data());
-                    new_asset_mesh.positions = std::move(optimized_positions);
+                    optimize_mesh(l, new_asset_mesh);
                 }
 
                 // TODO: generate tangents
@@ -341,7 +329,7 @@ namespace
                 // As this node has a mesh add it to nodes list on the asset.
                 // TODO: support child nodes.
                 const size_t current_asset_node_index = fbx_asset.nodes.size();
-                node new_asset_node{};
+                rosy_asset::node new_asset_node{};
                 new_asset_node.name = std::vector(node_name, node_name + strlen(node_name));
                 new_asset_node.mesh_id = static_cast<uint32_t>(current_asset_mesh_index);
                 fbx_asset.scenes[0].nodes.emplace_back(static_cast<uint32_t>(current_asset_node_index));
@@ -404,7 +392,7 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
     rsy_importer->Destroy();
     l->info("importing fbx scene success?");
 
-    scene default_scene{};
+    rosy_asset::scene default_scene{};
     fbx_asset.scenes.emplace_back(default_scene);
     fbx_asset.root_scene = 0;
 
@@ -419,6 +407,16 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
     }
 
     rsy_sdk_manager->Destroy();
+
+    if (cfg.use_mikktspace)
+    {
+        if (const auto res = generate_tangents(l, fbx_asset); res != rosy::result::ok)
+        {
+            l->error("Error generating fbx tangents");
+            return res;
+        }
+    }
+
     l->info("all done importing fbx asset");
     return rosy::result::ok;
 }

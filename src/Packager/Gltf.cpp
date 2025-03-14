@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
+
+#include <nvtt/nvtt.h>
+#include "Packager.h"
 #define GLM_ENABLE_EXPERIMENTAL
-#include <meshoptimizer.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-#include <nvtt/nvtt.h>
-#include <mikktspace.h>
 #include <glm/gtc/type_ptr.inl>
 
 using namespace rosy_packager;
@@ -24,7 +24,7 @@ namespace
             0.f, 0.f, 0.f, 1.f,
         };
         const auto pos_r = glm::value_ptr(m);
-        for (uint64_t i{0}; i < 16; i++) a[i] = pos_r[i];
+        for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
         return a;
     }
 
@@ -62,160 +62,6 @@ namespace
         return UINT16_MAX;
     }
 }
-
-struct t_space_surface_map
-{
-    size_t surface_index{0}; // The surface's index in the gltf asset's mesh vector
-    int triangle_count_offset{0}; // The number of triangles that precede this surfaces triangles
-    int current_triangle{0}; // The current triangle's index within the surface.
-};
-
-struct t_space_generator_context
-{
-    asset* gltf_asset{nullptr};
-    std::vector<t_space_surface_map> triangle_surface_map;
-    size_t mesh_index{0};
-    size_t surface_index{0};
-    int num_triangles{0};
-   std::shared_ptr<rosy_logger::log> l;
-};
-
-// All faces are triangles below and are referred to as triangles instead of faces unless it is a mikktspace header field name.
-
-void t_space_gen_num_faces(t_space_generator_context& ctx) // NOLINT(misc-use-internal-linkage)
-{
-    const mesh& m = ctx.gltf_asset->meshes[ctx.mesh_index];
-    const size_t surface_index = ctx.surface_index;
-    const surface& s = m.surfaces[surface_index];
-    int num_triangles{0};
-    const int num_triangles_in_surface = static_cast<int>(s.count) / 3;
-    ctx.triangle_surface_map.reserve(ctx.triangle_surface_map.size() + num_triangles_in_surface);
-    for (int i{0}; i < num_triangles_in_surface; i++)
-    {
-        t_space_surface_map sm{
-            .surface_index = surface_index,
-            .triangle_count_offset = num_triangles,
-            .current_triangle = i,
-        };
-        ctx.triangle_surface_map.emplace_back(sm);
-    }
-    num_triangles += num_triangles_in_surface;
-    ctx.num_triangles = num_triangles;
-}
-
-int t_space_get_num_faces(const SMikkTSpaceContext* p_context) // NOLINT(misc-use-internal-linkage)
-{
-    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    return ctx->num_triangles;
-}
-
-int t_space_get_num_vertices_of_face([[maybe_unused]] const SMikkTSpaceContext* p_context, [[maybe_unused]] const int requested_triangle) // NOLINT(misc-use-internal-linkage)
-{
-    // Hard code return 3 vertices per face as the faces are all triangles
-    return 3;
-}
-
-size_t t_space_get_asset_position_data(const SMikkTSpaceContext* p_context, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage))
-{
-    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
-
-    const t_space_surface_map& sm = ctx->triangle_surface_map[static_cast<size_t>(requested_triangle)];
-
-    const surface& s = m.surfaces[sm.surface_index];
-
-    const int surface_triangle = sm.current_triangle;
-
-
-    const size_t indices_index = static_cast<size_t>(s.start_index) + static_cast<size_t>(surface_triangle * 3) + static_cast<size_t>(requested_triangle_vertex);
-    return m.indices[indices_index];
-}
-
-void t_space_get_position(const SMikkTSpaceContext* p_context, float* fv_pos_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
-{
-    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
-    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
-    const position& p = m.positions[position_index];
-    std::memcpy(fv_pos_out, p.vertex.data(), sizeof(std::array<float, 3>));
-}
-
-void t_space_get_normal(const SMikkTSpaceContext* p_context, float* fv_normal_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
-{
-    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
-    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
-    const position& p = m.positions[position_index];
-    std::memcpy(fv_normal_out, p.normal.data(), sizeof(std::array<float, 3>));
-}
-
-void t_space_get_texture_coordinates(const SMikkTSpaceContext* p_context, float* fv_text_coords_out, const int requested_triangle, const int requested_triangle_vertex) // NOLINT(misc-use-internal-linkage)
-{
-    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
-    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    const mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
-    const position& p = m.positions[position_index];
-    std::memcpy(fv_text_coords_out, p.texture_coordinates.data(), sizeof(std::array<float, 2>));
-}
-
-// Given only a normal vector, finds a valid tangent.
-//
-// This uses the technique from "Improved accuracy when building an orthonormal
-// basis" by Nelson Max, https://jcgt.org/published/0006/01/02.
-// Any tangent-generating algorithm must produce at least one discontinuity
-// when operating on a sphere (due to the hairy ball theorem); this has a
-// small ring-shaped discontinuity at normal.z == -0.99998796.
-// via https://github.com/nvpro-samples/nvpro_core
-static glm::vec4 make_fast_space_fast_tangent(const glm::vec3& n)
-{
-    if (n[2] < -0.99998796f) // Handle the singularity
-    {
-        return glm::vec4(0.f, -1.f, 0.f, 1.f);
-    }
-    const float a = 1.f / (1.f + n[2]);
-    const float b = -n[0] * n[1] * a;
-    return glm::vec4(1.f - n[0] * n[0] * a, b, -n[0], 1.f);
-}
-
-void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float new_tangent[], const float new_sign, const int requested_triangle, const int requested_triangle_vertex)
-// NOLINT(misc-use-internal-linkage)
-{
-    const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
-    const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
-    mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
-
-    std::array<float, 3> n = m.positions[position_index].normal;
-    float sign = new_sign;
-    const auto normal = glm::vec3{n[0], n[1], n[2]};
-    glm::vec3 tangent = {new_tangent[0], new_tangent[1], new_tangent[2]};
-    if (std::abs(glm::dot(tangent, normal)) < 0.9f)
-    {
-        tangent = {new_tangent[0], new_tangent[1], new_tangent[2]};
-        sign = -sign;
-        m.positions[position_index].tangents[0] = tangent[0];
-        m.positions[position_index].tangents[1] = tangent[1];
-        m.positions[position_index].tangents[2] = tangent[2];
-        m.positions[position_index].tangents[3] = sign;
-    }
-    else
-    {
-        glm::vec4 fast_tangent = make_fast_space_fast_tangent(normal);
-        m.positions[position_index].tangents[0] = fast_tangent[0];
-        m.positions[position_index].tangents[1] = fast_tangent[1];
-        m.positions[position_index].tangents[2] = fast_tangent[2];
-        m.positions[position_index].tangents[3] = fast_tangent[3];
-    }
-}
-
-SMikkTSpaceInterface t_space_generator = { // NOLINT(misc-use-internal-linkage)
-    .m_getNumFaces = t_space_get_num_faces,
-    .m_getNumVerticesOfFace = t_space_get_num_vertices_of_face,
-    .m_getPosition = t_space_get_position,
-    .m_getNormal = t_space_get_normal,
-    .m_getTexCoord = t_space_get_texture_coordinates,
-    .m_setTSpaceBasic = t_space_set_tangent,
-    .m_setTSpace = nullptr,
-};
 
 rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
 {
@@ -256,7 +102,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         const std::string gltf_img_name{uri_ds.uri.string().substr(0, uri_ds.uri.string().find('.'))};
 
         l->info(std::format("Adding image: {}", gltf_img_name));
-        image img{};
+        rosy_asset::image img{};
 
         std::filesystem::path img_path{gltf_asset.asset_path};
         pre_rename_image_paths.emplace_back(img_path);
@@ -276,7 +122,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
     {
         for (fastgltf::Material& mat : gltf.materials)
         {
-            material m{};
+            rosy_asset::material m{};
             if (mat.pbrData.baseColorTexture.has_value())
             {
                 if (gltf.textures[mat.pbrData.baseColorTexture.value().textureIndex].imageIndex.has_value())
@@ -302,7 +148,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
                 if (gltf.textures[mat.pbrData.metallicRoughnessTexture.value().textureIndex].imageIndex.has_value())
                 {
                     m.metallic_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.metallicRoughnessTexture.value().textureIndex].imageIndex.value());
-                    metallic_images.emplace_back(m.metallic_image_index, static_cast<uint32_t>(color_images.size()));
+                    metallic_images.emplace_back(m.metallic_image_index, static_cast<uint32_t>(metallic_images.size()));
                 }
                 else
                 {
@@ -363,7 +209,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         for (const auto& [gltf_index, rosy_index] : color_images)
         {
             // Declare it as a color image
-            gltf_asset.images[gltf_index].image_type = image_type_color;
+            gltf_asset.images[gltf_index].image_type = rosy_asset::image_type_color;
             const auto& gltf_img = gltf.images[gltf_index];
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
             {
@@ -449,7 +295,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         for (const auto& [gltf_index, rosy_index] : metallic_images)
         {
             // Declare it as a metallic image
-            gltf_asset.images[gltf_index].image_type = image_type_metallic_roughness;
+            gltf_asset.images[gltf_index].image_type = rosy_asset::image_type_metallic_roughness;
             const auto& gltf_img = gltf.images[gltf_index];
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
             {
@@ -537,7 +383,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         for (const auto& [gltf_index, rosy_index] : normal_map_images)
         {
             // Declare it as a normal map image
-            gltf_asset.images[gltf_index].image_type = image_type_normal_map;
+            gltf_asset.images[gltf_index].image_type = rosy_asset::image_type_normal_map;
             const auto& gltf_img = gltf.images[gltf_index];
             if (!std::holds_alternative<fastgltf::sources::URI>(gltf_img.data))
             {
@@ -617,7 +463,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
     {
         for (fastgltf::Sampler& gltf_sampler : gltf.samplers)
         {
-            sampler smp{};
+            rosy_asset::sampler smp{};
             if (gltf_sampler.magFilter.has_value())
             {
                 smp.mag_filter = filter_to_val(gltf_sampler.magFilter.value());
@@ -645,7 +491,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
 
     for (fastgltf::Mesh& fast_gltf_mesh : gltf.meshes)
     {
-        mesh new_mesh{};
+        rosy_asset::mesh new_mesh{};
         for (auto& primitive : fast_gltf_mesh.primitives)
         {
             // PRIMITIVE SURFACE
@@ -653,7 +499,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
             float max = std::numeric_limits<float>::max();
             std::array<float, 3> min_bounds{max, max, max};
             std::array<float, 3> max_bounds{min, min, min};
-            surface new_surface{};
+            rosy_asset::surface new_surface{};
             new_surface.start_index = static_cast<uint32_t>(new_mesh.indices.size());
             new_surface.count = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
 
@@ -689,11 +535,11 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
             // PRIMITIVE VERTEX
             fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(gltf, pos_accessor, [&](const fastgltf::math::fvec3& v, const size_t index)
             {
-                position new_position{};
+                rosy_asset::position new_position{};
                 for (size_t i{0}; i < 3; i++)
                 {
                     min_bounds[i] = std::min(v[i], min_bounds[i]);
-                    max_bounds[i] = std::max( v[i], max_bounds[i]);
+                    max_bounds[i] = std::max(v[i], max_bounds[i]);
                 }
                 new_position.vertex = {v[0], v[1], v[2]};
                 new_position.normal = {1.0f, 0.0f, 0.0f};
@@ -752,21 +598,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         }
 
         {
-            // Optimize vertices
-            size_t total_vertices = new_mesh.positions.size();
-            size_t total_indices = new_mesh.indices.size();
-            l->info(std::format("gltf-optimize-mesh: starting vertices count: {}", total_vertices));
-            std::vector<unsigned int> remap(total_indices);
-            total_vertices = meshopt_generateVertexRemap(remap.data(), new_mesh.indices.data(), total_indices, new_mesh.positions.data(), total_vertices, sizeof(position));
-            l->info(std::format("gltf-optimize-mesh: new vertices count: {}", total_vertices));
-
-            std::vector<uint32_t> optimized_indices(total_indices);
-            meshopt_remapIndexBuffer(optimized_indices.data(), new_mesh.indices.data(), total_indices, remap.data());
-            new_mesh.indices = std::move(optimized_indices);
-
-            std::vector<position> optimized_positions(total_vertices);
-            meshopt_remapVertexBuffer(optimized_positions.data(), new_mesh.positions.data(), total_vertices, sizeof(position), remap.data());
-            new_mesh.positions = std::move(optimized_positions);
+            optimize_mesh(l, new_mesh);
         }
 
         gltf_asset.meshes.push_back(new_mesh);
@@ -775,7 +607,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
     gltf_asset.scenes.reserve(gltf.scenes.size());
     for (auto& [nodeIndices, name] : gltf.scenes)
     {
-        scene s{};
+        rosy_asset::scene s{};
         s.nodes.reserve(nodeIndices.size());
         for (size_t node_index : nodeIndices)
         {
@@ -787,7 +619,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
     gltf_asset.nodes.reserve(gltf.nodes.size());
     for (auto& gltf_node : gltf.nodes)
     {
-        node n{};
+        rosy_asset::node n{};
         n.mesh_id = static_cast<uint32_t>(gltf_node.meshIndex.value_or(SIZE_MAX));
         std::ranges::copy(gltf_node.name, std::back_inserter(n.name));
 
@@ -813,33 +645,12 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         gltf_asset.nodes.push_back(n);
     }
 
-
     if (cfg.use_mikktspace)
     {
-        l->info("generating tangents...");
-        for (size_t mesh_index{0}; mesh_index < gltf_asset.meshes.size(); mesh_index++)
+        if (const auto res = generate_tangents(l, gltf_asset); res != rosy::result::ok)
         {
-            for (size_t surface_index{0}; surface_index < gltf_asset.meshes[mesh_index].surfaces.size(); surface_index++)
-            {
-                t_space_generator_context t_ctx{
-                    .gltf_asset = &gltf_asset,
-                    .triangle_surface_map = {},
-                    .mesh_index = mesh_index,
-                    .surface_index = surface_index,
-                    .num_triangles = 0,
-                    .l = l,
-                };
-                t_space_gen_num_faces(t_ctx);
-                SMikkTSpaceContext s_mikktspace_ctx{
-                    .m_pInterface = &t_space_generator,
-                    .m_pUserData = static_cast<void*>(&t_ctx),
-                };
-                if (!genTangSpace(&s_mikktspace_ctx, 0.5f))
-                {
-                    l->error(std::format("Error generating tangents for mesh at index {}", mesh_index));
-                    return rosy::result::error;
-                }
-            }
+            l->error("Error generating gltf tangents");
+            return res;
         }
     }
     return rosy::result::ok;
