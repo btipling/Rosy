@@ -407,6 +407,16 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
     }
 
     rsy_sdk_manager->Destroy();
+
+    if (cfg.use_mikktspace)
+    {
+        if (const auto res = generate_tangents(l, fbx_asset); res != rosy::result::ok)
+        {
+            l->info("Error generating fbx tangents");
+            return res;
+        }
+    }
+
     l->info("all done importing fbx asset");
     return rosy::result::ok;
 }
