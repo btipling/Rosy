@@ -412,7 +412,7 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
     {
         if (const auto res = generate_tangents(l, fbx_asset); res != rosy::result::ok)
         {
-            l->info("Error generating fbx tangents");
+            l->error("Error generating fbx tangents");
             return res;
         }
     }

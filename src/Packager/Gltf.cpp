@@ -649,7 +649,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
     {
         if (const auto res = generate_tangents(l, gltf_asset); res != rosy::result::ok)
         {
-            l->info("Error generating gltf tangents");
+            l->error("Error generating gltf tangents");
             return res;
         }
     }

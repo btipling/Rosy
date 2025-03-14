@@ -8,25 +8,24 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.inl>
-#include <mikktspace.h>
 
 using namespace rosy_packager;
 
 
 struct t_space_surface_map
 {
-    size_t surface_index{ 0 }; // The surface's index in the gltf asset's mesh vector
-    int triangle_count_offset{ 0 }; // The number of triangles that precede this surfaces triangles
-    int current_triangle{ 0 }; // The current triangle's index within the surface.
+    size_t surface_index{0}; // The surface's index in the gltf asset's mesh vector
+    int triangle_count_offset{0}; // The number of triangles that precede this surfaces triangles
+    int current_triangle{0}; // The current triangle's index within the surface.
 };
 
 struct t_space_generator_context
 {
-    rosy_asset::asset* gltf_asset{ nullptr };
+    rosy_asset::asset* gltf_asset{nullptr};
     std::vector<t_space_surface_map> triangle_surface_map;
-    size_t mesh_index{ 0 };
-    size_t surface_index{ 0 };
-    int num_triangles{ 0 };
+    size_t mesh_index{0};
+    size_t surface_index{0};
+    int num_triangles{0};
     std::shared_ptr<rosy_logger::log> l;
 };
 
@@ -37,10 +36,10 @@ void t_space_gen_num_faces(t_space_generator_context& ctx) // NOLINT(misc-use-in
     const rosy_asset::mesh& m = ctx.gltf_asset->meshes[ctx.mesh_index];
     const size_t surface_index = ctx.surface_index;
     const rosy_asset::surface& s = m.surfaces[surface_index];
-    int num_triangles{ 0 };
+    int num_triangles{0};
     const int num_triangles_in_surface = static_cast<int>(s.count) / 3;
     ctx.triangle_surface_map.reserve(ctx.triangle_surface_map.size() + num_triangles_in_surface);
-    for (int i{ 0 }; i < num_triangles_in_surface; i++)
+    for (int i{0}; i < num_triangles_in_surface; i++)
     {
         t_space_surface_map sm{
             .surface_index = surface_index,
@@ -120,27 +119,25 @@ static glm::vec4 make_fast_space_fast_tangent(const glm::vec3& n)
 {
     if (n[2] < -0.99998796f) // Handle the singularity
     {
-        return glm::vec4(0.f, -1.f, 0.f, 1.f);
+        return {0.f, -1.f, 0.f, 1.f};
     }
     const float a = 1.f / (1.f + n[2]);
     const float b = -n[0] * n[1] * a;
-    return glm::vec4(1.f - n[0] * n[0] * a, b, -n[0], 1.f);
+    return {1.f - n[0] * n[0] * a, b, -n[0], 1.f};
 }
 
 void t_space_set_tangent(const SMikkTSpaceContext* p_context, const float new_tangent[], const float new_sign, const int requested_triangle, const int requested_triangle_vertex)
-// NOLINT(misc-use-internal-linkage)
 {
     const size_t position_index = t_space_get_asset_position_data(p_context, requested_triangle, requested_triangle_vertex);
     const auto ctx = static_cast<t_space_generator_context*>(p_context->m_pUserData);
     rosy_asset::mesh& m = ctx->gltf_asset->meshes[ctx->mesh_index];
 
-    std::array<float, 3> n = m.positions[position_index].normal;
+    const std::array<float, 3> n = m.positions[position_index].normal;
     float sign = new_sign;
-    const auto normal = glm::vec3{ n[0], n[1], n[2] };
-    glm::vec3 tangent = { new_tangent[0], new_tangent[1], new_tangent[2] };
-    if (std::abs(glm::dot(tangent, normal)) < 0.9f)
+    const auto normal = glm::vec3{n[0], n[1], n[2]};
+    if (glm::vec3 tangent = {new_tangent[0], new_tangent[1], new_tangent[2]}; std::abs(dot(tangent, normal)) < 0.9f)
     {
-        tangent = { new_tangent[0], new_tangent[1], new_tangent[2] };
+        tangent = {new_tangent[0], new_tangent[1], new_tangent[2]};
         sign = -sign;
         m.positions[position_index].tangents[0] = tangent[0];
         m.positions[position_index].tangents[1] = tangent[1];
@@ -188,9 +185,9 @@ void rosy_packager::optimize_mesh(const std::shared_ptr<rosy_logger::log>& l, ro
 rosy::result rosy_packager::generate_tangents(const std::shared_ptr<rosy_logger::log>& l, rosy_asset::asset& asset)
 {
     l->info("generating tangents...");
-    for (size_t mesh_index{ 0 }; mesh_index < asset.meshes.size(); mesh_index++)
+    for (size_t mesh_index{0}; mesh_index < asset.meshes.size(); mesh_index++)
     {
-        for (size_t surface_index{ 0 }; surface_index < asset.meshes[mesh_index].surfaces.size(); surface_index++)
+        for (size_t surface_index{0}; surface_index < asset.meshes[mesh_index].surfaces.size(); surface_index++)
         {
             t_space_generator_context t_ctx{
                 .gltf_asset = &asset,
