@@ -148,7 +148,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
                 if (gltf.textures[mat.pbrData.metallicRoughnessTexture.value().textureIndex].imageIndex.has_value())
                 {
                     m.metallic_image_index = static_cast<uint32_t>(gltf.textures[mat.pbrData.metallicRoughnessTexture.value().textureIndex].imageIndex.value());
-                    metallic_images.emplace_back(m.metallic_image_index, static_cast<uint32_t>(color_images.size()));
+                    metallic_images.emplace_back(m.metallic_image_index, static_cast<uint32_t>(metallic_images.size()));
                 }
                 else
                 {
