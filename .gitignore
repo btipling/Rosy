@@ -369,6 +369,7 @@ vcpkg_installed/
 imgui.ini
 *.png
 *.jpg
+*.tga
 *.ktx
 *.ktx2
 *.dds
