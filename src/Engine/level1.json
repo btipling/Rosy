@@ -1,4 +1,27 @@
 {
+    "assets": [
+        {
+            "path": "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy"
+        },
+        {
+            "path": "..\\assets\\sponza\\sponza.rsy"
+        },
+        {
+            "path": "..\\assets\\cornell_dragons\\cornell_dragons.rsy"
+        },
+        {
+            "path": "..\\assets\\two_cubes\\two_cubes.rsy"
+        },
+        {
+            "path": "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.rsy"
+        },
+        {
+            "path": "..\\assets\\ABeautifulGame\\ABeautifulGame.rsy"
+        },
+        {
+            "path": "..\\assets\\maya\\cubelly\\cubelly.rsy"
+        }
+    ],
     "models": [
         {
             "id": "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy:Root:mobs:rosy",

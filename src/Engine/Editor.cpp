@@ -18,9 +18,15 @@ namespace rosy_editor
         uint32_t model_type{0};
     };
 
+    struct level_asset
+    {
+        std::string path{};
+    };
+
     struct level_data
     {
         std::vector<level_data_model> models;
+        std::vector<level_asset> assets;
     };
 
     void to_json(json& j, const level_data_model& model) // NOLINT(misc-use-internal-linkage)
@@ -35,27 +41,44 @@ namespace rosy_editor
         };
     }
 
-    void from_json(const json& j, level_data_model& p) // NOLINT(misc-use-internal-linkage)
+    void from_json(const json& j, level_data_model& model) // NOLINT(misc-use-internal-linkage)
     {
-        j.at("id").get_to(p.id);
-        j.at("name").get_to(p.name);
-        j.at("location").get_to(p.location);
+        j.at("id").get_to(model.id);
+        j.at("name").get_to(model.name);
+        j.at("location").get_to(model.location);
         if (j.contains("scale"))
         {
-            j.at("scale").get_to(p.scale);
+            j.at("scale").get_to(model.scale);
         }
-        j.at("yaw").get_to(p.yaw);
-        j.at("model_type").get_to(p.model_type);
+        j.at("yaw").get_to(model.yaw);
+        j.at("model_type").get_to(model.model_type);
+    }
+
+    void to_json(json& j, const level_asset& asset) // NOLINT(misc-use-internal-linkage)
+    {
+        j = json{
+            {"path", asset.path},
+        };
+    }
+
+    void from_json(const json& j, level_asset& asset) // NOLINT(misc-use-internal-linkage)
+    {
+        j.at("path").get_to(asset.path);
     }
 
     void to_json(json& j, const level_data& l) // NOLINT(misc-use-internal-linkage)
     {
         j = json{{"models", l.models}};
+        j = json{ {"assets", l.assets} };
     }
 
     void from_json(const json& j, level_data& l) // NOLINT(misc-use-internal-linkage)
     {
         j.at("models").get_to(l.models);
+        if (j.contains("assets"))
+        {
+            j.at("assets").get_to(l.assets);
+        }
     }
 }
 
@@ -393,7 +416,7 @@ namespace
             if (ld.models.empty()) return result::ok;
             if (origin_assets.empty())
             {
-                l->error("No origin assets when loading level asset");
+                l->error("No origin assets when loading level asset. Create a level1.json file and put a path in assets");
                 return result::error;
             }
             // This constructs a new asset from the pieces of other assets as defined in the level json file.
@@ -929,16 +952,8 @@ namespace
 
         result load_asset([[maybe_unused]] level_editor_state* state)
         {
-            std::array<std::string, 7> asset_paths{
-                R"(..\assets\houdini\exports\Box_002\Box_002.rsy)",
-                R"(..\assets\sponza\sponza.rsy)",
-                R"(..\assets\cornell_dragons\cornell_dragons.rsy)",
-                R"(..\assets\two_cubes\two_cubes.rsy)",
-                R"(..\assets\deccer_cubes\SM_Deccer_Cubes_Textured_Complex.rsy)",
-                R"(..\assets\ABeautifulGame\ABeautifulGame.rsy)",
-                R"(..\assets\maya\cubelly\cubelly.rsy)",
-            };
-            for (std::string& path : asset_paths)
+          
+            for (const auto& asset : ld.assets)
             {
                 rosy_asset::asset* a;
                 if (a = new(std::nothrow) rosy_asset::asset; a == nullptr)
@@ -947,11 +962,11 @@ namespace
                     return result::allocation_failure;
                 }
                 {
-                    a->asset_path = path;
+                    a->asset_path = asset.path;
                     {
                         if (const auto res = a->read(l); res != result::ok)
                         {
-                            l->error(std::format("Failed to read the assets for {}!", path));
+                            l->error(std::format("Failed to read the assets for {}!", asset.path));
                             return result::error;
                         }
                     }
