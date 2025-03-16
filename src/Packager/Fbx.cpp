@@ -394,6 +394,8 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unu
         }
         if (!is_image) continue;
         l->info(std::format("image found: {}", entry_path.string()));
+
+        rosy_asset::image img{};
         if (image_type == "normal.tga")
         {
             if (const auto res = generate_normal_map_texture(l, entry_path); res != rosy::result::ok)
@@ -401,6 +403,7 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unu
                 l->error(std::format("error creating normal fbx image: {} for {}", static_cast<uint8_t>(res), entry_path.filename().string()));
                 return res;
             }
+            img.image_type = rosy_asset::image_type_normal_map;
         }
         if (image_type == "mixmap.tga")
         {
@@ -409,6 +412,7 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unu
                 l->error(std::format("error creating mixmap fbx image: {} for {}", static_cast<uint8_t>(res), entry_path.filename().string()));
                 return res;
             }
+            img.image_type = rosy_asset::image_type_mixmap;
         }
         if (image_type == "albedo.tga")
         {
@@ -417,7 +421,13 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unu
                 l->error(std::format("error creating albedo fbx image: {} for {}", static_cast<uint8_t>(res), entry_path.filename().string()));
                 return res;
             }
+            img.image_type = rosy_asset::image_type_color;
         }
+
+        std::filesystem::path out_path{ entry_path };
+        out_path.replace_extension(".dds");
+        std::ranges::copy(out_path.string(), std::back_inserter(img.name));
+        fbx_asset.images.push_back(img);
     }
 
     // FBX Extraction
