@@ -63,7 +63,7 @@ namespace
     }
 }
 
-rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
+rosy::result gltf::import(std::shared_ptr<rosy_logger::log>& l, gltf_config& cfg)
 {
     const std::filesystem::path file_path{source_path};
     {
@@ -101,15 +101,11 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
         const fastgltf::sources::URI uri_ds = std::get<fastgltf::sources::URI>(gltf_image_data);
         const std::string gltf_img_name{uri_ds.uri.string().substr(0, uri_ds.uri.string().find('.'))};
 
-        l->info(std::format("Adding image: {}", gltf_img_name));
         rosy_asset::image img{};
 
         std::filesystem::path img_path{gltf_asset.asset_path};
         pre_rename_image_paths.emplace_back(img_path);
         img_path.replace_filename(std::format("{}.dds", gltf_img_name));
-        l->debug(std::format("source: {} path: {} name: {}", gltf_asset.asset_path, img_path.string(), gltf_img_name));
-
-        l->info(std::format("Adding image: {}", gltf_img_name));
         std::ranges::copy(img_path.string(), std::back_inserter(img.name));
         gltf_asset.images.push_back(img);
     }
@@ -252,7 +248,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
             source_img_path.replace_filename(uri_ds.uri.string());
             if (const auto res = generate_srgb_texture(l, source_img_path); res != rosy::result::ok)
             {
-                l->info(std::format("error creating color gltf image: {}", static_cast<uint8_t>(res)));
+                l->info(std::format("error creating metallic gltf image: {}", static_cast<uint8_t>(res)));
                 return res;
             }
         }
@@ -280,7 +276,7 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
             source_img_path.replace_filename(uri_ds.uri.string());
             if (const auto res = generate_normal_map_texture(l, source_img_path); res != rosy::result::ok)
             {
-                l->info(std::format("error creating color gltf image: {}", static_cast<uint8_t>(res)));
+                l->info(std::format("error creating normal gltf image: {}", static_cast<uint8_t>(res)));
                 return res;
             }
         }

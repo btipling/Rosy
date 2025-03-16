@@ -17,6 +17,6 @@ namespace rosy_packager
         std::string source_path{};
         rosy_asset::asset gltf_asset{};
 
-        rosy::result import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg);
+        rosy::result import(std::shared_ptr<rosy_logger::log>& l, gltf_config& cfg);
     };
 }

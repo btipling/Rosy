@@ -381,6 +381,7 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unu
         const auto& entry_path = entry.path();
         if (entry_path.extension() != ".tga") continue; // FBX import only supports .tga images.
         bool is_image{false};
+        std::string image_type{};
         for (std::array supported_image_types = {
                  std::string{"normal.tga"},
                  std::string{"mixmap.tga"},
@@ -388,11 +389,36 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unu
              }; const auto& supported_type : supported_image_types)
         {
             if (const auto& fn = entry_path.filename().string(); !std::ranges::ends_with(fn, supported_type)) continue;
+            image_type = supported_type;
             is_image = true;
             break;
         }
         if (!is_image) continue;
         l->info(std::format("image found: {}", entry_path.string()));
+        if (image_type == "normal.tga")
+        {
+            if (const auto res = generate_normal_map_texture(l, entry_path); res != rosy::result::ok)
+            {
+                l->error(std::format("error creating normal fbx image: {} for {}", static_cast<uint8_t>(res), entry_path.filename().string()));
+                return res;
+            }
+        }
+        if (image_type == "mixmap.tga")
+        {
+            if (const auto res = generate_srgb_texture(l, entry_path); res != rosy::result::ok)
+            {
+                l->error(std::format("error creating mixmap fbx image: {} for {}", static_cast<uint8_t>(res), entry_path.filename().string()));
+                return res;
+            }
+        }
+        if (image_type == "albedo.tga")
+        {
+            if (const auto res = generate_srgb_texture(l, entry_path); res != rosy::result::ok)
+            {
+                l->error(std::format("error creating albedo fbx image: {} for {}", static_cast<uint8_t>(res), entry_path.filename().string()));
+                return res;
+            }
+        }
     }
 
     // FBX Extraction
