@@ -203,7 +203,7 @@ rosy::result rosy_packager::generate_tangents(const std::shared_ptr<rosy_logger:
                 .m_pInterface = &t_space_generator,
                 .m_pUserData = static_cast<void*>(&t_ctx),
             };
-            if (!genTangSpace(&s_mikktspace_ctx, 0.5f))
+            if (!genTangSpaceDefault(&s_mikktspace_ctx))
             {
                 l->error(std::format("Error generating tangents for mesh at index {}", mesh_index));
                 return rosy::result::error;

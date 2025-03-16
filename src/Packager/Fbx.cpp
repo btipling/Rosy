@@ -263,9 +263,14 @@ namespace
                             const char* uv_name{nullptr};
                             bool uv_unmapped;
                             fbx_mesh->GetPolygonVertexUV(triangle_index, triangle_vertex, uv_name, current_uv, uv_unmapped);
+                            if (uv_unmapped)
+                            {
+                                l->error(std::format("error no uvs: uv_unmapped: {}",  uv_unmapped));
+                                return rosy::result::error;
+                            }
                             float s = static_cast<float>(current_uv[0]);
-                            float t = static_cast<float>(current_uv[1]);
-                            l->info(std::format("uv: ({}, {})", s, t));
+                            float t = static_cast<float>(-current_uv[1]);
+                            l->info(std::format("uv: ({}, {}) uv_unmapped: {}", s, t, uv_unmapped));
                             p.texture_coordinates = {s, t};
                         }
                         FbxColor vertex_color{};
@@ -348,6 +353,7 @@ namespace
                 for (const auto& mat_indices : asset_materials_index_list)
                 {
                     size_t count = mat_indices.size();
+                    if (count == 0) continue;
                     rosy_asset::surface s{};
                     s.material = asset_material_index;
                     s.start_index = static_cast<uint32_t>(offset);
@@ -480,6 +486,25 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unu
 
     FbxScene* rsy_scene = FbxScene::Create(rsy_sdk_manager, "myScene");
 
+    int up_dir;
+    rsy_scene->GetGlobalSettings().GetAxisSystem().GetUpVector(up_dir);
+    switch (up_dir)
+    {
+    case FbxAxisSystem::EUpVector::eXAxis:
+        l->info("fbx scene is x up");
+        break;
+    case FbxAxisSystem::EUpVector::eYAxis:
+        l->info("fbx scene is y up");
+        break;
+    case FbxAxisSystem::EUpVector::eZAxis:
+        l->info("fbx scene is z up");
+        break;
+    default:
+        l->error("invalid up direction");
+        return rosy::result::error;
+    }
+
+
     if (const bool rsy_import_status = rsy_importer->Import(rsy_scene); !rsy_import_status)
     {
         l->error("Call to FbxImporter::Import() failed.");
@@ -492,7 +517,6 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unu
     rosy_asset::scene default_scene{};
     fbx_asset.scenes.emplace_back(default_scene);
     fbx_asset.root_scene = 0;
-
     if (FbxNode* rsy_root_node = rsy_scene->GetRootNode())
     {
         for (int i = 0; i < rsy_root_node->GetChildCount(); i++)
