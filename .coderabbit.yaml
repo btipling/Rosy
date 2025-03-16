@@ -18,11 +18,13 @@ reviews:
   related_issues: true
   related_prs: true
   suggested_labels: true
-  auto_apply_labels: false
+  auto_apply_labels: true
   suggested_reviewers: true
-  poem: true
+  poem: false
   labeling_instructions: []
-  path_filters: []
+  path_filters:
+    - '!src/libs/**'
+    - '!src/assets/**'
   path_instructions: []
   abort_on_close: true
   auto_review:
@@ -31,7 +33,8 @@ reviews:
     ignore_title_keywords: []
     labels: []
     drafts: false
-    base_branches: []
+    base_branches:
+      - master
   tools:
     shellcheck:
       enabled: true
@@ -53,10 +56,10 @@ reviews:
     swiftlint:
       enabled: true
     phpstan:
-      enabled: true
+      enabled: false
       level: default
     golangci-lint:
-      enabled: true
+      enabled: false
     yamllint:
       enabled: true
     gitleaks:
@@ -66,9 +69,9 @@ reviews:
     detekt:
       enabled: true
     eslint:
-      enabled: true
+      enabled: false
     rubocop:
-      enabled: true
+      enabled: false
     buf:
       enabled: true
     regal:
@@ -82,7 +85,7 @@ reviews:
     semgrep:
       enabled: true
     circleci:
-      enabled: true
+      enabled: false
 chat:
   auto_reply: true
 knowledge_base:

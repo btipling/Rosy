@@ -1,4 +1,27 @@
 {
+    "assets": [
+        {
+            "path": "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy"
+        },
+        {
+            "path": "..\\assets\\sponza\\sponza.rsy"
+        },
+        {
+            "path": "..\\assets\\cornell_dragons\\cornell_dragons.rsy"
+        },
+        {
+            "path": "..\\assets\\two_cubes\\two_cubes.rsy"
+        },
+        {
+            "path": "..\\assets\\deccer_cubes\\SM_Deccer_Cubes_Textured_Complex.rsy"
+        },
+        {
+            "path": "..\\assets\\ABeautifulGame\\ABeautifulGame.rsy"
+        },
+        {
+            "path": "..\\assets\\maya\\cubelly\\cubelly.rsy"
+        }
+    ],
     "models": [
         {
             "id": "..\\assets\\houdini\\exports\\Box_002\\Box_002.rsy:Root:mobs:rosy",
@@ -97,7 +120,7 @@
             "yaw": 0.0
         },
         {
-            "id": "..\\assets\\maya\\cubelly\\cubelly.rsy:pCube1",
+            "id": "..\\assets\\maya\\cubelly\\cubelly.rsy:cubelly",
             "location": [
                 0.0,
                 1.0,
@@ -106,7 +129,7 @@
             "model_type": 2,
             "name": "pCube1",
             "scale": 1.0,
-            "yaw": 0.0
+            "yaw": 0.20000000298023224
         }
     ]
 }

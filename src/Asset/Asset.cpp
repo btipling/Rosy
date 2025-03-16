@@ -413,10 +413,22 @@ rosy::result asset::read(std::shared_ptr<rosy_logger::log> l)
     FILE* stream{nullptr};
 
     {
-        l->debug(std::format("current file path: {}", std::filesystem::current_path().string()));
-        if (const errno_t err = fopen_s(&stream, asset_path.c_str(), "rb"); err != 0)
+        l->info(std::format("current file path: {}", std::filesystem::current_path().string()));
+
+        auto read_path = std::filesystem::path{ asset_path };
+        read_path = absolute(read_path);
+
+        if (!exists(read_path))
         {
-            l->error(std::format("failed to open for reading {}, {}", asset_path, err));
+            l->error(std::format("{} was not found", asset_path));
+            return rosy::result::open_failed;
+        }
+
+        l->info(std::format("{} was found", read_path.string()));
+
+        if (const errno_t err = fopen_s(&stream, read_path.string().c_str(), "rb"); err != 0)
+        {
+            l->error(std::format("failed to open for reading {}, {}", read_path.string(), err));
             return rosy::result::open_failed;
         }
     }

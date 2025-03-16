@@ -8,7 +8,6 @@ This is a hobby project to build a game engine and eventually a game in my spare
 
 ![A beautiful game](https://github.com/user-attachments/assets/f2f699e2-9690-4b93-83fd-6401dab71bf1)
 
-
 ## Modern Vulkan
 
 This project uses modern Vulkan features including:
@@ -18,6 +17,15 @@ This project uses modern Vulkan features including:
 * Bindless
 * Shader Objects
 * One global descriptor set for all images and samplers
+
+## Portability
+
+Ideally this project would run cross platform, it uses SDL and Vulkan, but there are a couple of known issues:
+
+* the use fopen_s in loading assets code.
+* the use of "b" when using fopen_s as reading from binary files.
+
+These likely do not work on non-Windows platforms.
 
 ## Building
 

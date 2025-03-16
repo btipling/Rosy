@@ -12,6 +12,18 @@
 
 using namespace rosy_packager;
 
+// FBX import is best used with flattened mesh nodes that may have optional animation. Unlike with the GLTF import, for FBX images are not extracted from the asset.
+// This import looks for three images that can exist alongside the FBX file:
+// - a color image that ends with "albedo.tga"
+// - a normal map image that ends with "normal.tga"
+// - a mixmap that ends with "mixmap.tga"
+//   - the red channel in mixmap is ambient occlusion
+//   - the green channel in mixmap is roughness
+//   - the blue channel in mixmap is metal ness
+//   - the alpha channel in mixmap is unused
+// The name of the image files must contain a substring matching the mesh's node in order to be successfully mapped to the node.
+// Support for surfaces of a mesh having their own images is a TODO.
+
 // A "Control Point" is an FBX term for what everyone else in the world calls a vertex or vertex attribute data, were it not for the fact that we aren't guaranteed to get all the vertices
 // we need to render in a graphics API like Vulkan or OpenGL via these control points. The control points are the unique set of positions in a mesh, but non-trivial meshes reuse vertices with
 // a different combination of normals and texture coordinates. A format like GLTF just gives you these, but FBX we need to create a vector of number of triangles * number of vertices in a triangle
@@ -83,7 +95,7 @@ namespace
         return "unknown";
     }
 
-    void print_attribute(const std::shared_ptr<rosy_logger::log> l, const FbxNodeAttribute* p_attribute)
+    void print_attribute(const std::shared_ptr<rosy_logger::log>& l, const FbxNodeAttribute* p_attribute)
     {
         if (!p_attribute) return;
 
@@ -93,9 +105,9 @@ namespace
         l->info(std::format("<attribute type='{}' name='{}'/>\n", type_name.Buffer(), attr_name.Buffer()));
     }
 
-    rosy::result traverse_node(const std::shared_ptr<rosy_logger::log> l, fbx_config& cfg, FbxNode* p_node, rosy_asset::asset& fbx_asset)
+    rosy::result traverse_node(const std::shared_ptr<rosy_logger::log>& l, fbx_config& cfg, FbxNode* p_node, rosy_asset::asset& fbx_asset)
     {
-        const char* node_name = p_node->GetName();
+        const auto node_name = std::string{ p_node->GetName() };
         FbxDouble3 translation = p_node->LclTranslation.Get();
         FbxDouble3 rotation = p_node->LclRotation.Get();
         FbxDouble3 scaling = p_node->LclScaling.Get();
@@ -130,6 +142,37 @@ namespace
                     l->info("no material");
                     continue;
                 }
+
+                rosy_asset::material new_asset_mat{};
+                uint32_t img_index{ 0 };
+                for (const auto& img : fbx_asset.images)
+                {
+                    if (const auto n = std::string{ img.name.begin(), img.name.end() }; n.contains(node_name))
+                    {
+                        if (n.ends_with("normal.dds"))
+                        {
+                            new_asset_mat.normal_image_index = img_index;
+                            img_index += 1;
+                            continue;
+                        }
+                        if (n.ends_with("mixmap.dds"))
+                        {
+                            new_asset_mat.mixmap_image_index = img_index;
+                            img_index += 1;
+                            continue;
+                        }
+                        if (n.ends_with("albedo.dds"))
+                        {
+                            new_asset_mat.color_image_index = img_index;
+                            img_index += 1;
+                            continue;
+                        }
+                        if (new_asset_mat.normal_image_index < UINT32_MAX && new_asset_mat.mixmap_image_index < UINT32_MAX && new_asset_mat.color_image_index < UINT32_MAX) break;
+                    }
+                    img_index += 1;
+                }
+                const auto asset_material_index = static_cast<uint32_t>(fbx_asset.materials.size());
+                fbx_asset.materials.push_back(new_asset_mat);
 
                 // material_indices lets us look up the index of the material for a triangle, which lets us create surfaces for each material
                 // triangles get assigned to surfaces, each surface has a unique material
@@ -199,9 +242,8 @@ namespace
 
                         rosy_asset::position p{};
 
-                        FbxVector4 current_vertex = mesh_vertices[mesh_vertex_index];
-
                         {
+                            FbxVector4 current_vertex = mesh_vertices[mesh_vertex_index];
                             float x = static_cast<float>(current_vertex[0]);
                             float y = static_cast<float>(current_vertex[1]);
                             float z = static_cast<float>(current_vertex[2]);
@@ -224,9 +266,14 @@ namespace
                             const char* uv_name{nullptr};
                             bool uv_unmapped;
                             fbx_mesh->GetPolygonVertexUV(triangle_index, triangle_vertex, uv_name, current_uv, uv_unmapped);
+                            if (uv_unmapped)
+                            {
+                                l->error(std::format("error no uvs: uv_unmapped: {}",  uv_unmapped));
+                                return rosy::result::error;
+                            }
                             float s = static_cast<float>(current_uv[0]);
-                            float t = static_cast<float>(current_uv[1]);
-                            l->info(std::format("uv: ({}, {})", s, t));
+                            float t = static_cast<float>(-current_uv[1]);
+                            l->info(std::format("uv: ({}, {}) uv_unmapped: {}", s, t, uv_unmapped));
                             p.texture_coordinates = {s, t};
                         }
                         FbxColor vertex_color{};
@@ -309,7 +356,9 @@ namespace
                 for (const auto& mat_indices : asset_materials_index_list)
                 {
                     size_t count = mat_indices.size();
+                    if (count == 0) continue;
                     rosy_asset::surface s{};
+                    s.material = asset_material_index;
                     s.start_index = static_cast<uint32_t>(offset);
                     s.count = static_cast<uint32_t>(count);
                     new_asset_mesh.indices.insert(new_asset_mesh.indices.end(), mat_indices.begin(), mat_indices.end());
@@ -317,23 +366,22 @@ namespace
                     new_asset_mesh.surfaces.emplace_back(s);
                 }
 
+                const size_t current_asset_mesh_index = fbx_asset.meshes.size();
                 {
+                    // add to meshes
                     optimize_mesh(l, new_asset_mesh);
+                    fbx_asset.meshes.emplace_back(new_asset_mesh);
                 }
 
-                // TODO: generate tangents
-
-                const size_t current_asset_mesh_index = fbx_asset.meshes.size();
-                fbx_asset.meshes.emplace_back(new_asset_mesh);
-
-                // As this node has a mesh add it to nodes list on the asset.
-                // TODO: support child nodes.
-                const size_t current_asset_node_index = fbx_asset.nodes.size();
-                rosy_asset::node new_asset_node{};
-                new_asset_node.name = std::vector(node_name, node_name + strlen(node_name));
-                new_asset_node.mesh_id = static_cast<uint32_t>(current_asset_mesh_index);
-                fbx_asset.scenes[0].nodes.emplace_back(static_cast<uint32_t>(current_asset_node_index));
-                fbx_asset.nodes.emplace_back(new_asset_node);
+                {
+                    // Add to nodes
+                    const size_t current_asset_node_index = fbx_asset.nodes.size();
+                    rosy_asset::node new_asset_node{};
+                    std::ranges::copy(node_name, std::back_inserter(new_asset_node.name));
+                    new_asset_node.mesh_id = static_cast<uint32_t>(current_asset_mesh_index);
+                    fbx_asset.scenes[0].nodes.emplace_back(static_cast<uint32_t>(current_asset_node_index));
+                    fbx_asset.nodes.emplace_back(new_asset_node);
+                }
 
                 l->info("done with mesh");
             }
@@ -350,14 +398,13 @@ namespace
             return rosy::result::error;
         }
 
-
         l->info("</node>\n");
         return rosy::result::ok;
     }
 }
 
 
-rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unused]] fbx_config& cfg)
+rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unused]] fbx_config& cfg)
 {
     const std::filesystem::path file_path{source_path};
     {
@@ -365,6 +412,65 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
         fbx_asset.asset_coordinate_system = mat4_to_array(m);
     }
     l->info("importing fbx starting");
+
+    // IMAGES
+
+    for (const std::filesystem::path parent_dir = file_path.parent_path(); const auto& entry : std::filesystem::directory_iterator(parent_dir))
+    {
+        const auto& entry_path = entry.path();
+        if (entry_path.extension() != ".tga") continue; // FBX import only supports .tga images.
+        bool is_image{false};
+        std::string image_type{};
+        for (std::array supported_image_types = {
+                 std::string{"normal.tga"},
+                 std::string{"mixmap.tga"},
+                 std::string{"albedo.tga"}
+             }; const auto& supported_type : supported_image_types)
+        {
+            if (const auto& fn = entry_path.filename().string(); !std::ranges::ends_with(fn, supported_type)) continue;
+            image_type = supported_type;
+            is_image = true;
+            break;
+        }
+        if (!is_image) continue;
+        l->info(std::format("image found: {}", entry_path.string()));
+
+        rosy_asset::image img{};
+        if (image_type == "normal.tga")
+        {
+            if (const auto res = generate_normal_map_texture(l, entry_path); res != rosy::result::ok)
+            {
+                l->error(std::format("error creating normal fbx image: {} for {}", static_cast<uint8_t>(res), entry_path.filename().string()));
+                return res;
+            }
+            img.image_type = rosy_asset::image_type_normal_map;
+        }
+        if (image_type == "mixmap.tga")
+        {
+            if (const auto res = generate_srgb_texture(l, entry_path); res != rosy::result::ok)
+            {
+                l->error(std::format("error creating mixmap fbx image: {} for {}", static_cast<uint8_t>(res), entry_path.filename().string()));
+                return res;
+            }
+            img.image_type = rosy_asset::image_type_mixmap;
+        }
+        if (image_type == "albedo.tga")
+        {
+            if (const auto res = generate_srgb_texture(l, entry_path); res != rosy::result::ok)
+            {
+                l->error(std::format("error creating albedo fbx image: {} for {}", static_cast<uint8_t>(res), entry_path.filename().string()));
+                return res;
+            }
+            img.image_type = rosy_asset::image_type_color;
+        }
+
+        std::filesystem::path out_path{ entry_path };
+        out_path.replace_extension(".dds");
+        std::ranges::copy(out_path.string(), std::back_inserter(img.name));
+        fbx_asset.images.push_back(img);
+    }
+
+    // FBX Extraction
 
     FbxManager* rsy_sdk_manager = FbxManager::Create();
 
@@ -383,6 +489,25 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
 
     FbxScene* rsy_scene = FbxScene::Create(rsy_sdk_manager, "myScene");
 
+    int up_dir;
+    rsy_scene->GetGlobalSettings().GetAxisSystem().GetUpVector(up_dir);
+    switch (up_dir)
+    {
+    case FbxAxisSystem::EUpVector::eXAxis:
+        l->info("fbx scene is x up");
+        break;
+    case FbxAxisSystem::EUpVector::eYAxis:
+        l->info("fbx scene is y up");
+        break;
+    case FbxAxisSystem::EUpVector::eZAxis:
+        l->info("fbx scene is z up");
+        break;
+    default:
+        l->error("invalid up direction");
+        return rosy::result::error;
+    }
+
+
     if (const bool rsy_import_status = rsy_importer->Import(rsy_scene); !rsy_import_status)
     {
         l->error("Call to FbxImporter::Import() failed.");
@@ -395,7 +520,6 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
     rosy_asset::scene default_scene{};
     fbx_asset.scenes.emplace_back(default_scene);
     fbx_asset.root_scene = 0;
-
     if (FbxNode* rsy_root_node = rsy_scene->GetRootNode())
     {
         for (int i = 0; i < rsy_root_node->GetChildCount(); i++)
@@ -407,6 +531,8 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
     }
 
     rsy_sdk_manager->Destroy();
+
+    // TANGENTS
 
     if (cfg.use_mikktspace)
     {

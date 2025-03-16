@@ -3621,10 +3621,7 @@ namespace
                 {
                     dds_image_data_size += m.size();
                 }
-
-
                 std::string dds_image_name = dds_img_path.filename().string();
-
                 {
                     new_dds_img.image_extent = dds_image_size;
 
@@ -3638,6 +3635,10 @@ namespace
                         new_dds_img.image_format = VK_FORMAT_BC7_UNORM_BLOCK;
                     }
                     else if (img.image_type == rosy_asset::image_type_metallic_roughness)
+                    {
+                        new_dds_img.image_format = VK_FORMAT_BC7_SRGB_BLOCK;
+                    }
+                    else if (img.image_type == rosy_asset::image_type_mixmap)
                     {
                         new_dds_img.image_format = VK_FORMAT_BC7_SRGB_BLOCK;
                     }
