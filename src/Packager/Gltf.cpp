@@ -24,7 +24,7 @@ namespace
             0.f, 0.f, 0.f, 1.f,
         };
         const auto pos_r = glm::value_ptr(m);
-        for (uint64_t i{ 0 }; i < 16; i++) a[i] = pos_r[i];
+        for (uint64_t i{0}; i < 16; i++) a[i] = pos_r[i];
         return a;
     }
 
@@ -311,7 +311,6 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log>& l, gltf_config& cfg
     }
 
     // MESHES
-
 
     for (fastgltf::Mesh& fast_gltf_mesh : gltf.meshes)
     {

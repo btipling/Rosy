@@ -8,8 +8,8 @@ namespace rosy_packager
 {
     struct fbx_config
     {
-        bool condition_images{ true };
-        bool use_mikktspace{ true };
+        bool condition_images{true};
+        bool use_mikktspace{true};
     };
 
     struct fbx

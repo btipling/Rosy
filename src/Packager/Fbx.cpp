@@ -94,7 +94,7 @@ namespace
         return "unknown";
     }
 
-    void print_attribute(const std::shared_ptr<rosy_logger::log> l, const FbxNodeAttribute* p_attribute)
+    void print_attribute(const std::shared_ptr<rosy_logger::log>& l, const FbxNodeAttribute* p_attribute)
     {
         if (!p_attribute) return;
 
@@ -210,9 +210,8 @@ namespace
 
                         rosy_asset::position p{};
 
-                        FbxVector4 current_vertex = mesh_vertices[mesh_vertex_index];
-
                         {
+                            FbxVector4 current_vertex = mesh_vertices[mesh_vertex_index];
                             float x = static_cast<float>(current_vertex[0]);
                             float y = static_cast<float>(current_vertex[1]);
                             float z = static_cast<float>(current_vertex[2]);
