@@ -375,6 +375,7 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unu
     l->info("importing fbx starting");
 
     // IMAGES
+
     for (const std::filesystem::path parent_dir = file_path.parent_path(); const auto& entry : std::filesystem::directory_iterator(parent_dir))
     {
         const auto& entry_path = entry.path();

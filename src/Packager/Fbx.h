@@ -17,6 +17,6 @@ namespace rosy_packager
         std::string source_path{};
         rosy_asset::asset fbx_asset{};
 
-        rosy::result import(const std::shared_ptr<rosy_logger::log> l, fbx_config& cfg);
+        rosy::result import(const std::shared_ptr<rosy_logger::log>& l, fbx_config& cfg);
     };
 }

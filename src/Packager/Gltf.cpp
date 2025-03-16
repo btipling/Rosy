@@ -227,62 +227,10 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log> l, gltf_config& cfg)
 
             std::filesystem::path source_img_path{gltf_asset.asset_path};
             source_img_path.replace_filename(uri_ds.uri.string());
-            l->info(std::format("source_img_path for color image is: {}", source_img_path.string()));
-
+            if (const auto res = generate_srgb_texture(l, source_img_path); res != rosy::result::ok)
             {
-                std::string input_filename{source_img_path.string()};
-
-                nvtt::Surface image;
-                if (!image.load(input_filename.c_str()))
-                {
-                    l->error(std::format("Failed to load file  for  {}", input_filename));
-                    return rosy::result::error;
-                }
-
-                l->debug(std::format("image data is width: {} height: {} depth: {} type: {} for ", image.width(), image.height(), image.depth(), static_cast<uint8_t>(image.type()), input_filename));
-
-                nvtt::Context context(true); // Enable CUDA
-
-                nvtt::CompressionOptions compression_options;
-                compression_options.setFormat(nvtt::Format_BC7);
-
-                img_path.replace_filename(std::format("{}.dds", gltf_img_name));
-                std::string output_filename = img_path.string();
-                nvtt::OutputOptions output_options;
-                output_options.setFileName(output_filename.c_str());
-
-                int num_mipmaps = image.countMipmaps();
-
-                l->info(std::format("num mip maps are {} for {}", num_mipmaps, input_filename));
-
-                if (!context.outputHeader(image, num_mipmaps, compression_options, output_options))
-                {
-                    l->error(std::format("Writing dds headers failed for  {}", input_filename));
-                    return rosy::result::error;
-                }
-
-                for (int mip = 0; mip < num_mipmaps; mip++)
-                {
-                    // Compress this image and write its data.
-                    if (!context.compress(image, 0 /* face */, mip, compression_options, output_options))
-                    {
-                        l->error(std::format("Compressing and writing the dds file failed for  {}", input_filename));
-                        return rosy::result::error;
-                    }
-
-                    if (mip == num_mipmaps - 1)
-                    {
-                        break;
-                    }
-
-                    image.toLinearFromSrgb();
-                    image.premultiplyAlpha();
-
-                    image.buildNextMipmap(nvtt::MipmapFilter_Box);
-
-                    image.demultiplyAlpha();
-                    image.toSrgb();
-                }
+                l->info(std::format("error creating color gltf image: {}", static_cast<uint8_t>(res)));
+                return res;
             }
         }
     }
