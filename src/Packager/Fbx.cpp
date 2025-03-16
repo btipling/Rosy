@@ -365,7 +365,7 @@ namespace
 }
 
 
-rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unused]] fbx_config& cfg)
+rosy::result fbx::import(const std::shared_ptr<rosy_logger::log>& l, [[maybe_unused]] fbx_config& cfg)
 {
     const std::filesystem::path file_path{source_path};
     {
@@ -386,9 +386,7 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
                  std::string{"albedo.tga"}
              }; const auto& supported_type : supported_image_types)
         {
-            const auto& fn = entry_path.filename().string();
-            if (supported_type.size() > fn.size()) continue;
-            if (!std::equal(supported_type.rbegin(), supported_type.rend(), fn.rbegin())) continue;
+            if (const auto& fn = entry_path.filename().string(); !std::ranges::ends_with(fn, supported_type)) continue;
             is_image = true;
             break;
         }
