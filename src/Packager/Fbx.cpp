@@ -12,6 +12,16 @@
 
 using namespace rosy_packager;
 
+// FBX import is constrained to a single flattened mesh with optional animation. Unlike with the GLTF import, for FBX images are not extracted from the asset. This import requires
+// that three images exist alongside the FBX file:
+// - a color image that ends with _albedo.tga
+// - a normal map image that ends with normal.tga
+// - a mixmap that ends with mixmap.tga
+//   - the red channel in mixmap is ambient occlusion
+//   - the green channel in mixmap is roughness
+//   - the blue channel in mixmap is metal ness
+//   - the alpha channel in mixmap is unused
+
 // A "Control Point" is an FBX term for what everyone else in the world calls a vertex or vertex attribute data, were it not for the fact that we aren't guaranteed to get all the vertices
 // we need to render in a graphics API like Vulkan or OpenGL via these control points. The control points are the unique set of positions in a mesh, but non-trivial meshes reuse vertices with
 // a different combination of normals and texture coordinates. A format like GLTF just gives you these, but FBX we need to create a vector of number of triangles * number of vertices in a triangle

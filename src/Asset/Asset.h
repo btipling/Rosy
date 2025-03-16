@@ -30,14 +30,16 @@ namespace rosy_asset
         std::array<float, 4> base_color_factor{0.f};
         float metallic_factor{0.f};
         float roughness_factor{0.f};
+        uint8_t alpha_mode{ 0 };
+        float alpha_cutoff{ 0.f };
         uint32_t color_image_index{UINT32_MAX}; // UINT32_MAX == not present
         uint32_t color_sampler_index{UINT32_MAX}; // UINT32_MAX == not present
-        uint8_t alpha_mode{0};
-        float alpha_cutoff{0.f};
         uint32_t normal_image_index{UINT32_MAX}; // UINT32_MAX == not present
         uint32_t normal_sampler_index{UINT32_MAX}; // UINT32_MAX == not present
         uint32_t metallic_image_index{UINT32_MAX}; // UINT32_MAX == not present
         uint32_t metallic_sampler_index{UINT32_MAX}; // UINT32_MAX == not present
+        uint32_t mixmap_image_index{UINT32_MAX}; // UINT32_MAX == not present
+        uint32_t mixmap_sampler_index{UINT32_MAX}; // UINT32_MAX == not present
     };
 
     struct sampler
@@ -104,6 +106,7 @@ namespace rosy_asset
     constexpr uint32_t image_type_color{0};
     constexpr uint32_t image_type_normal_map{1};
     constexpr uint32_t image_type_metallic_roughness{2};
+    constexpr uint32_t image_type_mixmap{3};
 
     // More image types as needed will be added.
     struct image
