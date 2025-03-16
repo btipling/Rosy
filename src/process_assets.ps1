@@ -1,6 +1,6 @@
 # Check if a level file was provided as an argument
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$levelFile
 )
 
@@ -22,7 +22,6 @@ $levelDir = Split-Path -Parent $levelFile
 # Process each asset
 foreach ($asset in $levelData.assets) {
     # Convert the relative path to absolute path, but replace .rsy with potential source extensions
-    $rsyPath = Join-Path $levelDir $asset.path
     # The asset paths are assumed to be relative to the Engine directory
     $rsyPath = $currentDir.Path + "\Engine\" + $asset.Path
 
@@ -47,7 +46,7 @@ foreach ($asset in $levelData.assets) {
     }
 
     if ($null -eq $sourcePath) {
-        Write-Warning "No source file (fbx/gltf) found for: $sourcePath"
+        Write-Warning "No source file (fbx/gltf) found for asset: $assetName in directory: $assetDir"
         continue
     }
 
