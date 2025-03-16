@@ -152,16 +152,19 @@ namespace
                         if (n.ends_with("normal.dds"))
                         {
                             new_asset_mat.normal_image_index = img_index;
+                            img_index += 1;
                             continue;
                         }
                         if (n.ends_with("mixmap.dds"))
                         {
                             new_asset_mat.mixmap_image_index = img_index;
+                            img_index += 1;
                             continue;
                         }
                         if (n.ends_with("albedo.dds"))
                         {
                             new_asset_mat.color_image_index = img_index;
+                            img_index += 1;
                             continue;
                         }
                         if (new_asset_mat.normal_image_index < UINT32_MAX && new_asset_mat.mixmap_image_index < UINT32_MAX && new_asset_mat.color_image_index < UINT32_MAX) break;
