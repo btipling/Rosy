@@ -12,15 +12,16 @@
 
 using namespace rosy_packager;
 
-// FBX import is constrained to a single flattened mesh with optional animation. Unlike with the GLTF import, for FBX images are not extracted from the asset. This import requires
-// that three images exist alongside the FBX file:
-// - a color image that ends with _albedo.tga
-// - a normal map image that ends with normal.tga
-// - a mixmap that ends with mixmap.tga
+// FBX import is best used with flattened mesh nodes that may have optional animation. Unlike with the GLTF import, for FBX images are not extracted from the asset.
+// This import looks for three images that can exist alongside the FBX file:
+// - a color image that ends with "albedo.tga"
+// - a normal map image that ends with "normal.tga"
+// - a mixmap that ends with "mixmap.tga"
 //   - the red channel in mixmap is ambient occlusion
 //   - the green channel in mixmap is roughness
 //   - the blue channel in mixmap is metal ness
 //   - the alpha channel in mixmap is unused
+// The name of the image files must contain a substring matching the mesh's node in order to be successfully mapped to the node.
 
 // A "Control Point" is an FBX term for what everyone else in the world calls a vertex or vertex attribute data, were it not for the fact that we aren't guaranteed to get all the vertices
 // we need to render in a graphics API like Vulkan or OpenGL via these control points. The control points are the unique set of positions in a mesh, but non-trivial meshes reuse vertices with
@@ -103,7 +104,7 @@ namespace
         l->info(std::format("<attribute type='{}' name='{}'/>\n", type_name.Buffer(), attr_name.Buffer()));
     }
 
-    rosy::result traverse_node(const std::shared_ptr<rosy_logger::log> l, fbx_config& cfg, FbxNode* p_node, rosy_asset::asset& fbx_asset)
+    rosy::result traverse_node(const std::shared_ptr<rosy_logger::log>& l, fbx_config& cfg, FbxNode* p_node, rosy_asset::asset& fbx_asset)
     {
         const char* node_name = p_node->GetName();
         FbxDouble3 translation = p_node->LclTranslation.Get();
@@ -331,8 +332,6 @@ namespace
                     optimize_mesh(l, new_asset_mesh);
                 }
 
-                // TODO: generate tangents
-
                 const size_t current_asset_mesh_index = fbx_asset.meshes.size();
                 fbx_asset.meshes.emplace_back(new_asset_mesh);
 
@@ -360,7 +359,6 @@ namespace
             return rosy::result::error;
         }
 
-
         l->info("</node>\n");
         return rosy::result::ok;
     }
@@ -375,6 +373,30 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
         fbx_asset.asset_coordinate_system = mat4_to_array(m);
     }
     l->info("importing fbx starting");
+
+    // IMAGES
+    for (const std::filesystem::path parent_dir = file_path.parent_path(); const auto& entry : std::filesystem::directory_iterator(parent_dir))
+    {
+        const auto& entry_path = entry.path();
+        if (entry_path.extension() != ".tga") continue; // FBX import only supports .tga images.
+        bool is_image{false};
+        for (std::array supported_image_types = {
+                 std::string{"normal.tga"},
+                 std::string{"mixmap.tga"},
+                 std::string{"albedo.tga"}
+             }; const auto& supported_type : supported_image_types)
+        {
+            const auto& fn = entry_path.filename().string();
+            if (supported_type.size() > fn.size()) continue;
+            if (!std::equal(supported_type.rbegin(), supported_type.rend(), fn.rbegin())) continue;
+            is_image = true;
+            break;
+        }
+        if (!is_image) continue;
+        l->info(std::format("image found: {}", entry_path.string()));
+    }
+
+    // FBX Extraction
 
     FbxManager* rsy_sdk_manager = FbxManager::Create();
 
@@ -417,6 +439,8 @@ rosy::result fbx::import(const std::shared_ptr<rosy_logger::log> l, [[maybe_unus
     }
 
     rsy_sdk_manager->Destroy();
+
+    // TANGENTS
 
     if (cfg.use_mikktspace)
     {
