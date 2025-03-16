@@ -22,6 +22,7 @@ using namespace rosy_packager;
 //   - the blue channel in mixmap is metal ness
 //   - the alpha channel in mixmap is unused
 // The name of the image files must contain a substring matching the mesh's node in order to be successfully mapped to the node.
+// Support for surfaces of a mesh having their own images is a TODO.
 
 // A "Control Point" is an FBX term for what everyone else in the world calls a vertex or vertex attribute data, were it not for the fact that we aren't guaranteed to get all the vertices
 // we need to render in a graphics API like Vulkan or OpenGL via these control points. The control points are the unique set of positions in a mesh, but non-trivial meshes reuse vertices with
@@ -106,7 +107,7 @@ namespace
 
     rosy::result traverse_node(const std::shared_ptr<rosy_logger::log>& l, fbx_config& cfg, FbxNode* p_node, rosy_asset::asset& fbx_asset)
     {
-        const char* node_name = p_node->GetName();
+        const auto node_name = std::string{ p_node->GetName() };
         FbxDouble3 translation = p_node->LclTranslation.Get();
         FbxDouble3 rotation = p_node->LclRotation.Get();
         FbxDouble3 scaling = p_node->LclScaling.Get();
@@ -141,6 +142,34 @@ namespace
                     l->info("no material");
                     continue;
                 }
+
+                rosy_asset::material new_asset_mat{};
+                uint32_t img_index{ 0 };
+                for (const auto& img : fbx_asset.images)
+                {
+                    if (const auto n = std::string{ img.name.begin(), img.name.end() }; n.contains(node_name))
+                    {
+                        if (n.ends_with("normal.dds"))
+                        {
+                            new_asset_mat.normal_image_index = img_index;
+                            continue;
+                        }
+                        if (n.ends_with("mixmap.dds"))
+                        {
+                            new_asset_mat.mixmap_image_index = img_index;
+                            continue;
+                        }
+                        if (n.ends_with("albedo.dds"))
+                        {
+                            new_asset_mat.color_image_index = img_index;
+                            continue;
+                        }
+                        if (new_asset_mat.normal_image_index < UINT32_MAX && new_asset_mat.mixmap_image_index < UINT32_MAX && new_asset_mat.color_image_index < UINT32_MAX) break;
+                    }
+                    img_index += 1;
+                }
+                const auto asset_material_index = static_cast<uint32_t>(fbx_asset.materials.size());
+                fbx_asset.materials.push_back(new_asset_mat);
 
                 // material_indices lets us look up the index of the material for a triangle, which lets us create surfaces for each material
                 // triangles get assigned to surfaces, each surface has a unique material
@@ -320,6 +349,7 @@ namespace
                 {
                     size_t count = mat_indices.size();
                     rosy_asset::surface s{};
+                    s.material = asset_material_index;
                     s.start_index = static_cast<uint32_t>(offset);
                     s.count = static_cast<uint32_t>(count);
                     new_asset_mesh.indices.insert(new_asset_mesh.indices.end(), mat_indices.begin(), mat_indices.end());
@@ -327,21 +357,22 @@ namespace
                     new_asset_mesh.surfaces.emplace_back(s);
                 }
 
+                const size_t current_asset_mesh_index = fbx_asset.meshes.size();
                 {
+                    // add to meshes
                     optimize_mesh(l, new_asset_mesh);
+                    fbx_asset.meshes.emplace_back(new_asset_mesh);
                 }
 
-                const size_t current_asset_mesh_index = fbx_asset.meshes.size();
-                fbx_asset.meshes.emplace_back(new_asset_mesh);
-
-                // As this node has a mesh add it to nodes list on the asset.
-                // TODO: support child nodes.
-                const size_t current_asset_node_index = fbx_asset.nodes.size();
-                rosy_asset::node new_asset_node{};
-                new_asset_node.name = std::vector(node_name, node_name + strlen(node_name));
-                new_asset_node.mesh_id = static_cast<uint32_t>(current_asset_mesh_index);
-                fbx_asset.scenes[0].nodes.emplace_back(static_cast<uint32_t>(current_asset_node_index));
-                fbx_asset.nodes.emplace_back(new_asset_node);
+                {
+                    // Add to nodes
+                    const size_t current_asset_node_index = fbx_asset.nodes.size();
+                    rosy_asset::node new_asset_node{};
+                    std::ranges::copy(node_name, std::back_inserter(new_asset_node.name));
+                    new_asset_node.mesh_id = static_cast<uint32_t>(current_asset_mesh_index);
+                    fbx_asset.scenes[0].nodes.emplace_back(static_cast<uint32_t>(current_asset_node_index));
+                    fbx_asset.nodes.emplace_back(new_asset_node);
+                }
 
                 l->info("done with mesh");
             }
