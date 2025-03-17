@@ -210,7 +210,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Ensure Orthogonal bitangent", &wls->light.ensure_orthogonal_bitangent);
                 ImGui::TableNextColumn();
-                ImGui::Checkbox("Reverse cross bitangent", &wls->light.reverse_cross_bitangent);
+                ImGui::Checkbox("BRDF Lighting", &wls->light.brdf_lighting_enabled);
 
                 ImGui::EndTable();
             }

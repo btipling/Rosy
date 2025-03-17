@@ -1,5 +1,6 @@
 import data;
 import pcf;
+import lighting;
 
 [[vk::binding(0, 0)]]
 texture2D imageTexture[];
@@ -57,15 +58,10 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         }
     }
 
-
     float3 normal = v.normal;
     float3 tangent = new_tangent.xyz;
 
     float3 bitangent = cross(normal, tangent) * new_tangent.w;
-    if (sd.reverseCrossBitangent == 1) {
-        bitangent = cross(tangent, normal) * new_tangent.w;
-    }
-
     if (sd.ensureOrthogonalBitangent == 1) {
         float3 normal_projection = dot(normal, bitangent) * bitangent;
         float3 ortho_n = normalize(normal - normal_projection);
@@ -194,6 +190,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     float cosTheta = dot(L, N);
     float cosPhi = dot(H, N);
+    float lDotH = dot(L, H);
+    float nDotV = dot(N, V);
 
     float4 outFragColor = md.color;
     switch (sd.fragmentOutput)
@@ -241,7 +239,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     if (sd.lightEnabled > 0)
     {
         float3 ambientLight = sd.ambientColor.xyz;
-        float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
 
         float shadowFactor = 1.f;
         if (sd.shadowsEnabled == 1)
@@ -252,8 +249,63 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csmNear)];
             shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
         }
+        if (sd.brdfLightingEnabled == 0) {
+            float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
+            outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), 1.0);
+        } else {
+            // These metal and mixmaps are exclusive. If either is available mixmap takes precedence.
+            uint mixti = md.metallic_texture_index;
+            uint mixsi = md.metallic_sampler_index;
+            uint metti = md.metallic_texture_index;
+            uint metsi = md.metallic_sampler_index;
 
-        outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), 1.0);
+            bool hasMetallic = validDescriptorIndex(metti);
+            bool hasMixmap = validDescriptorIndex(mixti);
+
+            BRDFMaterialInfo matInfo;
+            float3 diffuseColor = outFragColor.xyz;
+            matInfo.color = ambientLight;
+            matInfo.isMetal = hasMetallic || hasMixmap;
+            matInfo.roughness = 0.f;
+            if (matInfo.isMetal) {
+                matInfo.color = outFragColor.xyz;
+
+                float roughness = md.roughnessFactor;
+                float metallic = md.metallicFactor;
+                float sampledRoughness = 0.f;
+                float sampledMetallic = 0.f;
+                if (hasMixmap) {
+                    texture2D mixTexture = imageTexture[NonUniformResourceIndex(mixti)];
+                    SamplerState mixSampler = imageSampler[NonUniformResourceIndex(mixsi)];
+                    float4 mixSample = mixTexture.Sample(mixSampler, basicVertex.textureCoordinates);
+                    // red is ambient occlusion - currently unused
+                    // green is roughness
+                    // blue is metalness
+                    // these values are 0 to 1
+                    sampledRoughness = mixSample.y;
+                    sampledMetallic = mixSample.z;
+                } else {
+                    texture2D metTexture = imageTexture[NonUniformResourceIndex(mixti)];
+                    SamplerState metSampler = imageSampler[NonUniformResourceIndex(mixsi)];
+                    float4 metSample = metTexture.Sample(metSampler, basicVertex.textureCoordinates);
+                    // gltf metallicRoughness gltf spec
+                    // red reserved for optional values like occlusion
+                    // green is roughness
+                    // blue is metallic
+                    // these values are also 0 to 1
+                    sampledRoughness = metSample.y;
+                    sampledMetallic = metSample.z;
+                }
+                roughness = sampledRoughness * roughness;
+                metallic = sampledMetallic * metallic;
+
+                float3 lightIntensity = sd.sunlightColor.xyz;
+                diffuseColor = diffuseColor *= 1.f - metallic;
+                float3 specBRDF = 0.25f * ggxDistribution(cosPhi, matInfo) * schlickFresnel(lDotH, matInfo) * geoSmith(cosTheta, matInfo) * geoSmith(nDotV, matInfo);
+                float3 colorBRDF = diffuseColor + 3.14159265f * specBRDF * lightIntensity * cosTheta;
+                outFragColor = outFragColor * float4(max(ambientLight, colorBRDF * shadowFactor), 1.0);
+            }
+        }
     }
 
     Fragment output;

@@ -139,7 +139,7 @@ namespace rosy
         bool inverse_bnt{false};
         bool ignore_asset_tangent_sign{false};
         bool ensure_orthogonal_bitangent{false};
-        bool reverse_cross_bitangent{false};
+        bool brdf_lighting_enabled{false};
     };
 
     struct light_debug_state
