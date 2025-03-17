@@ -254,8 +254,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), 1.0);
         } else {
             // These metal and mixmaps are exclusive. If either is available mixmap takes precedence.
-            uint mixti = md.metallic_texture_index;
-            uint mixsi = md.metallic_sampler_index;
+            uint mixti = md.mixmap_texture_index;
+            uint mixsi = md.mixmap_sampler_index;
             uint metti = md.metallic_texture_index;
             uint metsi = md.metallic_sampler_index;
 
@@ -298,13 +298,12 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
                 }
                 roughness = sampledRoughness * roughness;
                 metallic = sampledMetallic * metallic;
-
-                float3 lightIntensity = sd.sunlightColor.xyz;
                 diffuseColor = diffuseColor *= 1.f - metallic;
-                float3 specBRDF = 0.25f * ggxDistribution(cosPhi, matInfo) * schlickFresnel(lDotH, matInfo) * geoSmith(cosTheta, matInfo) * geoSmith(nDotV, matInfo);
-                float3 colorBRDF = diffuseColor + 3.14159265f * specBRDF * lightIntensity * cosTheta;
-                outFragColor = outFragColor * float4(max(ambientLight, colorBRDF * shadowFactor), 1.0);
             }
+            float3 lightIntensity = sd.sunlightColor.xyz;
+            float3 specBRDF = 0.25f * ggxDistribution(cosPhi, matInfo) * schlickFresnel(lDotH, matInfo) * geoSmith(cosTheta, matInfo) * geoSmith(nDotV, matInfo);
+            float3 colorBRDF = diffuseColor + 3.14159265f * specBRDF * lightIntensity * cosTheta;
+            outFragColor = outFragColor * float4(max(ambientLight, colorBRDF * shadowFactor), 1.0);
         }
     }
 
