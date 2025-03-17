@@ -28,8 +28,8 @@ namespace rosy_asset
     {
         uint8_t double_sided{0};
         std::array<float, 4> base_color_factor{0.f};
-        float metallic_factor{0.f};
-        float roughness_factor{0.f};
+        float metallic_factor{0.5f};
+        float roughness_factor{0.5f};
         uint8_t alpha_mode{ 0 };
         float alpha_cutoff{ 0.f };
         uint32_t color_image_index{UINT32_MAX}; // UINT32_MAX == not present

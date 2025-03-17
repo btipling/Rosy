@@ -354,6 +354,8 @@ namespace
         uint32_t normal_sampler_index{UINT32_MAX};
         uint32_t metallic_sampled_image_index{UINT32_MAX};
         uint32_t metallic_sampler_index{UINT32_MAX};
+        uint32_t mixmap_sampled_image_index{ UINT32_MAX };
+        uint32_t mixmap_sampler_index{ UINT32_MAX };
     };
 
     struct gpu_material_buffer
@@ -4071,6 +4073,7 @@ namespace
                 materials.reserve(a.materials.size());
                 for (const rosy_asset::material& m : a.materials)
                 {
+
                     uint32_t color_image_sampler_index = UINT32_MAX;
                     uint32_t color_sampler_index = default_sampler_index;
                     if (m.color_image_index < color_image_sampler_desc_index.size())
@@ -4084,6 +4087,7 @@ namespace
                             color_sampler_index = sampler_desc_index[m.color_sampler_index];
                         }
                     }
+
                     uint32_t normal_image_sampler_index = UINT32_MAX;
                     uint32_t normal_sampler_index = default_sampler_index;
                     if (m.normal_image_index < color_image_sampler_desc_index.size())
@@ -4097,6 +4101,7 @@ namespace
                             normal_sampler_index = sampler_desc_index[m.normal_sampler_index];
                         }
                     }
+
                     uint32_t metallic_image_sampler_index = UINT32_MAX;
                     uint32_t metallic_sampler_index = default_sampler_index;
                     if (m.metallic_image_index < color_image_sampler_desc_index.size())
@@ -4110,19 +4115,40 @@ namespace
                             metallic_sampler_index = sampler_desc_index[m.metallic_sampler_index];
                         }
                     }
-                    gpu_material new_mat{};
 
+                    uint32_t mixmap_image_sampler_index = UINT32_MAX;
+                    uint32_t mixmap_sampler_index = default_sampler_index;
+                    if (m.mixmap_image_index < color_image_sampler_desc_index.size())
+                    {
+                        mixmap_image_sampler_index = color_image_sampler_desc_index[m.mixmap_image_index];
+
+                        assert(dds_textures.size() > m.mixmap_image_index);
+
+                        if (m.mixmap_sampler_index < sampler_desc_index.size())
+                        {
+                            mixmap_sampler_index = sampler_desc_index[m.mixmap_sampler_index];
+                        }
+                    }
+
+                    gpu_material new_mat{};
                     new_mat.color = m.base_color_factor;
                     new_mat.metallic_factor = m.metallic_factor;
                     new_mat.roughness_factor = m.roughness_factor;
                     new_mat.alpha_cutoff = m.alpha_cutoff;
                     new_mat.alpha_mode = m.alpha_mode;
+
                     new_mat.color_sampled_image_index = color_image_sampler_index;
                     new_mat.color_sampler_index = color_sampler_index;
+
                     new_mat.normal_sampled_image_index = normal_image_sampler_index;
                     new_mat.normal_sampler_index = normal_sampler_index;
+
                     new_mat.metallic_sampled_image_index = metallic_image_sampler_index;
                     new_mat.metallic_sampler_index = metallic_sampler_index;
+
+                    new_mat.mixmap_sampled_image_index = mixmap_image_sampler_index;
+                    new_mat.mixmap_sampler_index = mixmap_sampler_index;
+
                     materials.push_back(new_mat);
                 }
 
