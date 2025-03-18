@@ -133,6 +133,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     SceneData sd = *BasicPushConstants.sd;
     BasicGraphicsData gd = *BasicPushConstants.gd;
 
+    float3 ambientLight = sd.ambientColor.xyz;
     float4 outFragColor = basicVertex.color;
     float4 imageTextureColor = outFragColor;
     float alpha = basicVertex.color.w;
@@ -276,8 +277,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     if (sd.lightEnabled > 0)
     {
-        float3 ambientLight = sd.ambientColor.xyz;
-
         float shadowFactor = 1.f;
         if (sd.shadowsEnabled == 1)
         {
@@ -308,7 +307,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             float3 lightIntensity = sd.sunlightColor.xyz;
             float3 specBRDF = 0.25f * ggxDistribution(cosPhi, matInfo) * schlickFresnel(lDotH, matInfo) * geoSmith(cosTheta, matInfo) * geoSmith(nDotV, matInfo);
             float3 colorBRDF = (diffuseColor + 3.14159265f * specBRDF) * lightIntensity * cosTheta;
-            outFragColor = float4(max(ambientLight, colorBRDF * shadowFactor), alpha);
+            outFragColor = float4(colorBRDF * shadowFactor, alpha);
         }
     }
 
