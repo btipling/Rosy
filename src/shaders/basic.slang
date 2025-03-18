@@ -303,6 +303,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
                 roughness = sampledRoughness * roughness;
                 metallic = sampledMetallic * metallic;
                 diffuseColor = diffuseColor *= 1.f - metallic;
+                matInfo.roughness = roughness;
             }
             float3 lightIntensity = sd.sunlightColor.xyz;
             float3 specBRDF = 0.25f * ggxDistribution(cosPhi, matInfo) * schlickFresnel(lDotH, matInfo) * geoSmith(cosTheta, matInfo) * geoSmith(nDotV, matInfo);
