@@ -214,7 +214,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     float3 V = normalize(basicVertex.viewDir);
     float3 L = lightDir;
     float3 N = lightNormal;
-    float3 H = L + V;
+    float3 H = normalize(L + V);
 
     float cosTheta = dot(L, N);
     float cosPhi = dot(H, N);
