@@ -193,6 +193,9 @@ rosy::result gltf::import(std::shared_ptr<rosy_logger::log>& l, gltf_config& cfg
                 m.alpha_mode = static_cast<uint8_t>(mat.alphaMode);
                 m.alpha_cutoff = mat.alphaCutoff;
             }
+            // GLTF import doesn't support these:
+            m.mixmap_image_index = UINT32_MAX;
+            m.mixmap_sampler_index = UINT32_MAX;
             gltf_asset.materials.push_back(m);
         }
     }

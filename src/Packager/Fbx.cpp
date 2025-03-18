@@ -171,6 +171,9 @@ namespace
                     }
                     img_index += 1;
                 }
+
+                // GLTF import doesn't support these:
+                new_asset_mat.metallic_image_index = UINT32_MAX;
                 const auto asset_material_index = static_cast<uint32_t>(fbx_asset.materials.size());
                 fbx_asset.materials.push_back(new_asset_mat);
 

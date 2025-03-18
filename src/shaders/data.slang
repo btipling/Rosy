@@ -17,7 +17,7 @@ public struct BasicVertex
     public float3 tangent;
     public float3 bitangent;
     public float4 color;
-    public float2 textureCoordinates;
+    public float2 uvs;
     public float sigma;
 };
 
@@ -26,7 +26,7 @@ public struct BasicInputVertex {
     public float3 normal;
     public float4 tangent;
     public float4 color;
-    public float2 textureCoordinates;
+    public float2 uvs;
 };
 
 public struct BasicGraphicsData {

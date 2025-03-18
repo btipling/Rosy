@@ -178,40 +178,9 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip light x", &wls->light.flip_light_x);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip light y", &wls->light.flip_light_y);
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip light z", &wls->light.flip_light_z);
+                ImGui::Checkbox("BRDF Lighting", &wls->light.brdf_lighting_enabled);
                 ImGui::TableNextColumn();
                 ImGui::Text("");
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip tangent x", &wls->light.flip_tangent_x);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip tangent y", &wls->light.flip_tangent_y);
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip tangent z", &wls->light.flip_tangent_z);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Inverse BNT", &wls->light.inverse_bnt);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Ignore asset tangent sign", &wls->light.ignore_asset_tangent_sign);
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Ensure Orthogonal bitangent", &wls->light.ensure_orthogonal_bitangent);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("BRDF Lighting", &wls->light.brdf_lighting_enabled);
-
                 ImGui::EndTable();
             }
         }
@@ -260,13 +229,25 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
             ImGui::SameLine();
             ImGui::RadioButton("vertex colors", &wls->fragment_config.output, 5);
             ImGui::SameLine();
-            ImGui::RadioButton("tangent space normals", &wls->fragment_config.output, 6);
+            ImGui::RadioButton("tangent normals", &wls->fragment_config.output, 6);
             ImGui::SameLine();
             ImGui::RadioButton("bitangent", &wls->fragment_config.output, 7);
 
             ImGui::RadioButton("cosTheta", &wls->fragment_config.output, 8);
             ImGui::SameLine();
             ImGui::RadioButton("cosPhi", &wls->fragment_config.output, 9);
+            ImGui::SameLine();
+            ImGui::RadioButton("lDotH", &wls->fragment_config.output, 10);
+            ImGui::SameLine();
+            ImGui::RadioButton("nDotV", &wls->fragment_config.output, 11);
+
+            ImGui::RadioButton("uvs", &wls->fragment_config.output, 12);
+            ImGui::SameLine();
+            ImGui::RadioButton("roughness", &wls->fragment_config.output, 13);
+            ImGui::SameLine();
+            ImGui::RadioButton("metallic", &wls->fragment_config.output, 14);
+            ImGui::SameLine();
+            ImGui::RadioButton("alpha", &wls->fragment_config.output, 15);
 
             if (ImGui::BeginTable("##ToggleFragmentOptions", 2,
                                   ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
@@ -282,6 +263,49 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::Checkbox("Enable Shadows", &wls->fragment_config.shadows_enabled);
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Enable Normal maps", &wls->fragment_config.normal_maps_enabled);
+
+                ImGui::EndTable();
+            }
+        }
+        if (ImGui::CollapsingHeader("Debug lighting input"))
+        {
+            if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+            {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip light x", &wls->light.flip_light_x);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip light y", &wls->light.flip_light_y);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip light z", &wls->light.flip_light_z);
+                ImGui::TableNextColumn();
+                ImGui::Text("");
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip tangent x", &wls->light.flip_tangent_x);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip tangent y", &wls->light.flip_tangent_y);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip tangent z", &wls->light.flip_tangent_z);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Inverse BNT", &wls->light.inverse_bnt);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Ignore asset tangent sign", &wls->light.ignore_asset_tangent_sign);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Ensure Orthogonal bitangent", &wls->light.ensure_orthogonal_bitangent);
+                ImGui::TableNextColumn();
+                ImGui::Text("");
 
                 ImGui::EndTable();
             }

@@ -110,7 +110,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.viewDir = viewDir;
     output.basicVertex.lightDir = lightDir;
     output.basicVertex.sigma = new_tangent.w;
-    output.basicVertex.textureCoordinates = v.textureCoordinates;
+    output.basicVertex.uvs = v.uvs;
     output.csm.near = mul(mul(mul(ndc_to_tc, sd.shadowProjNear), worldMat), vertPos);
 
     output.sv_position = mul(mul(sd.viewproj, worldMat), vertPos);
@@ -136,6 +136,12 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     float4 outFragColor = basicVertex.color;
     float4 imageTextureColor = outFragColor;
     float alpha = basicVertex.color.w;
+
+    bool hasMetallic = false;
+    bool hasMixmap = false;
+    float sampledRoughness = 0.f;
+    float sampledMetallic = 0.f;
+
     bool hasMaterial = BasicPushConstants.md != nullptr;
 
     BasicMaterialData md;
@@ -157,7 +163,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
             SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
 
-            float3 m = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1;
+            float3 m = normalMap.Sample(normalSampler, basicVertex.uvs).xyz * 2 - 1;
             float3 n = normalize(basicVertex.normal);
             float3 t = normalize(basicVertex.tangent - n * dot(basicVertex.tangent, n));
             float3 b = normalize(cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma);
@@ -170,8 +176,37 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         {
             texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
             SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
-            imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
+            imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.uvs);
             alpha = min(imageTextureColor.w, alpha);
+        }
+        uint mixti = md.mixmap_texture_index;
+        uint mixsi = md.mixmap_sampler_index;
+        uint metti = md.metallic_texture_index;
+        uint metsi = md.metallic_sampler_index;
+
+        hasMetallic = validDescriptorIndex(metti);
+        hasMixmap = validDescriptorIndex(mixti);
+        if (hasMixmap) {
+            texture2D mixTexture = imageTexture[NonUniformResourceIndex(mixti)];
+            SamplerState mixSampler = imageSampler[NonUniformResourceIndex(mixsi)];
+            float4 mixSample = mixTexture.Sample(mixSampler, basicVertex.uvs);
+            // red is ambient occlusion - currently unused
+            // green is roughness
+            // blue is metalness
+            // these values are 0 to 1
+            sampledRoughness = mixSample.y;
+            sampledMetallic = mixSample.z;
+        } else {
+            texture2D metTexture = imageTexture[NonUniformResourceIndex(mixti)];
+            SamplerState metSampler = imageSampler[NonUniformResourceIndex(mixsi)];
+            float4 metSample = metTexture.Sample(metSampler, basicVertex.uvs);
+            // gltf metallicRoughness gltf spec
+            // red reserved for optional values like occlusion
+            // green is roughness
+            // blue is metallic
+            // these values are also 0 to 1
+            sampledRoughness = metSample.y;
+            sampledMetallic = metSample.z;
         }
     }
 
@@ -217,6 +252,24 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     case 9:
         outFragColor = float4(float3(cosPhi, cosPhi, cosPhi) * 0.5 + 0.5, alpha);
         break;
+    case 10:
+        outFragColor = float4(float3(lDotH, lDotH, lDotH) * 0.5 + 0.5, alpha);
+        break;
+    case 11:
+        outFragColor = float4(float3(nDotV, nDotV, nDotV) * 0.5 + 0.5, alpha);
+        break;
+    case 12:
+        outFragColor = float4(float3(basicVertex.uvs.x, basicVertex.uvs.y, 0.f), alpha);
+        break;
+    case 13:
+        outFragColor = float4(float3(sampledRoughness, 0.05f, 0.05f), alpha);
+        break;
+    case 14:
+        outFragColor = float4(float3(sampledMetallic, 0.05f, 0.05f), alpha);
+        break;
+    case 15:
+        outFragColor = float4(float3(1 - alpha, 0.05f, 0.05f), alpha);
+        break;
     default:
         break;
     }
@@ -237,15 +290,9 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
         if (sd.brdfLightingEnabled == 0) {
             float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
             outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), alpha);
-        } else if (hasMaterial) {
+        } else {
             // These metal and mixmaps are exclusive. If either is available mixmap takes precedence.
-            uint mixti = md.mixmap_texture_index;
-            uint mixsi = md.mixmap_sampler_index;
-            uint metti = md.metallic_texture_index;
-            uint metsi = md.metallic_sampler_index;
 
-            bool hasMetallic = validDescriptorIndex(metti);
-            bool hasMixmap = validDescriptorIndex(mixti);
 
             BRDFMaterialInfo matInfo;
             float3 diffuseColor = outFragColor.xyz;
@@ -257,30 +304,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
                 float roughness = md.roughnessFactor;
                 float metallic = md.metallicFactor;
-                float sampledRoughness = 0.f;
-                float sampledMetallic = 0.f;
-                if (hasMixmap) {
-                    texture2D mixTexture = imageTexture[NonUniformResourceIndex(mixti)];
-                    SamplerState mixSampler = imageSampler[NonUniformResourceIndex(mixsi)];
-                    float4 mixSample = mixTexture.Sample(mixSampler, basicVertex.textureCoordinates);
-                    // red is ambient occlusion - currently unused
-                    // green is roughness
-                    // blue is metalness
-                    // these values are 0 to 1
-                    sampledRoughness = mixSample.y;
-                    sampledMetallic = mixSample.z;
-                } else {
-                    texture2D metTexture = imageTexture[NonUniformResourceIndex(mixti)];
-                    SamplerState metSampler = imageSampler[NonUniformResourceIndex(mixsi)];
-                    float4 metSample = metTexture.Sample(metSampler, basicVertex.textureCoordinates);
-                    // gltf metallicRoughness gltf spec
-                    // red reserved for optional values like occlusion
-                    // green is roughness
-                    // blue is metallic
-                    // these values are also 0 to 1
-                    sampledRoughness = metSample.y;
-                    sampledMetallic = metSample.z;
-                }
                 roughness = sampledRoughness * roughness;
                 metallic = sampledMetallic * metallic;
                 // diffuseColor = diffuseColor *= 1.f - metallic;
@@ -290,7 +313,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             float3 colorBRDF = diffuseColor + 3.14159265f * specBRDF * lightIntensity * cosTheta;
             colorBRDF = diffuseColor + lightIntensity * cosTheta;
             outFragColor = float4(max(ambientLight, colorBRDF * shadowFactor), alpha);
-
         }
     }
 
