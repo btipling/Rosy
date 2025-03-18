@@ -197,8 +197,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             sampledRoughness = mixSample.y;
             sampledMetallic = mixSample.z;
         } else {
-            texture2D metTexture = imageTexture[NonUniformResourceIndex(mixti)];
-            SamplerState metSampler = imageSampler[NonUniformResourceIndex(mixsi)];
+            texture2D metTexture = imageTexture[NonUniformResourceIndex(metti)];
+            SamplerState metSampler = imageSampler[NonUniformResourceIndex(metsi)];
             float4 metSample = metTexture.Sample(metSampler, basicVertex.uvs);
             // gltf metallicRoughness gltf spec
             // red reserved for optional values like occlusion
