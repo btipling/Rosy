@@ -418,7 +418,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
     }
 }
 
-void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
+void debug_ui::assets_debug_ui(const read_level_state* rls)
 {
     if (ImGui::BeginTabItem("Assets"))
     {
@@ -770,6 +770,16 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                 }
             }
         }
+        ImGui::EndTabItem();
+    }
+}
+
+
+void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls)
+{
+    if (ImGui::BeginTabItem("Saved views"))
+    {
+        ImGui::Text("Saved views?");
         ImGui::EndTabItem();
     }
 }

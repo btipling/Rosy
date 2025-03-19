@@ -6085,6 +6085,7 @@ namespace
                     gd.shadow_map_img_id = reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near);
                     du->graphics_debug_ui(eng_stats, stats, gd, rls);
                     du->assets_debug_ui(rls);
+                    du->saved_views_debug_ui(rls);
                 }
                 ImGui::EndTabBar();
             }
