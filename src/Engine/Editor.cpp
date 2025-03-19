@@ -348,7 +348,7 @@ namespace
             return result::ok;
         }
 
-        [[nodiscard]] result process([[maybe_unused]] const read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
+        [[nodiscard]] result process(const read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
         {
             state->new_asset = nullptr;
             if (!asset_descriptions.empty())
@@ -456,6 +456,17 @@ namespace
                                 l->error(std::format("error writing level file {} after saving view", static_cast<uint8_t>(res)));
                                 return res;
                             }
+                            std::vector<saved_view> saved_views;
+                            size_t i{ 0 };
+                            for (const auto& view : ld.saved_debug_views)
+                            {
+                                saved_view sv;
+                                sv.view_name = view.view_name;
+                                sv.view_index = i;
+                                saved_views.push_back(sv);
+                                i += 1;
+                            }
+                            state->saved_views = saved_views;
                             break;
                         }
                         break;
@@ -517,6 +528,17 @@ namespace
                         state->current_level_data.static_models.push_back(new_md);
                     }
                 }
+                std::vector<saved_view> saved_views;
+                size_t i{ 0 };
+                for (const auto& view : ld.saved_debug_views)
+                {
+                    saved_view sv;
+                    sv.view_name = view.view_name;
+                    sv.view_index = i;
+                    saved_views.push_back(sv);
+                    i += 1;
+                }
+                state->saved_views = saved_views;
             }
             level_loaded = true;
             return result::ok;

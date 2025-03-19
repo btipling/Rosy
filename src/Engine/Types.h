@@ -321,6 +321,7 @@ namespace rosy
 
     struct level_editor_state
     {
+        std::vector<saved_view> saved_views;
         std::vector<asset_description> assets;
         const void* new_asset{nullptr};
         level_data current_level_data{};

@@ -801,7 +801,10 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
                 wls->editor_commands.commands.push_back(cmd_desc);
             }
         }
-
+        for (const auto& saved_view : rls->editor_state.saved_views)
+        {
+            ImGui::Text(saved_view.view_name.data());
+        }
         ImGui::EndTabItem();
     }
 }
