@@ -8,6 +8,8 @@
 // These are type declarations, not default configurations. Configure those in Level.cpp or elsewhere.
 namespace rosy
 {
+    constexpr size_t saved_view_name_size{20};
+
     enum class result : uint8_t
     {
         ok,
@@ -241,8 +243,8 @@ namespace rosy
     {
         bool record_state{};
         bool delete_view{};
-        std::array<char, 10> name{};
-        size_t delete_view_index{ 0 };
+        std::array<char, saved_view_name_size> name{};
+        size_t delete_view_index{0};
     };
 
     struct editor_command
@@ -309,6 +311,12 @@ namespace rosy
         std::string name{};
         std::vector<model_description> models;
         const void* asset{nullptr};
+    };
+
+    struct saved_view
+    {
+        std::array<char, saved_view_name_size> view_name{};
+        size_t view_index;
     };
 
     struct level_editor_state

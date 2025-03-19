@@ -28,7 +28,7 @@ namespace rosy_editor
     // when debugging an issue. This enables the free camera.
     struct saved_debug_view
     {
-        std::array<char, 10> view_name{' '};
+        std::array<char, saved_view_name_size> view_name{' '};
         std::array<float, 3> sun_position{0.f};
         std::array<float, 3> camera_position{0.f};
         float sun_yaw{ 0 };
@@ -75,7 +75,11 @@ namespace rosy_editor
 
     void from_json(const json& j, saved_debug_view& view) // NOLINT(misc-use-internal-linkage)
     {
-        j.at("view_name").get_to(view.view_name);
+        std::vector<char> input_view_name;
+        std::vector<char> output_vector_name;
+        output_vector_name.resize(view.view_name.size());
+        j.at("view_name").get_to(input_view_name);
+        memcpy(view.view_name.data(), input_view_name.data(), sizeof(char) * std::min(view.view_name.size(), input_view_name.size()));
         j.at("sun_position").get_to(view.sun_position);
         j.at("camera_position").get_to(view.camera_position);
         j.at("sun_yaw").get_to(view.sun_yaw);
