@@ -116,6 +116,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::EndTable();
             }
         }
+        ImGui::SetNextItemOpen(rls->debug_ui.lighting_tools_open, ImGuiCond_Appearing);
         if (ImGui::CollapsingHeader("Lighting"))
         {
             if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
@@ -215,6 +216,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::EndTable();
             }
         }
+        ImGui::SetNextItemOpen(rls->debug_ui.fragment_tools_open, ImGuiCond_Appearing);
         if (ImGui::CollapsingHeader("Fragment Config"))
         {
             ImGui::RadioButton("default", &wls->fragment_config.output, 0);

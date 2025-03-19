@@ -150,6 +150,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     float3 lightNormal = normalize(basicVertex.normal);
     float3 lightDir = normalize(basicVertex.lightDir);
     float3 bitangent = basicVertex.bitangent;
+    float lightDistance = length(basicVertex.lightDir);
 
     if (hasMaterial) {
         md = *BasicPushConstants.md;

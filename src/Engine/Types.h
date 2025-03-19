@@ -54,6 +54,12 @@ namespace rosy
         std::array<float, 9> normal_transform{};
     };
 
+    struct debug_ui_state
+    {
+        bool lighting_tools_open{false};
+        bool fragment_tools_open{false};
+    };
+
     struct graphics_object_update
     {
         size_t offset{0};
@@ -319,6 +325,7 @@ namespace rosy
         pick_debug_read_state pick_debugging{};
         level_editor_state editor_state{};
         graphics_object_update go_update{};
+        debug_ui_state debug_ui{};
 
         float game_camera_yaw{0};
     };
