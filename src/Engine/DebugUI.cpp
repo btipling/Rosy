@@ -802,8 +802,6 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
             }
         }
         {
-
-
             if (ImGui::BeginListBox("##SavedViesList"))
             {
                 size_t i{ 0 };
