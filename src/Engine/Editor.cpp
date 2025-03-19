@@ -31,16 +31,18 @@ namespace rosy_editor
         std::array<char, 10> view_name{' '};
         std::array<float, 3> sun_position{0.f};
         std::array<float, 3> camera_position{0.f};
-        float yaw{0};
-        float pitch{0};
+        float sun_yaw{ 0 };
+        float sun_pitch{ 0 };
+        float camera_yaw{0};
+        float camera_pitch{0};
         bool level_loaded{false};
-        size_t asset_loaded{0};
         bool frag_ui_tools_open{false};
         bool lighting_ui_tools_open{false};
         unsigned debug_view{0};
         bool shadows_enabled{false};
         bool light_enabled{false};
         bool sun_debug_enabled{false};
+        std::string asset_loaded{};
     };
 
     struct level_data
@@ -56,16 +58,18 @@ namespace rosy_editor
             {"view_name", view.view_name},
             {"sun_position", view.sun_position},
             {"camera_position", view.camera_position},
-            {"yaw", view.yaw},
-            {"pitch", view.pitch},
+            {"sun_yaw", view.sun_yaw},
+            {"sun_pitch", view.sun_pitch},
+            {"camera_yaw", view.camera_yaw},
+            {"camera_pitch", view.camera_pitch},
             {"level_loaded", view.level_loaded},
-            {"asset_loaded", view.asset_loaded},
             {"frag_ui_tools_open", view.frag_ui_tools_open},
             {"lighting_ui_tools_open", view.lighting_ui_tools_open},
             {"debug_view", view.debug_view},
             {"shadows_enabled", view.shadows_enabled},
             {"light_enabled", view.light_enabled},
             {"sun_debug_enabled", view.sun_debug_enabled},
+            {"asset_loaded", view.asset_loaded},
         };
     }
 
@@ -74,16 +78,18 @@ namespace rosy_editor
         j.at("view_name").get_to(view.view_name);
         j.at("sun_position").get_to(view.sun_position);
         j.at("camera_position").get_to(view.camera_position);
-        j.at("yaw").get_to(view.yaw);
-        j.at("pitch").get_to(view.pitch);
+        j.at("sun_yaw").get_to(view.sun_yaw);
+        j.at("sun_pitch").get_to(view.sun_pitch);
+        j.at("camera_yaw").get_to(view.camera_yaw);
+        j.at("camera_pitch").get_to(view.camera_pitch);
         j.at("level_loaded").get_to(view.level_loaded);
-        j.at("asset_loaded").get_to(view.asset_loaded);
         j.at("frag_ui_tools_open").get_to(view.frag_ui_tools_open);
         j.at("lighting_ui_tools_open").get_to(view.lighting_ui_tools_open);
         j.at("debug_view").get_to(view.debug_view);
         j.at("shadows_enabled").get_to(view.shadows_enabled);
         j.at("light_enabled").get_to(view.light_enabled);
         j.at("sun_debug_enabled").get_to(view.sun_debug_enabled);
+        j.at("asset_loaded").get_to(view.asset_loaded);
     }
 
     void to_json(json& j, const level_data_model& model) // NOLINT(misc-use-internal-linkage)
@@ -183,6 +189,8 @@ namespace
         std::vector<rosy_asset::asset*> origin_assets;
         std::vector<asset_description> asset_descriptions;
         rosy_editor::level_data ld;
+        bool level_loaded{false};
+        std::string asset_loaded{};
 
         result init(const std::shared_ptr<rosy_logger::log>& new_log)
         {
@@ -355,6 +363,8 @@ namespace
                             if (a.id == cmd.id)
                             {
                                 state->new_asset = a.asset;
+                                level_loaded = false;
+                                asset_loaded = cmd.id;
                                 return result::ok;
                             }
                         }
@@ -381,6 +391,7 @@ namespace
                             return res;
                         }
                         state->new_asset = ld.models.empty() ? asset_descriptions[0].asset : &level_asset;
+                        level_loaded = true;
                         return result::ok;
                     case editor_command::editor_command_type::add_to_level:
                         l->info("editor-command: adding to level.");
@@ -411,6 +422,37 @@ namespace
                         {
                             l->error(std::format("error removing model from level {}", static_cast<uint8_t>(res)));
                             return res;
+                        }
+                        break;
+                    case editor_command::editor_command_type::saved_views:
+                        if (cmd.view_saves.record_state)
+                        {
+                            rosy_editor::saved_debug_view save_view_data{};
+                            save_view_data.view_name = cmd.view_saves.name;
+                            save_view_data.sun_position = {rls.light.sun_position[0], rls.light.sun_position[1], rls.light.sun_position[2]};
+                            save_view_data.camera_position = {rls.cam.position[0], rls.cam.position[1], rls.cam.position[2]};
+                            save_view_data.sun_yaw = rls.light_debug.sun_yaw;
+                            save_view_data.sun_pitch = rls.light_debug.sun_pitch;
+                            save_view_data.camera_yaw = rls.cam.yaw;
+                            save_view_data.camera_pitch = rls.cam.pitch;
+                            save_view_data.level_loaded = level_loaded;
+                            if (!level_loaded)
+                            {
+                                save_view_data.asset_loaded = asset_loaded;
+                            }
+                            save_view_data.frag_ui_tools_open = rls.debug_ui.fragment_tools_open;
+                            save_view_data.lighting_ui_tools_open = rls.debug_ui.lighting_tools_open;
+                            save_view_data.debug_view = rls.fragment_config.output;
+                            save_view_data.shadows_enabled = rls.fragment_config.shadows_enabled;
+                            save_view_data.light_enabled = rls.fragment_config.light_enabled;
+                            save_view_data.sun_debug_enabled = rls.light_debug.enable_sun_debug;
+                            ld.saved_debug_views.push_back(save_view_data);
+                            if (const auto res = write(); res != result::ok)
+                            {
+                                l->error(std::format("error writing level file {} after saving view", static_cast<uint8_t>(res)));
+                                return res;
+                            }
+                            break;
                         }
                         break;
                     }
@@ -472,6 +514,7 @@ namespace
                     }
                 }
             }
+            level_loaded = true;
             return result::ok;
         }
 

@@ -783,7 +783,22 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
         ImGui::InputText("input text", view_name.data(), view_name.size());
         if (ImGui::Button("Save view", button_dims))
         {
-            // add command
+            bool has_name{ false };
+            for (const auto c : view_name)
+            {
+                has_name = c != ' ';
+                if (has_name) break;
+            }
+            if (has_name) {
+                saved_views_data view_saves{};
+                view_saves.record_state = true;
+                view_saves.name = view_name;
+                const editor_command cmd_desc{
+                    .command_type = editor_command::editor_command_type::saved_views,
+                    .view_saves = view_saves,
+                };
+                wls->editor_commands.commands.push_back(cmd_desc);
+            }
         }
 
         ImGui::EndTabItem();

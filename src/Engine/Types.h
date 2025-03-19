@@ -181,6 +181,7 @@ namespace rosy
         // 7 bitangent
         // 8 cosTheta
         // 9 cosPhi
+        // and more.. see DebugUI.cpp
         int output{0};
         bool light_enabled{false};
         bool tangent_space_enabled{false};
@@ -327,6 +328,7 @@ namespace rosy
         read_camera cam{};
 
         light_read_write_state light{};
+        light_debug_state light_debug{};
         draw_config_state draw_config{};
         std::vector<debug_object> debug_objects{};
         fragment_config_state fragment_config{};

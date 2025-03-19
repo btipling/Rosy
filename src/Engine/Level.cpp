@@ -373,6 +373,7 @@ namespace
                           rls->debug_enabled = wls->enable_edit;
                           rls->draw_config = wls->draw_config;
                           rls->light = wls->light;
+                          rls->light_debug = wls->light_debug;
                       }
                       {
                           // Fragment config

@@ -131,5 +131,43 @@
             "scale": 1.0,
             "yaw": 0.20000000298023224
         }
+    ],
+    "saved_debug_views": [
+        {
+            "asset_loaded": "..\\assets\\sponza\\sponza.rsy",
+            "camera_pitch": 0.3459996283054352,
+            "camera_position": [
+                -7.847877025604248,
+                2.2818586826324463,
+                -1.2938369512557983
+            ],
+            "camera_yaw": -2.3200016021728516,
+            "debug_view": 14,
+            "frag_ui_tools_open": false,
+            "level_loaded": false,
+            "light_enabled": true,
+            "lighting_ui_tools_open": false,
+            "shadows_enabled": true,
+            "sun_debug_enabled": false,
+            "sun_pitch": 4.931000232696533,
+            "sun_position": [
+                0.6726109385490417,
+                23.210119247436523,
+                -5.112344264984131
+            ],
+            "sun_yaw": 6.414000034332275,
+            "view_name": [
+                115,
+                112,
+                111,
+                110,
+                122,
+                97,
+                95,
+                100,
+                101,
+                0
+            ]
+        }
     ]
 }
