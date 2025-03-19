@@ -43,7 +43,6 @@ namespace rosy_editor
         bool sun_debug_enabled{false};
     };
 
-
     struct level_data
     {
         std::vector<level_data_model> models;
@@ -337,7 +336,7 @@ namespace
             return result::ok;
         }
 
-        [[nodiscard]] result process(const level_editor_commands& commands, level_editor_state* state)
+        [[nodiscard]] result process([[maybe_unused]] const read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
         {
             state->new_asset = nullptr;
             if (!asset_descriptions.empty())
@@ -1288,8 +1287,7 @@ void editor::deinit()
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result editor::process([[maybe_unused]] const level_editor_commands& commands,
-                       [[maybe_unused]] level_editor_state* state)
+result editor::process(const read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
 {
-    return em->process(commands, state);
+    return em->process(rls, commands, state);
 }

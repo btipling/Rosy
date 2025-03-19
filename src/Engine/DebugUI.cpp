@@ -780,6 +780,12 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
     if (ImGui::BeginTabItem("Saved views"))
     {
         ImGui::Text("Saved views?");
+        ImGui::InputText("input text", view_name.data(), view_name.size());
+        if (ImGui::Button("Save view", button_dims))
+        {
+            // add command
+        }
+
         ImGui::EndTabItem();
     }
 }

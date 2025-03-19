@@ -768,7 +768,7 @@ namespace
         [[nodiscard]] result update(const uint32_t viewport_width, const uint32_t viewport_height,
                                     const double dt)
         {
-            if (const auto res = level_editor->process(wls->editor_commands, &rls->editor_state); res != result::ok)
+            if (const auto res = level_editor->process(*rls, wls->editor_commands, &rls->editor_state); res != result::ok)
             {
                 l->error(std::format("Error processing editor commands {}", static_cast<uint8_t>(res)));
                 return res;

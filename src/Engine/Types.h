@@ -236,6 +236,14 @@ namespace rosy
         float yaw{0.f};
     };
 
+    struct saved_views_data
+    {
+        bool record_state{};
+        bool delete_view{};
+        std::array<char, 10> name{};
+        size_t delete_view_index{ 0 };
+    };
+
     struct editor_command
     {
         enum class editor_command_type : uint8_t
@@ -247,6 +255,7 @@ namespace rosy
             add_to_level,
             remove_from_level,
             edit_level_node,
+            saved_views,
         };
 
         enum class model_type : uint8_t
@@ -260,6 +269,7 @@ namespace rosy
         model_type mode_type_option{model_type::no_model};
         std::string id{};
         editor_command_node_data node_data{};
+        saved_views_data view_saves{};
     };
 
     struct level_data_model

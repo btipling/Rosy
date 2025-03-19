@@ -26,6 +26,7 @@ namespace rosy
         size_t selected_model{0};
         bool asset_details{true};
         bool model_details{true};
+        std::array<char, 10> view_name{};
 
         std::array<float, 3> level_edit_translate{};
         float level_edit_scale{1.f};
