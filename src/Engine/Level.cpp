@@ -354,6 +354,10 @@ namespace
                  .run([&, this]([[maybe_unused]] flecs::iter& it)
                  {
                      {
+                         // reset load saved view instruction
+                         rls->editor_state.load_saved_view = false;
+                     }
+                     {
                          // Write active camera values
                          if (std::abs(game_cam->yaw - wls->game_camera_yaw) >= 0.2)
                          {
@@ -785,6 +789,12 @@ namespace
                 return res;
             }
             camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
+            if (rls->editor_state.load_saved_view)
+            {
+                active_cam = level_state::camera_choice::free;
+                cam = free_cam;
+                cam->reposition(rls->cam.yaw, rls->cam.pitch, rls->cam.position);
+            }
             if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok)
             {
                 l->error("Error updating camera");

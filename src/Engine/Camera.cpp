@@ -314,6 +314,16 @@ void camera::set_game_cam_position(const std::array<float, 3> new_position)
     for (uint64_t i{ 0 }; i < 3; i += 1) position[i] = pos_r[i];
 }
 
+void camera::reposition(const float new_yaw, const float new_pitch, const std::array<float, 4> new_position)
+{
+    sc->pitch = new_pitch;
+    pitch = sc->pitch;
+    sc->yaw = new_yaw;
+    pitch = sc->pitch;
+    sc->position = glm::vec3(new_position[0], new_position[1], new_position[2]);
+    for (size_t i{ 0 }; i < 3; i += 1) position[i] = sc->position[static_cast<int>(i)];
+}
+
 // ReSharper disable once CppMemberFunctionMayBeStatic
 void camera::go_fast() const
 {

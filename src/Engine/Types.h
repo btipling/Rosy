@@ -326,6 +326,7 @@ namespace rosy
         std::vector<asset_description> assets;
         const void* new_asset{nullptr};
         level_data current_level_data{};
+        bool load_saved_view{false};
     };
 
     struct read_level_state

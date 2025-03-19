@@ -802,23 +802,29 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
             }
         }
         {
-            size_t i{ 0 };
-            for (const auto& saved_view : rls->editor_state.saved_views)
+
+
+            if (ImGui::BeginListBox("##SavedViesList"))
             {
-                if (ImGui::Button("Load view", button_dims))
+                size_t i{ 0 };
+                for (const auto& saved_view : rls->editor_state.saved_views)
                 {
-                    saved_views_data view_saves{};
-                    view_saves.load_view = true;
-                    view_saves.view_index = i;
-                    const editor_command cmd_desc{
-                        .command_type = editor_command::editor_command_type::saved_views,
-                        .view_saves = view_saves,
-                    };
-                    wls->editor_commands.commands.push_back(cmd_desc);
+                    if (ImGui::Selectable(std::format("##{}", i).c_str(), false))
+                    {
+                        saved_views_data view_saves{};
+                        view_saves.load_view = true;
+                        view_saves.view_index = i;
+                        const editor_command cmd_desc{
+                            .command_type = editor_command::editor_command_type::saved_views,
+                            .view_saves = view_saves,
+                        };
+                        wls->editor_commands.commands.push_back(cmd_desc);
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text("%s", saved_view.view_name.data());
+                    i += 1;
                 }
-                ImGui::SameLine();
-                ImGui::Text("%s", saved_view.view_name.data());
-                i += 1;
+                ImGui::EndListBox();
             }
         }
         ImGui::EndTabItem();

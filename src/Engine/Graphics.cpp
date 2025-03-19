@@ -6064,6 +6064,12 @@ namespace
             //ImGui::ShowDemoWindow();
             {
                 // Set dual read/write states
+                if (rls->editor_state.load_saved_view)
+                {
+                    du->wls->light = rls->light;
+                    du->wls->light_debug = rls->light_debug;
+                    du->wls->fragment_config = rls->fragment_config;
+                }
                 du->wls->game_camera_yaw = rls->game_camera_yaw;
                 du->wls->editor_commands.commands.clear();
             }

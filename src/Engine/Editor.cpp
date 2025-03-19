@@ -348,7 +348,7 @@ namespace
             return result::ok;
         }
 
-        [[nodiscard]] result process(const read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
+        [[nodiscard]] result process(read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
         {
             state->new_asset = nullptr;
             if (!asset_descriptions.empty())
@@ -424,7 +424,7 @@ namespace
                         ));
                         if (const auto res = edit_node(cmd.id, cmd.mode_type_option, cmd.node_data); res != result::ok)
                         {
-                            l->error(std::format("error removing model from level {}", static_cast<uint8_t>(res)));
+                            l->error(std::format("editor-command: error removing model from level {}", static_cast<uint8_t>(res)));
                             return res;
                         }
                         break;
@@ -433,11 +433,40 @@ namespace
                         {
                             if (ld.saved_debug_views.size() <= cmd.view_saves.view_index)
                             {
-                                l->error("attempted to load an invalid saved debug view");
+                                l->error("editor-command: attempted to load an invalid saved debug view");
                                 return result::error;
                             }
-                            std::string view_name{ ld.saved_debug_views[cmd.view_saves.view_index].view_name.data() };
-                            l->info(std::format("load view {}", view_name));
+                            const auto& view_to_load = ld.saved_debug_views[cmd.view_saves.view_index];
+                            std::string view_name{ view_to_load.view_name.data() };
+                            rls.light.sun_position = { view_to_load.sun_position[0], view_to_load.sun_position[1], view_to_load.sun_position[2], 1.f};
+                            rls.cam.position = { view_to_load.camera_position[0], view_to_load.camera_position[1], view_to_load.camera_position[2], 1.f };
+                            rls.light_debug.sun_yaw = view_to_load.sun_yaw;
+                            rls.light_debug.sun_pitch = view_to_load.sun_pitch;
+                            rls.cam.yaw = view_to_load.camera_yaw;
+                            rls.cam.pitch = view_to_load.camera_pitch;
+                            rls.debug_ui.fragment_tools_open = view_to_load.frag_ui_tools_open;
+                            rls.debug_ui.lighting_tools_open = view_to_load.lighting_ui_tools_open;
+                            rls.fragment_config.output = static_cast<int>(view_to_load.debug_view);
+                            rls.fragment_config.shadows_enabled = view_to_load.shadows_enabled;
+                            rls.fragment_config.light_enabled = view_to_load.light_enabled;
+                            rls.light_debug.enable_sun_debug = view_to_load.sun_debug_enabled;
+                            state->load_saved_view = true;
+
+                            l->info(std::format("editor-command: load saved view {}", view_name));
+                            if (!view_to_load.level_loaded) {
+                                l->info(std::format("editor-command: load saved view with asset id: {}", view_to_load.asset_loaded));
+                                for (const auto& a : asset_descriptions)
+                                {
+                                    if (a.id == view_to_load.asset_loaded)
+                                    {
+                                        state->new_asset = a.asset;
+                                        level_loaded = false;
+                                        asset_loaded = cmd.id;
+                                        return result::ok;
+                                    }
+                                }
+                                l->warn(std::format("editor-command: could not load saved view with asset id: {}", view_to_load.asset_loaded));
+                            }
                         }
                         if (cmd.view_saves.record_state)
                         {
@@ -1366,7 +1395,7 @@ void editor::deinit()
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result editor::process(const read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
+result editor::process(read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
 {
     return em->process(rls, commands, state);
 }
