@@ -429,6 +429,16 @@ namespace
                         }
                         break;
                     case editor_command::editor_command_type::saved_views:
+                        if (cmd.view_saves.load_view)
+                        {
+                            if (ld.saved_debug_views.size() <= cmd.view_saves.view_index)
+                            {
+                                l->error("attempted to load an invalid saved debug view");
+                                return result::error;
+                            }
+                            std::string view_name{ ld.saved_debug_views[cmd.view_saves.view_index].view_name.data() };
+                            l->info(std::format("load view {}", view_name));
+                        }
                         if (cmd.view_saves.record_state)
                         {
                             rosy_editor::saved_debug_view save_view_data{};

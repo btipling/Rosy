@@ -243,8 +243,9 @@ namespace rosy
     {
         bool record_state{};
         bool delete_view{};
+        bool load_view{};
         std::array<char, saved_view_name_size> name{};
-        size_t delete_view_index{0};
+        size_t view_index{0};
     };
 
     struct editor_command
