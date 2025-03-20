@@ -819,7 +819,9 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
                         saved_views_data view_saves{};
                         switch (saved_views_mode) {
                         case 1:
-                            view_saves.load_view = true;
+                            view_saves.update_view = true;
+                            view_saves.name = view_name;
+                            view_name = {};
                             break;
                         case 2:
                             view_saves.delete_view = true;
@@ -834,11 +836,11 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
                             .view_saves = view_saves,
                         };
                         wls->editor_commands.commands.push_back(cmd_desc);
+                        saved_views_mode = 0;
                     }
                     ImGui::SameLine();
                     ImGui::Text("%s", saved_view.view_name.data());
                     i += 1;
-                    saved_views_mode = 0;
                 }
                 ImGui::EndListBox();
             }

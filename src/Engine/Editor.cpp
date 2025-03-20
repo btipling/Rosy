@@ -440,6 +440,7 @@ namespace
                                 l->error(std::format("error deleting level file {} after saving view", static_cast<uint8_t>(res)));
                                 return res;
                             }
+                            state->saved_views = updated_saved_views();
                             l->info(std::format("deleted saved view {} at index {}", view_name, cmd.view_saves.view_index));
                             break;
                         }
@@ -482,6 +483,7 @@ namespace
                                 }
                                 l->warn(std::format("editor-command: could not load saved view with asset id: {}", view_to_load.asset_loaded));
                             }
+                            break;
                         }
                         if (cmd.view_saves.record_state || cmd.view_saves.update_view)
                         {
@@ -493,11 +495,6 @@ namespace
                             save_view_data.sun_pitch = rls.light_debug.sun_pitch;
                             save_view_data.camera_yaw = rls.cam.yaw;
                             save_view_data.camera_pitch = rls.cam.pitch;
-                            save_view_data.level_loaded = level_loaded;
-                            if (!level_loaded)
-                            {
-                                save_view_data.asset_loaded = asset_loaded;
-                            }
                             save_view_data.frag_ui_tools_open = rls.debug_ui.fragment_tools_open;
                             save_view_data.lighting_ui_tools_open = rls.debug_ui.lighting_tools_open;
                             save_view_data.debug_view = rls.fragment_config.output;
@@ -506,6 +503,12 @@ namespace
                             save_view_data.sun_debug_enabled = rls.light_debug.enable_sun_debug;
                             if (cmd.view_saves.record_state)
                             {
+                                // Can't update level_loaded or asset loaded, so this is specific to initial record state.
+                                save_view_data.level_loaded = level_loaded;
+                                if (!level_loaded)
+                                {
+                                    save_view_data.asset_loaded = asset_loaded;
+                                }
                                 ld.saved_debug_views.push_back(save_view_data);
                             }
                             if (cmd.view_saves.update_view)
@@ -527,6 +530,8 @@ namespace
                                 {
                                     save_view_data.view_name = view_to_update.view_name;
                                 }
+                                save_view_data.level_loaded = view_to_update.level_loaded;
+                                save_view_data.asset_loaded = view_to_update.asset_loaded;
                                 ld.saved_debug_views[cmd.view_saves.view_index] = save_view_data;
                                 l->info(std::format("updating saved view {} at index {}", view_name, cmd.view_saves.view_index));
                             }
@@ -535,17 +540,7 @@ namespace
                                 l->error(std::format("error writing level file {} after saving view", static_cast<uint8_t>(res)));
                                 return res;
                             }
-                            std::vector<saved_view> saved_views;
-                            size_t i{0};
-                            for (const auto& view : ld.saved_debug_views)
-                            {
-                                saved_view sv;
-                                sv.view_name = view.view_name;
-                                sv.view_index = i;
-                                saved_views.push_back(sv);
-                                i += 1;
-                            }
-                            state->saved_views = saved_views;
+                            state->saved_views = updated_saved_views();
                             break;
                         }
                         break;
@@ -607,20 +602,25 @@ namespace
                         state->current_level_data.static_models.push_back(new_md);
                     }
                 }
-                std::vector<saved_view> saved_views;
-                size_t i{0};
-                for (const auto& view : ld.saved_debug_views)
-                {
-                    saved_view sv;
-                    sv.view_name = view.view_name;
-                    sv.view_index = i;
-                    saved_views.push_back(sv);
-                    i += 1;
-                }
-                state->saved_views = saved_views;
+                state->saved_views = updated_saved_views();
             }
             level_loaded = true;
             return result::ok;
+        }
+
+        std::vector<saved_view> updated_saved_views() const
+        {
+            std::vector<saved_view> saved_views;
+            size_t i{0};
+            for (const auto& view : ld.saved_debug_views)
+            {
+                saved_view sv;
+                sv.view_name = view.view_name;
+                sv.view_index = i;
+                saved_views.push_back(sv);
+                i += 1;
+            }
+            return saved_views;
         }
 
         result load_level_asset()

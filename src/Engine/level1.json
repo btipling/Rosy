@@ -284,29 +284,29 @@
             "view_name": "sponza lighting"
         },
         {
-            "asset_loaded": "",
-            "camera_pitch": 1.0860038995742798,
+            "asset_loaded": "..\\assets\\cornell_dragons\\cornell_dragons.rsy",
+            "camera_pitch": 0.09000448137521744,
             "camera_position": [
-                -6.157391548156738,
-                8.626039505004883,
-                13.754281997680664
+                -0.3382521867752075,
+                5.954812526702881,
+                13.267627716064453
             ],
-            "camera_yaw": 4.660004138946533,
+            "camera_yaw": 0.012003086507320404,
             "debug_view": 0,
             "frag_ui_tools_open": false,
             "level_loaded": false,
             "light_enabled": true,
             "lighting_ui_tools_open": false,
             "shadows_enabled": true,
-            "sun_debug_enabled": false,
-            "sun_pitch": 4.538000106811523,
+            "sun_debug_enabled": true,
+            "sun_pitch": 3.3959999084472656,
             "sun_position": [
-                -0.5381101965904236,
-                23.415382385253906,
-                4.090038299560547
+                -3.0015621185302734,
+                5.983748435974121,
+                22.81410789489746
             ],
             "sun_yaw": 6.414000034332275,
-            "view_name": "delete test"
+            "view_name": "cornell dragonsz"
         }
     ]
 }
