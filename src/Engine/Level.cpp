@@ -1000,6 +1000,7 @@ namespace
 
                 const glm::mat4 node_object_space_transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
                 const glm::mat4 node_world_space_transform = array_to_mat4(queue_item.game_node->get_world_space_transform());
+                const glm::mat4 to_object_space_transform = array_to_mat4(queue_item.game_node->get_to_object_space_transform());
 
                 // Set node bounds for bound testing.
                 node_bounds object_space_bounds{};
@@ -1022,7 +1023,6 @@ namespace
 
                     {
                         // Record the assets transforms from the asset
-                        const glm::mat4 to_object_space_transform = glm::inverse(static_cast<glm::mat4>(node_world_space_transform));
                         const glm::mat3 normal_transform = glm::transpose(glm::inverse(glm::mat3(node_world_space_transform)));
 
                         go.transform = mat4_to_array(node_world_space_transform);
