@@ -354,8 +354,8 @@ namespace
         uint32_t normal_sampler_index{UINT32_MAX};
         uint32_t metallic_sampled_image_index{UINT32_MAX};
         uint32_t metallic_sampler_index{UINT32_MAX};
-        uint32_t mixmap_sampled_image_index{ UINT32_MAX };
-        uint32_t mixmap_sampler_index{ UINT32_MAX };
+        uint32_t mixmap_sampled_image_index{UINT32_MAX};
+        uint32_t mixmap_sampler_index{UINT32_MAX};
     };
 
     struct gpu_material_buffer
@@ -4073,7 +4073,6 @@ namespace
                 materials.reserve(a.materials.size());
                 for (const rosy_asset::material& m : a.materials)
                 {
-
                     uint32_t color_image_sampler_index = UINT32_MAX;
                     uint32_t color_sampler_index = default_sampler_index;
                     if (m.color_image_index < color_image_sampler_desc_index.size())

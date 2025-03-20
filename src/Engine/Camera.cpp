@@ -304,14 +304,14 @@ void camera::set_yaw_around_position(const float new_yaw, const std::array<float
     sc->set_yaw_around_position(new_yaw, new_position, static_cast<float>(fov));
     yaw = sc->yaw;
     const auto pos_r = glm::value_ptr(sc->position);
-    for (uint64_t i{ 0 }; i < 3; i += 1) position[i] = pos_r[i];
+    for (uint64_t i{0}; i < 3; i += 1) position[i] = pos_r[i];
 }
 
 void camera::set_game_cam_position(const std::array<float, 3> new_position)
 {
     sc->set_position(new_position, static_cast<float>(fov));
     const auto pos_r = glm::value_ptr(sc->position);
-    for (uint64_t i{ 0 }; i < 3; i += 1) position[i] = pos_r[i];
+    for (uint64_t i{0}; i < 3; i += 1) position[i] = pos_r[i];
 }
 
 void camera::reposition(const float new_yaw, const float new_pitch, const std::array<float, 4> new_position)
@@ -321,7 +321,7 @@ void camera::reposition(const float new_yaw, const float new_pitch, const std::a
     sc->yaw = new_yaw;
     pitch = sc->pitch;
     sc->position = glm::vec3(new_position[0], new_position[1], new_position[2]);
-    for (size_t i{ 0 }; i < 3; i += 1) position[i] = sc->position[static_cast<int>(i)];
+    for (size_t i{0}; i < 3; i += 1) position[i] = sc->position[static_cast<int>(i)];
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic

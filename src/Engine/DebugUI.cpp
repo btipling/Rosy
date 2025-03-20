@@ -811,13 +811,14 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
         {
             if (ImGui::BeginListBox("##SavedViesList"))
             {
-                size_t i{ 0 };
+                size_t i{0};
                 for (const auto& saved_view : rls->editor_state.saved_views)
                 {
                     if (ImGui::Selectable(std::format("##{}", i).c_str(), false))
                     {
                         saved_views_data view_saves{};
-                        switch (saved_views_mode) {
+                        switch (saved_views_mode)
+                        {
                         case 1:
                             view_saves.update_view = true;
                             view_saves.name = view_name;

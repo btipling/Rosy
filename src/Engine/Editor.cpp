@@ -468,7 +468,12 @@ namespace
                             state->load_saved_view = true;
 
                             l->info(std::format("editor-command: load saved view {}", view_name));
-                            if (!view_to_load.level_loaded)
+                            if (view_to_load.level_loaded)
+                            {
+                                state->new_asset = &level_asset;
+                                level_loaded = true;
+                            }
+                            else
                             {
                                 l->info(std::format("editor-command: load saved view with asset id: {}", view_to_load.asset_loaded));
                                 for (const auto& a : asset_descriptions)
