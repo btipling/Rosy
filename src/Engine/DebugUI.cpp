@@ -781,7 +781,7 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
     {
         ImGui::Text("Saved views?");
         ImGui::InputText("input text", view_name.data(), view_name.size());
-        if (ImGui::Button("Save view", button_dims))
+        if (ImGui::Button("Save new view", button_dims))
         {
             bool has_name{false};
             for (const auto c : view_name)
@@ -802,6 +802,13 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
             }
         }
         {
+            ImGui::RadioButton("load", &saved_views_mode, 0);
+            ImGui::SameLine();
+            ImGui::RadioButton("update", &saved_views_mode, 1);
+            ImGui::SameLine();
+            ImGui::RadioButton("delete", &saved_views_mode, 2);
+        }
+        {
             if (ImGui::BeginListBox("##SavedViesList"))
             {
                 size_t i{ 0 };
@@ -810,7 +817,17 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
                     if (ImGui::Selectable(std::format("##{}", i).c_str(), false))
                     {
                         saved_views_data view_saves{};
-                        view_saves.load_view = true;
+                        switch (saved_views_mode) {
+                        case 1:
+                            view_saves.load_view = true;
+                            break;
+                        case 2:
+                            view_saves.delete_view = true;
+                            break;
+                        default:
+                            view_saves.load_view = true;
+                            break;
+                        }
                         view_saves.view_index = i;
                         const editor_command cmd_desc{
                             .command_type = editor_command::editor_command_type::saved_views,
@@ -821,6 +838,7 @@ void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls
                     ImGui::SameLine();
                     ImGui::Text("%s", saved_view.view_name.data());
                     i += 1;
+                    saved_views_mode = 0;
                 }
                 ImGui::EndListBox();
             }

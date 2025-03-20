@@ -243,6 +243,7 @@ namespace rosy
     {
         bool record_state{};
         bool delete_view{};
+        bool update_view{};
         bool load_view{};
         std::array<char, saved_view_name_size> name{};
         size_t view_index{0};
@@ -316,7 +317,7 @@ namespace rosy
 
     struct saved_view
     {
-        std::array<char, saved_view_name_size> view_name{};
+        std::string view_name{};
         size_t view_index;
     };
 

@@ -28,11 +28,11 @@ namespace rosy_editor
     // when debugging an issue. This enables the free camera.
     struct saved_debug_view
     {
-        std::array<char, saved_view_name_size> view_name{' '};
+        std::string view_name{""};
         std::array<float, 3> sun_position{0.f};
         std::array<float, 3> camera_position{0.f};
-        float sun_yaw{ 0 };
-        float sun_pitch{ 0 };
+        float sun_yaw{0};
+        float sun_pitch{0};
         float camera_yaw{0};
         float camera_pitch{0};
         bool level_loaded{false};
@@ -75,11 +75,7 @@ namespace rosy_editor
 
     void from_json(const json& j, saved_debug_view& view) // NOLINT(misc-use-internal-linkage)
     {
-        std::vector<char> input_view_name;
-        std::vector<char> output_vector_name;
-        output_vector_name.resize(view.view_name.size());
-        j.at("view_name").get_to(input_view_name);
-        memcpy(view.view_name.data(), input_view_name.data(), sizeof(char) * std::min(view.view_name.size(), input_view_name.size()));
+        j.at("view_name").get_to(view.view_name);
         j.at("sun_position").get_to(view.sun_position);
         j.at("camera_position").get_to(view.camera_position);
         j.at("sun_yaw").get_to(view.sun_yaw);
@@ -429,6 +425,24 @@ namespace
                         }
                         break;
                     case editor_command::editor_command_type::saved_views:
+                        if (cmd.view_saves.delete_view)
+                        {
+                            if (ld.saved_debug_views.size() <= cmd.view_saves.view_index)
+                            {
+                                l->error("editor-command: attempted to delete an invalid saved debug view");
+                                return result::error;
+                            }
+                            const auto& view_to_delete = ld.saved_debug_views[cmd.view_saves.view_index];
+                            std::string view_name = view_to_delete.view_name;
+                            ld.saved_debug_views.erase(ld.saved_debug_views.begin() + static_cast<long long>(cmd.view_saves.view_index));
+                            if (const auto res = write(); res != result::ok)
+                            {
+                                l->error(std::format("error deleting level file {} after saving view", static_cast<uint8_t>(res)));
+                                return res;
+                            }
+                            l->info(std::format("deleted saved view {} at index {}", view_name, cmd.view_saves.view_index));
+                            break;
+                        }
                         if (cmd.view_saves.load_view)
                         {
                             if (ld.saved_debug_views.size() <= cmd.view_saves.view_index)
@@ -437,9 +451,9 @@ namespace
                                 return result::error;
                             }
                             const auto& view_to_load = ld.saved_debug_views[cmd.view_saves.view_index];
-                            std::string view_name{ view_to_load.view_name.data() };
-                            rls.light.sun_position = { view_to_load.sun_position[0], view_to_load.sun_position[1], view_to_load.sun_position[2], 1.f};
-                            rls.cam.position = { view_to_load.camera_position[0], view_to_load.camera_position[1], view_to_load.camera_position[2], 1.f };
+                            std::string view_name = view_to_load.view_name;
+                            rls.light.sun_position = {view_to_load.sun_position[0], view_to_load.sun_position[1], view_to_load.sun_position[2], 1.f};
+                            rls.cam.position = {view_to_load.camera_position[0], view_to_load.camera_position[1], view_to_load.camera_position[2], 1.f};
                             rls.light_debug.sun_yaw = view_to_load.sun_yaw;
                             rls.light_debug.sun_pitch = view_to_load.sun_pitch;
                             rls.cam.yaw = view_to_load.camera_yaw;
@@ -453,7 +467,8 @@ namespace
                             state->load_saved_view = true;
 
                             l->info(std::format("editor-command: load saved view {}", view_name));
-                            if (!view_to_load.level_loaded) {
+                            if (!view_to_load.level_loaded)
+                            {
                                 l->info(std::format("editor-command: load saved view with asset id: {}", view_to_load.asset_loaded));
                                 for (const auto& a : asset_descriptions)
                                 {
@@ -468,10 +483,10 @@ namespace
                                 l->warn(std::format("editor-command: could not load saved view with asset id: {}", view_to_load.asset_loaded));
                             }
                         }
-                        if (cmd.view_saves.record_state)
+                        if (cmd.view_saves.record_state || cmd.view_saves.update_view)
                         {
                             rosy_editor::saved_debug_view save_view_data{};
-                            save_view_data.view_name = cmd.view_saves.name;
+                            save_view_data.view_name = std::string{cmd.view_saves.name.data()};
                             save_view_data.sun_position = {rls.light.sun_position[0], rls.light.sun_position[1], rls.light.sun_position[2]};
                             save_view_data.camera_position = {rls.cam.position[0], rls.cam.position[1], rls.cam.position[2]};
                             save_view_data.sun_yaw = rls.light_debug.sun_yaw;
@@ -489,14 +504,39 @@ namespace
                             save_view_data.shadows_enabled = rls.fragment_config.shadows_enabled;
                             save_view_data.light_enabled = rls.fragment_config.light_enabled;
                             save_view_data.sun_debug_enabled = rls.light_debug.enable_sun_debug;
-                            ld.saved_debug_views.push_back(save_view_data);
+                            if (cmd.view_saves.record_state)
+                            {
+                                ld.saved_debug_views.push_back(save_view_data);
+                            }
+                            if (cmd.view_saves.update_view)
+                            {
+                                if (ld.saved_debug_views.size() <= cmd.view_saves.view_index)
+                                {
+                                    l->error("editor-command: attempted to update an invalid saved debug view");
+                                    return result::error;
+                                }
+                                const auto& view_to_update = ld.saved_debug_views[cmd.view_saves.view_index];
+                                std::string view_name = view_to_update.view_name;
+                                bool has_name{false};
+                                for (const auto c : view_name)
+                                {
+                                    has_name = c != ' ';
+                                    if (has_name) break;
+                                }
+                                if (!has_name)
+                                {
+                                    save_view_data.view_name = view_to_update.view_name;
+                                }
+                                ld.saved_debug_views[cmd.view_saves.view_index] = save_view_data;
+                                l->info(std::format("updating saved view {} at index {}", view_name, cmd.view_saves.view_index));
+                            }
                             if (const auto res = write(); res != result::ok)
                             {
                                 l->error(std::format("error writing level file {} after saving view", static_cast<uint8_t>(res)));
                                 return res;
                             }
                             std::vector<saved_view> saved_views;
-                            size_t i{ 0 };
+                            size_t i{0};
                             for (const auto& view : ld.saved_debug_views)
                             {
                                 saved_view sv;
@@ -568,7 +608,7 @@ namespace
                     }
                 }
                 std::vector<saved_view> saved_views;
-                size_t i{ 0 };
+                size_t i{0};
                 for (const auto& view : ld.saved_debug_views)
                 {
                     saved_view sv;
