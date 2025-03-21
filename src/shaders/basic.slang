@@ -302,8 +302,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
             outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), alpha);
         } else {
-            outFragColor = float4(srgbToLinear(outFragColor.x), srgbToLinear(outFragColor.y), srgbToLinear(outFragColor.z), 1.f);
-
             roughness = sampledRoughness;
             metallic = sampledMetallic;
 
@@ -312,8 +310,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
             float3 lightIntensity = sd.sunlightColor.xyz;
 
-            float ndf = ggxDistribution(hDotN, roughness);
-            float g = geoSmith(lDotN, roughness) * geoSmith(nDotV, roughness);
+            float ndf = DistributionGGX(N, H, roughness);
+            float g = GeometrySmith(N, V, L, roughness);
             float3 f = schlickFresnel(max(dot(H, V), 0.0), f0);
 
             float3 kS = f;
@@ -328,7 +326,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
             float3 colorBRDF = (kD * diffuse + specular) * lightIntensity * lDotN;
             colorBRDF = max(ambientLight.xyz * diffuse, colorBRDF * shadowFactor);
-            outFragColor = float4(linearToSrgb(colorBRDF.x), linearToSrgb(colorBRDF.y), linearToSrgb(colorBRDF.z), alpha);
+            outFragColor = float4(colorBRDF, alpha);
         }
     }
 
