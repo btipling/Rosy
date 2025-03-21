@@ -142,6 +142,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     bool hasMixmap = false;
     float sampledRoughness = 0.f;
     float sampledMetallic = 0.f;
+    float roughness = 0.f;
+    float metallic = 0.f;
 
     bool hasMaterial = BasicPushConstants.md != nullptr;
 
@@ -291,24 +293,17 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
             outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), alpha);
         } else {
-            BRDFMaterialInfo matInfo;
-            float3 diffuseColor = outFragColor.xyz;
-            matInfo.color = float3(0.04f);
-            matInfo.isMetal = hasMetallic || hasMixmap;
-            matInfo.roughness = 0.f;
-            if (matInfo.isMetal) {
-                matInfo.color = outFragColor.xyz;
+            roughness = sampledRoughness;
+            metallic = sampledMetallic;
 
-                float roughness = md.roughnessFactor;
-                float metallic = md.metallicFactor;
-                roughness = sampledRoughness * roughness;
-                metallic = sampledMetallic * metallic;
-                diffuseColor = diffuseColor *= 1.f - metallic;
-                matInfo.roughness = roughness;
-            }
+            float3 diffuseColor = outFragColor.xyz;
+            float3 f0 = float3(0.04f);
+
+            f0 = lerp(f0, outFragColor.xyz, metallic);
+
             float3 lightIntensity = sd.sunlightColor.xyz;
-            float3 specBRDF = 0.25f * ggxDistribution(cosPhi, matInfo) * schlickFresnel(lDotH, matInfo) * geoSmith(cosTheta, matInfo) * geoSmith(nDotV, matInfo);
-            float3 colorBRDF = (diffuseColor + 3.14159265f * specBRDF) * lightIntensity * cosTheta;
+            float3 specBRDF = 0.25f * ggxDistribution(cosPhi, roughness) * schlickFresnel(lDotH, f0) * geoSmith(cosTheta, roughness) * geoSmith(nDotV, roughness);
+            float3 colorBRDF = (outFragColor.xyz + 3.14159265f * specBRDF) * lightIntensity * cosTheta;
             outFragColor = float4(colorBRDF * shadowFactor, alpha);
         }
     }
