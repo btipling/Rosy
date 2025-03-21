@@ -308,7 +308,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             float3 f0 = float3(0.04f);
             f0 = lerp(f0, outFragColor.xyz, metallic);
 
-            float3 lightIntensity = sd.sunlightColor.xyz;
+            float3 lightIntensity = sd.lightIntensity;
 
             float ndf = DistributionGGX(N, H, roughness);
             float g = GeometrySmith(N, V, L, roughness);
@@ -324,7 +324,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
             float3 diffuse = outFragColor.xyz / 3.14159265f;
 
-            float3 colorBRDF = (kD * diffuse + specular) * lightIntensity * lDotN;
+            float3 sunLight = (sd.sunlightColor.xyz * sd.lightIntensity);
+            float3 colorBRDF = (kD * diffuse + specular) * sunLight * lDotN;
             colorBRDF = max(ambientLight.xyz * diffuse, colorBRDF * shadowFactor);
             outFragColor = float4(colorBRDF, alpha);
         }

@@ -1246,6 +1246,7 @@ result level::init(std::shared_ptr<rosy_logger::log> new_log, const config new_c
             wls.light.depth_bias_constant = -21.882f;
             wls.light.depth_bias_clamp = -20.937f;
             wls.light.depth_bias_slope_factor = -3.f;
+            wls.light.light_intensity = 2.5f;
             wls.light.brdf_lighting_enabled = true;
             wls.draw_config.cull_enabled = true;
             wls.draw_config.reverse_winding_order_enabled = false;

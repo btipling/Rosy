@@ -159,6 +159,10 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
+                ImGui::SliderFloat("Sunlight intensity", &wls->light.light_intensity, 0.f, 10.f);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 ImGui::ColorEdit4("Sunlight color", wls->light.sunlight_color.data(), 0);
 
                 ImGui::EndTable();
