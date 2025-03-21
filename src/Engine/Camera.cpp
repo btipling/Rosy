@@ -319,7 +319,7 @@ void camera::reposition(const float new_yaw, const float new_pitch, const std::a
     sc->pitch = new_pitch;
     pitch = sc->pitch;
     sc->yaw = new_yaw;
-    pitch = sc->pitch;
+    yaw = sc->yaw;
     sc->position = glm::vec3(new_position[0], new_position[1], new_position[2]);
     for (size_t i{0}; i < 3; i += 1) position[i] = sc->position[static_cast<int>(i)];
 }
