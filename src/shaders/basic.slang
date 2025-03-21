@@ -127,6 +127,13 @@ float srgbToLinear(float srgbValue)
     return linearValue;
 }
 
+float linearToSrgb(float linearValue)
+{
+    float lower = linearValue * 12.92;
+    float higher = (pow(abs(linearValue), float(1.0 / 2.4)) * 1.055) - 0.055;
+    return lerp(lower, higher, step(0.0031308, linearValue));
+}
+
 [shader("fragment")]
 Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4 fragCoord: SV_Position) : SV_Target
 {
@@ -219,10 +226,10 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     float3 N = lightNormal;
     float3 H = normalize(L + V);
 
-    float cosTheta = max(dot(L, N), 0);
-    float cosPhi = max(dot(H, N), 0);
-    float lDotH = max(dot(L, H), 0);
-    float nDotV = max(dot(N, V), 0);
+    float cosTheta = clamp(dot(L, N), 0, 1);
+    float cosPhi = clamp(dot(H, N), 0, 1);
+    float lDotH = clamp(dot(L, H), 0, 1);
+    float nDotV = clamp(dot(N, V), 0, 1);
 
     switch (sd.fragmentOutput)
     {
@@ -293,11 +300,12 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
             outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), alpha);
         } else {
+            outFragColor = float4(srgbToLinear(outFragColor.x), srgbToLinear(outFragColor.y), srgbToLinear(outFragColor.z), 1.f);
+
             roughness = sampledRoughness;
             metallic = sampledMetallic;
 
             float3 f0 = float3(0.04f);
-
             f0 = lerp(f0, outFragColor.xyz, metallic);
 
             float3 lightIntensity = sd.sunlightColor.xyz;
@@ -318,7 +326,7 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
             float3 colorBRDF = (kD * diffuse + specular) * lightIntensity * cosTheta;
             colorBRDF = max(ambientLight.xyz * diffuse, colorBRDF * shadowFactor);
-            outFragColor = float4(colorBRDF, alpha);
+            outFragColor = float4(linearToSrgb(colorBRDF.x), linearToSrgb(colorBRDF.y), linearToSrgb(colorBRDF.z), alpha);
         }
     }
 
