@@ -159,31 +159,6 @@
             "view_name": "sponza debug"
         },
         {
-            "asset_loaded": "..\\assets\\maya\\cubelly\\cubelly.rsy",
-            "camera_pitch": 0.0699995756149292,
-            "camera_position": [
-                2.2092552185058594,
-                0.23078331351280212,
-                0.8704102039337158
-            ],
-            "camera_yaw": -5.240001678466797,
-            "debug_view": 9,
-            "frag_ui_tools_open": false,
-            "level_loaded": false,
-            "light_enabled": false,
-            "lighting_ui_tools_open": false,
-            "shadows_enabled": false,
-            "sun_debug_enabled": false,
-            "sun_pitch": 4.931000232696533,
-            "sun_position": [
-                0.6726109385490417,
-                23.210119247436523,
-                -5.112344264984131
-            ],
-            "sun_yaw": 6.414000034332275,
-            "view_name": "metallic fbx debug"
-        },
-        {
             "asset_loaded": "..\\assets\\ABeautifulGame\\ABeautifulGame.rsy",
             "camera_pitch": 0.6019995808601379,
             "camera_position": [
@@ -307,6 +282,31 @@
             ],
             "sun_yaw": 6.414000034332275,
             "view_name": "cornell dragonsz"
+        },
+        {
+            "asset_loaded": "..\\assets\\maya\\cubelly\\cubelly.rsy",
+            "camera_pitch": 0.23800452053546906,
+            "camera_position": [
+                2.8794124126434326,
+                -0.04083828628063202,
+                -0.10838077962398529
+            ],
+            "camera_yaw": 1.5120019912719727,
+            "debug_view": 0,
+            "frag_ui_tools_open": false,
+            "level_loaded": false,
+            "light_enabled": true,
+            "lighting_ui_tools_open": false,
+            "shadows_enabled": true,
+            "sun_debug_enabled": true,
+            "sun_pitch": 6.269999980926514,
+            "sun_position": [
+                23.71702766418457,
+                0.3134852349758148,
+                1.643926978111267
+            ],
+            "sun_yaw": 1.6399999856948853,
+            "view_name": "metallic fbx debug"
         }
     ]
 }

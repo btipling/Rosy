@@ -296,7 +296,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             roughness = sampledRoughness;
             metallic = sampledMetallic;
 
-            float3 diffuseColor = outFragColor.xyz;
             float3 f0 = float3(0.04f);
 
             f0 = lerp(f0, outFragColor.xyz, metallic);
@@ -305,11 +304,21 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
             float ndf = ggxDistribution(cosPhi, roughness);
             float g = geoSmith(cosTheta, roughness) * geoSmith(nDotV, roughness);
-            float3 f = schlickFresnel(lDotH, f0);
+            float3 f = schlickFresnel(cosPhi, f0);
 
-            float3 specBRDF = 0.25f * ndf * f * g;
-            float3 colorBRDF = (outFragColor.xyz + 3.14159265f * specBRDF) * lightIntensity * cosTheta;
-            outFragColor = float4(colorBRDF * shadowFactor, alpha);
+            float3 kS = f;
+            float3 kD = float3(1.0) - kS;
+            kD *= 1.0 - metallic;
+
+            float3 numerator = ndf * g * f;
+            float denominator = 4.0 * nDotV * cosTheta * 0.0001;
+            float3 specular = numerator;
+
+            float3 diffuse = outFragColor.xyz / 3.14159265f;
+
+            float3 colorBRDF = (kD * diffuse + specular) * lightIntensity * cosTheta;
+            colorBRDF = max(ambientLight.xyz * diffuse, colorBRDF * shadowFactor);
+            outFragColor = float4(colorBRDF, alpha);
         }
     }
 
