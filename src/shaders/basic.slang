@@ -217,10 +217,10 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
     float3 N = lightNormal;
     float3 H = normalize(L + V);
 
-    float cosTheta = dot(L, N);
-    float cosPhi = dot(H, N);
-    float lDotH = dot(L, H);
-    float nDotV = dot(N, V);
+    float cosTheta = max(dot(L, N), 0);
+    float cosPhi = max(dot(H, N), 0);
+    float lDotH = max(dot(L, H), 0);
+    float nDotV = max(dot(N, V), 0);
 
     switch (sd.fragmentOutput)
     {
