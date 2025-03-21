@@ -4,7 +4,7 @@ public static const float PI = 3.14159265359;
 
 public float3 schlickFresnel(float vDotH, float3 f0)
 {
-    return f0 + (1 - f0) * pow(clamp(1.0 - lDotH, 0.0, 1.0), 5.0);
+    return f0 + (1 - f0) * pow(clamp(1.0 - vDotH, 0.0, 1.0), 5.0);
 }
 
 public float DistributionGGX(float3 N, float3 H, float roughness)
