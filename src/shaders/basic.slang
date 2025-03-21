@@ -302,7 +302,12 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             f0 = lerp(f0, outFragColor.xyz, metallic);
 
             float3 lightIntensity = sd.sunlightColor.xyz;
-            float3 specBRDF = 0.25f * ggxDistribution(cosPhi, roughness) * schlickFresnel(lDotH, f0) * geoSmith(cosTheta, roughness) * geoSmith(nDotV, roughness);
+
+            float ndf = ggxDistribution(cosPhi, roughness);
+            float g = geoSmith(cosTheta, roughness) * geoSmith(nDotV, roughness);
+            float3 f = schlickFresnel(lDotH, f0);
+
+            float3 specBRDF = 0.25f * ndf * f * g;
             float3 colorBRDF = (outFragColor.xyz + 3.14159265f * specBRDF) * lightIntensity * cosTheta;
             outFragColor = float4(colorBRDF * shadowFactor, alpha);
         }
