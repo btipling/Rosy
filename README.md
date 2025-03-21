@@ -2,7 +2,7 @@
 
 This is a hobby project to build a game engine and eventually a game in my spare time.
 
-![Rosy and friends](https://github.com/user-attachments/assets/be3d26b9-eb92-41ec-80f3-5dc395d32a7f)
+![Rosy and friends](https://github.com/user-attachments/assets/234e05b4-a331-44f8-b6fd-01a31d1feac8)
 
 ![Sponza1](https://github.com/user-attachments/assets/253179b8-f070-4cc4-be9d-d5019d2a9408)
 
