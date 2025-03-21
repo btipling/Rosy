@@ -137,6 +137,7 @@ namespace rosy
         float depth_bias_constant{0.f};
         float depth_bias_clamp{0.f};
         float depth_bias_slope_factor{0.f};
+        float light_intensity{0.f};
         bool flip_light_x{false};
         bool flip_light_y{false};
         bool flip_light_z{false};

@@ -55,6 +55,7 @@ public struct SceneData
     public uint4 flipLights;
     public uint4 flipTangents;
     public float2 drawExtent;
+    public float lightIntensity;
     public uint csmIndexSampler;
     public uint csmIndexNear;
     public uint fragmentOutput;
