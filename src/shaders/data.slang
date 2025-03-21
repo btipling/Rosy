@@ -17,7 +17,7 @@ public struct BasicVertex
     public float3 tangent;
     public float3 bitangent;
     public float4 color;
-    public float2 textureCoordinates;
+    public float2 uvs;
     public float sigma;
 };
 
@@ -26,7 +26,7 @@ public struct BasicInputVertex {
     public float3 normal;
     public float4 tangent;
     public float4 color;
-    public float2 textureCoordinates;
+    public float2 uvs;
 };
 
 public struct BasicGraphicsData {
@@ -65,7 +65,7 @@ public struct SceneData
     public uint inverseBNT;
     public uint ignoreAssetTangentSign;
     public uint ensureOrthogonalBitangent;
-    public uint reverseCrossBitangent;
+    public uint brdfLightingEnabled;
 };
 
 public struct Fragment
@@ -85,6 +85,8 @@ public struct BasicMaterialData {
     public uint32_t normal_sampler_index;
     public uint32_t metallic_texture_index;
     public uint32_t metallic_sampler_index;
+    public uint32_t mixmap_texture_index;
+    public uint32_t mixmap_sampler_index;
 };
 
 public struct BasicPushConstant {

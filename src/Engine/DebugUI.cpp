@@ -116,6 +116,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::EndTable();
             }
         }
+        ImGui::SetNextItemOpen(rls->debug_ui.lighting_tools_open, ImGuiCond_Appearing);
         if (ImGui::CollapsingHeader("Lighting"))
         {
             if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
@@ -178,40 +179,9 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip light x", &wls->light.flip_light_x);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip light y", &wls->light.flip_light_y);
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip light z", &wls->light.flip_light_z);
+                ImGui::Checkbox("BRDF Lighting", &wls->light.brdf_lighting_enabled);
                 ImGui::TableNextColumn();
                 ImGui::Text("");
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip tangent x", &wls->light.flip_tangent_x);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip tangent y", &wls->light.flip_tangent_y);
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip tangent z", &wls->light.flip_tangent_z);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Inverse BNT", &wls->light.inverse_bnt);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Ignore asset tangent sign", &wls->light.ignore_asset_tangent_sign);
-
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Ensure Orthogonal bitangent", &wls->light.ensure_orthogonal_bitangent);
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("Reverse cross bitangent", &wls->light.reverse_cross_bitangent);
-
                 ImGui::EndTable();
             }
         }
@@ -246,6 +216,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::EndTable();
             }
         }
+        ImGui::SetNextItemOpen(rls->debug_ui.fragment_tools_open, ImGuiCond_Appearing);
         if (ImGui::CollapsingHeader("Fragment Config"))
         {
             ImGui::RadioButton("default", &wls->fragment_config.output, 0);
@@ -260,13 +231,25 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
             ImGui::SameLine();
             ImGui::RadioButton("vertex colors", &wls->fragment_config.output, 5);
             ImGui::SameLine();
-            ImGui::RadioButton("tangent space normals", &wls->fragment_config.output, 6);
+            ImGui::RadioButton("tangent normals", &wls->fragment_config.output, 6);
             ImGui::SameLine();
             ImGui::RadioButton("bitangent", &wls->fragment_config.output, 7);
 
             ImGui::RadioButton("cosTheta", &wls->fragment_config.output, 8);
             ImGui::SameLine();
             ImGui::RadioButton("cosPhi", &wls->fragment_config.output, 9);
+            ImGui::SameLine();
+            ImGui::RadioButton("lDotH", &wls->fragment_config.output, 10);
+            ImGui::SameLine();
+            ImGui::RadioButton("nDotV", &wls->fragment_config.output, 11);
+
+            ImGui::RadioButton("uvs", &wls->fragment_config.output, 12);
+            ImGui::SameLine();
+            ImGui::RadioButton("roughness", &wls->fragment_config.output, 13);
+            ImGui::SameLine();
+            ImGui::RadioButton("metallic", &wls->fragment_config.output, 14);
+            ImGui::SameLine();
+            ImGui::RadioButton("alpha", &wls->fragment_config.output, 15);
 
             if (ImGui::BeginTable("##ToggleFragmentOptions", 2,
                                   ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
@@ -282,6 +265,49 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
                 ImGui::Checkbox("Enable Shadows", &wls->fragment_config.shadows_enabled);
                 ImGui::TableNextColumn();
                 ImGui::Checkbox("Enable Normal maps", &wls->fragment_config.normal_maps_enabled);
+
+                ImGui::EndTable();
+            }
+        }
+        if (ImGui::CollapsingHeader("Debug lighting input"))
+        {
+            if (ImGui::BeginTable("Edit Scene Data", 1, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
+            {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip light x", &wls->light.flip_light_x);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip light y", &wls->light.flip_light_y);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip light z", &wls->light.flip_light_z);
+                ImGui::TableNextColumn();
+                ImGui::Text("");
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip tangent x", &wls->light.flip_tangent_x);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip tangent y", &wls->light.flip_tangent_y);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip tangent z", &wls->light.flip_tangent_z);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Flip tangent w", &wls->light.flip_tangent_w);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Inverse BNT", &wls->light.inverse_bnt);
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Ignore asset tangent sign", &wls->light.ignore_asset_tangent_sign);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Ensure Orthogonal bitangent", &wls->light.ensure_orthogonal_bitangent);
+                ImGui::TableNextColumn();
+                ImGui::Text("");
 
                 ImGui::EndTable();
             }
@@ -392,7 +418,7 @@ void debug_ui::graphics_debug_ui(const engine_stats& eng_stats, const graphics_s
     }
 }
 
-void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
+void debug_ui::assets_debug_ui(const read_level_state* rls)
 {
     if (ImGui::BeginTabItem("Assets"))
     {
@@ -742,6 +768,82 @@ void debug_ui::assets_debug_ui([[maybe_unused]] const read_level_state* rls)
                         }
                     }
                 }
+            }
+        }
+        ImGui::EndTabItem();
+    }
+}
+
+
+void debug_ui::saved_views_debug_ui([[maybe_unused]] const read_level_state* rls)
+{
+    if (ImGui::BeginTabItem("Saved views"))
+    {
+        ImGui::Text("Saved views?");
+        ImGui::InputText("input text", view_name.data(), view_name.size());
+        if (ImGui::Button("Save new view", button_dims))
+        {
+            bool has_name{false};
+            for (const auto c : view_name)
+            {
+                has_name = c != ' ';
+                if (has_name) break;
+            }
+            if (has_name)
+            {
+                saved_views_data view_saves{};
+                view_saves.record_state = true;
+                view_saves.name = view_name;
+                const editor_command cmd_desc{
+                    .command_type = editor_command::editor_command_type::saved_views,
+                    .view_saves = view_saves,
+                };
+                wls->editor_commands.commands.push_back(cmd_desc);
+            }
+        }
+        {
+            ImGui::RadioButton("load", &saved_views_mode, 0);
+            ImGui::SameLine();
+            ImGui::RadioButton("update", &saved_views_mode, 1);
+            ImGui::SameLine();
+            ImGui::RadioButton("delete", &saved_views_mode, 2);
+        }
+        {
+            if (ImGui::BeginListBox("##SavedViesList"))
+            {
+                size_t i{0};
+                for (const auto& saved_view : rls->editor_state.saved_views)
+                {
+                    if (ImGui::Selectable(std::format("##{}", i).c_str(), false))
+                    {
+                        saved_views_data view_saves{};
+                        switch (saved_views_mode)
+                        {
+                        case 1:
+                            view_saves.update_view = true;
+                            view_saves.name = view_name;
+                            view_name = {};
+                            break;
+                        case 2:
+                            view_saves.delete_view = true;
+                            break;
+                        default:
+                            view_saves.load_view = true;
+                            break;
+                        }
+                        view_saves.view_index = i;
+                        const editor_command cmd_desc{
+                            .command_type = editor_command::editor_command_type::saved_views,
+                            .view_saves = view_saves,
+                        };
+                        wls->editor_commands.commands.push_back(cmd_desc);
+                        saved_views_mode = 0;
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text("%s", saved_view.view_name.data());
+                    i += 1;
+                }
+                ImGui::EndListBox();
             }
         }
         ImGui::EndTabItem();

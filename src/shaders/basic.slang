@@ -1,5 +1,6 @@
 import data;
 import pcf;
+import lighting;
 
 [[vk::binding(0, 0)]]
 texture2D imageTexture[];
@@ -57,15 +58,10 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
         }
     }
 
-
     float3 normal = v.normal;
     float3 tangent = new_tangent.xyz;
 
     float3 bitangent = cross(normal, tangent) * new_tangent.w;
-    if (sd.reverseCrossBitangent == 1) {
-        bitangent = cross(tangent, normal) * new_tangent.w;
-    }
-
     if (sd.ensureOrthogonalBitangent == 1) {
         float3 normal_projection = dot(normal, bitangent) * bitangent;
         float3 ortho_n = normalize(normal - normal_projection);
@@ -114,7 +110,7 @@ BasicVertexStageOutput vertexMain(uint uiVertexId: SV_VertexID)
     output.basicVertex.viewDir = viewDir;
     output.basicVertex.lightDir = lightDir;
     output.basicVertex.sigma = new_tangent.w;
-    output.basicVertex.textureCoordinates = v.textureCoordinates;
+    output.basicVertex.uvs = v.uvs;
     output.csm.near = mul(mul(mul(ndc_to_tc, sd.shadowProjNear), worldMat), vertPos);
 
     output.sv_position = mul(mul(sd.viewproj, worldMat), vertPos);
@@ -131,108 +127,161 @@ float srgbToLinear(float srgbValue)
     return linearValue;
 }
 
+float linearToSrgb(float linearValue)
+{
+    float lower = linearValue * 12.92;
+    float higher = (pow(abs(linearValue), float(1.0 / 2.4)) * 1.055) - 0.055;
+    return lerp(lower, higher, step(0.0031308, linearValue));
+}
+
 [shader("fragment")]
 Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4 fragCoord: SV_Position) : SV_Target
 {
     SceneData sd = *BasicPushConstants.sd;
     BasicGraphicsData gd = *BasicPushConstants.gd;
 
-    if (sd.fragmentOutput == 5 || BasicPushConstants.md == nullptr)
-    {
+    float3 ambientLight = sd.ambientColor.xyz;
+    float4 outFragColor = basicVertex.color;
+    float4 imageTextureColor = outFragColor;
+    float alpha = basicVertex.color.w;
 
-        if (sd.lightEnabled > 0)
-        {
-            float3 V = normalize(basicVertex.viewDir);
-            float3 L = normalize(basicVertex.lightDir);
-            float3 N = normalize(basicVertex.normal);
-            float3 H = L + V;
+    bool hasMetallic = false;
+    bool hasMixmap = false;
+    float sampledRoughness = 0.f;
+    float sampledMetallic = 0.f;
+    float roughness = 0.f;
+    float metallic = 0.f;
 
-            float cosTheta = dot(L, N);
-            float cosPhi = dot(H, N);
+    bool hasMaterial = BasicPushConstants.md != nullptr;
 
-            float3 ambientLight = sd.ambientColor.xyz;
-            float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
-
-            float4 outFragColor = basicVertex.color * float4(max(ambientLight, sunLight), 1.f);
-
-            Fragment output;
-            output.color = outFragColor;
-            return output;
-        }
-
-        Fragment output;
-        output.color = basicVertex.color;
-        return output;
-
-    }
-
-    BasicMaterialData md = *BasicPushConstants.md;
-
-    uint nti = md.normal_texture_index;
-    uint nsi = md.normal_sampler_index;
+    BasicMaterialData md;
 
     float3 lightNormal = normalize(basicVertex.normal);
     float3 lightDir = normalize(basicVertex.lightDir);
     float3 bitangent = basicVertex.bitangent;
+    float lightDistance = length(basicVertex.lightDir);
 
-    if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
-    {
-        texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
-        SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
+    if (hasMaterial) {
+        md = *BasicPushConstants.md;
+        outFragColor = md.color;
+        imageTextureColor = outFragColor;
+        alpha = min(md.color.w, alpha);
 
-        float3 m = normalMap.Sample(normalSampler, basicVertex.textureCoordinates).xyz * 2 - 1;
-        float3 n = normalize(basicVertex.normal);
-        float3 t = normalize(basicVertex.tangent - n * dot(basicVertex.tangent, n));
-        float3 b = normalize(cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma);
-        lightNormal = normalize(t * m.x + b * m.y + n * m.z);
+        uint nti = md.normal_texture_index;
+        uint nsi = md.normal_sampler_index;
+        if (sd.normalMapsEnabled == 1 && validDescriptorIndex(nti))
+        {
+            texture2D normalMap = imageTexture[NonUniformResourceIndex(nti)];
+            SamplerState normalSampler = imageSampler[NonUniformResourceIndex(nsi)];
+
+            float3 m = normalMap.Sample(normalSampler, basicVertex.uvs).xyz * 2 - 1;
+            float3 n = normalize(basicVertex.normal);
+            float3 t = normalize(basicVertex.tangent - n * dot(basicVertex.tangent, n));
+            float3 b = normalize(cross(basicVertex.normal, basicVertex.tangent.xyz) * basicVertex.sigma);
+            lightNormal = normalize(t * m.x + b * m.y + n * m.z);
+        }
+
+        uint cti = md.color_texture_index;
+        uint csi = md.color_sampler_index;
+        if (validDescriptorIndex(cti))
+        {
+            texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
+            SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
+            imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.uvs);
+            alpha = min(imageTextureColor.w, alpha);
+        }
+        uint mixti = md.mixmap_texture_index;
+        uint mixsi = md.mixmap_sampler_index;
+        uint metti = md.metallic_texture_index;
+        uint metsi = md.metallic_sampler_index;
+
+        hasMetallic = validDescriptorIndex(metti);
+        hasMixmap = validDescriptorIndex(mixti);
+        if (hasMixmap) {
+            texture2D mixTexture = imageTexture[NonUniformResourceIndex(mixti)];
+            SamplerState mixSampler = imageSampler[NonUniformResourceIndex(mixsi)];
+            float4 mixSample = mixTexture.Sample(mixSampler, basicVertex.uvs);
+            // red is ambient occlusion - currently unused
+            // green is roughness
+            // blue is metalness
+            // these values are 0 to 1
+            sampledRoughness = mixSample.y;
+            sampledMetallic = mixSample.z;
+        } else {
+            texture2D metTexture = imageTexture[NonUniformResourceIndex(metti)];
+            SamplerState metSampler = imageSampler[NonUniformResourceIndex(metsi)];
+            float4 metSample = metTexture.Sample(metSampler, basicVertex.uvs);
+            // gltf metallicRoughness gltf spec
+            // red reserved for optional values like occlusion
+            // green is roughness
+            // blue is metallic
+            // these values are also 0 to 1
+            sampledRoughness = metSample.y;
+            sampledMetallic = metSample.z;
+        }
     }
 
     float3 V = normalize(basicVertex.viewDir);
     float3 L = lightDir;
     float3 N = lightNormal;
-    float3 H = L + V;
+    float3 H = normalize(L + V);
 
-    float cosTheta = dot(L, N);
-    float cosPhi = dot(H, N);
+    float cosTheta = clamp(dot(L, N), 0, 1);
+    float cosPhi = clamp(dot(H, N), 0, 1);
+    float lDotN = cosTheta;
+    float hDotN = cosPhi;
+    float lDotH = clamp(dot(L, H), 0, 1);
+    float nDotV = clamp(dot(N, V), 0, 1);
 
-    float4 outFragColor = md.color;
     switch (sd.fragmentOutput)
     {
     case 0:
-        uint cti = md.color_texture_index;
-        uint csi = md.color_sampler_index;
-
-        if (validDescriptorIndex(cti))
-        {
-            texture2D matImageTexture = imageTexture[NonUniformResourceIndex(cti)];
-            SamplerState matSampler = imageSampler[NonUniformResourceIndex(csi)];
-            float4 imageTextureColor = matImageTexture.Sample(matSampler, basicVertex.textureCoordinates);
-            outFragColor = imageTextureColor;
-        }
+        outFragColor = float4(imageTextureColor.xyz, alpha);
         break;
     case 1:
-        outFragColor = float4(normalize(basicVertex.worldNormal) * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.worldNormal) * 0.5 + 0.5, alpha);
         break;
     case 2:
-        outFragColor = float4(normalize(basicVertex.tangent.xyz) * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.tangent.xyz) * 0.5 + 0.5, alpha);
         break;
     case 3:
-        outFragColor = float4(normalize(basicVertex.lightDir) * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.lightDir) * 0.5 + 0.5, alpha);
         break;
     case 4:
-        outFragColor = float4(normalize(basicVertex.viewDir) * 0.5 + 0.5, 1.f);
+        outFragColor = float4(normalize(basicVertex.viewDir) * 0.5 + 0.5, alpha);
+        break;
+    case 5:
+        outFragColor = float4(basicVertex.color.xyz, alpha);
         break;
     case 6:
-        outFragColor = float4(lightNormal * 0.5 + 0.5, 1.f);
+        outFragColor = float4(lightNormal * 0.5 + 0.5, alpha);
         break;
     case 7:
-        outFragColor = float4(bitangent * 0.5 + 0.5, 1.f);
+        outFragColor = float4(bitangent * 0.5 + 0.5, alpha);
         break;
     case 8:
-        outFragColor = float4(float3(cosTheta, cosTheta, cosTheta) * 0.5 + 0.5, 1.f);
+        outFragColor = float4(float3(cosTheta, cosTheta, cosTheta) * 0.5 + 0.5, alpha);
         break;
     case 9:
-        outFragColor = float4(float3(cosPhi, cosPhi, cosPhi) * 0.5 + 0.5, 1.f);
+        outFragColor = float4(float3(cosPhi, cosPhi, cosPhi) * 0.5 + 0.5, alpha);
+        break;
+    case 10:
+        outFragColor = float4(float3(lDotH, lDotH, lDotH) * 0.5 + 0.5, alpha);
+        break;
+    case 11:
+        outFragColor = float4(float3(nDotV, nDotV, nDotV) * 0.5 + 0.5, alpha);
+        break;
+    case 12:
+        outFragColor = float4(float3(basicVertex.uvs.x, basicVertex.uvs.y, 0.f), alpha);
+        break;
+    case 13:
+        outFragColor = float4(float3(sampledRoughness, 0.05f, 0.05f), alpha);
+        break;
+    case 14:
+        outFragColor = float4(float3(sampledMetallic, 0.05f, 0.05f), alpha);
+        break;
+    case 15:
+        outFragColor = float4(float3(1 - alpha, 0.05f, 0.05f), alpha);
         break;
     default:
         break;
@@ -240,9 +289,6 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     if (sd.lightEnabled > 0)
     {
-        float3 ambientLight = sd.ambientColor.xyz;
-        float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
-
         float shadowFactor = 1.f;
         if (sd.shadowsEnabled == 1)
         {
@@ -252,8 +298,43 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
             texture2D shadowNearImage = imageTexture[NonUniformResourceIndex(csmNear)];
             shadowFactor = pcf(fragCoord, csm.near, shadowNearImage, shadowSampler);
         }
+        if (sd.brdfLightingEnabled == 0) {
+            float3 sunLight = sd.sunlightColor.xyz * max(cosTheta, 0.0);
+            outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), alpha);
+        } else {
+            roughness = sampledRoughness;
+            metallic = sampledMetallic;
 
-        outFragColor = outFragColor * float4(max(ambientLight, sunLight * shadowFactor), 1.0);
+            float3 f0 = float3(0.04f);
+            f0 = lerp(f0, outFragColor.xyz, metallic);
+
+            float3 lightIntensity = sd.sunlightColor.xyz;
+
+            float ndf = DistributionGGX(N, H, roughness);
+            float g = GeometrySmith(N, V, L, roughness);
+            float3 f = schlickFresnel(max(dot(H, V), 0.0), f0);
+
+            float3 kS = f;
+            float3 kD = float3(1.0) - kS;
+            kD *= 1.0 - metallic;
+
+            float3 numerator = ndf * g * f;
+            float denominator = 4.0 * nDotV * lDotN + 0.0001;
+            float3 specular = numerator / denominator;
+
+            float3 diffuse = outFragColor.xyz / 3.14159265f;
+
+            float3 colorBRDF = (kD * diffuse + specular) * lightIntensity * lDotN;
+            colorBRDF = max(ambientLight.xyz * diffuse, colorBRDF * shadowFactor);
+            outFragColor = float4(colorBRDF, alpha);
+        }
+    }
+
+    if (hasMaterial) {
+        if (md.alphaMode == 1 && alpha < md.alphaCutoff) {
+            discard;
+        }
+        outFragColor.w = alpha;
     }
 
     Fragment output;

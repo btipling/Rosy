@@ -26,6 +26,8 @@ namespace rosy
         size_t selected_model{0};
         bool asset_details{true};
         bool model_details{true};
+        std::array<char, saved_view_name_size> view_name{};
+        int saved_views_mode{0};
 
         std::array<float, 3> level_edit_translate{};
         float level_edit_scale{1.f};
@@ -34,7 +36,8 @@ namespace rosy
         std::string level_edit_model_id{};
 
         void graphics_debug_ui(const engine_stats& eng_stats, const graphics_stats& stats, const graphics_data& data,
-                                const read_level_state* rls) const;
+                               const read_level_state* rls) const;
         void assets_debug_ui(const read_level_state* rls);
+        void saved_views_debug_ui(const read_level_state* rls);
     };
 }

@@ -43,6 +43,7 @@ namespace rosy
         void yaw_in_dir(float vel);
         void set_yaw_around_position(const float new_yaw, const std::array<float, 3> new_position);
         void set_game_cam_position(std::array<float, 3> new_position);
+        void reposition(const float new_yaw, const float new_pitch, const std::array<float, 4> new_position);
         void go_fast() const;
         void go_slow() const;
     };

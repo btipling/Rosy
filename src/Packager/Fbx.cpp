@@ -19,7 +19,7 @@ using namespace rosy_packager;
 // - a mixmap that ends with "mixmap.tga"
 //   - the red channel in mixmap is ambient occlusion
 //   - the green channel in mixmap is roughness
-//   - the blue channel in mixmap is metal ness
+//   - the blue channel in mixmap is metalness
 //   - the alpha channel in mixmap is unused
 // The name of the image files must contain a substring matching the mesh's node in order to be successfully mapped to the node.
 // Support for surfaces of a mesh having their own images is a TODO.
@@ -171,6 +171,9 @@ namespace
                     }
                     img_index += 1;
                 }
+
+                // GLTF import doesn't support these:
+                new_asset_mat.metallic_image_index = UINT32_MAX;
                 const auto asset_material_index = static_cast<uint32_t>(fbx_asset.materials.size());
                 fbx_asset.materials.push_back(new_asset_mat);
 

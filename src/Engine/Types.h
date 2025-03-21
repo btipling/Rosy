@@ -8,6 +8,8 @@
 // These are type declarations, not default configurations. Configure those in Level.cpp or elsewhere.
 namespace rosy
 {
+    constexpr size_t saved_view_name_size{20};
+
     enum class result : uint8_t
     {
         ok,
@@ -52,6 +54,12 @@ namespace rosy
         std::array<float, 16> transform{};
         std::array<float, 16> to_object_space_transform{};
         std::array<float, 9> normal_transform{};
+    };
+
+    struct debug_ui_state
+    {
+        bool lighting_tools_open{false};
+        bool fragment_tools_open{false};
     };
 
     struct graphics_object_update
@@ -139,7 +147,7 @@ namespace rosy
         bool inverse_bnt{false};
         bool ignore_asset_tangent_sign{false};
         bool ensure_orthogonal_bitangent{false};
-        bool reverse_cross_bitangent{false};
+        bool brdf_lighting_enabled{false};
     };
 
     struct light_debug_state
@@ -175,6 +183,7 @@ namespace rosy
         // 7 bitangent
         // 8 cosTheta
         // 9 cosPhi
+        // and more.. see DebugUI.cpp
         int output{0};
         bool light_enabled{false};
         bool tangent_space_enabled{false};
@@ -230,6 +239,16 @@ namespace rosy
         float yaw{0.f};
     };
 
+    struct saved_views_data
+    {
+        bool record_state{};
+        bool delete_view{};
+        bool update_view{};
+        bool load_view{};
+        std::array<char, saved_view_name_size> name{};
+        size_t view_index{0};
+    };
+
     struct editor_command
     {
         enum class editor_command_type : uint8_t
@@ -241,6 +260,7 @@ namespace rosy
             add_to_level,
             remove_from_level,
             edit_level_node,
+            saved_views,
         };
 
         enum class model_type : uint8_t
@@ -254,6 +274,7 @@ namespace rosy
         model_type mode_type_option{model_type::no_model};
         std::string id{};
         editor_command_node_data node_data{};
+        saved_views_data view_saves{};
     };
 
     struct level_data_model
@@ -294,11 +315,19 @@ namespace rosy
         const void* asset{nullptr};
     };
 
+    struct saved_view
+    {
+        std::string view_name{};
+        size_t view_index;
+    };
+
     struct level_editor_state
     {
+        std::vector<saved_view> saved_views;
         std::vector<asset_description> assets;
         const void* new_asset{nullptr};
         level_data current_level_data{};
+        bool load_saved_view{false};
     };
 
     struct read_level_state
@@ -311,6 +340,7 @@ namespace rosy
         read_camera cam{};
 
         light_read_write_state light{};
+        light_debug_state light_debug{};
         draw_config_state draw_config{};
         std::vector<debug_object> debug_objects{};
         fragment_config_state fragment_config{};
@@ -319,6 +349,7 @@ namespace rosy
         pick_debug_read_state pick_debugging{};
         level_editor_state editor_state{};
         graphics_object_update go_update{};
+        debug_ui_state debug_ui{};
 
         float game_camera_yaw{0};
     };

@@ -102,6 +102,11 @@ struct node_state
         return t * r * s * object_to_world_transform * object_space_parent_transform * object_space_transform;
     }
 
+    [[nodiscard]] glm::mat4 get_to_object_space_transform() const
+    {
+        return inverse(get_world_space_transform());
+    }
+
     [[nodiscard]] glm::mat4 get_object_space_transform() const
     {
         return object_space_parent_transform * object_space_transform;
@@ -179,11 +184,7 @@ std::array<float, 16> node::get_world_space_transform() const
 
 std::array<float, 16> node::get_to_object_space_transform() const
 {
-    const glm::mat4 world_space_transform = ns->get_world_space_transform();
-    const glm::mat4 world_to_object_space_transform = inverse(world_space_transform);
-    const glm::mat4 world_space_normal_transform = transpose(world_to_object_space_transform);
-
-    return mat4_to_array(world_space_normal_transform);
+    return mat4_to_array(ns->get_to_object_space_transform());
 }
 
 node_bounds node::get_world_space_bounds() const

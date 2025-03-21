@@ -150,7 +150,7 @@ namespace
     std::array<float, 4> vec4_to_array(glm::vec4 v)
     {
         std::array<float, 4> a{};
-        for (size_t i{ 0 }; i < 4; i++) a[i] = v[static_cast<glm::length_t>(i)];
+        for (size_t i{0}; i < 4; i++) a[i] = v[static_cast<glm::length_t>(i)];
         return a;
     }
 
@@ -350,374 +350,379 @@ namespace
         void init_system_init_level_state() const
         {
             world.system("init_level_state")
-                  .kind(flecs::OnLoad)
-                  .run([&, this]([[maybe_unused]] flecs::iter& it)
-                  {
-                      {
-                          // Write active camera values
-                          if (std::abs(game_cam->yaw - wls->game_camera_yaw) >= 0.2)
-                          {
-                              game_cam->set_yaw_around_position(wls->game_camera_yaw, rosy_reference.node->get_world_space_position());
-                          }
-                          const camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
-                          rls->cam.p = cam->p;
-                          rls->cam.v = cam->v;
-                          rls->cam.vp = cam->vp;
-                          rls->cam.position = cam->position;
-                          rls->cam.pitch = cam->pitch;
-                          rls->cam.yaw = cam->yaw;
-                          rls->game_camera_yaw = game_cam->yaw;
-                      }
-                      {
-                          // Configure draw options based on writable level state
-                          rls->debug_enabled = wls->enable_edit;
-                          rls->draw_config = wls->draw_config;
-                          rls->light = wls->light;
-                      }
-                      {
-                          // Fragment config
-                          rls->fragment_config = wls->fragment_config;
-                      }
-                      {
-                          // Mob state
-                          const std::vector<node*> mobs = get_mobs();
-                          if (wls->mob_edit.submitted)
-                          {
-                              rls->mob_read.clear_edits = true;
-                              if (mobs.size() > wls->mob_edit.edit_index)
-                              {
-                                  mobs[wls->mob_edit.edit_index]->set_world_space_translate(wls->mob_edit.position);
-                              }
-                          }
-                          else
-                          {
-                              rls->mob_read.clear_edits = false;
-                          }
-                          rls->mob_read.mob_states.clear();
-                          for (const game_node_reference& nr : game_nodes)
-                          {
-                              const std::array<float, 3> node_world_space_pos = nr.node->get_world_space_position();
+                 .kind(flecs::OnLoad)
+                 .run([&, this]([[maybe_unused]] flecs::iter& it)
+                 {
+                     {
+                         // reset load saved view instruction
+                         rls->editor_state.load_saved_view = false;
+                     }
+                     {
+                         // Write active camera values
+                         if (std::abs(game_cam->yaw - wls->game_camera_yaw) >= 0.2)
+                         {
+                             game_cam->set_yaw_around_position(wls->game_camera_yaw, rosy_reference.node->get_world_space_position());
+                         }
+                         const camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
+                         rls->cam.p = cam->p;
+                         rls->cam.v = cam->v;
+                         rls->cam.vp = cam->vp;
+                         rls->cam.position = cam->position;
+                         rls->cam.pitch = cam->pitch;
+                         rls->cam.yaw = cam->yaw;
+                         rls->game_camera_yaw = game_cam->yaw;
+                     }
+                     {
+                         // Configure draw options based on writable level state
+                         rls->debug_enabled = wls->enable_edit;
+                         rls->draw_config = wls->draw_config;
+                         rls->light = wls->light;
+                         rls->light_debug = wls->light_debug;
+                     }
+                     {
+                         // Fragment config
+                         rls->fragment_config = wls->fragment_config;
+                     }
+                     {
+                         // Mob state
+                         const std::vector<node*> mobs = get_mobs();
+                         if (wls->mob_edit.submitted)
+                         {
+                             rls->mob_read.clear_edits = true;
+                             if (mobs.size() > wls->mob_edit.edit_index)
+                             {
+                                 mobs[wls->mob_edit.edit_index]->set_world_space_translate(wls->mob_edit.position);
+                             }
+                         }
+                         else
+                         {
+                             rls->mob_read.clear_edits = false;
+                         }
+                         rls->mob_read.mob_states.clear();
+                         for (const game_node_reference& nr : game_nodes)
+                         {
+                             const std::array<float, 3> node_world_space_pos = nr.node->get_world_space_position();
 
-                              std::array<float, 3> target = {0.f, 0.f, 0.f};
-                              float yaw = 0.f;
-                              if (nr.entity.has<c_target>())
-                              {
-                                  const auto tc = nr.entity.get<c_target>();
-                                  target = {tc->x, tc->y, tc->z};
-                              }
-                              if (nr.entity.has<c_forward>())
-                              {
-                                  const auto fc = nr.entity.get<c_forward>();
-                                  l->debug(std::format("setting rls yaw: ({:.3f}", fc->yaw));
-                                  yaw = fc->yaw;
-                              }
-                              rls->mob_read.mob_states.push_back({
-                                  .name = nr.node->name,
-                                  .position = node_world_space_pos,
-                                  .yaw = yaw,
-                                  .target = target,
-                              });
-                          }
-                      }
-                      rls->debug_objects.clear();
-                      if (level_entity.has<t_pick_debugging_clear>())
-                      {
-                          rls->pick_debugging.circles.clear();
-                          level_entity.remove<t_pick_debugging_clear>();
-                      }
-                      if (level_entity.has<c_pick_debugging_enabled>())
-                      {
-                          const auto pick_debugging = level_entity.get<c_pick_debugging_enabled>();
-                          rls->debug_objects.insert(rls->debug_objects.end(), rls->pick_debugging.circles.begin(), rls->pick_debugging.circles.end());
-                          if (rls->pick_debugging.picking.has_value())
-                          {
-                              rls->debug_objects.push_back(rls->pick_debugging.picking.value());
-                              rls->pick_debugging.picking = std::nullopt;
-                          }
-                          rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space ? pick_debug_read_state::picking_space::screen : pick_debug_read_state::picking_space::view;
-                      }
-                      else if (rosy_reference.node != nullptr && rosy_reference.entity.has<t_rosy_action>())
-                      {
-                          if (rls->pick_debugging.picking.has_value())
-                          {
-                              rls->debug_objects.push_back(rls->pick_debugging.picking.value());
-                          }
-                      }
-                      else
-                      {
-                          rls->pick_debugging.space = pick_debug_read_state::picking_space::disabled;
-                      }
-                      {
-                          // Light & Shadow logic
-                          glm::mat4 light_sun_view;
-                          glm::mat4 debug_light_sun_view;
-                          glm::mat4 debug_light_translate;
-                          glm::mat4 light_line_rot;
-                          {
-                              // Lighting math
+                             std::array<float, 3> target = {0.f, 0.f, 0.f};
+                             float yaw = 0.f;
+                             if (nr.entity.has<c_target>())
+                             {
+                                 const auto tc = nr.entity.get<c_target>();
+                                 target = {tc->x, tc->y, tc->z};
+                             }
+                             if (nr.entity.has<c_forward>())
+                             {
+                                 const auto fc = nr.entity.get<c_forward>();
+                                 l->debug(std::format("setting rls yaw: ({:.3f}", fc->yaw));
+                                 yaw = fc->yaw;
+                             }
+                             rls->mob_read.mob_states.push_back({
+                                 .name = nr.node->name,
+                                 .position = node_world_space_pos,
+                                 .yaw = yaw,
+                                 .target = target,
+                             });
+                         }
+                     }
+                     rls->debug_objects.clear();
+                     if (level_entity.has<t_pick_debugging_clear>())
+                     {
+                         rls->pick_debugging.circles.clear();
+                         level_entity.remove<t_pick_debugging_clear>();
+                     }
+                     if (level_entity.has<c_pick_debugging_enabled>())
+                     {
+                         const auto pick_debugging = level_entity.get<c_pick_debugging_enabled>();
+                         rls->debug_objects.insert(rls->debug_objects.end(), rls->pick_debugging.circles.begin(), rls->pick_debugging.circles.end());
+                         if (rls->pick_debugging.picking.has_value())
+                         {
+                             rls->debug_objects.push_back(rls->pick_debugging.picking.value());
+                             rls->pick_debugging.picking = std::nullopt;
+                         }
+                         rls->pick_debugging.space = pick_debugging->space & debug_object_flag_screen_space ? pick_debug_read_state::picking_space::screen : pick_debug_read_state::picking_space::view;
+                     }
+                     else if (rosy_reference.node != nullptr && rosy_reference.entity.has<t_rosy_action>())
+                     {
+                         if (rls->pick_debugging.picking.has_value())
+                         {
+                             rls->debug_objects.push_back(rls->pick_debugging.picking.value());
+                         }
+                     }
+                     else
+                     {
+                         rls->pick_debugging.space = pick_debug_read_state::picking_space::disabled;
+                     }
+                     {
+                         // Light & Shadow logic
+                         glm::mat4 light_sun_view;
+                         glm::mat4 debug_light_sun_view;
+                         glm::mat4 debug_light_translate;
+                         glm::mat4 light_line_rot;
+                         {
+                             // Lighting math
 
-                              {
-                                  const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * wls->light_debug.sun_distance});
-                                  debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * wls->light_debug.sun_distance});
+                             {
+                                 const glm::mat4 light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, 1.f * wls->light_debug.sun_distance});
+                                 debug_light_translate = glm::translate(glm::mat4(1.f), {0.f, 0.f, -1.f * wls->light_debug.sun_distance});
 
-                                  const glm::quat pitch_rotation = angleAxis(-wls->light_debug.sun_pitch, glm::vec3{1.f, 0.f, 0.f});
-                                  const glm::quat yaw_rotation = angleAxis(wls->light_debug.sun_yaw, glm::vec3{0.f, -1.f, 0.f});
-                                  light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
+                                 const glm::quat pitch_rotation = angleAxis(-wls->light_debug.sun_pitch, glm::vec3{1.f, 0.f, 0.f});
+                                 const glm::quat yaw_rotation = angleAxis(wls->light_debug.sun_yaw, glm::vec3{0.f, -1.f, 0.f});
+                                 light_line_rot = toMat4(yaw_rotation) * toMat4(pitch_rotation);
 
-                                  const glm::quat regular_cam_light_view_pitch_rotation = angleAxis(wls->light_debug.sun_pitch, glm::vec3{ 1.f, 0.f, 0.f });
-                                  const glm::quat regular_cam_light_view_yaw_rotation = angleAxis(wls->light_debug.sun_yaw + glm::pi<float>(), glm::vec3{0.f, -1.f, 0.f});
-                                  const glm::mat4 regular_cam_light_view = toMat4(regular_cam_light_view_yaw_rotation) * toMat4(regular_cam_light_view_pitch_rotation);
+                                 const glm::quat regular_cam_light_view_pitch_rotation = angleAxis(wls->light_debug.sun_pitch, glm::vec3{1.f, 0.f, 0.f});
+                                 const glm::quat regular_cam_light_view_yaw_rotation = angleAxis(wls->light_debug.sun_yaw + glm::pi<float>(), glm::vec3{0.f, -1.f, 0.f});
+                                 const glm::mat4 regular_cam_light_view = toMat4(regular_cam_light_view_yaw_rotation) * toMat4(regular_cam_light_view_pitch_rotation);
 
-                                  rls->light.sun_position = vec4_to_array(light_line_rot * glm::vec4(0.f, 0.f, -wls->light_debug.sun_distance, 1.f));
+                                 rls->light.sun_position = vec4_to_array(light_line_rot * glm::vec4(0.f, 0.f, -wls->light_debug.sun_distance, 1.f));
 
-                                  light_sun_view = light_line_rot * light_translate;
-                                  debug_light_sun_view = (wls->light_debug.enable_light_perspective ? light_sun_view : regular_cam_light_view * light_translate);;
-                              };
-                          }
+                                 light_sun_view = light_line_rot * light_translate;
+                                 debug_light_sun_view = (wls->light_debug.enable_light_perspective ? light_sun_view : regular_cam_light_view * light_translate);;
+                             };
+                         }
 
-                          if (wls->light_debug.enable_sun_debug)
-                          {
-                              // Generate debug lines for light and shadow debugging
-                              const glm::mat4 debug_draw_view = light_line_rot * debug_light_translate;
-                              const glm::mat4 debug_light_line = glm::scale(debug_draw_view, {wls->light_debug.sun_distance, wls->light_debug.sun_distance, wls->light_debug.sun_distance});
+                         if (wls->light_debug.enable_sun_debug)
+                         {
+                             // Generate debug lines for light and shadow debugging
+                             const glm::mat4 debug_draw_view = light_line_rot * debug_light_translate;
+                             const glm::mat4 debug_light_line = glm::scale(debug_draw_view, {wls->light_debug.sun_distance, wls->light_debug.sun_distance, wls->light_debug.sun_distance});
 
-                              debug_object line;
-                              line.type = debug_object_type::line;
-                              line.transform = mat4_to_array(debug_light_line);
-                              line.color = {1.f, 0.f, 0.f, 1.f};
-                              if (wls->light_debug.enable_sun_debug) rls->debug_objects.push_back(line);
-                              {
-                                  // Two circles to represent a sun
-                                  constexpr float angle_step{glm::pi<float>() / 4.f};
-                                  for (size_t i{0}; i < 4; i++)
-                                  {
-                                      debug_object sun_circle;
-                                      glm::mat4 m{1.f};
-                                      m = glm::rotate(m, angle_step * static_cast<float>(i), {1.f, 0.f, 0.f});
-                                      sun_circle.type = debug_object_type::circle;
-                                      sun_circle.transform = mat4_to_array(debug_draw_view * m);
-                                      sun_circle.color = {0.976f, 0.912f, 0.609f, 1.f};
-                                      rls->debug_objects.push_back(sun_circle);
-                                  }
-                              }
-                          }
+                             debug_object line;
+                             line.type = debug_object_type::line;
+                             line.transform = mat4_to_array(debug_light_line);
+                             line.color = {1.f, 0.f, 0.f, 1.f};
+                             if (wls->light_debug.enable_sun_debug) rls->debug_objects.push_back(line);
+                             {
+                                 // Two circles to represent a sun
+                                 constexpr float angle_step{glm::pi<float>() / 4.f};
+                                 for (size_t i{0}; i < 4; i++)
+                                 {
+                                     debug_object sun_circle;
+                                     glm::mat4 m{1.f};
+                                     m = glm::rotate(m, angle_step * static_cast<float>(i), {1.f, 0.f, 0.f});
+                                     sun_circle.type = debug_object_type::circle;
+                                     sun_circle.transform = mat4_to_array(debug_draw_view * m);
+                                     sun_circle.color = {0.976f, 0.912f, 0.609f, 1.f};
+                                     rls->debug_objects.push_back(sun_circle);
+                                 }
+                             }
+                         }
 
-                          glm::mat4 cam_lv;
-                          glm::mat4 cam_lp;
-                          {
-                              // Create Light view and projection
+                         glm::mat4 cam_lv;
+                         glm::mat4 cam_lp;
+                         {
+                             // Create Light view and projection
 
-                              const float cascade_level = wls->light_debug.cascade_level;
-                              auto light_projections = glm::mat4(
-                                  glm::vec4(-2.f / cascade_level, 0.f, 0.f, 0.f),
-                                  glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
-                                  glm::vec4(0.f, 0.f, -1.f / wls->light_debug.orthographic_depth, 0.f),
-                                  glm::vec4(0.f, 0.f, 0.f, 1.f)
-                              );
+                             const float cascade_level = wls->light_debug.cascade_level;
+                             auto light_projections = glm::mat4(
+                                 glm::vec4(-2.f / cascade_level, 0.f, 0.f, 0.f),
+                                 glm::vec4(0.f, -2.f / cascade_level, 0.f, 0.f),
+                                 glm::vec4(0.f, 0.f, -1.f / wls->light_debug.orthographic_depth, 0.f),
+                                 glm::vec4(0.f, 0.f, 0.f, 1.f)
+                             );
 
-                              const glm::mat4 lv = light_sun_view;
-                              const glm::mat4 lp = light_projections;
-                              cam_lv = glm::inverse(debug_light_sun_view);
-                              cam_lp = wls->light_debug.enable_light_perspective  ? light_projections : array_to_mat4((rls->cam.p));
-                              rls->cam.shadow_projection_near = mat4_to_array(lp * glm::inverse(lv));
-                          }
+                             const glm::mat4 lv = light_sun_view;
+                             const glm::mat4 lp = light_projections;
+                             cam_lv = glm::inverse(debug_light_sun_view);
+                             cam_lp = wls->light_debug.enable_light_perspective ? light_projections : array_to_mat4((rls->cam.p));
+                             rls->cam.shadow_projection_near = mat4_to_array(lp * glm::inverse(lv));
+                         }
 
-                          if (wls->light_debug.enable_light_cam)
-                          {
-                              // Set debug lighting options on
-                              rls->debug_enabled = false;
-                              rls->cam.v = mat4_to_array(cam_lv);
-                              rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
-                          }
-                      }
-                  });
+                         if (wls->light_debug.enable_light_cam)
+                         {
+                             // Set debug lighting options on
+                             rls->debug_enabled = false;
+                             rls->cam.v = mat4_to_array(cam_lv);
+                             rls->cam.vp = mat4_to_array(cam_lp * cam_lv);
+                         }
+                     }
+                 });
         }
 
         void init_system_move_rosy()
         {
             world.system<t_rosy_action>("move_rosy")
-                  .kind(flecs::OnUpdate)
-                  .each([&, this](flecs::iter& it, size_t, t_rosy_action)
-                  {
-                      // This function moves rosy to where the screen cursor is when the left mouse button is pushed.
-                      if (!level_entity.has<c_cursor_position>()) return;
+                 .kind(flecs::OnUpdate)
+                 .each([&, this](flecs::iter& it, size_t, t_rosy_action)
+                 {
+                     // This function moves rosy to where the screen cursor is when the left mouse button is pushed.
+                     if (!level_entity.has<c_cursor_position>()) return;
 
-                      // Start picking. Picking here works by converting the 2D screen space cursor position to Vulkan NDC coordinates and then converts them
-                      // to clip space. From clip space their position is on the projection plane in view space. A ray is created from the click position on the projection plane from
-                      // the view space camera position, which is just origin. The ray is transformed to world space, the floor's origin is the same as the world space origin.
-                      // Plucker coordinates are used to calculate the ray's intersection in the floor plane, as derived from Foundations of Game Engine Development [Lengyel]
-                      const auto c_pos = level_entity.get<c_cursor_position>();
-                      const camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
+                     // Start picking. Picking here works by converting the 2D screen space cursor position to Vulkan NDC coordinates and then converts them
+                     // to clip space. From clip space their position is on the projection plane in view space. A ray is created from the click position on the projection plane from
+                     // the view space camera position, which is just origin. The ray is transformed to world space, the floor's origin is the same as the world space origin.
+                     // Plucker coordinates are used to calculate the ray's intersection in the floor plane, as derived from Foundations of Game Engine Development [Lengyel]
+                     const auto c_pos = level_entity.get<c_cursor_position>();
+                     const camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
 
-                      auto camera_pos = glm::vec3(glm::vec4(cam->position[0], cam->position[1], cam->position[2], 1.f));
+                     auto camera_pos = glm::vec3(glm::vec4(cam->position[0], cam->position[1], cam->position[2], 1.f));
 
-                      // Get the values used to transform the screen coordinates to view space.
-                      const float a = static_cast<float>(cam->s);
-                      const float w = cam->viewport_width;
-                      const float h = cam->viewport_height;
-                      const float fov = static_cast<float>(cam->fov) / 100.f;
-                      const float x_s = c_pos->screen_x / w;
-                      const float y_s = c_pos->screen_y / h;
-                      const float g = static_cast<float>(cam->g);
+                     // Get the values used to transform the screen coordinates to view space.
+                     const float a = static_cast<float>(cam->s);
+                     const float w = cam->viewport_width;
+                     const float h = cam->viewport_height;
+                     const float fov = static_cast<float>(cam->fov) / 100.f;
+                     const float x_s = c_pos->screen_x / w;
+                     const float y_s = c_pos->screen_y / h;
+                     const float g = static_cast<float>(cam->g);
 
-                      // This uses NDC + accounts for field of view and perspective to put x and y into view space.
-                      const float x_v = -(((2.f * x_s) - 1.f) * a) * fov;
-                      const float y_v = -(2.f * y_s - 1.f) * fov;
+                     // This uses NDC + accounts for field of view and perspective to put x and y into view space.
+                     const float x_v = -(((2.f * x_s) - 1.f) * a) * fov;
+                     const float y_v = -(2.f * y_s - 1.f) * fov;
 
-                      // This is the click at actually twice the value of the projection plane distance.
-                      const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
-                      // This transforms the view click into world space using the inverse the view matrix.
-                      const auto world_ray = glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(view_click, 0.f));
+                     // This is the click at actually twice the value of the projection plane distance.
+                     const auto view_click = glm::vec3(x_v, -y_v, 2.f * g);
+                     // This transforms the view click into world space using the inverse the view matrix.
+                     const auto world_ray = glm::vec3(glm::inverse(array_to_mat4(cam->v)) * glm::vec4(view_click, 0.f));
 
-                      // Create the pucker coordinates v and m;
-                      const glm::vec3 plucker_v = world_ray;
-                      const glm::vec3 plucker_m = cross(camera_pos, world_ray);
+                     // Create the pucker coordinates v and m;
+                     const glm::vec3 plucker_v = world_ray;
+                     const glm::vec3 plucker_m = cross(camera_pos, world_ray);
 
-                      // Create the parameterized plane values for the floor in world space.
-                      constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
-                      constexpr float plane_distance = 0.f;
+                     // Create the parameterized plane values for the floor in world space.
+                     constexpr auto normal = glm::vec3(0.f, 1.f, 0.f);
+                     constexpr float plane_distance = 0.f;
 
-                      // Calculate the intersection using the homogenous plane intersection formula
-                      const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
-                      const glm::vec3 d_v = plucker_v * plane_distance;
-                      const glm::vec3 intersection = m_x_n + d_v;
-                      const float intersection_w = glm::dot(-normal, plucker_v);
+                     // Calculate the intersection using the homogenous plane intersection formula
+                     const glm::vec3 m_x_n = glm::cross(plucker_m, normal);
+                     const glm::vec3 d_v = plucker_v * plane_distance;
+                     const glm::vec3 intersection = m_x_n + d_v;
+                     const float intersection_w = glm::dot(-normal, plucker_v);
 
-                      l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
+                     l->debug(std::format("intersection {:.3f}, {:.3f}, {:.3f}", intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w));
 
-                      // Set rosy to target that intersection.
-                      auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
+                     // Set rosy to target that intersection.
+                     auto rosy_target = glm::vec3(intersection[0] / intersection_w, intersection[1] / intersection_w, intersection[2] / intersection_w);
 
-                      // This is all taking place in world space. It used to be in object space and that was incorrect because this is about moving rosy in world space.
-                      // Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
-                      const auto floor_index = floor_entity.get<c_static>();
-                      const node* floor_node = get_static()[floor_index->index];
-                      auto world_space_floor_bounds = floor_node->get_world_space_bounds();
-                      for (int j{0}; j < 3; j++)
-                      {
-                          if (rosy_target[j] < world_space_floor_bounds.min[j])
-                          {
-                              rosy_target[j] = world_space_floor_bounds.min[j];
-                          }
-                          if (rosy_target[j] > world_space_floor_bounds.max[j])
-                          {
-                              rosy_target[j] = world_space_floor_bounds.max[j];
-                          }
-                      }
+                     // This is all taking place in world space. It used to be in object space and that was incorrect because this is about moving rosy in world space.
+                     // Calculate whether the target is within the floor's bounds, if not set any coordinate outside to the max extent of the bounds.
+                     const auto floor_index = floor_entity.get<c_static>();
+                     const node* floor_node = get_static()[floor_index->index];
+                     auto world_space_floor_bounds = floor_node->get_world_space_bounds();
+                     for (int j{0}; j < 3; j++)
+                     {
+                         if (rosy_target[j] < world_space_floor_bounds.min[j])
+                         {
+                             rosy_target[j] = world_space_floor_bounds.min[j];
+                         }
+                         if (rosy_target[j] > world_space_floor_bounds.max[j])
+                         {
+                             rosy_target[j] = world_space_floor_bounds.max[j];
+                         }
+                     }
 
-                      c_target target{.x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z};
-                      rosy_reference.entity.add<c_target>().set<c_target>(target);
+                     c_target target{.x = rosy_target.x, .y = rosy_target.y, .z = rosy_target.z};
+                     rosy_reference.entity.add<c_target>().set<c_target>(target);
 
-                      // Draw some debugging UI to display picking performance.
-                      if (level_entity.has<c_pick_debugging_enabled>())
-                      {
-                          const auto pick_debugging = level_entity.get<c_pick_debugging_enabled>();
-                          glm::mat4 m;
-                          std::array<float, 4> color;
-                          if (pick_debugging->space & debug_object_flag_screen_space)
-                          {
-                              // Draw a green circle to indicate screen space coordinate system is being used.
-                              color = {0.f, 1.f, 0.f, 1.f};
-                              m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
-                          }
-                          else
-                          {
-                              // Else we're in view space and want to make sure our circle is in the correct location for view space to show we're tracking the mouse cursor in view space correctly.
-                              color = {1.f, 1.f, 0.f, 1.f};
-                              m = glm::translate(glm::mat4(1.f), view_click);
-                          }
-                          m = glm::scale(m, glm::vec3(0.01f));
-                          // This will draw a little green ir yellow circle depending on which space we are drawing the circle on the screen.
-                          rls->pick_debugging.picking = {
-                              .type = debug_object_type::circle,
-                              .transform = mat4_to_array(m),
-                              .color = color,
-                              .flags = pick_debugging->space,
-                          };
-                          // Record the ray as a debug line to display:
-                          if (level_entity.has<t_pick_debugging_record>())
-                          {
-                              float distance{1000.f}; // It's a long ray.
-                              glm::vec3 draw_location = world_ray * distance;
-                              distance += 2.f;
-                              // We use the transform matrix as the actual points to render the line to via a flag.
-                              auto m2 = glm::mat4(
-                                  glm::vec4(camera_pos, 1.f),
-                                  glm::vec4(draw_location, 1.f),
-                                  glm::vec4(1.f),
-                                  glm::vec4(1.f)
-                              );
-                              rls->pick_debugging.circles.push_back({
-                                  .type = debug_object_type::line,
-                                  .transform = mat4_to_array(m2),
-                                  .color = {0.f, 1.f, 0.f, 1.f},
-                                  .flags = debug_object_flag_transform_is_points,
-                              });
-                              level_entity.remove<t_pick_debugging_record>();
-                          }
-                      }
-                      else
-                      {
-                          // In this case, if we're in edit mode we will draw nice little cursor on the actual floor where rosy is targeting.
-                          glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, (intersection[1] / intersection_w) + 0.1f, intersection[2] / intersection_w));
-                          circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
-                          circle_m = glm::scale(circle_m, glm::vec3(0.25f));
+                     // Draw some debugging UI to display picking performance.
+                     if (level_entity.has<c_pick_debugging_enabled>())
+                     {
+                         const auto pick_debugging = level_entity.get<c_pick_debugging_enabled>();
+                         glm::mat4 m;
+                         std::array<float, 4> color;
+                         if (pick_debugging->space & debug_object_flag_screen_space)
+                         {
+                             // Draw a green circle to indicate screen space coordinate system is being used.
+                             color = {0.f, 1.f, 0.f, 1.f};
+                             m = glm::translate(glm::mat4(1.f), glm::vec3(x_s * 2.f - 1.f, y_s * 2.f - 1.f, 0.1f));
+                         }
+                         else
+                         {
+                             // Else we're in view space and want to make sure our circle is in the correct location for view space to show we're tracking the mouse cursor in view space correctly.
+                             color = {1.f, 1.f, 0.f, 1.f};
+                             m = glm::translate(glm::mat4(1.f), view_click);
+                         }
+                         m = glm::scale(m, glm::vec3(0.01f));
+                         // This will draw a little green ir yellow circle depending on which space we are drawing the circle on the screen.
+                         rls->pick_debugging.picking = {
+                             .type = debug_object_type::circle,
+                             .transform = mat4_to_array(m),
+                             .color = color,
+                             .flags = pick_debugging->space,
+                         };
+                         // Record the ray as a debug line to display:
+                         if (level_entity.has<t_pick_debugging_record>())
+                         {
+                             float distance{1000.f}; // It's a long ray.
+                             glm::vec3 draw_location = world_ray * distance;
+                             distance += 2.f;
+                             // We use the transform matrix as the actual points to render the line to via a flag.
+                             auto m2 = glm::mat4(
+                                 glm::vec4(camera_pos, 1.f),
+                                 glm::vec4(draw_location, 1.f),
+                                 glm::vec4(1.f),
+                                 glm::vec4(1.f)
+                             );
+                             rls->pick_debugging.circles.push_back({
+                                 .type = debug_object_type::line,
+                                 .transform = mat4_to_array(m2),
+                                 .color = {0.f, 1.f, 0.f, 1.f},
+                                 .flags = debug_object_flag_transform_is_points,
+                             });
+                             level_entity.remove<t_pick_debugging_record>();
+                         }
+                     }
+                     else
+                     {
+                         // In this case, if we're in edit mode we will draw nice little cursor on the actual floor where rosy is targeting.
+                         glm::mat4 circle_m = glm::translate(glm::mat4(1.f), glm::vec3(intersection[0] / intersection_w, (intersection[1] / intersection_w) + 0.1f, intersection[2] / intersection_w));
+                         circle_m = glm::rotate(circle_m, (glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
+                         circle_m = glm::scale(circle_m, glm::vec3(0.25f));
 
-                          rls->pick_debugging.picking = {
-                              .type = debug_object_type::circle,
-                              .transform = mat4_to_array(circle_m),
-                              .color = {0.f, 1.f, 0.f, 1.f},
-                              .flags = 0,
-                          };
-                      }
-                      // If rosy is targeting orient rosy and move her toward the target.
-                      if (rosy_reference.entity.has<c_target>())
-                      {
-                          const std::array<float, 3> node_world_space_position = rosy_reference.node->get_world_space_position();
-                          const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
-                          constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
+                         rls->pick_debugging.picking = {
+                             .type = debug_object_type::circle,
+                             .transform = mat4_to_array(circle_m),
+                             .color = {0.f, 1.f, 0.f, 1.f},
+                             .flags = 0,
+                         };
+                     }
+                     // If rosy is targeting orient rosy and move her toward the target.
+                     if (rosy_reference.entity.has<c_target>())
+                     {
+                         const std::array<float, 3> node_world_space_position = rosy_reference.node->get_world_space_position();
+                         const auto rosy_pos = glm::vec3(node_world_space_position[0], node_world_space_position[1], node_world_space_position[2]);
+                         constexpr auto game_forward = glm::vec3(0.f, 0.f, 1.f);
 
-                          // Convert rosy target translation to world position if rosy's position was world origin.
-                          // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
-                          // This is not rosy's asset-origin space, this just translating world origin to get a world yaw for rosy.
-                          glm::mat4 transform_world_origin_to_rosy_position = glm::translate(glm::mat4(1.f), {-rosy_pos[0], -rosy_pos[1], -rosy_pos[2]});
-                          // Verify that the rosy_space target isn't the null vector, if it is she's already there.
-                          if (glm::vec4 rosy_target_if_rosy_is_world_origin = transform_world_origin_to_rosy_position * glm::vec4(rosy_target, 1.f); rosy_target_if_rosy_is_world_origin != glm::zero<
-                              glm::vec4>())
-                          {
-                              // Calculate the difference between rosy's orientation and her target position
-                              const float sign = rosy_target_if_rosy_is_world_origin.x > 0 ? -1.f : 1.f;
-                              // This offset's rosy's orientation based on her orientation around the x-axis.
-                              const float target_game_cos_theta = glm::dot(glm::normalize(glm::vec3(rosy_target_if_rosy_is_world_origin)), game_forward);
-                              // This dot product is used to get the angle of the target with respect to rosy's position.
-                              const float target_yaw = sign * std::acos(target_game_cos_theta);
+                         // Convert rosy target translation to world position if rosy's position was world origin.
+                         // This works because rosy will be at origin in this space and so wherever the target is at an angle for rosy's position.
+                         // This is not rosy's asset-origin space, this just translating world origin to get a world yaw for rosy.
+                         glm::mat4 transform_world_origin_to_rosy_position = glm::translate(glm::mat4(1.f), {-rosy_pos[0], -rosy_pos[1], -rosy_pos[2]});
+                         // Verify that the rosy_space target isn't the null vector, if it is she's already there.
+                         if (glm::vec4 rosy_target_if_rosy_is_world_origin = transform_world_origin_to_rosy_position * glm::vec4(rosy_target, 1.f); rosy_target_if_rosy_is_world_origin != glm::zero<
+                             glm::vec4>())
+                         {
+                             // Calculate the difference between rosy's orientation and her target position
+                             const float sign = rosy_target_if_rosy_is_world_origin.x > 0 ? -1.f : 1.f;
+                             // This offset's rosy's orientation based on her orientation around the x-axis.
+                             const float target_game_cos_theta = glm::dot(glm::normalize(glm::vec3(rosy_target_if_rosy_is_world_origin)), game_forward);
+                             // This dot product is used to get the angle of the target with respect to rosy's position.
+                             const float target_yaw = sign * std::acos(target_game_cos_theta);
 
-                              l->debug(std::format(
-                                  "rosy_target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) target_yaw: {:.3f}) sign: {:.3f}",
-                                  rosy_target_if_rosy_is_world_origin[0],
-                                  rosy_target_if_rosy_is_world_origin[1],
-                                  rosy_target_if_rosy_is_world_origin[2],
-                                  target_game_cos_theta,
-                                  target_yaw,
-                                  sign
-                              ));
+                             l->debug(std::format(
+                                 "rosy_target: ({:.3f}, {:.3f}, {:.3f}) cosTheta {:.3f}) target_yaw: {:.3f}) sign: {:.3f}",
+                                 rosy_target_if_rosy_is_world_origin[0],
+                                 rosy_target_if_rosy_is_world_origin[1],
+                                 rosy_target_if_rosy_is_world_origin[2],
+                                 target_game_cos_theta,
+                                 target_yaw,
+                                 sign
+                             ));
 
-                              c_forward nf{.yaw = target_yaw};
-                              rosy_reference.entity.add<c_forward>().set<c_forward>(nf);
+                             c_forward nf{.yaw = target_yaw};
+                             rosy_reference.entity.add<c_forward>().set<c_forward>(nf);
 
-                              // Linearly interpolate rosy's position toward the target
-                              const float t = 1.f * it.delta_time();
-                              glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
+                             // Linearly interpolate rosy's position toward the target
+                             const float t = 1.f * it.delta_time();
+                             glm::vec3 new_rosy_pos = (rosy_pos * (1.f - t)) + rosy_target * t;
 
-                              // Update rosy's world space orientation and position
-                              rosy_reference.node->set_world_space_translate(vec3_to_array(new_rosy_pos));
-                              // Set rosy's orientation to face target
-                              rosy_reference.node->set_world_space_yaw(target_yaw);
+                             // Update rosy's world space orientation and position
+                             rosy_reference.node->set_world_space_translate(vec3_to_array(new_rosy_pos));
+                             // Set rosy's orientation to face target
+                             rosy_reference.node->set_world_space_yaw(target_yaw);
 
-                              game_cam->set_game_cam_position({new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
-                          }
-                      }
-                  });
+                             game_cam->set_game_cam_position({new_rosy_pos[0], new_rosy_pos[1], new_rosy_pos[2]});
+                         }
+                     }
+                 });
         }
 
         void init_systems()
@@ -768,7 +773,7 @@ namespace
         [[nodiscard]] result update(const uint32_t viewport_width, const uint32_t viewport_height,
                                     const double dt)
         {
-            if (const auto res = level_editor->process(wls->editor_commands, &rls->editor_state); res != result::ok)
+            if (const auto res = level_editor->process(*rls, wls->editor_commands, &rls->editor_state); res != result::ok)
             {
                 l->error(std::format("Error processing editor commands {}", static_cast<uint8_t>(res)));
                 return res;
@@ -784,6 +789,12 @@ namespace
                 return res;
             }
             camera* cam = active_cam == level_state::camera_choice::game ? game_cam : free_cam;
+            if (rls->editor_state.load_saved_view)
+            {
+                active_cam = level_state::camera_choice::free;
+                cam = free_cam;
+                cam->reposition(rls->cam.yaw, rls->cam.pitch, rls->cam.position);
+            }
             if (const auto res = cam->update(viewport_width, viewport_height, dt); res != result::ok)
             {
                 l->error("Error updating camera");
@@ -989,6 +1000,7 @@ namespace
 
                 const glm::mat4 node_object_space_transform = array_to_mat4(queue_item.game_node->get_object_space_transform());
                 const glm::mat4 node_world_space_transform = array_to_mat4(queue_item.game_node->get_world_space_transform());
+                const glm::mat4 to_object_space_transform = array_to_mat4(queue_item.game_node->get_to_object_space_transform());
 
                 // Set node bounds for bound testing.
                 node_bounds object_space_bounds{};
@@ -1011,7 +1023,6 @@ namespace
 
                     {
                         // Record the assets transforms from the asset
-                        const glm::mat4 to_object_space_transform = glm::inverse(static_cast<glm::mat4>(node_world_space_transform));
                         const glm::mat3 normal_transform = glm::transpose(glm::inverse(glm::mat3(node_world_space_transform)));
 
                         go.transform = mat4_to_array(node_world_space_transform);
@@ -1235,10 +1246,11 @@ result level::init(std::shared_ptr<rosy_logger::log> new_log, const config new_c
             wls.light.depth_bias_constant = -21.882f;
             wls.light.depth_bias_clamp = -20.937f;
             wls.light.depth_bias_slope_factor = -3.f;
+            wls.light.brdf_lighting_enabled = true;
             wls.draw_config.cull_enabled = true;
             wls.draw_config.reverse_winding_order_enabled = false;
-            wls.light.sunlight_color = { 1.f, 1.f, 1.f, 1.f };
-            wls.light.ambient_light = 0.04f;
+            wls.light.sunlight_color = {1.f, 1.f, 1.f, 1.f};
+            wls.light.ambient_light = 0.01f;
             wls.light.depth_bias_enabled = true;
             wls.draw_config.thick_wire_lines = false;
             wls.fragment_config.output = 0;

@@ -28,8 +28,11 @@ namespace rosy_asset
     {
         uint8_t double_sided{0};
         std::array<float, 4> base_color_factor{0.f};
-        float metallic_factor{0.f};
-        float roughness_factor{0.f};
+        // In Rosy, metallic_factor and roughness_factor are only considered in a metallic workflow when metallic or
+        // mixmaps are present. Rosy is a game engine designed to work with assets directly designed for Rosy and
+        // is not a generic GLTF or FBX viewer and does not adhere to any external specification.
+        float metallic_factor{1.f};
+        float roughness_factor{1.f};
         uint8_t alpha_mode{ 0 };
         float alpha_cutoff{ 0.f };
         uint32_t color_image_index{UINT32_MAX}; // UINT32_MAX == not present

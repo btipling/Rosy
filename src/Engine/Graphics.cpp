@@ -301,7 +301,7 @@ namespace
         [[maybe_unused]] uint32_t inverse_bnt{0};
         [[maybe_unused]] uint32_t ignore_asset_tangent_sign{0};
         [[maybe_unused]] uint32_t ensure_orthogonal_bitangent{0};
-        [[maybe_unused]] uint32_t reverse_cross_bitangent{0};
+        [[maybe_unused]] uint32_t brdf_lighting_enabled{0};
     };
 
     struct allocated_image
@@ -354,6 +354,8 @@ namespace
         uint32_t normal_sampler_index{UINT32_MAX};
         uint32_t metallic_sampled_image_index{UINT32_MAX};
         uint32_t metallic_sampler_index{UINT32_MAX};
+        uint32_t mixmap_sampled_image_index{UINT32_MAX};
+        uint32_t mixmap_sampler_index{UINT32_MAX};
     };
 
     struct gpu_material_buffer
@@ -4084,6 +4086,7 @@ namespace
                             color_sampler_index = sampler_desc_index[m.color_sampler_index];
                         }
                     }
+
                     uint32_t normal_image_sampler_index = UINT32_MAX;
                     uint32_t normal_sampler_index = default_sampler_index;
                     if (m.normal_image_index < color_image_sampler_desc_index.size())
@@ -4097,6 +4100,7 @@ namespace
                             normal_sampler_index = sampler_desc_index[m.normal_sampler_index];
                         }
                     }
+
                     uint32_t metallic_image_sampler_index = UINT32_MAX;
                     uint32_t metallic_sampler_index = default_sampler_index;
                     if (m.metallic_image_index < color_image_sampler_desc_index.size())
@@ -4110,19 +4114,40 @@ namespace
                             metallic_sampler_index = sampler_desc_index[m.metallic_sampler_index];
                         }
                     }
-                    gpu_material new_mat{};
 
+                    uint32_t mixmap_image_sampler_index = UINT32_MAX;
+                    uint32_t mixmap_sampler_index = default_sampler_index;
+                    if (m.mixmap_image_index < color_image_sampler_desc_index.size())
+                    {
+                        mixmap_image_sampler_index = color_image_sampler_desc_index[m.mixmap_image_index];
+
+                        assert(dds_textures.size() > m.mixmap_image_index);
+
+                        if (m.mixmap_sampler_index < sampler_desc_index.size())
+                        {
+                            mixmap_sampler_index = sampler_desc_index[m.mixmap_sampler_index];
+                        }
+                    }
+
+                    gpu_material new_mat{};
                     new_mat.color = m.base_color_factor;
                     new_mat.metallic_factor = m.metallic_factor;
                     new_mat.roughness_factor = m.roughness_factor;
                     new_mat.alpha_cutoff = m.alpha_cutoff;
                     new_mat.alpha_mode = m.alpha_mode;
+
                     new_mat.color_sampled_image_index = color_image_sampler_index;
                     new_mat.color_sampler_index = color_sampler_index;
+
                     new_mat.normal_sampled_image_index = normal_image_sampler_index;
                     new_mat.normal_sampler_index = normal_sampler_index;
+
                     new_mat.metallic_sampled_image_index = metallic_image_sampler_index;
                     new_mat.metallic_sampler_index = metallic_sampler_index;
+
+                    new_mat.mixmap_sampled_image_index = mixmap_image_sampler_index;
+                    new_mat.mixmap_sampler_index = mixmap_sampler_index;
+
                     materials.push_back(new_mat);
                 }
 
@@ -6003,7 +6028,7 @@ namespace
             const uint32_t inverse_bnt = new_rls.light.inverse_bnt ? 1 : 0;
             const uint32_t ignore_asset_tangent_sign = new_rls.light.ignore_asset_tangent_sign ? 1 : 0;
             const uint32_t ensure_orthogonal_bitangent = new_rls.light.ensure_orthogonal_bitangent ? 1 : 0;
-            const uint32_t reverse_cross_bitangent = new_rls.light.reverse_cross_bitangent ? 1 : 0;
+            const uint32_t brdf_lighting_enabled = new_rls.light.brdf_lighting_enabled ? 1 : 0;
             gpu_scene_data sd;
             sd.view = new_rls.cam.v;
             sd.proj = new_rls.cam.p;
@@ -6026,7 +6051,7 @@ namespace
             sd.inverse_bnt = inverse_bnt;
             sd.ignore_asset_tangent_sign = ignore_asset_tangent_sign;
             sd.ensure_orthogonal_bitangent = ensure_orthogonal_bitangent;
-            sd.reverse_cross_bitangent = reverse_cross_bitangent;
+            sd.brdf_lighting_enabled = brdf_lighting_enabled;
 
             rls = &new_rls;
             scene_data = sd;
@@ -6038,6 +6063,12 @@ namespace
             //ImGui::ShowDemoWindow();
             {
                 // Set dual read/write states
+                if (rls->editor_state.load_saved_view)
+                {
+                    du->wls->light = rls->light;
+                    du->wls->light_debug = rls->light_debug;
+                    du->wls->fragment_config = rls->fragment_config;
+                }
                 du->wls->game_camera_yaw = rls->game_camera_yaw;
                 du->wls->editor_commands.commands.clear();
             }
@@ -6059,6 +6090,7 @@ namespace
                     gd.shadow_map_img_id = reinterpret_cast<ImTextureID>(shadow_map_image.imgui_ds_near);
                     du->graphics_debug_ui(eng_stats, stats, gd, rls);
                     du->assets_debug_ui(rls);
+                    du->saved_views_debug_ui(rls);
                 }
                 ImGui::EndTabBar();
             }

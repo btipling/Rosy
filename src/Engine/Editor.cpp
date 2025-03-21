@@ -23,11 +23,74 @@ namespace rosy_editor
         std::string path{};
     };
 
+    // saved_debug_view is a view state that can be saved to the level json to quickly jump to a
+    // particular position, orientation with an optional particular asset and state to save time
+    // when debugging an issue. This enables the free camera.
+    struct saved_debug_view
+    {
+        std::string view_name{""};
+        std::array<float, 3> sun_position{0.f};
+        std::array<float, 3> camera_position{0.f};
+        float sun_yaw{0};
+        float sun_pitch{0};
+        float camera_yaw{0};
+        float camera_pitch{0};
+        bool level_loaded{false};
+        bool frag_ui_tools_open{false};
+        bool lighting_ui_tools_open{false};
+        unsigned debug_view{0};
+        bool shadows_enabled{false};
+        bool light_enabled{false};
+        bool sun_debug_enabled{false};
+        std::string asset_loaded{};
+    };
+
     struct level_data
     {
         std::vector<level_data_model> models;
         std::vector<level_asset> assets;
+        std::vector<saved_debug_view> saved_debug_views;
     };
+
+    void to_json(json& j, const saved_debug_view& view) // NOLINT(misc-use-internal-linkage)
+    {
+        j = json{
+            {"view_name", view.view_name},
+            {"sun_position", view.sun_position},
+            {"camera_position", view.camera_position},
+            {"sun_yaw", view.sun_yaw},
+            {"sun_pitch", view.sun_pitch},
+            {"camera_yaw", view.camera_yaw},
+            {"camera_pitch", view.camera_pitch},
+            {"level_loaded", view.level_loaded},
+            {"frag_ui_tools_open", view.frag_ui_tools_open},
+            {"lighting_ui_tools_open", view.lighting_ui_tools_open},
+            {"debug_view", view.debug_view},
+            {"shadows_enabled", view.shadows_enabled},
+            {"light_enabled", view.light_enabled},
+            {"sun_debug_enabled", view.sun_debug_enabled},
+            {"asset_loaded", view.asset_loaded},
+        };
+    }
+
+    void from_json(const json& j, saved_debug_view& view) // NOLINT(misc-use-internal-linkage)
+    {
+        j.at("view_name").get_to(view.view_name);
+        j.at("sun_position").get_to(view.sun_position);
+        j.at("camera_position").get_to(view.camera_position);
+        j.at("sun_yaw").get_to(view.sun_yaw);
+        j.at("sun_pitch").get_to(view.sun_pitch);
+        j.at("camera_yaw").get_to(view.camera_yaw);
+        j.at("camera_pitch").get_to(view.camera_pitch);
+        j.at("level_loaded").get_to(view.level_loaded);
+        j.at("frag_ui_tools_open").get_to(view.frag_ui_tools_open);
+        j.at("lighting_ui_tools_open").get_to(view.lighting_ui_tools_open);
+        j.at("debug_view").get_to(view.debug_view);
+        j.at("shadows_enabled").get_to(view.shadows_enabled);
+        j.at("light_enabled").get_to(view.light_enabled);
+        j.at("sun_debug_enabled").get_to(view.sun_debug_enabled);
+        j.at("asset_loaded").get_to(view.asset_loaded);
+    }
 
     void to_json(json& j, const level_data_model& model) // NOLINT(misc-use-internal-linkage)
     {
@@ -71,6 +134,7 @@ namespace rosy_editor
         j = json{
             {"assets", l.assets},
             {"models", l.models},
+            {"saved_debug_views", l.saved_debug_views},
         };
     }
 
@@ -80,6 +144,10 @@ namespace rosy_editor
         if (j.contains("assets"))
         {
             j.at("assets").get_to(l.assets);
+        }
+        if (j.contains("saved_debug_views"))
+        {
+            j.at("saved_debug_views").get_to(l.saved_debug_views);
         }
     }
 }
@@ -121,6 +189,8 @@ namespace
         std::vector<rosy_asset::asset*> origin_assets;
         std::vector<asset_description> asset_descriptions;
         rosy_editor::level_data ld;
+        bool level_loaded{false};
+        std::string asset_loaded{};
 
         result init(const std::shared_ptr<rosy_logger::log>& new_log)
         {
@@ -274,7 +344,7 @@ namespace
             return result::ok;
         }
 
-        [[nodiscard]] result process(const level_editor_commands& commands, level_editor_state* state)
+        [[nodiscard]] result process(read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
         {
             state->new_asset = nullptr;
             if (!asset_descriptions.empty())
@@ -293,6 +363,8 @@ namespace
                             if (a.id == cmd.id)
                             {
                                 state->new_asset = a.asset;
+                                level_loaded = false;
+                                asset_loaded = cmd.id;
                                 return result::ok;
                             }
                         }
@@ -319,6 +391,7 @@ namespace
                             return res;
                         }
                         state->new_asset = ld.models.empty() ? asset_descriptions[0].asset : &level_asset;
+                        level_loaded = true;
                         return result::ok;
                     case editor_command::editor_command_type::add_to_level:
                         l->info("editor-command: adding to level.");
@@ -347,8 +420,133 @@ namespace
                         ));
                         if (const auto res = edit_node(cmd.id, cmd.mode_type_option, cmd.node_data); res != result::ok)
                         {
-                            l->error(std::format("error removing model from level {}", static_cast<uint8_t>(res)));
+                            l->error(std::format("editor-command: error removing model from level {}", static_cast<uint8_t>(res)));
                             return res;
+                        }
+                        break;
+                    case editor_command::editor_command_type::saved_views:
+                        if (cmd.view_saves.delete_view)
+                        {
+                            if (ld.saved_debug_views.size() <= cmd.view_saves.view_index)
+                            {
+                                l->error("editor-command: attempted to delete an invalid saved debug view");
+                                return result::error;
+                            }
+                            const auto& view_to_delete = ld.saved_debug_views[cmd.view_saves.view_index];
+                            std::string view_name = view_to_delete.view_name;
+                            ld.saved_debug_views.erase(ld.saved_debug_views.begin() + static_cast<long long>(cmd.view_saves.view_index));
+                            if (const auto res = write(); res != result::ok)
+                            {
+                                l->error(std::format("error deleting level file {} after saving view", static_cast<uint8_t>(res)));
+                                return res;
+                            }
+                            state->saved_views = updated_saved_views();
+                            l->info(std::format("deleted saved view {} at index {}", view_name, cmd.view_saves.view_index));
+                            break;
+                        }
+                        if (cmd.view_saves.load_view)
+                        {
+                            if (ld.saved_debug_views.size() <= cmd.view_saves.view_index)
+                            {
+                                l->error("editor-command: attempted to load an invalid saved debug view");
+                                return result::error;
+                            }
+                            const auto& view_to_load = ld.saved_debug_views[cmd.view_saves.view_index];
+                            std::string view_name = view_to_load.view_name;
+                            rls.light.sun_position = {view_to_load.sun_position[0], view_to_load.sun_position[1], view_to_load.sun_position[2], 1.f};
+                            rls.cam.position = {view_to_load.camera_position[0], view_to_load.camera_position[1], view_to_load.camera_position[2], 1.f};
+                            rls.light_debug.sun_yaw = view_to_load.sun_yaw;
+                            rls.light_debug.sun_pitch = view_to_load.sun_pitch;
+                            rls.cam.yaw = view_to_load.camera_yaw;
+                            rls.cam.pitch = view_to_load.camera_pitch;
+                            rls.debug_ui.fragment_tools_open = view_to_load.frag_ui_tools_open;
+                            rls.debug_ui.lighting_tools_open = view_to_load.lighting_ui_tools_open;
+                            rls.fragment_config.output = static_cast<int>(view_to_load.debug_view);
+                            rls.fragment_config.shadows_enabled = view_to_load.shadows_enabled;
+                            rls.fragment_config.light_enabled = view_to_load.light_enabled;
+                            rls.light_debug.enable_sun_debug = view_to_load.sun_debug_enabled;
+                            state->load_saved_view = true;
+
+                            l->info(std::format("editor-command: load saved view {}", view_name));
+                            if (view_to_load.level_loaded)
+                            {
+                                state->new_asset = &level_asset;
+                                level_loaded = true;
+                            }
+                            else
+                            {
+                                l->info(std::format("editor-command: load saved view with asset id: {}", view_to_load.asset_loaded));
+                                for (const auto& a : asset_descriptions)
+                                {
+                                    if (a.id == view_to_load.asset_loaded)
+                                    {
+                                        state->new_asset = a.asset;
+                                        level_loaded = false;
+                                        asset_loaded = cmd.id;
+                                        return result::ok;
+                                    }
+                                }
+                                l->warn(std::format("editor-command: could not load saved view with asset id: {}", view_to_load.asset_loaded));
+                            }
+                            break;
+                        }
+                        if (cmd.view_saves.record_state || cmd.view_saves.update_view)
+                        {
+                            rosy_editor::saved_debug_view save_view_data{};
+                            save_view_data.view_name = std::string{cmd.view_saves.name.data()};
+                            save_view_data.sun_position = {rls.light.sun_position[0], rls.light.sun_position[1], rls.light.sun_position[2]};
+                            save_view_data.camera_position = {rls.cam.position[0], rls.cam.position[1], rls.cam.position[2]};
+                            save_view_data.sun_yaw = rls.light_debug.sun_yaw;
+                            save_view_data.sun_pitch = rls.light_debug.sun_pitch;
+                            save_view_data.camera_yaw = rls.cam.yaw;
+                            save_view_data.camera_pitch = rls.cam.pitch;
+                            save_view_data.frag_ui_tools_open = rls.debug_ui.fragment_tools_open;
+                            save_view_data.lighting_ui_tools_open = rls.debug_ui.lighting_tools_open;
+                            save_view_data.debug_view = rls.fragment_config.output;
+                            save_view_data.shadows_enabled = rls.fragment_config.shadows_enabled;
+                            save_view_data.light_enabled = rls.fragment_config.light_enabled;
+                            save_view_data.sun_debug_enabled = rls.light_debug.enable_sun_debug;
+                            if (cmd.view_saves.record_state)
+                            {
+                                // Can't update level_loaded or asset loaded, so this is specific to initial record state.
+                                save_view_data.level_loaded = level_loaded;
+                                if (!level_loaded)
+                                {
+                                    save_view_data.asset_loaded = asset_loaded;
+                                }
+                                ld.saved_debug_views.push_back(save_view_data);
+                            }
+                            if (cmd.view_saves.update_view)
+                            {
+                                if (ld.saved_debug_views.size() <= cmd.view_saves.view_index)
+                                {
+                                    l->error("editor-command: attempted to update an invalid saved debug view");
+                                    return result::error;
+                                }
+                                const auto& view_to_update = ld.saved_debug_views[cmd.view_saves.view_index];
+                                std::string view_name = view_to_update.view_name;
+                                bool has_name{false};
+                                for (const auto c : view_name)
+                                {
+                                    has_name = c != ' ';
+                                    if (has_name) break;
+                                }
+                                if (!has_name)
+                                {
+                                    save_view_data.view_name = view_to_update.view_name;
+                                }
+                                save_view_data.level_loaded = view_to_update.level_loaded;
+                                save_view_data.asset_loaded = view_to_update.asset_loaded;
+                                ld.saved_debug_views[cmd.view_saves.view_index] = save_view_data;
+                                l->info(std::format("updating saved view {} at index {}", view_name, cmd.view_saves.view_index));
+                            }
+                            if (const auto res = write(); res != result::ok)
+                            {
+                                l->error(std::format("error writing level file {} after saving view", static_cast<uint8_t>(res)));
+                                return res;
+                            }
+                            state->saved_views = updated_saved_views();
+                            break;
                         }
                         break;
                     }
@@ -409,8 +607,25 @@ namespace
                         state->current_level_data.static_models.push_back(new_md);
                     }
                 }
+                state->saved_views = updated_saved_views();
             }
+            level_loaded = true;
             return result::ok;
+        }
+
+        std::vector<saved_view> updated_saved_views() const
+        {
+            std::vector<saved_view> saved_views;
+            size_t i{0};
+            for (const auto& view : ld.saved_debug_views)
+            {
+                saved_view sv;
+                sv.view_name = view.view_name;
+                sv.view_index = i;
+                saved_views.push_back(sv);
+                i += 1;
+            }
+            return saved_views;
         }
 
         result load_level_asset()
@@ -749,6 +964,8 @@ namespace
                                                 destination_mat.alpha_cutoff = source_mat.alpha_cutoff;
                                                 destination_mat.normal_image_index = UINT32_MAX;
                                                 destination_mat.normal_sampler_index = UINT32_MAX;
+                                                destination_mat.metallic_image_index = UINT32_MAX;
+                                                destination_mat.metallic_sampler_index = UINT32_MAX;
                                                 level_asset.materials.push_back(destination_mat);
                                             }
                                             rosy_asset::material& destination_map = level_asset.materials[destination_mat_index];
@@ -887,6 +1104,150 @@ namespace
                                                     };
                                                     destination_map.normal_sampler_index = destination_sampler_index;
                                                     l->info(std::format("normal_sampler_index mapped to {} destination_sampler_index {} in {} in asset_helper_index {}",
+                                                                        current_sampler_index, destination_sampler_index, md.id, asset_helper_index));
+                                                    asset_helper.sampler_mappings.push_back(img_m);
+                                                    rosy_asset::sampler source_sampler = a->samplers[current_sampler_index];
+                                                    rosy_asset::sampler destination_sampler{};
+                                                    destination_sampler.min_filter = source_sampler.min_filter;
+                                                    destination_sampler.mag_filter = source_sampler.mag_filter;
+                                                    destination_sampler.wrap_s = source_sampler.wrap_s;
+                                                    destination_sampler.wrap_t = source_sampler.wrap_t;
+                                                    level_asset.samplers.push_back(destination_sampler);
+                                                }
+                                            }
+                                            // map the metallic_image_index
+                                            if (source_mat.metallic_image_index != UINT32_MAX)
+                                            {
+                                                const uint32_t current_image_index = source_mat.metallic_image_index;
+                                                uint32_t destination_image_index{0};
+
+                                                bool image_mapped{false};
+                                                for (const auto& im : asset_helper.image_mappings)
+                                                {
+                                                    if (im.source_index == current_image_index)
+                                                    {
+                                                        image_mapped = true;
+                                                        destination_image_index = im.destination_index;
+                                                        destination_map.metallic_image_index = destination_image_index;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!image_mapped)
+                                                {
+                                                    destination_image_index = static_cast<uint32_t>(level_asset.images.size());
+                                                    level_asset_builder_index_map img_m{
+                                                        .source_index = current_image_index,
+                                                        .destination_index = destination_image_index,
+                                                    };
+                                                    destination_map.metallic_image_index = destination_image_index;
+                                                    l->info(std::format("metallic_image_index mapped to {} destination_image_index {} in {} in asset_helper_index {}",
+                                                                        current_image_index, destination_image_index, md.id, asset_helper_index));
+                                                    asset_helper.image_mappings.push_back(img_m);
+                                                    rosy_asset::image source_image = a->images[current_image_index];
+                                                    rosy_asset::image destination_image{};
+                                                    destination_image.name = source_image.name;
+                                                    destination_image.image_type = source_image.image_type;
+                                                    level_asset.images.push_back(destination_image);
+                                                }
+                                            }
+                                            // map the metallic_sampler_index
+                                            if (source_mat.metallic_sampler_index != UINT32_MAX)
+                                            {
+                                                const uint32_t current_sampler_index = source_mat.metallic_sampler_index;
+                                                uint32_t destination_sampler_index{0};
+
+                                                bool sampler_mapped{false};
+                                                for (const auto& sm : asset_helper.sampler_mappings)
+                                                {
+                                                    if (sm.source_index == current_sampler_index)
+                                                    {
+                                                        sampler_mapped = true;
+                                                        destination_sampler_index = sm.destination_index;
+                                                        destination_map.metallic_sampler_index = destination_sampler_index;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!sampler_mapped)
+                                                {
+                                                    destination_sampler_index = static_cast<uint32_t>(level_asset.samplers.size());
+                                                    level_asset_builder_index_map img_m{
+                                                        .source_index = current_sampler_index,
+                                                        .destination_index = destination_sampler_index,
+                                                    };
+                                                    destination_map.metallic_sampler_index = destination_sampler_index;
+                                                    l->info(std::format("metallic_sampler_index mapped to {} destination_sampler_index {} in {} in asset_helper_index {}",
+                                                                        current_sampler_index, destination_sampler_index, md.id, asset_helper_index));
+                                                    asset_helper.sampler_mappings.push_back(img_m);
+                                                    rosy_asset::sampler source_sampler = a->samplers[current_sampler_index];
+                                                    rosy_asset::sampler destination_sampler{};
+                                                    destination_sampler.min_filter = source_sampler.min_filter;
+                                                    destination_sampler.mag_filter = source_sampler.mag_filter;
+                                                    destination_sampler.wrap_s = source_sampler.wrap_s;
+                                                    destination_sampler.wrap_t = source_sampler.wrap_t;
+                                                    level_asset.samplers.push_back(destination_sampler);
+                                                }
+                                            }
+                                            // map the mixmap_image_index
+                                            if (source_mat.mixmap_image_index != UINT32_MAX)
+                                            {
+                                                const uint32_t current_image_index = source_mat.mixmap_image_index;
+                                                uint32_t destination_image_index{0};
+
+                                                bool image_mapped{false};
+                                                for (const auto& im : asset_helper.image_mappings)
+                                                {
+                                                    if (im.source_index == current_image_index)
+                                                    {
+                                                        image_mapped = true;
+                                                        destination_image_index = im.destination_index;
+                                                        destination_map.mixmap_image_index = destination_image_index;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!image_mapped)
+                                                {
+                                                    destination_image_index = static_cast<uint32_t>(level_asset.images.size());
+                                                    level_asset_builder_index_map img_m{
+                                                        .source_index = current_image_index,
+                                                        .destination_index = destination_image_index,
+                                                    };
+                                                    destination_map.mixmap_image_index = destination_image_index;
+                                                    l->info(std::format("mixmap_image_index mapped to {} destination_image_index {} in {} in asset_helper_index {}",
+                                                                        current_image_index, destination_image_index, md.id, asset_helper_index));
+                                                    asset_helper.image_mappings.push_back(img_m);
+                                                    rosy_asset::image source_image = a->images[current_image_index];
+                                                    rosy_asset::image destination_image{};
+                                                    destination_image.name = source_image.name;
+                                                    destination_image.image_type = source_image.image_type;
+                                                    level_asset.images.push_back(destination_image);
+                                                }
+                                            }
+                                            // map the mixmap_sampler_index
+                                            if (source_mat.mixmap_sampler_index != UINT32_MAX)
+                                            {
+                                                const uint32_t current_sampler_index = source_mat.mixmap_sampler_index;
+                                                uint32_t destination_sampler_index{0};
+
+                                                bool sampler_mapped{false};
+                                                for (const auto& sm : asset_helper.sampler_mappings)
+                                                {
+                                                    if (sm.source_index == current_sampler_index)
+                                                    {
+                                                        sampler_mapped = true;
+                                                        destination_sampler_index = sm.destination_index;
+                                                        destination_map.mixmap_sampler_index = destination_sampler_index;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!sampler_mapped)
+                                                {
+                                                    destination_sampler_index = static_cast<uint32_t>(level_asset.samplers.size());
+                                                    level_asset_builder_index_map img_m{
+                                                        .source_index = current_sampler_index,
+                                                        .destination_index = destination_sampler_index,
+                                                    };
+                                                    destination_map.mixmap_sampler_index = destination_sampler_index;
+                                                    l->info(std::format("mixmap_sampler_index mapped to {} destination_sampler_index {} in {} in asset_helper_index {}",
                                                                         current_sampler_index, destination_sampler_index, md.id, asset_helper_index));
                                                     asset_helper.sampler_mappings.push_back(img_m);
                                                     rosy_asset::sampler source_sampler = a->samplers[current_sampler_index];
@@ -1079,8 +1440,7 @@ void editor::deinit()
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-result editor::process([[maybe_unused]] const level_editor_commands& commands,
-                       [[maybe_unused]] level_editor_state* state)
+result editor::process(read_level_state& rls, const level_editor_commands& commands, level_editor_state* state)
 {
-    return em->process(commands, state);
+    return em->process(rls, commands, state);
 }
