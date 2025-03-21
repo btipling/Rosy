@@ -1239,14 +1239,14 @@ result level::init(std::shared_ptr<rosy_logger::log> new_log, const config new_c
         }
         {
             wls.light_debug.sun_distance = 23.776f;
-            wls.light_debug.sun_pitch = 5.538f;
+            wls.light_debug.sun_pitch = 5.343f;
             wls.light_debug.sun_yaw = 6.414f;
             wls.light_debug.orthographic_depth = 76.838f;
             wls.light_debug.cascade_level = 36.f;
             wls.light.depth_bias_constant = -21.882f;
             wls.light.depth_bias_clamp = -20.937f;
             wls.light.depth_bias_slope_factor = -3.f;
-            wls.light.light_intensity = 2.5f;
+            wls.light.light_intensity = 5.2f;
             wls.light.brdf_lighting_enabled = true;
             wls.draw_config.cull_enabled = true;
             wls.draw_config.reverse_winding_order_enabled = false;
