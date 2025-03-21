@@ -228,6 +228,8 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
     float cosTheta = clamp(dot(L, N), 0, 1);
     float cosPhi = clamp(dot(H, N), 0, 1);
+    float lDotN = cosTheta;
+    float hDotN = cosPhi;
     float lDotH = clamp(dot(L, H), 0, 1);
     float nDotV = clamp(dot(N, V), 0, 1);
 
@@ -310,21 +312,21 @@ Fragment fragmentMain(BasicVertex basicVertex: BasicVertex, CSM csm: CSM, float4
 
             float3 lightIntensity = sd.sunlightColor.xyz;
 
-            float ndf = ggxDistribution(cosPhi, roughness);
-            float g = geoSmith(cosTheta, roughness) * geoSmith(nDotV, roughness);
-            float3 f = schlickFresnel(cosPhi, f0);
+            float ndf = ggxDistribution(hDotN, roughness);
+            float g = geoSmith(lDotN, roughness) * geoSmith(nDotV, roughness);
+            float3 f = schlickFresnel(max(dot(H, V), 0.0), f0);
 
             float3 kS = f;
             float3 kD = float3(1.0) - kS;
             kD *= 1.0 - metallic;
 
             float3 numerator = ndf * g * f;
-            float denominator = 4.0 * nDotV * cosTheta * 0.0001;
-            float3 specular = numerator;
+            float denominator = 4.0 * nDotV * lDotN + 0.0001;
+            float3 specular = numerator / denominator;
 
             float3 diffuse = outFragColor.xyz / 3.14159265f;
 
-            float3 colorBRDF = (kD * diffuse + specular) * lightIntensity * cosTheta;
+            float3 colorBRDF = (kD * diffuse + specular) * lightIntensity * lDotN;
             colorBRDF = max(ambientLight.xyz * diffuse, colorBRDF * shadowFactor);
             outFragColor = float4(linearToSrgb(colorBRDF.x), linearToSrgb(colorBRDF.y), linearToSrgb(colorBRDF.z), alpha);
         }
